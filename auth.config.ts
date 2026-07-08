@@ -1,6 +1,9 @@
 import type { NextAuthConfig } from "next-auth";
 
 export const authConfig = {
+  // Trust the deployment host (Railway terminates TLS at a proxy). Without this,
+  // Auth.js v5 rejects requests with "UntrustedHost: Host must be trusted".
+  trustHost: true,
   pages: { signIn: "/login" },
   callbacks: {
     // Route protection for middleware (edge runtime).
