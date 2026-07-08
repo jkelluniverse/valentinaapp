@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* Brand tokens (mirror of tailwind.config.ts, for non-Tailwind usage) */
+  --wine: #580c22;
+  --wine-dark: #570321;
+  --mocha: #b79175;
+  --cream: #fef4ea;
+  --blush: #fff4f8;
+  --blush-deep: #ffe8f0;
+  --ink: #4d4b49;
+  --ink-strong: #161616;
+  --slate: #797a8c;
+  --line: #eaeaea;
+  --rose: #dc506e;
+}
+
+@layer base {
+  body {
+    background-color: var(--cream);
+    color: var(--ink);
+    font-family: var(--font-body), Inter, system-ui, sans-serif;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-headline), "Crimson Pro", Georgia, serif;
+    color: var(--wine);
+    line-height: 1.15;
+  }
+}

@@ -1,20 +1,40 @@
-# Valentina's Coaching Platform — C0 (Foundation)
+# Valentina's Coaching Platform
 
-This is the **C0 foundation** from the engineer charter: repo + Postgres + Auth.js login +
-a deployed "hello, authenticated world". Nothing more. Each later component (C1–C8) builds
-on top of this once C0 is verified.
+An engineer-charter build, one verified component at a time.
+
+- **C0 — Foundation** ✅ verified live: repo + Postgres + Auth.js login + deployed "hello,
+  authenticated world".
+- **C1 — Accounts & roles** (this build): Valentina invites clients, they set a password and
+  record consent, and the practitioner/client boundary is enforced everywhere.
 
 ## Stack
 - Next.js 14 (App Router)
 - Auth.js / NextAuth v5 (Credentials provider, JWT sessions)
-- Prisma + PostgreSQL
-- Tailwind CSS
+- Prisma + PostgreSQL (migrations)
+- Tailwind CSS (styled to `BRAND.md`)
 
-## What C0 proves
-1. The app **deploys** on Railway.
-2. A user can **log in** (Auth.js).
-3. The app **reads from Postgres** (the dashboard loads your user record; `/api/health`
-   pings the DB). That's the deploy + login + DB round-trip the charter asks for.
+---
+
+## What C1 adds
+- **Invite by link.** The practitioner creates an invite and gets a one-time, copyable link
+  (7-day expiry) to send however she likes. Tokens are 256-bit and stored **hashed** — the raw
+  token is shown once and never persisted.
+- **Client onboarding.** The invited person sets a password (bcrypt cost 12) and records
+  consent, then is signed in to their own private space.
+- **Role-based access.** `PRACTITIONER` → `/practitioner/clients`, `CLIENT` → `/app`. Enforced
+  in middleware **and** re-checked server-side in every protected layout.
+- **Management.** Resend/refresh, revoke, and deactivate/reactivate clients. Revoked, expired,
+  and already-used links are rejected; deactivated clients can't log in.
+
+### Routes
+| Route | Who |
+|-------|-----|
+| `/login` | public |
+| `/invite/[token]` | public (accept an invite) |
+| `/practitioner/clients` | practitioner only |
+| `/app` | client only |
+| `/privacy` | public |
+| `/api/health` | public health check |
 
 ---
 
@@ -23,37 +43,54 @@ on top of this once C0 is verified.
 npm install
 cp .env.example .env         # then fill in DATABASE_URL + AUTH_SECRET
 npx auth secret              # generates AUTH_SECRET for you (writes to .env)
-npm run db:push              # creates the User table in your database
+npm run db:migrate           # applies migrations (creates User + Invite)
 npm run db:seed              # creates Valentina's practitioner login
 npm run dev                  # http://localhost:3000
 ```
-Log in at `/login` with the SEED_PRACTITIONER_EMAIL / PASSWORD from your `.env`.
+Log in at `/login` with the `SEED_PRACTITIONER_EMAIL` / `PASSWORD` from your `.env`.
+
+> **Migrations, not `db push`.** Now that real data exists, schema changes ship as Prisma
+> migrations (`prisma/migrations/`). `npm run db:migrate` runs `prisma migrate deploy`.
 
 ## Deploy on Railway
-1. Push this repo to GitHub.
-2. In Railway: **New Project → Deploy from GitHub repo** (select this repo).
-3. **Add a Postgres database** to the project. Railway sets `DATABASE_URL` automatically.
-4. Add these variables to the app service:
-   - `AUTH_SECRET` — run `openssl rand -base64 32` and paste the result.
-   - `SEED_PRACTITIONER_EMAIL` and `SEED_PRACTITIONER_PASSWORD`.
-5. Deploy. Then, once, from the Railway service shell (or locally against the Railway DB):
-   ```bash
-   npm run db:push
-   npm run db:seed
-   ```
-6. Visit the deployed URL → `/login` → you should land on the dashboard.
-   Visit `/api/health` → should return `{"ok":true,"db":"up"}`.
+The app service and Postgres are already set up from C0. To ship C1:
 
-C0 is "done" only when steps 5–6 succeed on the live URL.
+1. Push this branch; Railway builds and deploys it.
+2. **One-time migration baseline** (the C0 database was created with `db push`, so tell Prisma
+   the initial state is already there, then apply C1). In the app service **Console**:
+   ```bash
+   npx prisma migrate resolve --applied 0_init   # baseline: mark C0 as already applied
+   npm run db:migrate                            # applies the C1 migration (User.active, consentAt, Invite)
+   ```
+   After this first baseline, future deploys just need `npm run db:migrate`.
+3. Verify on the live URL — see the checklist below.
+
+### C1 done checklist (run on the live URL)
+1. Practitioner creates an invite → working copyable link → client shows **Invited**.
+2. Open the link in a fresh browser → set password + consent → auto-signed-in → `/app`.
+3. Client now shows **Active**.
+4. A client can't reach `/practitioner/**` (redirected to `/app`).
+5. Reused link rejected; expired link rejected; revoked link dead; deactivated client can't log in.
+6. Build clean; `/api/health` returns `{"ok":true,"db":"up"}`.
+
+---
 
 ## Security notes (carried from the charter)
-- Passwords are hashed with bcrypt; never stored in plain text.
-- Secrets live only in environment variables — never commit `.env`.
-- HTTPS is handled by Railway (encryption in transit).
-- This app holds sensitive personal reflections. Even though the practice is not a HIPAA
-  covered entity, we build to a high standard: consent, least-privilege access, and a
-  retention/deletion policy get added as we build C1+.
+- Passwords hashed with bcrypt (cost 12); never stored in plain text.
+- Invite tokens: 256-bit CSPRNG, stored as a SHA-256 hash, single-use, 7-day expiry.
+- No enumeration: invite and login errors are generic; they never reveal whether an email exists.
+- Consent is recorded (`User.consentAt`) before a client account is usable.
+- Authorization is enforced server-side; the client is never trusted. Middleware is a
+  convenience, not the boundary.
+- Deletion in v1 is soft (deactivation). Hard-delete + purge is defined with the data it
+  touches in a later component.
+- Secrets live only in environment variables — never commit `.env`. HTTPS handled by Railway.
+
+## Optional fast-follow: email invites
+C1 ships with copyable links (no new secrets). To send invite links automatically, add a
+transactional-email provider (Resend/Postmark) behind the same invite record — set
+`RESEND_API_KEY` and `INVITE_FROM_EMAIL` (see `.env.example`). No schema change required.
 
 ## Next component
-**C1 — Accounts & roles:** Valentina can invite and manage client accounts. Do not start
-C1 until C0 is verified on the live URL.
+**C2 — Self-awareness log:** writes into the client accounts created here. Do not start C2
+until C1 is verified on the live URL.

@@ -13,11 +13,34 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   name         String?
   passwordHash String?
-  role         Role     @default(CLIENT)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         Role      @default(CLIENT)
+  active       Boolean   @default(true) // deactivation gate for login
+  consentAt    DateTime? // set when a client accepts consent
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+model Invite {
+  id             String       @id @default(cuid())
+  email          String
+  name           String?
+  tokenHash      String       @unique // store the SHA-256 hash, NEVER the raw token
+  status         InviteStatus @default(PENDING)
+  expiresAt      DateTime
+  invitedById    String // practitioner User id
+  acceptedUserId String? // set on acceptance
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([email])
 }
