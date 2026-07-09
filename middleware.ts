@@ -1,28 +1,17 @@
-import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import { authConfig } from "@/auth.config";
+import type { NextRequest } from "next/server";
 
-const { auth } = NextAuth(authConfig);
-
-// Explicit middleware: we control the response ourselves instead of relying on
-// the `authorized` callback's implicit auto-redirect (which was redirecting
-// public routes on Railway's runtime). Only the two private areas require a
-// session here; the real role checks live in the server-side layouts.
-export default auth((req) => {
-  const { pathname } = req.nextUrl;
-  const isProtected = pathname.startsWith("/practitioner") || pathname.startsWith("/app");
-
-  if (isProtected && !req.auth?.user) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
-  }
-
+// EXPERIMENT: plain middleware with NO NextAuth involvement. Route protection
+// for /practitioner and /app is enforced by the server-side layout guards
+// (lib/auth-guards.ts), so security holds. This isolates whether the NextAuth
+// middleware wrapper was injecting the redirect on public routes.
+export function middleware(req: NextRequest) {
   const res = NextResponse.next();
-  res.headers.set("x-mw", isProtected ? "protected" : "public");
+  res.headers.set("x-mw2", "plain");
+  res.headers.set("x-mw2-path", req.nextUrl.pathname);
   return res;
-});
+}
 
 export const config = {
-  // Run on everything except API routes and static assets, but the handler
-  // above only redirects the protected areas.
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
