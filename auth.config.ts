@@ -4,7 +4,7 @@ export const authConfig = {
   // Trust the deployment host (Railway terminates TLS at a proxy). Without this,
   // Auth.js v5 rejects requests with "UntrustedHost: Host must be trusted".
   trustHost: true,
-  pages: { signIn: "/SENTINEL-SIGNIN" },
+  pages: { signIn: "/login" },
   callbacks: {
     // Route protection is handled explicitly in middleware.ts and in the
     // server-side layout guards (lib/auth-guards.ts). No `authorized` callback

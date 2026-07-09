@@ -46,5 +46,5 @@ export async function acceptInvite(token: string, formData: FormData) {
   });
 
   // Auto sign-in, then land on the client home. signIn throws the redirect.
-  await signIn("credentials", { email: invite.email, password, redirectTo: "/app" });
+  await signIn("credentials", { email: invite.email, password, redirectTo: "/space" });
 }

@@ -1,17 +1,21 @@
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import { authConfig } from "@/auth.config";
 
-// EXPERIMENT: plain middleware with NO NextAuth involvement. Route protection
-// for /practitioner and /app is enforced by the server-side layout guards
-// (lib/auth-guards.ts), so security holds. This isolates whether the NextAuth
-// middleware wrapper was injecting the redirect on public routes.
-export function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  res.headers.set("x-mw2", "plain");
-  res.headers.set("x-mw2-path", req.nextUrl.pathname);
-  return res;
-}
+const { auth } = NextAuth(authConfig);
+
+// Coarse "are you signed in" gate for the two private areas. The authoritative
+// role/active checks live server-side in each protected layout (auth-guards.ts).
+export default auth((req) => {
+  const { pathname } = req.nextUrl;
+  const isProtected = pathname.startsWith("/practitioner") || pathname.startsWith("/space");
+
+  if (isProtected && !req.auth?.user) {
+    return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
+  }
+  return NextResponse.next();
+});
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/practitioner/:path*", "/space/:path*"],
 };
