@@ -6,16 +6,9 @@ export const authConfig = {
   trustHost: true,
   pages: { signIn: "/login" },
   callbacks: {
-    // Coarse route gate for edge middleware: require a session on the private
-    // areas. The real role check lives server-side in each protected layout
-    // (see lib/auth-guards.ts) — middleware is a convenience, not the boundary.
-    authorized({ auth, request: { nextUrl } }) {
-      const isLoggedIn = !!auth?.user;
-      const path = nextUrl.pathname;
-      const isProtected = path.startsWith("/practitioner") || path.startsWith("/app");
-      if (isProtected) return isLoggedIn; // -> redirect to /login when signed out
-      return true;
-    },
+    // Route protection is handled explicitly in middleware.ts and in the
+    // server-side layout guards (lib/auth-guards.ts). No `authorized` callback
+    // here, to avoid its implicit auto-redirect firing on public routes.
     jwt({ token, user }) {
       if (user) {
         (token as any).role = (user as any).role;
