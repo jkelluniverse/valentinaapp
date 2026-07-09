@@ -25,8 +25,94 @@ model User {
   assignments  Assignment[]  @relation("ClientAssignments")
   record       RecordItem[]  @relation("ClientRecord")
   preps        SessionPrep[] @relation("ClientPreps")
+  enrollments  Enrollment[]  @relation("ClientEnrollments")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum LessonType {
+  VIDEO
+  TEXT
+  EXERCISE
+}
+
+enum VideoSource {
+  YOUTUBE
+  VIMEO
+  UPLOAD
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  coverKey    String? // object-storage key (upload deferred)
+  status      CourseStatus @default(DRAFT)
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  chapters    Chapter[]
+  enrollments Enrollment[]
+}
+
+model Chapter {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String?
+  order       Int
+  releaseRule String? // NULLABLE now; drip deferred
+  lessons     Lesson[]
+
+  @@index([courseId, order])
+}
+
+model Lesson {
+  id        String     @id @default(cuid())
+  chapterId String
+  chapter   Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  title     String
+  order     Int
+  type      LessonType @default(TEXT)
+  // video
+  videoSource VideoSource?
+  videoUrl    String? // for YOUTUBE/VIMEO embeds
+  videoKey    String? // for UPLOAD (deferred)
+  // text
+  content Json? // {text: string} for now; rich-text upgrade later
+  // exercise (reuse existing content)
+  promptId    String?
+  worksheetId String? // C9 hook; worksheets not built yet
+
+  @@index([chapterId, order])
+}
+
+model Enrollment {
+  id         String           @id @default(cuid())
+  courseId   String
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     User             @relation("ClientEnrollments", fields: [clientId], references: [id], onDelete: Cascade)
+  enrolledAt DateTime         @default(now())
+  progress   LessonProgress[]
+
+  @@unique([courseId, clientId])
+}
+
+model LessonProgress {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lessonId     String
+  completedAt  DateTime?
+
+  @@unique([enrollmentId, lessonId])
 }
 
 // C5 — a stored session-prep formulation. Practitioner-only, doubles as the

@@ -20,9 +20,12 @@ An engineer-charter build, one verified component at a time.
 - **C5 — Synthesis pipeline** ✅: on request, a practitioner-only *working formulation*
   before a session — recurring themes, shifts, a belief worth exploring, a suggested opening —
   assembled server-side from the consented, scoped, pseudonymized record. It prepares; she interprets.
-- **C8 — Practitioner dashboard** (this build, final roadmap piece): Valentina's home base — the
-  practice at a glance, needs-attention signals, an enriched roster, the consolidated client file,
-  and cross-client search. Composition + read layer over C1/C3/C4/C5; no new client-data models.
+- **C8 — Practitioner dashboard** ✅: Valentina's home base — the practice at a glance,
+  needs-attention signals, an enriched roster, the consolidated client file, and cross-client
+  search. Composition + read layer over C1/C3/C4/C5; no new client-data models.
+- **C6+C7 — Course builder & player** (this build): Valentina builds a course — chapters with
+  video (embed), writing, and exercise lessons — publishes it, enrolls clients; clients work
+  through it lesson by lesson with progress tracking, and exercise responses feed the record.
 
 ## Stack
 - Next.js 14 (App Router)
@@ -120,6 +123,23 @@ An engineer-charter build, one verified component at a time.
   upgrade path: Postgres full-text if volume grows.
 - Flagged as deferred, per spec: scheduling/appointments (prep stays on-demand).
 
+## What C6+C7 add
+- **Builder** (`/practitioner/courses/[id]`), designed to be effortless: one outline screen
+  (Course › Chapters › Lessons), everything autosaves on blur, one-tap reorder, and adding a
+  lesson asks a single question — video, writing, or exercise — then shows only those fields.
+  Draft/Published toggle + **Preview as a client**.
+- **Video is embed-first** (spec §5 default): paste an unlisted YouTube/Vimeo link, preview
+  renders instantly. `videoKey`/`coverKey` columns ship nullable so R2 upload is a later
+  no-migration upgrade. Text lessons are paragraphs (rich-text editor is a flagged upgrade);
+  drag-and-drop is a flagged polish over the current one-tap arrows.
+- **Exercises reuse the C3 library**: attach a prompt; the client answers inside the lesson;
+  the response flows through the same assignment→response path, so it lands on the record and
+  in C5's synthesis automatically. Lesson completions append `COURSE_ACTIVITY` record items.
+- **Enrollment**: per-client or everyone-active, managed on the builder; only enrolled clients
+  see a published course. **Player** (`/space/courses`): course list with % bars, outline with
+  ticks + resume, distraction-free lesson pages with mark-complete and next/previous.
+- Deferred per spec: payments, certificates, quizzes, comments, drip (`releaseRule` nullable).
+
 ### Routes
 | Route | Who |
 |-------|-----|
@@ -133,11 +153,13 @@ An engineer-charter build, one verified component at a time.
 | `/practitioner/clients/[clientId]/record` | practitioner only (unified timeline + rollups) |
 | `/practitioner/clients/[clientId]/prep` | practitioner only (AI session prep — C5) |
 | `/practitioner/library` | practitioner only (library CRUD) |
+| `/practitioner/courses` (+ `[id]`, `[id]/preview`, `[id]/lessons/[lessonId]`) | practitioner only (course builder) |
 | `/practitioner/library/[promptId]` | practitioner only (edit item) |
 | `/space` | client only (timeline + "From Valentina") |
 | `/space/new` | client only (capture) |
 | `/space/entries/[id]` | client only (own entry: view/edit/delete) |
 | `/space/journey` | client only (own unified history + rollups) |
+| `/space/courses` (+ `[id]`, `[id]/lessons/[lessonId]`) | client only (enrolled courses + player) |
 | `/space/prompts` | client only (past responses) |
 | `/space/prompts/[id]` | client only (open + respond) |
 | `/api/health` | public health check |
