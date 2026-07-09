@@ -13,15 +13,39 @@ enum Role {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
+  id           String     @id @default(cuid())
+  email        String     @unique
   name         String?
   passwordHash String?
-  role         Role      @default(CLIENT)
-  active       Boolean   @default(true) // deactivation gate for login
+  role         Role       @default(CLIENT)
+  active       Boolean    @default(true) // deactivation gate for login
   consentAt    DateTime? // set when a client accepts consent
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  entries      LogEntry[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+enum EntryType {
+  TRIGGER
+  INSIGHT
+  PROGRESS
+  REFLECTION
+}
+
+model LogEntry {
+  id         String    @id @default(cuid())
+  clientId   String
+  client     User      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type       EntryType @default(REFLECTION)
+  occurredAt DateTime  @default(now()) // when the moment happened (editable)
+  body       String // the core reflection — the ONLY required field
+  trigger    String? // what prompted it (optional)
+  mood       Int? // 1..5, optional
+  tags       String[] // optional; seeds later pattern-mapping (C5)
+  createdAt  DateTime  @default(now()) // when it was logged
+  updatedAt  DateTime  @updatedAt
+
+  @@index([clientId, occurredAt])
 }
 
 enum InviteStatus {

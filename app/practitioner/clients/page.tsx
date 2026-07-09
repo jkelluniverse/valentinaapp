@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow, StatusPill } from "@/components/brand";
@@ -55,7 +56,16 @@ export default async function ClientsPage() {
               className="flex flex-col gap-3 rounded-lg border border-line bg-white p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
-                <p className="truncate font-medium text-ink-strong">{row.name || "Unnamed"}</p>
+                {row.kind === "client" ? (
+                  <Link
+                    href={`/practitioner/clients/${row.id}`}
+                    className="truncate font-medium text-ink-strong underline-offset-4 hover:text-wine hover:underline"
+                  >
+                    {row.name || "Unnamed"}
+                  </Link>
+                ) : (
+                  <p className="truncate font-medium text-ink-strong">{row.name || "Unnamed"}</p>
+                )}
                 <p className="truncate text-sm text-slate">{row.email}</p>
               </div>
               <div className="flex items-center gap-4">

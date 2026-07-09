@@ -4,8 +4,13 @@ An engineer-charter build, one verified component at a time.
 
 - **C0 — Foundation** ✅ verified live: repo + Postgres + Auth.js login + deployed "hello,
   authenticated world".
-- **C1 — Accounts & roles** (this build): Valentina invites clients, they set a password and
+- **C1 — Accounts & roles** ✅ verified live: Valentina invites clients, they set a password and
   record consent, and the practitioner/client boundary is enforced everywhere.
+  *(Note: the client area lives at `/space`, not `/app` — a route directory named `app` inside
+  Next's `app/` router broke production routing and was renamed.)*
+- **C2 — Self-awareness log** (this build): a client records moments of awareness — triggers,
+  insights, wins, reflections — in seconds, and reviews their own timeline. Valentina gets a
+  thin read-only per-client view for session prep.
 
 ## Stack
 - Next.js 14 (App Router)
@@ -26,14 +31,31 @@ An engineer-charter build, one verified component at a time.
 - **Management.** Resend/refresh, revoke, and deactivate/reactivate clients. Revoked, expired,
   and already-used links are rejected; deactivated clients can't log in.
 
+## What C2 adds
+- **Low-friction capture** at `/space/new`: an autofocused text area is the entry — only the
+  body is required. Optional one-tap extras: type chips (Trigger / Insight / Win / Reflection),
+  mood 1–5, "what prompted this?", tags, backdating.
+- **Timeline** at `/space`: the client's own entries, reverse-chronological, grouped by day,
+  with a light type filter, edit and hard-delete of their own content.
+- **Practitioner read-only view** at `/practitioner/clients/[clientId]` — one client's entries
+  for session prep. No editing, no cross-client search (that's C8).
+- **Authorization:** every entry query is scoped to the session user; probing another client's
+  entry id returns not-found. Consent (`consentAt`, from C1) is asserted before entries can be
+  created. No entry content is ever logged.
+- The entry taxonomy is the spec default — **to be confirmed with Valentina**; labels live in
+  `lib/entry-meta.ts` and enum renames are a small migration away.
+
 ### Routes
 | Route | Who |
 |-------|-----|
 | `/login` | public |
 | `/invite/[token]` | public (accept an invite) |
-| `/practitioner/clients` | practitioner only |
-| `/app` | client only |
 | `/privacy` | public |
+| `/practitioner/clients` | practitioner only |
+| `/practitioner/clients/[clientId]` | practitioner only (read-only client record) |
+| `/space` | client only (timeline) |
+| `/space/new` | client only (capture) |
+| `/space/entries/[id]` | client only (own entry: view/edit/delete) |
 | `/api/health` | public health check |
 
 ---

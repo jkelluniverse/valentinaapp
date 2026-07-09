@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 // the host Next.js sees (to debug proxy/host detection). Bump `version` on deploys.
 export const dynamic = "force-dynamic";
 
-const VERSION = "c1-rename-space-9";
+const VERSION = "c2-log-1";
 
 export async function GET() {
   const h = headers();
