@@ -11,15 +11,21 @@ export default async function PractitionerLayout({ children }: { children: React
       <header className="border-b border-line bg-white/60">
         <div className="mx-auto flex max-w-[1120px] items-center justify-between px-6 py-4">
           <div className="flex items-center gap-6">
-            <Link href="/practitioner/clients" className="text-sm font-semibold text-wine">
+            <Link href="/practitioner" className="text-sm font-semibold text-wine">
               Veritas · Practitioner
             </Link>
             <nav className="flex items-center gap-4 text-sm">
+              <Link href="/practitioner" className="text-ink underline-offset-4 hover:text-wine hover:underline">
+                Home
+              </Link>
               <Link href="/practitioner/clients" className="text-ink underline-offset-4 hover:text-wine hover:underline">
                 Clients
               </Link>
               <Link href="/practitioner/library" className="text-ink underline-offset-4 hover:text-wine hover:underline">
                 Library
+              </Link>
+              <Link href="/practitioner/search" className="text-ink underline-offset-4 hover:text-wine hover:underline">
+                Search
               </Link>
             </nav>
           </div>

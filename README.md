@@ -17,9 +17,12 @@ An engineer-charter build, one verified component at a time.
 - **C4 — Longitudinal client record** ✅: one write-through `RecordItem` timeline that
   every feature appends to via a single record service, with derived rollups (themes, mood trend,
   cadence) — the scaffolding C5 analyzes and C8 displays.
-- **C5 — Synthesis pipeline** (this build): on request, a practitioner-only *working formulation*
+- **C5 — Synthesis pipeline** ✅: on request, a practitioner-only *working formulation*
   before a session — recurring themes, shifts, a belief worth exploring, a suggested opening —
   assembled server-side from the consented, scoped, pseudonymized record. It prepares; she interprets.
+- **C8 — Practitioner dashboard** (this build, final roadmap piece): Valentina's home base — the
+  practice at a glance, needs-attention signals, an enriched roster, the consolidated client file,
+  and cross-client search. Composition + read layer over C1/C3/C4/C5; no new client-data models.
 
 ## Stack
 - Next.js 14 (App Router)
@@ -102,12 +105,29 @@ An engineer-charter build, one verified component at a time.
 - **The master prompt is a placeholder** (`ai/sessionPrepPrompt.ts`, versioned): swapping in
   Valentina's real prompt from the method worksheet (§A–K) is a single-file change.
 
+## What C8 adds
+- **Home** (`/practitioner`): counts, quick actions, a cross-client activity feed (kind + client +
+  title — content stays in the file), recent + referral-flagged preps, and **needs-attention
+  signals** — referral flagged, quiet lately, mood softer than baseline, stale invites. Thresholds
+  are config in `lib/attention.ts` (defaults: 14 days inactive, 1-point mood dip, 5-day invites) —
+  tune to Valentina's preference.
+- **Roster** (`/practitioner/clients`): last active, mood arrow, referral badge, sorted by
+  activity, with a "Worth a look" filter. Stage column awaits her worksheet vocabulary.
+- **Client file** (`/practitioner/clients/[clientId]`): header now carries consent status,
+  cadence, and top themes; sections compose record, prep, and between-sessions.
+- **Search** (`/practitioner/search`): `ILIKE` over `RecordItem` summaries/titles/tags + client
+  name/email. Practitioner-only, snippets not dumps, **search terms never logged**. Flagged
+  upgrade path: Postgres full-text if volume grows.
+- Flagged as deferred, per spec: scheduling/appointments (prep stays on-demand).
+
 ### Routes
 | Route | Who |
 |-------|-----|
 | `/login` | public |
 | `/invite/[token]` | public (accept an invite) |
 | `/privacy` | public |
+| `/practitioner` | practitioner only (dashboard home) |
+| `/practitioner/search` | practitioner only (cross-client search) |
 | `/practitioner/clients` | practitioner only |
 | `/practitioner/clients/[clientId]` | practitioner only (client record: entries, assign, responses) |
 | `/practitioner/clients/[clientId]/record` | practitioner only (unified timeline + rollups) |

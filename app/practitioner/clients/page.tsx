@@ -1,27 +1,45 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
+import { getPracticeOverview, type ClientRow } from "@/lib/attention";
 import { SignatureRule, Eyebrow, StatusPill } from "@/components/brand";
+import { formatDay } from "@/components/entries";
 import { InviteClientForm } from "./InviteClientForm";
 import { InviteRowActions } from "./InviteRowActions";
 import { ClientRowActions } from "./ClientRowActions";
 
 export const dynamic = "force-dynamic";
 
-type Row =
-  | { kind: "client"; id: string; name: string | null; email: string; active: boolean; sortAt: Date }
-  | { kind: "invite"; id: string; name: string | null; email: string; status: "PENDING" | "REVOKED"; sortAt: Date };
+function needsAttention(r: ClientRow) {
+  return r.signal.referralFlagged || r.signal.inactive || r.signal.moodDip;
+}
 
-export default async function ClientsPage() {
+function MoodArrow({ row }: { row: ClientRow }) {
+  const { recentMood, baselineMood } = row.signal;
+  if (recentMood == null || baselineMood == null) return null;
+  const delta = recentMood - baselineMood;
+  const glyph = delta >= 0.5 ? "↑" : delta <= -0.5 ? "↓" : "→";
+  return (
+    <span
+      className={`text-xs font-medium ${delta <= -0.5 ? "text-rose" : "text-mocha"}`}
+      title={`Mood recently ${recentMood} vs ${baselineMood} overall`}
+    >
+      mood {glyph}
+    </span>
+  );
+}
+
+// Enriched roster (C8.2): name, last active, status, and a small signal.
+// Stage column awaits Valentina's worksheet vocabulary (spec §4b).
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: { filter?: string };
+}) {
   await requirePractitioner();
 
-  const [clients, invites] = await Promise.all([
-    prisma.user.findMany({
-      where: { role: "CLIENT" },
-      select: { id: true, name: true, email: true, active: true, createdAt: true },
-      orderBy: { createdAt: "desc" },
-    }),
-    // Only invites that aren't yet accounts — accepted invites are shown as their client row.
+  const [overview, invites] = await Promise.all([
+    getPracticeOverview(),
     prisma.invite.findMany({
       where: { status: { in: ["PENDING", "REVOKED"] } },
       select: { id: true, name: true, email: true, status: true, createdAt: true },
@@ -29,10 +47,10 @@ export default async function ClientsPage() {
     }),
   ]);
 
-  const rows: Row[] = [
-    ...clients.map((c): Row => ({ kind: "client", id: c.id, name: c.name, email: c.email, active: c.active, sortAt: c.createdAt })),
-    ...invites.map((i): Row => ({ kind: "invite", id: i.id, name: i.name, email: i.email, status: i.status as "PENDING" | "REVOKED", sortAt: i.createdAt })),
-  ].sort((a, b) => b.sortAt.getTime() - a.sortAt.getTime());
+  const attentionOnly = searchParams.filter === "attention";
+  const clients = [...overview.clients]
+    .sort((a, b) => (b.signal.lastActive?.getTime() ?? 0) - (a.signal.lastActive?.getTime() ?? 0))
+    .filter((r) => (attentionOnly ? needsAttention(r) : true));
 
   return (
     <div className="flex flex-col gap-8">
@@ -44,45 +62,87 @@ export default async function ClientsPage() {
 
       <InviteClientForm />
 
-      {rows.length === 0 ? (
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Link
+          href="/practitioner/clients"
+          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            !attentionOnly ? "bg-wine text-white" : "border border-line bg-white text-ink hover:bg-blush"
+          }`}
+        >
+          Everyone
+        </Link>
+        <Link
+          href="/practitioner/clients?filter=attention"
+          className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            attentionOnly ? "bg-wine text-white" : "border border-line bg-white text-ink hover:bg-blush"
+          }`}
+        >
+          Worth a look
+        </Link>
+      </div>
+
+      {clients.length === 0 && invites.length === 0 ? (
         <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
-          <p className="text-ink">No clients yet. Invite your first client above.</p>
+          <p className="text-ink">
+            {attentionOnly ? "Nothing needs your eyes right now." : "No clients yet. Invite your first client above."}
+          </p>
         </div>
       ) : (
         <ul className="flex flex-col gap-3">
-          {rows.map((row) => (
+          {clients.map((row) => (
             <li
-              key={`${row.kind}-${row.id}`}
+              key={row.id}
               className="flex flex-col gap-3 rounded-lg border border-line bg-white p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="min-w-0">
-                {row.kind === "client" ? (
+                <div className="flex flex-wrap items-center gap-2">
                   <Link
                     href={`/practitioner/clients/${row.id}`}
                     className="truncate font-medium text-ink-strong underline-offset-4 hover:text-wine hover:underline"
                   >
                     {row.name || "Unnamed"}
                   </Link>
-                ) : (
-                  <p className="truncate font-medium text-ink-strong">{row.name || "Unnamed"}</p>
-                )}
-                <p className="truncate text-sm text-slate">{row.email}</p>
+                  {row.signal.referralFlagged && (
+                    <span className="rounded-full bg-blush-deep px-2 py-0.5 text-xs font-medium text-rose">
+                      referral flagged
+                    </span>
+                  )}
+                  <MoodArrow row={row} />
+                </div>
+                <p className="truncate text-sm text-slate">
+                  {row.email}
+                  {" · "}
+                  {row.signal.lastActive
+                    ? `last active ${formatDay(row.signal.lastActive)}`
+                    : "no activity yet"}
+                  {row.signal.inactive && " · quiet lately"}
+                </p>
               </div>
               <div className="flex items-center gap-4">
-                {row.kind === "client" ? (
-                  <>
-                    <StatusPill status={row.active ? "Active" : "Inactive"} />
-                    <ClientRowActions userId={row.id} active={row.active} />
-                  </>
-                ) : (
-                  <>
-                    <StatusPill status={row.status === "PENDING" ? "Invited" : "Revoked"} />
-                    <InviteRowActions inviteId={row.id} status={row.status} />
-                  </>
-                )}
+                <StatusPill status={row.active ? "Active" : "Inactive"} />
+                <ClientRowActions userId={row.id} active={row.active} />
               </div>
             </li>
           ))}
+
+          {!attentionOnly &&
+            invites.map((row) => (
+              <li
+                key={`invite-${row.id}`}
+                className="flex flex-col gap-3 rounded-lg border border-line bg-white p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium text-ink-strong">{row.name || "Unnamed"}</p>
+                  <p className="truncate text-sm text-slate">
+                    {row.email} · invited {formatDay(row.createdAt)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <StatusPill status={row.status === "PENDING" ? "Invited" : "Revoked"} />
+                  <InviteRowActions inviteId={row.id} status={row.status as "PENDING" | "REVOKED"} />
+                </div>
+              </li>
+            ))}
         </ul>
       )}
     </div>

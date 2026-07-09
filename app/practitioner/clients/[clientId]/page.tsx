@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
+import { getClientRecord } from "@/lib/client-record";
 import { SignatureRule, Eyebrow, StatusPill } from "@/components/brand";
 import { EntryCard, MoodDots, groupByDay, formatDay } from "@/components/entries";
+import { ThemeList, CadenceLine } from "@/components/record";
 import { promptKindLabel } from "@/lib/prompt-meta";
 import { AssignForm } from "./AssignForm";
 import { assignPrompt } from "./actions";
@@ -29,11 +31,11 @@ export default async function ClientRecordPage({
 
   const client = await prisma.user.findFirst({
     where: { id: params.clientId, role: "CLIENT" },
-    select: { id: true, name: true, email: true, active: true },
+    select: { id: true, name: true, email: true, active: true, consentAt: true, aiConsentAt: true },
   });
   if (!client) notFound();
 
-  const [entries, assignments, library] = await Promise.all([
+  const [entries, assignments, library, rec] = await Promise.all([
     prisma.logEntry.findMany({
       where: { clientId: client.id },
       orderBy: { occurredAt: "desc" },
@@ -50,6 +52,7 @@ export default async function ClientRecordPage({
       orderBy: { createdAt: "desc" },
       select: { id: true, title: true, kind: true },
     }),
+    getClientRecord(params.clientId),
   ]);
 
   const groups = groupByDay(entries);
@@ -63,8 +66,20 @@ export default async function ClientRecordPage({
           <h1 className="text-[2.25rem] font-semibold">{client.name || client.email}</h1>
           <StatusPill status={client.active ? "Active" : "Inactive"} />
         </div>
-        <p className="text-sm text-slate">{client.email} · read-only</p>
+        <p className="text-sm text-slate">
+          {client.email}
+          {" · "}
+          {client.consentAt ? "consented" : "no consent on file"}
+          {" · "}
+          {client.aiConsentAt ? "AI review allowed" : "AI review off"}
+        </p>
         <SignatureRule />
+        {rec.counts.total > 0 && (
+          <div className="mt-2 flex flex-col gap-2">
+            <CadenceLine cadence={rec.cadence} />
+            {rec.themes.length > 0 && <ThemeList themes={rec.themes.slice(0, 6)} />}
+          </div>
+        )}
         <div className="mt-1 flex flex-wrap gap-4">
           <Link
             href={`/practitioner/clients/${client.id}/record`}

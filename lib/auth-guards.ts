@@ -37,7 +37,7 @@ export async function requirePractitioner(): Promise<SessionUser> {
 export async function requireClient(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (user.role !== "CLIENT") redirect("/practitioner/clients");
+  if (user.role !== "CLIENT") redirect("/practitioner");
   // Deactivation gate against the DB, so a client deactivated mid-session loses
   // access on their next navigation (not just at next login).
   if (!user.active) redirect("/login?error=inactive");
