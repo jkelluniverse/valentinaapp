@@ -65,6 +65,12 @@ export default async function ClientRecordPage({
         </div>
         <p className="text-sm text-slate">{client.email} · read-only</p>
         <SignatureRule />
+        <Link
+          href={`/practitioner/clients/${client.id}/record`}
+          className="mt-1 self-start text-sm font-medium text-wine underline-offset-4 hover:underline"
+        >
+          Full record &amp; rollups →
+        </Link>
       </div>
 
       {searchParams.sent && (

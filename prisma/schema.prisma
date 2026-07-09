@@ -22,8 +22,41 @@ model User {
   consentAt    DateTime? // set when a client accepts consent
   entries      LogEntry[]
   assignments  Assignment[] @relation("ClientAssignments")
+  record       RecordItem[] @relation("ClientRecord")
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+}
+
+enum RecordKind {
+  LOG_ENTRY
+  PROMPT_RESPONSE
+  WORKSHEET_RESPONSE
+  COURSE_ACTIVITY
+  NOTE
+}
+
+// The unified longitudinal record (C4): every feature appends here through
+// lib/record.ts — the single write path. title/summary/mood/tags are
+// denormalized snapshots for fast timelines and C5's input; the source row
+// (sourceType/sourceId) stays the full-fidelity truth.
+model RecordItem {
+  id         String     @id @default(cuid())
+  clientId   String
+  client     User       @relation("ClientRecord", fields: [clientId], references: [id], onDelete: Cascade)
+  kind       RecordKind
+  occurredAt DateTime // canonical timeline time
+  title      String? // short label for the timeline
+  summary    String? // short text snapshot
+  mood       Int? // normalized mood, if the source had one
+  tags       String[] // normalized theme tags
+  sourceType String // "LogEntry" | "PromptResponse" | "WorksheetResponse" | "LessonProgress"
+  sourceId   String // reference-by-convention to the detail row
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@unique([sourceType, sourceId]) // one record item per source row (idempotent writes)
+  @@index([clientId, occurredAt])
+  @@index([clientId, kind])
 }
 
 enum PromptKind {

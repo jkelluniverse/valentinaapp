@@ -11,9 +11,12 @@ An engineer-charter build, one verified component at a time.
 - **C2 — Self-awareness log** ✅ verified live: a client records moments of awareness — triggers,
   insights, wins, reflections — in seconds, and reviews their own timeline. Valentina gets a
   thin read-only per-client view for session prep.
-- **C3 — Between-session support** (this build): Valentina keeps a library of prompts, exercises,
+- **C3 — Between-session support** ✅: Valentina keeps a library of prompts, exercises,
   and check-ins, sends one to a client (manual, optional due date), the client responds from
   their space, and she reads the response on the client record.
+- **C4 — Longitudinal client record** (this build): one write-through `RecordItem` timeline that
+  every feature appends to via a single record service, with derived rollups (themes, mood trend,
+  cadence) — the scaffolding C5 analyzes and C8 displays.
 
 ## Stack
 - Next.js 14 (App Router)
@@ -61,6 +64,23 @@ An engineer-charter build, one verified component at a time.
 - Ownership scoping everywhere; the C1 consent gate also covers responses; response content
   never appears in logs.
 
+## What C4 adds
+- **`RecordItem`** (migration `4_c4_record`): the unified timeline. Write-through strategy
+  (spec §2): denormalized snapshots (`title`/`summary`/`mood`/`tags`) for fast reads;
+  `sourceType`/`sourceId` point at the full-fidelity source row; `@@unique(sourceType, sourceId)`
+  keeps every write idempotent.
+- **The record service** (`lib/record.ts`) is the *only* code that writes `RecordItem`. C2 entry
+  create/edit/delete and C3 response completion now run source-write + record-write in one
+  transaction — no drift. C9/C6/C7 call it natively when built.
+- **Backfill / re-sync**: `npm run db:backfill` upserts record items for all pre-C4 entries and
+  responses. Idempotent — safe to re-run any time as a drift repair tool.
+- **Reads** (`lib/client-record.ts` — compute-on-read at this scale):
+  practitioner `/practitioner/clients/[clientId]/record` and client `/space/journey`
+  ("Your journey"), both with rollups: recurring themes (count + trend), mood over time,
+  cadence (streaks, last active), counts.
+- Pending content: theme-tag vocabulary (worksheet §9) and program stages (§4) come from
+  Valentina; `NOTE` kind is shipped but practitioner notes are deferred (spec default).
+
 ### Routes
 | Route | Who |
 |-------|-----|
@@ -69,11 +89,13 @@ An engineer-charter build, one verified component at a time.
 | `/privacy` | public |
 | `/practitioner/clients` | practitioner only |
 | `/practitioner/clients/[clientId]` | practitioner only (client record: entries, assign, responses) |
+| `/practitioner/clients/[clientId]/record` | practitioner only (unified timeline + rollups) |
 | `/practitioner/library` | practitioner only (library CRUD) |
 | `/practitioner/library/[promptId]` | practitioner only (edit item) |
 | `/space` | client only (timeline + "From Valentina") |
 | `/space/new` | client only (capture) |
 | `/space/entries/[id]` | client only (own entry: view/edit/delete) |
+| `/space/journey` | client only (own unified history + rollups) |
 | `/space/prompts` | client only (past responses) |
 | `/space/prompts/[id]` | client only (open + respond) |
 | `/api/health` | public health check |

@@ -6,6 +6,7 @@ import type { EntryType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
 import { ENTRY_TYPES } from "@/lib/entry-meta";
+import { record, logEntryToRecord } from "@/lib/record";
 
 // Every action here re-derives the owner from the session. The client id is
 // NEVER accepted from the request; entry lookups are always scoped to it, so
@@ -52,8 +53,12 @@ export async function createEntry(formData: FormData) {
   const parsed = parseEntryForm(formData);
   if ("error" in parsed) redirect("/space/new?error=empty");
 
-  await prisma.logEntry.create({
-    data: { ...parsed.data, clientId: user.id },
+  // Source row + record item land together (C4: single write path).
+  await prisma.$transaction(async (tx) => {
+    const entry = await tx.logEntry.create({
+      data: { ...parsed.data, clientId: user.id },
+    });
+    await record.append(logEntryToRecord(entry), tx);
   });
 
   revalidatePath(SPACE);
@@ -66,12 +71,20 @@ export async function updateEntry(entryId: string, formData: FormData) {
   const parsed = parseEntryForm(formData);
   if ("error" in parsed) redirect(`/space/entries/${entryId}/edit?error=empty`);
 
-  // Scoped update: silently affects nothing unless the entry is the user's own.
-  const result = await prisma.logEntry.updateMany({
+  // Ownership check first; then source row + record item update in lock-step.
+  const existing = await prisma.logEntry.findFirst({
     where: { id: entryId, clientId: user.id },
-    data: parsed.data,
+    select: { id: true },
   });
-  if (result.count === 0) redirect(SPACE);
+  if (!existing) redirect(SPACE);
+
+  await prisma.$transaction(async (tx) => {
+    const entry = await tx.logEntry.update({
+      where: { id: entryId },
+      data: parsed.data,
+    });
+    await record.append(logEntryToRecord(entry), tx); // upsert = create-or-refresh
+  });
 
   revalidatePath(SPACE);
   redirect(`/space/entries/${entryId}?saved=1`);
@@ -80,8 +93,15 @@ export async function updateEntry(entryId: string, formData: FormData) {
 export async function deleteEntry(entryId: string) {
   const user = await requireClient();
 
-  await prisma.logEntry.deleteMany({
+  const existing = await prisma.logEntry.findFirst({
     where: { id: entryId, clientId: user.id },
+    select: { id: true },
+  });
+  if (!existing) redirect(SPACE);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.logEntry.delete({ where: { id: entryId } });
+    await record.remove("LogEntry", entryId, tx);
   });
 
   revalidatePath(SPACE);

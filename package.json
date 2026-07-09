@@ -9,6 +9,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:backfill": "tsx prisma/backfill-record.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

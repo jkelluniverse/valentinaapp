@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
+import { record, promptResponseToRecord } from "@/lib/record";
 
 // Ownership is re-derived from the session on every action; an assignment id
 // that isn't the client's own behaves like a missing one. Response content is
@@ -17,7 +18,7 @@ export async function respondToAssignment(assignmentId: string, formData: FormDa
 
   const assignment = await prisma.assignment.findFirst({
     where: { id: assignmentId, clientId: user.id, status: "PENDING" },
-    include: { prompt: { select: { kind: true } } },
+    include: { prompt: { select: { kind: true, title: true } } },
   });
   if (!assignment) redirect("/space");
 
@@ -29,15 +30,27 @@ export async function respondToAssignment(assignmentId: string, formData: FormDa
   const enough = assignment.prompt.kind === "CHECK_IN" ? mood !== null || body : body;
   if (!enough) redirect(`/space/prompts/${assignmentId}?error=empty`);
 
-  await prisma.$transaction([
-    prisma.promptResponse.create({
+  // Response + status + record item land together (C4: single write path).
+  await prisma.$transaction(async (tx) => {
+    const response = await tx.promptResponse.create({
       data: { assignmentId: assignment.id, body, mood },
-    }),
-    prisma.assignment.update({
+    });
+    await tx.assignment.update({
       where: { id: assignment.id },
       data: { status: "COMPLETED" },
-    }),
-  ]);
+    });
+    await record.append(
+      promptResponseToRecord({
+        responseId: response.id,
+        clientId: user.id,
+        promptTitle: assignment.prompt.title,
+        completedAt: response.completedAt,
+        body: response.body,
+        mood: response.mood,
+      }),
+      tx,
+    );
+  });
 
   revalidatePath("/space");
   redirect("/space?responded=1");
