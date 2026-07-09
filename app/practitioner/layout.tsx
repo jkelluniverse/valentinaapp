@@ -10,9 +10,19 @@ export default async function PractitionerLayout({ children }: { children: React
     <div className="min-h-screen">
       <header className="border-b border-line bg-white/60">
         <div className="mx-auto flex max-w-[1120px] items-center justify-between px-6 py-4">
-          <Link href="/practitioner/clients" className="text-sm font-semibold text-wine">
-            Veritas · Practitioner
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link href="/practitioner/clients" className="text-sm font-semibold text-wine">
+              Veritas · Practitioner
+            </Link>
+            <nav className="flex items-center gap-4 text-sm">
+              <Link href="/practitioner/clients" className="text-ink underline-offset-4 hover:text-wine hover:underline">
+                Clients
+              </Link>
+              <Link href="/practitioner/library" className="text-ink underline-offset-4 hover:text-wine hover:underline">
+                Library
+              </Link>
+            </nav>
+          </div>
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-slate sm:inline">{user.email}</span>
             <SignOutForm />

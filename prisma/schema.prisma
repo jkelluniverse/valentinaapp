@@ -21,8 +21,59 @@ model User {
   active       Boolean    @default(true) // deactivation gate for login
   consentAt    DateTime? // set when a client accepts consent
   entries      LogEntry[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  assignments  Assignment[] @relation("ClientAssignments")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+enum PromptKind {
+  PROMPT
+  EXERCISE
+  CHECK_IN
+}
+
+enum AssignmentStatus {
+  PENDING
+  COMPLETED
+  DISMISSED
+}
+
+model Prompt {
+  id          String       @id @default(cuid())
+  kind        PromptKind   @default(PROMPT)
+  title       String
+  body        String // the prompt / exercise text
+  active      Boolean      @default(true) // archive without deleting
+  createdById String // practitioner
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  assignments Assignment[]
+}
+
+model Assignment {
+  id           String           @id @default(cuid())
+  promptId     String
+  prompt       Prompt           @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       User             @relation("ClientAssignments", fields: [clientId], references: [id], onDelete: Cascade)
+  assignedById String // practitioner
+  status       AssignmentStatus @default(PENDING)
+  dueAt        DateTime?
+  scheduleRule String? // NULLABLE now; recurring cadence deferred (spec §3)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  response     PromptResponse?
+
+  @@index([clientId, status])
+}
+
+model PromptResponse {
+  id           String     @id @default(cuid())
+  assignmentId String     @unique
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  body         String? // reflection text (optional for check-ins)
+  mood         Int? // for check-ins / optional
+  completedAt  DateTime   @default(now())
 }
 
 enum EntryType {

@@ -8,9 +8,12 @@ An engineer-charter build, one verified component at a time.
   record consent, and the practitioner/client boundary is enforced everywhere.
   *(Note: the client area lives at `/space`, not `/app` — a route directory named `app` inside
   Next's `app/` router broke production routing and was renamed.)*
-- **C2 — Self-awareness log** (this build): a client records moments of awareness — triggers,
+- **C2 — Self-awareness log** ✅ verified live: a client records moments of awareness — triggers,
   insights, wins, reflections — in seconds, and reviews their own timeline. Valentina gets a
   thin read-only per-client view for session prep.
+- **C3 — Between-session support** (this build): Valentina keeps a library of prompts, exercises,
+  and check-ins, sends one to a client (manual, optional due date), the client responds from
+  their space, and she reads the response on the client record.
 
 ## Stack
 - Next.js 14 (App Router)
@@ -45,6 +48,19 @@ An engineer-charter build, one verified component at a time.
 - The entry taxonomy is the spec default — **to be confirmed with Valentina**; labels live in
   `lib/entry-meta.ts` and enum renames are a small migration away.
 
+## What C3 adds
+- **Library** at `/practitioner/library`: create / edit / archive prompts, exercises, and
+  check-ins. Kind labels are config (`lib/prompt-meta.ts`). Seeded with 3 clearly-marked
+  placeholders — **Valentina's real content (worksheet §10) replaces them**.
+- **Manual assignment** from the client record: pick a library item, optional due date. The
+  `scheduleRule` column exists but stays null — recurring delivery is deferred until there's a
+  scheduler and Valentina's cadence rules (§11). Notifications are in-app only.
+- **Client response**: a "From Valentina" section on `/space` with a pending count; open an item,
+  respond (check-ins can be just a mood), or set it aside; past responses at `/space/prompts`.
+- **Practitioner read**: responses appear read-only on the client record page.
+- Ownership scoping everywhere; the C1 consent gate also covers responses; response content
+  never appears in logs.
+
 ### Routes
 | Route | Who |
 |-------|-----|
@@ -52,10 +68,14 @@ An engineer-charter build, one verified component at a time.
 | `/invite/[token]` | public (accept an invite) |
 | `/privacy` | public |
 | `/practitioner/clients` | practitioner only |
-| `/practitioner/clients/[clientId]` | practitioner only (read-only client record) |
-| `/space` | client only (timeline) |
+| `/practitioner/clients/[clientId]` | practitioner only (client record: entries, assign, responses) |
+| `/practitioner/library` | practitioner only (library CRUD) |
+| `/practitioner/library/[promptId]` | practitioner only (edit item) |
+| `/space` | client only (timeline + "From Valentina") |
 | `/space/new` | client only (capture) |
 | `/space/entries/[id]` | client only (own entry: view/edit/delete) |
+| `/space/prompts` | client only (past responses) |
+| `/space/prompts/[id]` | client only (open + respond) |
 | `/api/health` | public health check |
 
 ---
