@@ -27,14 +27,14 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
 export async function requirePractitioner(): Promise<SessionUser> {
   const user = await getSessionUser();
-  if (!user) redirect("/SENTINEL-GUARD");
+  if (!user) redirect("/S-PRACT");
   if (user.role !== "PRACTITIONER") redirect("/app");
   return user;
 }
 
 export async function requireClient(): Promise<SessionUser> {
   const user = await getSessionUser();
-  if (!user) redirect("/SENTINEL-GUARD");
+  if (!user) redirect("/S-CLIENT");
   if (user.role !== "CLIENT") redirect("/practitioner/clients");
   // Deactivation gate against the DB, so a client deactivated mid-session loses
   // access on their next navigation (not just at next login).
