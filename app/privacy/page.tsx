@@ -10,6 +10,7 @@ export default function PrivacyPage() {
       <div className="flex flex-col gap-2">
         <Eyebrow>Your privacy</Eyebrow>
         <h1 className="text-[2.25rem] font-semibold">Privacy notice</h1>
+        {/* DIAG-MARKER-3 */}
         <SignatureRule />
       </div>
       <div className="flex flex-col gap-4 text-lg leading-relaxed text-ink">
