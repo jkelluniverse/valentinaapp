@@ -20,7 +20,7 @@ function inviteLink(rawToken: string) {
 
 // Create a fresh invite and return its one-time copyable link.
 export async function createInvite(input: { name: string; email: string }): Promise<ActionResult> {
-  const session = await requirePractitioner();
+  const practitioner = await requirePractitioner();
   const email = normalizeEmail(input.email);
   const name = String(input.name ?? "").trim();
 
@@ -42,7 +42,7 @@ export async function createInvite(input: { name: string; email: string }): Prom
       name,
       tokenHash: hash,
       expiresAt: inviteExpiry(),
-      invitedById: (session.user as { id?: string }).id ?? "",
+      invitedById: practitioner.id,
     },
   });
 

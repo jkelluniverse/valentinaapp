@@ -4,7 +4,7 @@ import { SignOutForm } from "@/components/SignOutForm";
 
 // Server-side role + active boundary for the whole client area (spec §6).
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user } = await requireClient();
+  const user = await requireClient();
 
   return (
     <div className="min-h-screen">

@@ -4,7 +4,7 @@ import { SignOutForm } from "@/components/SignOutForm";
 
 // Server-side role boundary for the whole practitioner area (spec §6).
 export default async function PractitionerLayout({ children }: { children: React.ReactNode }) {
-  const session = await requirePractitioner();
+  const user = await requirePractitioner();
 
   return (
     <div className="min-h-screen">
@@ -14,7 +14,7 @@ export default async function PractitionerLayout({ children }: { children: React
             Veritas · Practitioner
           </Link>
           <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-slate sm:inline">{session.user?.email}</span>
+            <span className="hidden text-sm text-slate sm:inline">{user.email}</span>
             <SignOutForm />
           </div>
         </div>

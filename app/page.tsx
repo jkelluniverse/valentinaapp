@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getSessionUser } from "@/lib/auth-guards";
 import { roleHome } from "@/lib/roles";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 
 export default async function Home() {
-  const session = await auth();
-  if (session?.user) redirect(roleHome((session.user as { role?: string }).role));
+  const user = await getSessionUser();
+  if (user) redirect(roleHome(user.role));
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-6 px-6 text-center">

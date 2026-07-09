@@ -2,28 +2,42 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
-// Server-side authorization boundary. Middleware is only a coarse convenience;
-// these run inside protected layouts/pages and are the real gate (spec §6).
+// Server-side authorization boundary. Role and active status are read from the
+// database, not the JWT — that's authoritative, can't drift from a stale token,
+// and avoids any redirect loop from a missing session claim. Middleware is only
+// a coarse "are you signed in" convenience; these are the real gate (spec §6).
 
-export async function requirePractitioner() {
+export type SessionUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: "PRACTITIONER" | "CLIENT";
+  active: boolean;
+};
+
+export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await auth();
-  if (!session?.user?.email) redirect("/login");
-  if ((session.user as { role?: string }).role !== "PRACTITIONER") redirect("/app");
-  return session;
-}
-
-export async function requireClient() {
-  const session = await auth();
-  if (!session?.user?.email) redirect("/login");
-  if ((session.user as { role?: string }).role !== "CLIENT") redirect("/practitioner/clients");
-
-  // Re-check the deactivation gate against the database, not just the JWT, so a
-  // client deactivated mid-session loses access on their next navigation.
+  if (!session?.user?.email) return null;
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { id: true, name: true, active: true },
+    select: { id: true, name: true, email: true, role: true, active: true },
   });
-  if (!user || !user.active) redirect("/login?error=inactive");
+  return user as SessionUser | null;
+}
 
-  return { session, user };
+export async function requirePractitioner(): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  if (user.role !== "PRACTITIONER") redirect("/app");
+  return user;
+}
+
+export async function requireClient(): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  if (user.role !== "CLIENT") redirect("/practitioner/clients");
+  // Deactivation gate against the DB, so a client deactivated mid-session loses
+  // access on their next navigation (not just at next login).
+  if (!user.active) redirect("/login?error=inactive");
+  return user;
 }
