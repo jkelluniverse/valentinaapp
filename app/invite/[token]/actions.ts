@@ -37,6 +37,9 @@ export async function acceptInvite(token: string, formData: FormData) {
         active: true,
         passwordHash,
         consentAt: new Date(),
+        // The acceptance consent text explicitly covers AI-assisted
+        // practitioner review (C5 spec §9); both consents record together.
+        aiConsentAt: new Date(),
       },
     });
     await tx.invite.update({

@@ -20,11 +20,31 @@ model User {
   role         Role       @default(CLIENT)
   active       Boolean    @default(true) // deactivation gate for login
   consentAt    DateTime? // set when a client accepts consent
+  aiConsentAt  DateTime? // explicit consent to AI-assisted practitioner review (C5)
   entries      LogEntry[]
-  assignments  Assignment[] @relation("ClientAssignments")
-  record       RecordItem[] @relation("ClientRecord")
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  assignments  Assignment[]  @relation("ClientAssignments")
+  record       RecordItem[]  @relation("ClientRecord")
+  preps        SessionPrep[] @relation("ClientPreps")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// C5 — a stored session-prep formulation. Practitioner-only, doubles as the
+// audit record (who/when/client/model/flag). Content never goes to app logs.
+model SessionPrep {
+  id                String   @id @default(cuid())
+  clientId          String
+  client            User     @relation("ClientPreps", fields: [clientId], references: [id], onDelete: Cascade)
+  requestedById     String // practitioner
+  createdAt         DateTime @default(now())
+  scopeFrom         DateTime?
+  scopeTo           DateTime?
+  model             String // model + prompt version (audit)
+  referralFlag      Boolean  @default(false)
+  output            Json // structured formulation — sensitive, practitioner-only
+  practitionerNotes String? // her annotations
+
+  @@index([clientId, createdAt])
 }
 
 enum RecordKind {

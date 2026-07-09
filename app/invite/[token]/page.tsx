@@ -102,7 +102,9 @@ export default async function InvitePage({
             <Link href="/privacy" target="_blank" className="text-wine underline underline-offset-4">
               privacy notice
             </Link>{" "}
-            and consent to storing my reflections in this private space.
+            and consent to storing my reflections in this private space, and to Valentina using
+            a private AI assistant to review my reflections when preparing for our sessions. I
+            can change the AI choice anytime from my space.
           </span>
         </label>
 

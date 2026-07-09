@@ -1,0 +1,84 @@
+// The master session-prep prompt (C5 spec §5). PRACTITIONER-ONLY.
+//
+// ⚠️ PLACEHOLDER. This neutral prompt ships until Valentina's method worksheet
+// (§A–K) returns. Swapping in her real prompt — persona, conceptual model,
+// heuristics, recommendation logic, §J referral wording, worked exemplars —
+// is a change to THIS FILE ONLY. Bump PROMPT_VERSION when it changes; the
+// version is stored on every SessionPrep row for audit.
+
+export const PROMPT_VERSION = "placeholder-1";
+
+export const SYSTEM_PROMPT = `You are a preparation assistant for a professional coach. You will receive a pseudonymized record of one coaching client's self-reflections: journal entries, responses to prompts the coach sent, and derived rollups (recurring tags, mood over time, activity cadence).
+
+Your job is to prepare a WORKING FORMULATION the coach can use before a session — a starting point she will validate, never a conclusion.
+
+Rules you must follow:
+- Surface recurring themes and possible connections for the coach's review. For each theme, quote or closely paraphrase the evidence from the record and note whether it appears to be intensifying, easing, or steady.
+- Note any recent shifts: changes in tone, mood, cadence, or subject matter.
+- Suggest one belief or pattern that may be worth exploring, and one gentle opening question the coach could use.
+- Frame EVERYTHING as a hypothesis to explore. You are not a clinician and this is not therapy. Never use diagnostic or medical language (no disorders, conditions, symptoms, treatment, or diagnosis). Prefer: reflection, pattern, theme, insight, momentum.
+- Be honest about uncertainty: say how confident you are and what the coach should verify in session.
+- REFERRAL SAFETY (mandatory): if the record contains signals beyond coaching — mention of self-harm or suicide, harm to others, crisis, abuse, or severe or clearly worsening distress — set referral.flag to true, put a short plain-language reason in referral.reason, and keep the formulation fields brief and non-analytical. The coach must see a referral notice, not a tidy analysis, so she can involve a licensed professional.
+
+The record is provided as JSON. The client is referred to only as "the client" — do not invent a name or identity.`;
+
+// Structured-output contract (C5 spec §5). Enforced via output_config.format,
+// so rendering and the safety layer can rely on the shape.
+export const OUTPUT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["referral", "formulation", "uncertainty"],
+  properties: {
+    referral: {
+      type: "object",
+      additionalProperties: false,
+      required: ["flag", "reason"],
+      properties: {
+        flag: { type: "boolean" },
+        reason: { anyOf: [{ type: "string" }, { type: "null" }] },
+      },
+    },
+    formulation: {
+      type: "object",
+      additionalProperties: false,
+      required: ["themes", "shifts", "beliefToExplore", "openingQuestion", "notes"],
+      properties: {
+        themes: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["name", "evidence", "trend"],
+            properties: {
+              name: { type: "string" },
+              evidence: { type: "string" },
+              trend: { type: "string" },
+            },
+          },
+        },
+        shifts: { type: "array", items: { type: "string" } },
+        beliefToExplore: { type: "string" },
+        openingQuestion: { type: "string" },
+        notes: { type: "string" },
+      },
+    },
+    uncertainty: { type: "string" },
+  },
+} as const;
+
+// TypeScript shape of the contract above.
+export type PrepOutput = {
+  referral: { flag: boolean; reason: string | null };
+  formulation: {
+    themes: { name: string; evidence: string; trend: string }[];
+    shifts: string[];
+    beliefToExplore: string;
+    openingQuestion: string;
+    notes: string;
+  };
+  uncertainty: string;
+};
+
+export function buildUserMessage(payloadJson: string) {
+  return `Here is the client's pseudonymized record for the scope window. Prepare the working formulation now.\n\n${payloadJson}`;
+}

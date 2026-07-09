@@ -32,6 +32,13 @@ export default function PrivacyPage() {
           retention and deletion policy is documented as the platform grows.
         </p>
         <p>
+          <span className="font-medium text-ink-strong">AI-assisted preparation.</span> With your
+          consent, Valentina may use a private AI assistant to review your reflections when
+          preparing for your sessions. Your name and email are never shared with it, nothing it
+          produces is shown to anyone but Valentina, and your data is never used to train AI.
+          You can turn this on or off anytime from your space.
+        </p>
+        <p>
           <span className="font-medium text-ink-strong">Security.</span> Data is encrypted in
           transit, passwords are hashed, and access is limited to your own space.
         </p>

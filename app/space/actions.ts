@@ -90,6 +90,19 @@ export async function updateEntry(entryId: string, formData: FormData) {
   redirect(`/space/entries/${entryId}?saved=1`);
 }
 
+// Client-controlled consent to AI-assisted practitioner review (C5 spec §9).
+export async function setAiConsent(granted: boolean) {
+  const user = await requireClient();
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { aiConsentAt: granted ? new Date() : null },
+  });
+
+  revalidatePath(SPACE);
+  redirect(SPACE);
+}
+
 export async function deleteEntry(entryId: string) {
   const user = await requireClient();
 

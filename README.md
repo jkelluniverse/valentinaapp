@@ -14,9 +14,12 @@ An engineer-charter build, one verified component at a time.
 - **C3 — Between-session support** ✅: Valentina keeps a library of prompts, exercises,
   and check-ins, sends one to a client (manual, optional due date), the client responds from
   their space, and she reads the response on the client record.
-- **C4 — Longitudinal client record** (this build): one write-through `RecordItem` timeline that
+- **C4 — Longitudinal client record** ✅: one write-through `RecordItem` timeline that
   every feature appends to via a single record service, with derived rollups (themes, mood trend,
   cadence) — the scaffolding C5 analyzes and C8 displays.
+- **C5 — Synthesis pipeline** (this build): on request, a practitioner-only *working formulation*
+  before a session — recurring themes, shifts, a belief worth exploring, a suggested opening —
+  assembled server-side from the consented, scoped, pseudonymized record. It prepares; she interprets.
 
 ## Stack
 - Next.js 14 (App Router)
@@ -81,6 +84,24 @@ An engineer-charter build, one verified component at a time.
 - Pending content: theme-tag vocabulary (worksheet §9) and program stages (§4) come from
   Valentina; `NOTE` kind is shipped but practitioner notes are deferred (spec default).
 
+## What C5 adds (the non-negotiables are code, not hopes)
+- **Practitioner-only.** `/practitioner/clients/[clientId]/prep` — request a prep, read the
+  formulation, annotate it, revisit past preps. Clients have no route to any of it.
+- **Consent-gated.** Runs only for a client whose `aiConsentAt` is set. New invites consent
+  explicitly at acceptance; existing clients get a privacy-choice card in their space
+  (grant/revoke anytime). No consent → blocked with a clear reason.
+- **Server-side Anthropic call** (`lib/session-prep.ts`): `ANTHROPIC_API_KEY` never reaches the
+  browser; model from `ANTHROPIC_MODEL` (default `claude-opus-4-8`); structured output enforces
+  the §5 contract; bounded retries + timeout.
+- **Scoped + pseudonymized**: last 90 days of the C4 record + full rollups; name/email stripped
+  from the payload and from free text; the client is only ever "the client".
+- **Referral safety layer**: crisis/clinical signals set `referral.flag` and the UI leads with a
+  referral notice instead of a formulation. Not optional.
+- **Metadata-only logging**: who/when/client/model/flag — never content. The `SessionPrep` row
+  is the audit record.
+- **The master prompt is a placeholder** (`ai/sessionPrepPrompt.ts`, versioned): swapping in
+  Valentina's real prompt from the method worksheet (§A–K) is a single-file change.
+
 ### Routes
 | Route | Who |
 |-------|-----|
@@ -90,6 +111,7 @@ An engineer-charter build, one verified component at a time.
 | `/practitioner/clients` | practitioner only |
 | `/practitioner/clients/[clientId]` | practitioner only (client record: entries, assign, responses) |
 | `/practitioner/clients/[clientId]/record` | practitioner only (unified timeline + rollups) |
+| `/practitioner/clients/[clientId]/prep` | practitioner only (AI session prep — C5) |
 | `/practitioner/library` | practitioner only (library CRUD) |
 | `/practitioner/library/[promptId]` | practitioner only (edit item) |
 | `/space` | client only (timeline + "From Valentina") |

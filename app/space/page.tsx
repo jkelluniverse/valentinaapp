@@ -6,6 +6,7 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { EntryCard, groupByDay, formatDay } from "@/components/entries";
 import { ENTRY_TYPES } from "@/lib/entry-meta";
 import { promptKindLabel } from "@/lib/prompt-meta";
+import { AiConsentCard } from "./AiConsentCard";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,8 @@ export default async function SpaceHome({
           to Valentina.
         </p>
       )}
+
+      {!user.aiConsentAt && <AiConsentCard granted={false} />}
 
       {(pendingItems.length > 0 || doneCount > 0) && (
         <section className="flex flex-col gap-3">
@@ -138,6 +141,8 @@ export default async function SpaceHome({
           ))}
         </div>
       </div>
+
+      {user.aiConsentAt && <AiConsentCard granted />}
 
       {groups.length === 0 ? (
         <div className="rounded-lg border border-line bg-white p-8 shadow-soft">
