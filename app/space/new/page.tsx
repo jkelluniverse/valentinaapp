@@ -1,25 +1,21 @@
-import Link from "next/link";
-import { SignatureRule, Eyebrow } from "@/components/brand";
-import { EntryForm } from "../EntryForm";
+import { requireClient } from "@/lib/auth-guards";
+import { prisma } from "@/lib/prisma";
+import { ReflectionPortal } from "../ReflectionPortal";
 import { createEntry } from "../actions";
 
-export default function NewEntryPage({ searchParams }: { searchParams: { error?: string } }) {
-  return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2">
-        <Eyebrow>New entry</Eyebrow>
-        <h1 className="text-[2.25rem] font-semibold">What&apos;s here right now?</h1>
-        <SignatureRule />
-      </div>
+export const dynamic = "force-dynamic";
 
-      <EntryForm
-        action={createEntry}
-        error={searchParams.error === "empty" ? "Write a little something first." : null}
-      />
+// A2 — the Reflection Portal. Recent reflections seed the "river of stones" the
+// new one settles into (D).
+export default async function NewReflection() {
+  const user = await requireClient();
 
-      <Link href="/space" className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
-        Back to your timeline
-      </Link>
-    </div>
-  );
+  const recent = await prisma.logEntry.findMany({
+    where: { clientId: user.id },
+    orderBy: { occurredAt: "desc" },
+    take: 7,
+    select: { mood: true },
+  });
+
+  return <ReflectionPortal action={createEntry} recentMoods={recent.map((r) => r.mood)} />;
 }

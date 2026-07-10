@@ -2,30 +2,175 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Warm Stone token system (UI-CLIENT-DESIGN). Every brand color is a CSS
+  variable holding space-separated RGB channels, so Tailwind's alpha modifiers
+  (bg-wine/90, ring-wine/20, …) keep working while the client portal can shift
+  into "Dusk" (dark) after sunset.
+
+  Dusk is scoped to [data-portal="client"] via prefers-color-scheme, so shared
+  components (entry cards, record, charts) render dark ONLY under the client
+  layout and stay light everywhere in the practitioner app — which is a separate
+  design pass and must remain untouched.
+*/
 :root {
-  /* Brand tokens (mirror of tailwind.config.ts, for non-Tailwind usage) */
-  --wine: #580c22;
-  --wine-dark: #570321;
-  --mocha: #b79175;
-  --cream: #fef4ea;
-  --blush: #fff4f8;
-  --blush-deep: #ffe8f0;
-  --ink: #4d4b49;
-  --ink-strong: #161616;
-  --slate: #797a8c;
-  --line: #eaeaea;
-  --rose: #dc506e;
+  --c-canvas: 254 244 234;
+  --c-surface: 255 255 255;
+  --c-surface-2: 255 244 248;
+  --c-cream: 254 244 234;
+  --c-wine: 88 12 34;
+  --c-wine-dark: 87 3 33;
+  --c-mocha: 183 145 117;
+  --c-blush: 255 244 248;
+  --c-blush-deep: 255 232 240;
+  --c-ink: 77 75 73;
+  --c-ink-strong: 22 22 22;
+  --c-slate: 121 122 140;
+  --c-whisper: 138 133 128;
+  --c-line: 234 234 234;
+  --c-rose: 220 80 110;
+  --c-on-primary: 254 244 234;
 }
 
 @layer base {
   body {
-    background-color: var(--cream);
-    color: var(--ink);
+    background-color: rgb(var(--c-canvas));
+    color: rgb(var(--c-ink));
     font-family: var(--font-body), Inter, system-ui, sans-serif;
   }
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-headline), "Crimson Pro", Georgia, serif;
-    color: var(--wine);
+    color: rgb(var(--c-wine));
     line-height: 1.15;
+  }
+}
+
+/* The client portal sets this attribute on its layout root. */
+[data-portal="client"] {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-portal="client"] {
+    --c-canvas: 25 17 20; /* deep plum-charcoal, never tech-black */
+    --c-surface: 36 26 33;
+    --c-surface-2: 44 33 40;
+    --c-cream: 44 33 40;
+    --c-wine: 196 106 133; /* wine, lifted to rosewood for contrast */
+    --c-wine-dark: 208 126 151;
+    --c-mocha: 199 163 133;
+    --c-blush: 44 33 40;
+    --c-blush-deep: 52 38 46;
+    --c-ink: 233 223 215; /* candlelit cream */
+    --c-ink-strong: 248 241 233;
+    --c-slate: 154 139 144;
+    --c-whisper: 154 139 144;
+    --c-line: 56 43 50;
+    --c-rose: 224 128 153;
+    --c-on-primary: 25 17 20;
+    color-scheme: dark;
+  }
+  /* Core Tailwind literals that can't be var-backed, re-themed in scope only. */
+  [data-portal="client"] .bg-white {
+    background-color: rgb(var(--c-surface));
+  }
+  [data-portal="client"] .bg-white\/60 {
+    background-color: rgb(var(--c-surface) / 0.6);
+  }
+  [data-portal="client"] .text-white {
+    color: rgb(var(--c-on-primary));
+  }
+  [data-portal="client"] .shadow-soft {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.34);
+  }
+  [data-portal="client"] .shadow-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 14px 36px rgba(0, 0, 0, 0.36);
+  }
+}
+
+/* The intensity band's thumb — a small luminous stone, not a control knob. */
+.intensity-band::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 24px;
+  width: 24px;
+  border-radius: 9999px;
+  background: rgb(var(--c-surface));
+  border: 3px solid rgb(var(--c-wine));
+  box-shadow: 0 2px 6px rgba(88, 12, 34, 0.22);
+  cursor: pointer;
+}
+.intensity-band::-moz-range-thumb {
+  height: 24px;
+  width: 24px;
+  border-radius: 9999px;
+  background: rgb(var(--c-surface));
+  border: 3px solid rgb(var(--c-wine));
+  box-shadow: 0 2px 6px rgba(88, 12, 34, 0.22);
+  cursor: pointer;
+}
+
+/* ---- Motion: Apple-style settle; a ceremonial curve for the one closure ---- */
+.ease-settle {
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+.ease-ceremony {
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The Settling Stone ceremony. */
+@keyframes stone-arrive {
+  0% {
+    transform: translateY(-16px) scale(0.55);
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes stone-ripple {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.16);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes gentle-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.stone-arrive {
+  animation: stone-arrive 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.stone-ripple {
+  animation: stone-ripple 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.gentle-rise {
+  animation: gentle-rise 520ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stone-arrive,
+  .stone-ripple,
+  .gentle-rise {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0 !important;
   }
 }
