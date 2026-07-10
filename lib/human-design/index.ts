@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import type { ClientProfile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { zonedWallToUtc } from "@/lib/schedule";
+import { computeSpheres, GENE_KEYS_CONTENT_REF } from "@/lib/gene-keys";
 import { computeChart } from "./engine";
 
 // The generation service: birth data on a ClientProfile → stored
@@ -46,7 +47,15 @@ export async function ensureChart(profile: ClientProfile): Promise<boolean> {
       where: { userId: profile.userId },
       select: { inputHash: true },
     });
-    if (existing?.inputHash === hash) return true;
+    if (existing?.inputHash === hash) {
+      // Same inputs — but recompute anyway if the C12 core is missing, so
+      // charts generated before the integrative engine backfill it.
+      const core = await prisma.birthChartCore.findUnique({
+        where: { userId: profile.userId },
+        select: { id: true },
+      });
+      if (core) return true;
+    }
 
     // Birth wall-clock (local to the birthplace, historical tz rules applied
     // by the IANA database) → the UTC instant the ephemeris needs.
@@ -63,6 +72,62 @@ export async function ensureChart(profile: ClientProfile): Promise<boolean> {
     );
 
     const chart = computeChart(birthUtc);
+
+    // C12: the same computation feeds the shared birth-data core and the two
+    // birth-data lenses (compute once, interpret twice — spec §3).
+    const spheres = computeSpheres(chart.personality, chart.design);
+    const cross = `${chart.crossGates.personalitySun}/${chart.crossGates.personalityEarth} · ${chart.crossGates.designSun}/${chart.crossGates.designEarth}`;
+    const coreData = {
+      personality: chart.personality as unknown as object,
+      design: chart.design as unknown as object,
+      incarnationCross: cross,
+      spheres: spheres as unknown as object,
+      provider: HD_PROVIDER,
+      inputHash: hash,
+      computedAt: new Date(),
+    };
+    const hdLens = {
+      lens: "HUMAN_DESIGN",
+      sourceType: "BIRTH_DATA",
+      result: {
+        type: chart.type,
+        strategy: chart.strategy,
+        authority: chart.authority,
+        profile: chart.profile,
+        definition: chart.definition,
+        centers: chart.centers,
+        channels: chart.channels,
+      } as object,
+      contentRef: HD_PROVIDER,
+      practitionerReviewed: true, // birth-data lenses are mechanical
+      generatedAt: new Date(),
+    };
+    const gkLens = {
+      lens: "GENE_KEYS",
+      sourceType: "BIRTH_DATA",
+      result: { spheres } as unknown as object,
+      contentRef: GENE_KEYS_CONTENT_REF,
+      practitionerReviewed: true,
+      generatedAt: new Date(),
+    };
+
+    await prisma.$transaction([
+      prisma.birthChartCore.upsert({
+        where: { userId: profile.userId },
+        create: { userId: profile.userId, ...coreData },
+        update: coreData,
+      }),
+      prisma.lensResult.upsert({
+        where: { userId_lens: { userId: profile.userId, lens: "HUMAN_DESIGN" } },
+        create: { userId: profile.userId, ...hdLens },
+        update: hdLens,
+      }),
+      prisma.lensResult.upsert({
+        where: { userId_lens: { userId: profile.userId, lens: "GENE_KEYS" } },
+        create: { userId: profile.userId, ...gkLens },
+        update: gkLens,
+      }),
+    ]);
 
     await prisma.humanDesignChart.upsert({
       where: { userId: profile.userId },

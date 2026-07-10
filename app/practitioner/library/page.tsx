@@ -14,6 +14,7 @@ import {
   sendWorksheetToClient,
   setWorksheetActiveInLibrary,
   setIntakeWorksheet,
+  createSpiralAssessment,
   deletePrompt,
   deleteWorksheetEverywhere,
 } from "./actions";
@@ -97,12 +98,24 @@ export default async function LibraryPage({
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl font-semibold">Worksheets</h2>
-          <Link
-            href="/practitioner/worksheets/new"
-            className="ml-auto rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
-          >
-            New worksheet
-          </Link>
+          <span className="ml-auto flex items-center gap-3">
+            {!worksheets.some((w) => w.isSpiral) && (
+              <form action={createSpiralAssessment}>
+                <button
+                  className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+                  title="Creates your original values-spiral questionnaire — reword anything in the studio; answers score into the integrative map."
+                >
+                  Create values assessment
+                </button>
+              </form>
+            )}
+            <Link
+              href="/practitioner/worksheets/new"
+              className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+            >
+              New worksheet
+            </Link>
+          </span>
         </div>
         {activeWorksheets.length === 0 ? (
           <p className="text-ink">
@@ -121,6 +134,11 @@ export default async function LibraryPage({
                 {w.isIntake && (
                   <span className="inline-flex items-center rounded-full bg-wine px-2.5 py-0.5 text-xs font-medium text-cream">
                     Intake
+                  </span>
+                )}
+                {w.isSpiral && (
+                  <span className="inline-flex items-center rounded-full bg-wine px-2.5 py-0.5 text-xs font-medium text-cream">
+                    Values assessment
                   </span>
                 )}
                 <p className="font-medium text-ink-strong">{w.title}</p>

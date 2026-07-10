@@ -30,6 +30,9 @@ model User {
   appointments Appointment[] @relation("ClientAppointments")
   profile      ClientProfile?
   humanDesign  HumanDesignChart?
+  birthCore    BirthChartCore?
+  lensResults  LensResult[]  @relation("ClientLenses")
+  integrativeProfile IntegrativeProfile?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -82,6 +85,54 @@ model HumanDesignChart {
   accuracyNote String? // set when birth time was estimated
 }
 
+// C12 — the Integrative Profile Engine. One birth-data computation (the core)
+// feeds every birth-data lens; assessment lenses plug in beside them; the
+// synthesis on top is Valentina's method — elicited from her, never invented.
+
+model BirthChartCore {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personality      Json // 13 gate/line activations at birth
+  design           Json // activations at 88° solar arc before birth
+  incarnationCross String? // the four cross gates, e.g. "12/11 · 36/6"
+  spheres          Json? // Gene Keys sphere positions derived from the core
+  provider         String // engine + version (audit)
+  inputHash        String
+  computedAt       DateTime @default(now())
+}
+
+model LensResult {
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation("ClientLenses", fields: [userId], references: [id], onDelete: Cascade)
+  lens                 String // HUMAN_DESIGN | GENE_KEYS | SPIRAL
+  sourceType           String // BIRTH_DATA | ASSESSMENT
+  result               Json // structured interpretation for this lens
+  contentRef           String? // content version (original-voice / licensed)
+  practitionerReviewed Boolean  @default(false) // assessment lenses need her sign-off
+  generatedAt          DateTime @default(now())
+
+  @@unique([userId, lens])
+}
+
+model IntegrativeProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  synthesis   Json // cross-lens map (structured, per her method)
+  narrative   String? // AI-drafted integrative summary — practitioner-facing
+  version     String // method + prompt version (audit)
+  generatedAt DateTime @default(now())
+}
+
+// Small practice-wide key/value settings (e.g. her synthesis-method text).
+model PracticeSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 // C9 — Worksheet Studio. The field schema lives as JSON (ordered typed
 // fields), so any worksheet shape works with no migrations. Parallels C3's
 // Assignment/Response on purpose — C4 unifies them in the record.
@@ -92,6 +143,7 @@ model Worksheet {
   schema      Json // ordered array of typed fields (lib/worksheet-meta.ts)
   active      Boolean               @default(true)
   isIntake    Boolean               @default(false) // the practice intake (C11) — at most one
+  isSpiral    Boolean               @default(false) // the values-spiral assessment (C12) — at most one
   createdById String
   sourceNote  String? // where the idea came from (practitioner's own note)
   createdAt   DateTime              @default(now())

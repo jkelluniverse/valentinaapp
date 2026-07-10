@@ -124,6 +124,31 @@ export async function setWorksheetActiveInLibrary(worksheetId: string, active: b
   redirect(LIBRARY);
 }
 
+// C12: create the practice's values-spiral assessment — an original
+// questionnaire seeded with scoreable statements (spiral:<stage>:<n> ids),
+// then editable in the studio like any worksheet. One per practice.
+export async function createSpiralAssessment() {
+  const practitioner = await requirePractitioner();
+  const { buildSpiralFields } = await import("@/lib/spiral");
+
+  const existing = await prisma.worksheet.findFirst({ where: { isSpiral: true } });
+  if (existing) redirect(`/practitioner/worksheets/${existing.id}`);
+
+  const worksheet = await prisma.worksheet.create({
+    data: {
+      title: "Where your energy lives — a values snapshot",
+      intro:
+        "A short reflection on what's steering your life right now. Rate how true each statement feels these days — honestly, not aspirationally. There are no better or worse answers.",
+      schema: buildSpiralFields() as unknown as object,
+      isSpiral: true,
+      createdById: practitioner.id,
+      sourceNote: "Original practice assessment (C12 values spiral)",
+    },
+  });
+  revalidatePath(LIBRARY);
+  redirect(`/practitioner/worksheets/${worksheet.id}`);
+}
+
 // C11: designate one worksheet as the practice intake — auto-assigned to every
 // new client on invite acceptance. Setting a new one clears the old.
 export async function setIntakeWorksheet(worksheetId: string, on: boolean) {

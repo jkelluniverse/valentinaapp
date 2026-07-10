@@ -89,6 +89,28 @@ export async function submitWorksheet(assignmentId: string, formData: FormData) 
         update: { intakeCompletedAt: response.completedAt },
       });
     }
+    // C12: the values-spiral assessment scores into a lens result — held for
+    // practitioner review before it enters any synthesis (stage-typing is
+    // interpretive; the tool prepares, she decides).
+    if (assignment.worksheet.isSpiral) {
+      const { scoreSpiral } = await import("@/lib/spiral");
+      const score = scoreSpiral(answers);
+      if (score) {
+        const lensData = {
+          lens: "SPIRAL",
+          sourceType: "ASSESSMENT",
+          result: score as unknown as object,
+          contentRef: score.contentRef,
+          practitionerReviewed: false,
+          generatedAt: response.completedAt,
+        };
+        await tx.lensResult.upsert({
+          where: { userId_lens: { userId: user.id, lens: "SPIRAL" } },
+          create: { userId: user.id, ...lensData },
+          update: lensData,
+        });
+      }
+    }
   });
 
   revalidatePath("/space");

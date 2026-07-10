@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { HdChartView } from "@/components/HdChartView";
+import { GeneKeysView, SpiralView } from "@/components/LensViews";
+import type { SpherePosition } from "@/lib/gene-keys";
+import type { SpiralScore } from "@/lib/spiral";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +15,14 @@ export default async function DesignPage({
   searchParams: { generated?: string };
 }) {
   const user = await requireClient();
-  const chart = await prisma.humanDesignChart.findUnique({ where: { userId: user.id } });
+  const [chart, lenses] = await Promise.all([
+    prisma.humanDesignChart.findUnique({ where: { userId: user.id } }),
+    prisma.lensResult.findMany({ where: { userId: user.id } }),
+  ]);
+  const gkLens = lenses.find((l) => l.lens === "GENE_KEYS");
+  const spiralLens = lenses.find((l) => l.lens === "SPIRAL");
+  const spheres = ((gkLens?.result as { spheres?: SpherePosition[] } | null)?.spheres ?? []) as SpherePosition[];
+  const spiralScore = spiralLens?.result as (SpiralScore & { practitionerCenter?: string }) | null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -35,6 +45,43 @@ export default async function DesignPage({
       {chart ? (
         <>
           <HdChartView chart={chart} />
+
+          {spheres.length > 0 && (
+            <section className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-xl font-semibold">Your Gene Keys</h2>
+                <p className="max-w-prose text-sm text-slate">
+                  Read from the same birth moment — eleven spheres to contemplate slowly, one at a
+                  time, rather than all at once.
+                </p>
+              </div>
+              <GeneKeysView spheres={spheres} />
+            </section>
+          )}
+
+          {spiralScore && spiralLens?.practitionerReviewed && (
+            <section className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <h2 className="text-xl font-semibold">Your values snapshot</h2>
+                <p className="max-w-prose text-sm text-slate">
+                  From your own reflections — where your energy tends to live these days.
+                </p>
+              </div>
+              <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
+                <SpiralView
+                  score={spiralScore}
+                  practitionerCenter={spiralScore.practitionerCenter}
+                />
+              </div>
+            </section>
+          )}
+          {spiralScore && !spiralLens?.practitionerReviewed && (
+            <p className="rounded-md border border-line bg-white px-4 py-3 text-sm text-slate">
+              Your values reflection is in — Valentina is looking at it, and it&apos;ll appear here
+              once she has.
+            </p>
+          )}
+
           <p className="text-sm text-slate">
             Birth details changed or refined?{" "}
             <Link
