@@ -147,8 +147,8 @@ export default async function WorksheetBuilderPage({
         ))}
       </section>
 
-      <Link href="/practitioner/worksheets" className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
-        Back to worksheets
+      <Link href="/practitioner/library" className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
+        Back to the library
       </Link>
     </div>
   );

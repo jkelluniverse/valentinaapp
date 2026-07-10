@@ -3,10 +3,16 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { promptKindLabel } from "@/lib/prompt-meta";
+import { parseFields, answerableFields } from "@/lib/worksheet-meta";
 import { PromptForm } from "./PromptForm";
 import { ArchiveToggle } from "./ArchiveToggle";
 import { SendToClient } from "./SendToClient";
-import { createPrompt, sendPromptToClient } from "./actions";
+import {
+  createPrompt,
+  sendPromptToClient,
+  sendWorksheetToClient,
+  setWorksheetActiveInLibrary,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +23,13 @@ export default async function LibraryPage({
 }) {
   await requirePractitioner();
 
-  const [prompts, clients] = await Promise.all([
+  const [prompts, worksheets, clients] = await Promise.all([
     prisma.prompt.findMany({
       orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+    }),
+    prisma.worksheet.findMany({
+      orderBy: [{ active: "desc" }, { updatedAt: "desc" }],
+      include: { _count: { select: { assignments: true } } },
     }),
     prisma.user.findMany({
       where: { role: "CLIENT", active: true },
@@ -30,6 +40,8 @@ export default async function LibraryPage({
 
   const active = prompts.filter((p) => p.active);
   const archived = prompts.filter((p) => !p.active);
+  const activeWorksheets = worksheets.filter((w) => w.active);
+  const archivedWorksheets = worksheets.filter((w) => !w.active);
 
   return (
     <div className="flex flex-col gap-8">
@@ -66,7 +78,56 @@ export default async function LibraryPage({
       </div>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-xl font-semibold">In use</h2>
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-xl font-semibold">Worksheets</h2>
+          <Link
+            href="/practitioner/worksheets/new"
+            className="ml-auto rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+          >
+            New worksheet
+          </Link>
+        </div>
+        {activeWorksheets.length === 0 ? (
+          <p className="text-ink">
+            No worksheets yet — draft one in the studio and it&apos;ll live here.
+          </p>
+        ) : (
+          activeWorksheets.map((w) => (
+            <div
+              key={w.id}
+              className="flex flex-col gap-2 rounded-lg border border-line bg-white p-5 shadow-soft"
+            >
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center rounded-full bg-blush-deep px-2.5 py-0.5 text-xs font-medium text-wine">
+                  Worksheet
+                </span>
+                <p className="font-medium text-ink-strong">{w.title}</p>
+                <span className="ml-auto flex items-center gap-4">
+                  <SendToClient action={sendWorksheetToClient.bind(null, w.id)} clients={clients} />
+                  <Link
+                    href={`/practitioner/worksheets/${w.id}`}
+                    className="text-sm font-medium text-wine underline-offset-4 hover:underline"
+                  >
+                    Edit
+                  </Link>
+                  <form action={setWorksheetActiveInLibrary.bind(null, w.id, false)}>
+                    <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                      Archive
+                    </button>
+                  </form>
+                </span>
+              </div>
+              <p className="text-sm text-slate">
+                {answerableFields(parseFields(w.schema)).length} questions · sent {w._count.assignments} times
+                {w.intro ? ` · ${w.intro.slice(0, 120)}${w.intro.length > 120 ? "…" : ""}` : ""}
+              </p>
+            </div>
+          ))
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xl font-semibold">Prompts, exercises &amp; check-ins</h2>
         {active.length === 0 ? (
           <p className="text-ink">Nothing here yet — add your first prompt above.</p>
         ) : (
@@ -97,9 +158,25 @@ export default async function LibraryPage({
         )}
       </section>
 
-      {archived.length > 0 && (
+      {(archived.length > 0 || archivedWorksheets.length > 0) && (
         <section className="flex flex-col gap-3">
           <h2 className="text-xl font-semibold text-slate">Archived</h2>
+          {archivedWorksheets.map((w) => (
+            <div
+              key={`ws-${w.id}`}
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white/60 p-4"
+            >
+              <span className="inline-flex items-center rounded-full bg-line/50 px-2.5 py-0.5 text-xs font-medium text-slate">
+                Worksheet
+              </span>
+              <p className="text-sm text-slate">{w.title}</p>
+              <form action={setWorksheetActiveInLibrary.bind(null, w.id, true)} className="ml-auto">
+                <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                  Restore
+                </button>
+              </form>
+            </div>
+          ))}
           {archived.map((p) => (
             <div
               key={p.id}

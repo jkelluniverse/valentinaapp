@@ -126,9 +126,9 @@ export default async function ClientRecordPage({
         <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
           {worksheets.length === 0 ? (
             <p className="text-sm text-ink">
-              No worksheets yet — create one in{" "}
-              <Link href="/practitioner/worksheets" className="font-medium text-wine underline-offset-4 hover:underline">
-                Worksheets
+              No worksheets yet — draft one in the{" "}
+              <Link href="/practitioner/worksheets/new" className="font-medium text-wine underline-offset-4 hover:underline">
+                worksheet studio
               </Link>
               .
             </p>

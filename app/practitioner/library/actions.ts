@@ -93,3 +93,31 @@ export async function setPromptActive(promptId: string, active: boolean) {
   await prisma.prompt.update({ where: { id: promptId }, data: { active } });
   revalidatePath(LIBRARY);
 }
+
+// Worksheets live in the same library home (C9): send + archive from here.
+export async function sendWorksheetToClient(worksheetId: string, formData: FormData) {
+  const practitioner = await requirePractitioner();
+
+  const [worksheet, client] = await Promise.all([
+    prisma.worksheet.findFirst({ where: { id: worksheetId, active: true }, select: { id: true } }),
+    prisma.user.findFirst({
+      where: { id: String(formData.get("clientId") ?? ""), role: "CLIENT" },
+      select: { id: true },
+    }),
+  ]);
+  if (!worksheet || !client) redirect(`${LIBRARY}?error=send`);
+
+  await prisma.worksheetAssignment.create({
+    data: { worksheetId: worksheet.id, clientId: client.id, assignedById: practitioner.id },
+  });
+
+  revalidatePath(LIBRARY);
+  redirect(`${LIBRARY}?sent=1`);
+}
+
+export async function setWorksheetActiveInLibrary(worksheetId: string, active: boolean) {
+  await requirePractitioner();
+  await prisma.worksheet.update({ where: { id: worksheetId }, data: { active } });
+  revalidatePath(LIBRARY);
+  redirect(LIBRARY);
+}
