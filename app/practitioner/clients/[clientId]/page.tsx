@@ -7,8 +7,9 @@ import { SignatureRule, Eyebrow, StatusPill } from "@/components/brand";
 import { EntryCard, MoodDots, groupByDay, formatDay } from "@/components/entries";
 import { ThemeList, CadenceLine } from "@/components/record";
 import { promptKindLabel } from "@/lib/prompt-meta";
+import { getOrCreateConfig, getPractitioner, formatInZone, zoneAbbrev } from "@/lib/schedule";
 import { AssignForm } from "./AssignForm";
-import { assignPrompt, assignWorksheet } from "./actions";
+import { assignPrompt, assignWorksheet, cancelForClient } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export default async function ClientRecordPage({
   searchParams,
 }: {
   params: { clientId: string };
-  searchParams: { sent?: string; error?: string };
+  searchParams: { sent?: string; error?: string; booked?: string };
 }) {
   await requirePractitioner();
 
@@ -34,6 +35,13 @@ export default async function ClientRecordPage({
     select: { id: true, name: true, email: true, active: true, consentAt: true, aiConsentAt: true },
   });
   if (!client) notFound();
+
+  const practitioner = await getPractitioner();
+  const schedConfig = practitioner ? await getOrCreateConfig(practitioner.id) : null;
+  const upcomingSessions = await prisma.appointment.findMany({
+    where: { clientId: client.id, status: "SCHEDULED", startAt: { gte: new Date() } },
+    orderBy: { startAt: "asc" },
+  });
 
   const [entries, assignments, library, rec, worksheets, worksheetAssignments] = await Promise.all([
     prisma.logEntry.findMany({
@@ -112,11 +120,79 @@ export default async function ClientRecordPage({
           Sent — it&apos;s waiting in their space.
         </p>
       )}
+      {searchParams.booked === "1" && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          Session booked — it&apos;s on the calendar and a note is on its way.
+        </p>
+      )}
+      {searchParams.booked === "cancelled" && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">Session cancelled.</p>
+      )}
       {searchParams.error === "prompt" && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
           That library item isn&apos;t available — pick another.
         </p>
       )}
+      {searchParams.error === "taken" && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          That time is no longer free — pick another.
+        </p>
+      )}
+
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-xl font-semibold">Sessions</h2>
+          <Link
+            href={`/practitioner/clients/${client.id}/book`}
+            className="ml-auto rounded-md bg-wine px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-wine/90"
+          >
+            Book next session
+          </Link>
+        </div>
+        {upcomingSessions.length === 0 || !schedConfig ? (
+          <p className="text-ink">No upcoming sessions booked.</p>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {upcomingSessions.map((a) => (
+              <div
+                key={a.id}
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white p-5 shadow-soft"
+              >
+                <p className="font-medium text-ink-strong">
+                  {formatInZone(a.startAt, schedConfig.timezone, {
+                    weekday: "long",
+                    month: "long",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}{" "}
+                  <span className="text-slate">{zoneAbbrev(a.startAt, schedConfig.timezone)}</span>
+                </p>
+                <span className="inline-flex items-center rounded-full bg-blush-deep px-2.5 py-0.5 text-xs font-medium text-wine">
+                  {a.location === "VIRTUAL" ? "Virtual" : "In person"}
+                </span>
+                <span className="ml-auto flex items-center gap-4">
+                  {a.location === "VIRTUAL" && a.videoUrl && (
+                    <a
+                      href={a.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-wine underline-offset-4 hover:underline"
+                    >
+                      Join link
+                    </a>
+                  )}
+                  <form action={cancelForClient.bind(null, client.id, a.id)}>
+                    <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                      Cancel
+                    </button>
+                  </form>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Send something for between sessions</h2>

@@ -27,6 +27,7 @@ model User {
   preps        SessionPrep[] @relation("ClientPreps")
   enrollments  Enrollment[]  @relation("ClientEnrollments")
   worksheets   WorksheetAssignment[] @relation("ClientWorksheets")
+  appointments Appointment[] @relation("ClientAppointments")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -297,4 +298,86 @@ model Invite {
   updatedAt      DateTime     @updatedAt
 
   @@index([email])
+}
+
+// C10 — Scheduling & Sessions. Bookings reveal who is a client and when, so
+// everything is PRACTITIONER-gated server-side and clients see only their own.
+// Times are stored in UTC; the practitioner's tz lives in SchedulingConfig and
+// slot generation is DST-correct (lib/schedule.ts). Everything keys by
+// practitionerId so a second practitioner needs no schema change.
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum SessionLocation {
+  VIRTUAL
+  IN_PERSON
+}
+
+enum ExceptionType {
+  BLOCK // a one-off closure inside normal hours
+  OPEN // a one-off opening outside normal hours
+}
+
+model SchedulingConfig {
+  id                String @id @default(cuid())
+  practitionerId    String @unique
+  timezone          String // IANA, e.g. "America/New_York"
+  sessionMinutes    Int    @default(50)
+  bufferMinutes     Int    @default(10)
+  minNoticeHours    Int    @default(12)
+  maxAdvanceDays    Int    @default(60)
+  cancelCutoffHours Int    @default(24)
+  defaultVideoUrl   String? // standing room link used when an appointment has none
+  calendarFeedSecret String @unique // unguessable token for the ICS feed (rotatable)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model AvailabilityRule {
+  id             String  @id @default(cuid())
+  practitionerId String
+  weekday        Int // 0-6 (Sunday..Saturday), practitioner tz
+  startMinute    Int // minutes from midnight
+  endMinute      Int
+  active         Boolean @default(true)
+
+  @@index([practitionerId, weekday])
+}
+
+model AvailabilityException {
+  id             String        @id @default(cuid())
+  practitionerId String
+  date           DateTime // the civil date (midnight UTC) this applies to
+  type           ExceptionType
+  startMinute    Int? // required for OPEN; ignored for full-day BLOCK
+  endMinute      Int?
+  reason         String?
+
+  @@index([practitionerId, date])
+}
+
+model Appointment {
+  id             String            @id @default(cuid())
+  practitionerId String
+  clientId       String
+  client         User              @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  startAt        DateTime // UTC
+  endAt          DateTime // UTC
+  status         AppointmentStatus @default(SCHEDULED)
+  location       SessionLocation   @default(VIRTUAL)
+  videoProvider  String? // ZOOM | MEET | WHEREBY | DAILY | null
+  videoUrl       String? // join link
+  videoRoomId    String?
+  bookedBy       String // "practitioner" | "client"
+  clientNote     String? // optional topic
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([practitionerId, startAt])
+  @@index([clientId, startAt])
 }

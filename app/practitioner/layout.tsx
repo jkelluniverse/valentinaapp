@@ -27,6 +27,9 @@ export default async function PractitionerLayout({ children }: { children: React
               <Link href="/practitioner/courses" className="text-ink underline-offset-4 hover:text-wine hover:underline">
                 Courses
               </Link>
+              <Link href="/practitioner/schedule" className="text-ink underline-offset-4 hover:text-wine hover:underline">
+                Schedule
+              </Link>
               <Link href="/practitioner/search" className="text-ink underline-offset-4 hover:text-wine hover:underline">
                 Search
               </Link>
