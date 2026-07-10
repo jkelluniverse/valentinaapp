@@ -46,7 +46,18 @@ export async function setCourseStatus(courseId: string, publish: boolean) {
 
 export async function deleteCourse(courseId: string) {
   await requirePractitioner();
-  await prisma.course.delete({ where: { id: courseId } });
+  // Clean up the record items its lesson completions produced, so the C4
+  // timeline never drifts (record items reference by convention, no FK).
+  const progress = await prisma.lessonProgress.findMany({
+    where: { enrollment: { courseId } },
+    select: { id: true },
+  });
+  await prisma.$transaction([
+    prisma.recordItem.deleteMany({
+      where: { sourceType: "LessonProgress", sourceId: { in: progress.map((p) => p.id) } },
+    }),
+    prisma.course.delete({ where: { id: courseId } }),
+  ]);
   revalidatePath(COURSES);
   redirect(COURSES);
 }

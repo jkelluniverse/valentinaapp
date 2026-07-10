@@ -1,20 +1,20 @@
+import Link from "next/link";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { REFERENCE_ERRORS } from "@/lib/reference-input";
-import { draftFromStudio, createBlankWorksheet } from "../actions";
+import { draftPromptWithAi } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  empty: "Describe the worksheet or add a reference first.",
+  empty: "Describe the item or add a reference first.",
   config: "The AI service isn't configured — add ANTHROPIC_API_KEY to the app service.",
   api: "Drafting hit a problem. Nothing was saved — try again in a moment.",
   ...REFERENCE_ERRORS,
 };
 
-// The studio (C9 spec §3): describe it or paste a reference, get a draft in
-// Valentina's voice, then refine it in the builder.
-export default async function WorksheetStudioPage({
+// AI drafting for prompts / exercises / check-ins — the library's studio.
+export default async function LibraryStudioPage({
   searchParams,
 }: {
   searchParams: { error?: string };
@@ -24,12 +24,12 @@ export default async function WorksheetStudioPage({
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
-        <Eyebrow>Worksheet studio</Eyebrow>
-        <h1 className="text-[2.25rem] font-semibold">Start a worksheet</h1>
+        <Eyebrow>Library studio</Eyebrow>
+        <h1 className="text-[2.25rem] font-semibold">Draft with a little help</h1>
         <SignatureRule />
         <p className="max-w-prose text-ink">
-          Tell it what you want, or paste a reference — you&apos;ll get a fresh draft in your
-          voice to shape from there.
+          Tell it what you want — or hand it something you found — and you&apos;ll get a prompt,
+          exercise, or check-in in your voice, ready to refine.
         </p>
       </div>
 
@@ -39,16 +39,16 @@ export default async function WorksheetStudioPage({
         </p>
       )}
 
-      <form action={draftFromStudio} className="flex flex-col gap-5 rounded-lg border border-line bg-white p-6 shadow-soft">
+      <form action={draftPromptWithAi} className="flex flex-col gap-5 rounded-lg border border-line bg-white p-6 shadow-soft">
         <label className="flex flex-col gap-1.5">
           <span className="text-label font-semibold uppercase tracking-wide text-mocha">
-            What do you want this worksheet to do?
+            What should it do?
           </span>
           <textarea
             name="description"
             rows={3}
             autoFocus
-            placeholder="e.g. A values-clarification worksheet — help a client name what matters most and spot one place life isn't aligned with it."
+            placeholder="e.g. A gentle exercise for noticing tension before a difficult conversation."
             className="rounded-md border border-line bg-white px-3 py-2.5 text-base leading-relaxed text-ink outline-none placeholder:text-slate focus:border-wine focus:ring-2 focus:ring-wine/20"
           />
         </label>
@@ -61,8 +61,8 @@ export default async function WorksheetStudioPage({
             <span className="text-xs font-medium text-ink">Paste text</span>
             <textarea
               name="reference"
-              rows={4}
-              placeholder="Paste a worksheet, notes, or a post you'd like to draw the concept from…"
+              rows={3}
+              placeholder="Paste a post, an idea, or notes…"
               className="rounded-md border border-line bg-white px-3 py-2.5 text-sm leading-relaxed text-ink outline-none placeholder:text-slate focus:border-wine focus:ring-2 focus:ring-wine/20"
             />
           </label>
@@ -71,7 +71,7 @@ export default async function WorksheetStudioPage({
             <input
               type="url"
               name="referenceUrl"
-              placeholder="https://…  (articles and blogs work best; social posts often block this — screenshot those instead)"
+              placeholder="https://…  (articles work best; social posts often block this — screenshot those instead)"
               className="rounded-md border border-line bg-white px-3 py-2.5 text-sm text-ink outline-none placeholder:text-slate focus:border-wine focus:ring-2 focus:ring-wine/20"
             />
           </label>
@@ -95,11 +95,9 @@ export default async function WorksheetStudioPage({
         </button>
       </form>
 
-      <form action={createBlankWorksheet}>
-        <button className="text-sm font-medium text-wine underline-offset-4 hover:underline">
-          Or start from a blank worksheet →
-        </button>
-      </form>
+      <Link href="/practitioner/library" className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
+        Back to the library
+      </Link>
     </div>
   );
 }

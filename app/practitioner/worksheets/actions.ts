@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { draftWorksheet } from "@/lib/worksheet-author";
+import { buildReferenceBlocks } from "@/lib/reference-input";
 import { parseFields, FIELD_TYPES, type FieldType, type WorksheetField } from "@/lib/worksheet-meta";
 
 const WORKSHEETS = "/practitioner/worksheets";
@@ -16,9 +17,11 @@ const builderPath = (id: string) => `${WORKSHEETS}/${id}`;
 export async function draftFromStudio(formData: FormData) {
   const practitioner = await requirePractitioner();
   const description = String(formData.get("description") ?? "").trim();
-  const reference = String(formData.get("reference") ?? "").trim();
 
-  const result = await draftWorksheet(description, reference);
+  const reference = await buildReferenceBlocks(formData);
+  if (!reference.ok) redirect(`${WORKSHEETS}/new?error=${reference.error}`);
+
+  const result = await draftWorksheet(description, reference.blocks);
   if (!result.ok) redirect(`${WORKSHEETS}/new?error=${result.error}`);
 
   const worksheet = await prisma.worksheet.create({
@@ -27,7 +30,9 @@ export async function draftFromStudio(formData: FormData) {
       intro: result.intro || null,
       schema: result.fields as object[],
       createdById: practitioner.id,
-      sourceNote: reference ? "Drafted with AI from a reference (concept/structure only)" : "Drafted with AI from a description",
+      sourceNote: reference.had
+        ? "Drafted with AI from reference material (concept/structure only)"
+        : "Drafted with AI from a description",
     },
   });
 

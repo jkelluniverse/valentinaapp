@@ -13,7 +13,7 @@ export default async function EditPromptPage({
   searchParams,
 }: {
   params: { promptId: string };
-  searchParams: { error?: string };
+  searchParams: { error?: string; drafted?: string };
 }) {
   await requirePractitioner();
 
@@ -24,6 +24,11 @@ export default async function EditPromptPage({
 
   return (
     <div className="flex flex-col gap-8">
+      {searchParams.drafted && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          Here&apos;s the draft — reshape anything below, then save.
+        </p>
+      )}
       <div className="flex flex-col gap-2">
         <Eyebrow>Library</Eyebrow>
         <h1 className="text-[2.25rem] font-semibold">Edit item</h1>

@@ -6,6 +6,8 @@ import type { PromptKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { PROMPT_KINDS } from "@/lib/prompt-meta";
+import { draftLibraryItem } from "@/lib/library-author";
+import { buildReferenceBlocks } from "@/lib/reference-input";
 
 const LIBRARY = "/practitioner/library";
 
@@ -120,4 +122,67 @@ export async function setWorksheetActiveInLibrary(worksheetId: string, active: b
   await prisma.worksheet.update({ where: { id: worksheetId }, data: { active } });
   revalidatePath(LIBRARY);
   redirect(LIBRARY);
+}
+
+// AI drafting for prompts/exercises/check-ins: the draft is saved and opened
+// in the editor to refine — same rhythm as the worksheet studio.
+export async function draftPromptWithAi(formData: FormData) {
+  const practitioner = await requirePractitioner();
+  const description = String(formData.get("description") ?? "").trim();
+
+  const reference = await buildReferenceBlocks(formData);
+  if (!reference.ok) redirect(`${LIBRARY}/new?error=${reference.error}`);
+
+  const result = await draftLibraryItem(description, reference.blocks);
+  if (!result.ok) redirect(`${LIBRARY}/new?error=${result.error}`);
+
+  const prompt = await prisma.prompt.create({
+    data: {
+      kind: result.kind,
+      title: result.title,
+      body: result.body,
+      createdById: practitioner.id,
+    },
+  });
+
+  revalidatePath(LIBRARY);
+  redirect(`${LIBRARY}/${prompt.id}?drafted=1`);
+}
+
+// Hard deletes. Both clean up the record items their responses produced, so
+// the C4 timeline never drifts (record items have no FK — convention only).
+export async function deletePrompt(promptId: string) {
+  await requirePractitioner();
+
+  const responses = await prisma.promptResponse.findMany({
+    where: { assignment: { promptId } },
+    select: { id: true },
+  });
+  await prisma.$transaction([
+    prisma.recordItem.deleteMany({
+      where: { sourceType: "PromptResponse", sourceId: { in: responses.map((r) => r.id) } },
+    }),
+    prisma.prompt.delete({ where: { id: promptId } }), // cascades assignments + responses
+  ]);
+
+  revalidatePath(LIBRARY);
+  redirect(`${LIBRARY}?deleted=1`);
+}
+
+export async function deleteWorksheetEverywhere(worksheetId: string) {
+  await requirePractitioner();
+
+  const responses = await prisma.worksheetResponse.findMany({
+    where: { assignment: { worksheetId } },
+    select: { id: true },
+  });
+  await prisma.$transaction([
+    prisma.recordItem.deleteMany({
+      where: { sourceType: "WorksheetResponse", sourceId: { in: responses.map((r) => r.id) } },
+    }),
+    prisma.worksheet.delete({ where: { id: worksheetId } }), // cascades assignments + responses
+  ]);
+
+  revalidatePath(LIBRARY);
+  redirect(`${LIBRARY}?deleted=1`);
 }

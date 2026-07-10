@@ -68,17 +68,14 @@ export type AuthorDraft = {
   }[];
 };
 
-export function buildAuthorMessage(description: string, reference: string) {
+export function buildAuthorMessage(description: string, hasReference: boolean) {
   const parts = [
     description
       ? `What Valentina wants: ${description}`
-      : "Valentina hasn't described it — infer the intent from the reference.",
+      : hasReference
+        ? "Valentina hasn't described it — infer the intent from the reference material above."
+        : "Valentina hasn't described it.",
   ];
-  if (reference) {
-    parts.push(
-      `Reference material (concept and structure only — write entirely original wording):\n"""\n${reference}\n"""`,
-    );
-  }
   parts.push("Draft the worksheet now.");
   return parts.join("\n\n");
 }

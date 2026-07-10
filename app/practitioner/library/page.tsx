@@ -7,11 +7,14 @@ import { parseFields, answerableFields } from "@/lib/worksheet-meta";
 import { PromptForm } from "./PromptForm";
 import { ArchiveToggle } from "./ArchiveToggle";
 import { SendToClient } from "./SendToClient";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
 import {
   createPrompt,
   sendPromptToClient,
   sendWorksheetToClient,
   setWorksheetActiveInLibrary,
+  deletePrompt,
+  deleteWorksheetEverywhere,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +22,7 @@ export const dynamic = "force-dynamic";
 export default async function LibraryPage({
   searchParams,
 }: {
-  searchParams: { saved?: string; sent?: string; error?: string };
+  searchParams: { saved?: string; sent?: string; deleted?: string; error?: string };
 }) {
   await requirePractitioner();
 
@@ -67,9 +70,22 @@ export default async function LibraryPage({
           That couldn&apos;t be sent — check the item and client and try again.
         </p>
       )}
+      {searchParams.deleted && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          Deleted — along with anything it left on client records.
+        </p>
+      )}
 
       <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
-        <h2 className="mb-4 text-xl font-semibold">Add to the library</h2>
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <h2 className="text-xl font-semibold">Add to the library</h2>
+          <Link
+            href="/practitioner/library/new"
+            className="ml-auto rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+          >
+            Draft with AI
+          </Link>
+        </div>
         <PromptForm
           action={createPrompt}
           clients={clients}
@@ -115,6 +131,7 @@ export default async function LibraryPage({
                       Archive
                     </button>
                   </form>
+                  <ConfirmDelete action={deleteWorksheetEverywhere.bind(null, w.id)} what="this worksheet" />
                 </span>
               </div>
               <p className="text-sm text-slate">
@@ -150,6 +167,7 @@ export default async function LibraryPage({
                     Edit
                   </Link>
                   <ArchiveToggle promptId={p.id} active={p.active} />
+                  <ConfirmDelete action={deletePrompt.bind(null, p.id)} what="this item" />
                 </span>
               </div>
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{p.body}</p>
@@ -170,11 +188,14 @@ export default async function LibraryPage({
                 Worksheet
               </span>
               <p className="text-sm text-slate">{w.title}</p>
-              <form action={setWorksheetActiveInLibrary.bind(null, w.id, true)} className="ml-auto">
-                <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
-                  Restore
-                </button>
-              </form>
+              <span className="ml-auto flex items-center gap-4">
+                <form action={setWorksheetActiveInLibrary.bind(null, w.id, true)}>
+                  <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                    Restore
+                  </button>
+                </form>
+                <ConfirmDelete action={deleteWorksheetEverywhere.bind(null, w.id)} what="this worksheet" />
+              </span>
             </div>
           ))}
           {archived.map((p) => (
@@ -186,8 +207,9 @@ export default async function LibraryPage({
                 {promptKindLabel(p.kind)}
               </span>
               <p className="text-sm text-slate">{p.title}</p>
-              <span className="ml-auto">
+              <span className="ml-auto flex items-center gap-4">
                 <ArchiveToggle promptId={p.id} active={p.active} />
+                <ConfirmDelete action={deletePrompt.bind(null, p.id)} what="this item" />
               </span>
             </div>
           ))}

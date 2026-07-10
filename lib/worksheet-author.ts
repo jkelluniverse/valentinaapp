@@ -16,10 +16,13 @@ export type AuthorResult =
   | { ok: true; title: string; intro: string; fields: WorksheetField[] }
   | { ok: false; error: "config" | "empty" | "api" };
 
-export async function draftWorksheet(description: string, reference: string): Promise<AuthorResult> {
+export async function draftWorksheet(
+  description: string,
+  referenceBlocks: Anthropic.ContentBlockParam[],
+): Promise<AuthorResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { ok: false, error: "config" };
-  if (!description.trim() && !reference.trim()) return { ok: false, error: "empty" };
+  if (!description.trim() && referenceBlocks.length === 0) return { ok: false, error: "empty" };
 
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
   const anthropic = new Anthropic({ apiKey, timeout: 120_000, maxRetries: 2 });
@@ -37,7 +40,16 @@ export async function draftWorksheet(description: string, reference: string): Pr
         },
       },
       messages: [
-        { role: "user", content: buildAuthorMessage(description.slice(0, 2000), reference.slice(0, 20000)) },
+        {
+          role: "user",
+          content: [
+            ...referenceBlocks,
+            {
+              type: "text",
+              text: buildAuthorMessage(description.slice(0, 2000), referenceBlocks.length > 0),
+            },
+          ],
+        },
       ],
     };
     const response = await anthropic.messages.create(params);
