@@ -27,7 +27,7 @@ export default async function SpaceHome({
     ? (searchParams.type as EntryType)
     : null;
 
-  const [entries, pendingItems, doneCount] = await Promise.all([
+  const [entries, pendingItems, pendingWorksheets, doneCount] = await Promise.all([
     prisma.logEntry.findMany({
       where: { clientId: user.id, ...(typeFilter ? { type: typeFilter } : {}) },
       orderBy: { occurredAt: "desc" },
@@ -38,8 +38,15 @@ export default async function SpaceHome({
       orderBy: [{ dueAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
       include: { prompt: { select: { title: true, kind: true } } },
     }),
+    prisma.worksheetAssignment.findMany({
+      where: { clientId: user.id, status: "PENDING" },
+      orderBy: [{ dueAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
+      include: { worksheet: { select: { title: true } } },
+    }),
     prisma.assignment.count({ where: { clientId: user.id, status: "COMPLETED" } }),
   ]);
+
+  const pendingCount = pendingItems.length + pendingWorksheets.length;
 
   const banner = searchParams.saved
     ? BANNERS.saved
@@ -70,13 +77,13 @@ export default async function SpaceHome({
 
       {!user.aiConsentAt && <AiConsentCard granted={false} />}
 
-      {(pendingItems.length > 0 || doneCount > 0) && (
+      {(pendingCount > 0 || doneCount > 0) && (
         <section className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-semibold">From Valentina</h2>
-            {pendingItems.length > 0 && (
+            {pendingCount > 0 && (
               <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-wine px-2 text-xs font-semibold text-white">
-                {pendingItems.length}
+                {pendingCount}
               </span>
             )}
             {doneCount > 0 && (
@@ -88,24 +95,41 @@ export default async function SpaceHome({
               </Link>
             )}
           </div>
-          {pendingItems.length === 0 ? (
+          {pendingCount === 0 ? (
             <p className="text-sm text-ink">Nothing waiting right now.</p>
           ) : (
-            pendingItems.map((a) => (
-              <Link
-                key={a.id}
-                href={`/space/prompts/${a.id}`}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white p-5 shadow-soft transition-colors hover:bg-blush"
-              >
-                <span className="inline-flex items-center rounded-full border border-mocha px-2.5 py-0.5 text-xs font-medium text-mocha">
-                  {promptKindLabel(a.prompt.kind)}
-                </span>
-                <p className="font-medium text-ink-strong">{a.prompt.title}</p>
-                <span className="ml-auto text-xs text-slate">
-                  {a.dueAt ? `by ${formatDay(a.dueAt)}` : "whenever you're ready"}
-                </span>
-              </Link>
-            ))
+            <>
+              {pendingWorksheets.map((w) => (
+                <Link
+                  key={`ws-${w.id}`}
+                  href={`/space/worksheets/${w.id}`}
+                  className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white p-5 shadow-soft transition-colors hover:bg-blush"
+                >
+                  <span className="inline-flex items-center rounded-full bg-blush-deep px-2.5 py-0.5 text-xs font-medium text-wine">
+                    Worksheet
+                  </span>
+                  <p className="font-medium text-ink-strong">{w.worksheet.title}</p>
+                  <span className="ml-auto text-xs text-slate">
+                    {w.dueAt ? `by ${formatDay(w.dueAt)}` : "whenever you're ready"}
+                  </span>
+                </Link>
+              ))}
+              {pendingItems.map((a) => (
+                <Link
+                  key={a.id}
+                  href={`/space/prompts/${a.id}`}
+                  className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white p-5 shadow-soft transition-colors hover:bg-blush"
+                >
+                  <span className="inline-flex items-center rounded-full border border-mocha px-2.5 py-0.5 text-xs font-medium text-mocha">
+                    {promptKindLabel(a.prompt.kind)}
+                  </span>
+                  <p className="font-medium text-ink-strong">{a.prompt.title}</p>
+                  <span className="ml-auto text-xs text-slate">
+                    {a.dueAt ? `by ${formatDay(a.dueAt)}` : "whenever you're ready"}
+                  </span>
+                </Link>
+              ))}
+            </>
           )}
         </section>
       )}

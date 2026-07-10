@@ -26,8 +26,48 @@ model User {
   record       RecordItem[]  @relation("ClientRecord")
   preps        SessionPrep[] @relation("ClientPreps")
   enrollments  Enrollment[]  @relation("ClientEnrollments")
+  worksheets   WorksheetAssignment[] @relation("ClientWorksheets")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+}
+
+// C9 — Worksheet Studio. The field schema lives as JSON (ordered typed
+// fields), so any worksheet shape works with no migrations. Parallels C3's
+// Assignment/Response on purpose — C4 unifies them in the record.
+model Worksheet {
+  id          String                @id @default(cuid())
+  title       String
+  intro       String?
+  schema      Json // ordered array of typed fields (lib/worksheet-meta.ts)
+  active      Boolean               @default(true)
+  createdById String
+  sourceNote  String? // where the idea came from (practitioner's own note)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  assignments WorksheetAssignment[]
+}
+
+model WorksheetAssignment {
+  id           String             @id @default(cuid())
+  worksheetId  String
+  worksheet    Worksheet          @relation(fields: [worksheetId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       User               @relation("ClientWorksheets", fields: [clientId], references: [id], onDelete: Cascade)
+  assignedById String
+  status       String             @default("PENDING") // PENDING | COMPLETED | DISMISSED
+  dueAt        DateTime?
+  createdAt    DateTime           @default(now())
+  response     WorksheetResponse?
+
+  @@index([clientId, status])
+}
+
+model WorksheetResponse {
+  id           String              @id @default(cuid())
+  assignmentId String              @unique
+  assignment   WorksheetAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  answers      Json // { fieldId: value } — structured, keyed to the schema
+  completedAt  DateTime            @default(now())
 }
 
 enum CourseStatus {

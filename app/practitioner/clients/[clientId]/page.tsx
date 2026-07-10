@@ -8,7 +8,7 @@ import { EntryCard, MoodDots, groupByDay, formatDay } from "@/components/entries
 import { ThemeList, CadenceLine } from "@/components/record";
 import { promptKindLabel } from "@/lib/prompt-meta";
 import { AssignForm } from "./AssignForm";
-import { assignPrompt } from "./actions";
+import { assignPrompt, assignWorksheet } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +35,7 @@ export default async function ClientRecordPage({
   });
   if (!client) notFound();
 
-  const [entries, assignments, library, rec] = await Promise.all([
+  const [entries, assignments, library, rec, worksheets, worksheetAssignments] = await Promise.all([
     prisma.logEntry.findMany({
       where: { clientId: client.id },
       orderBy: { occurredAt: "desc" },
@@ -53,6 +53,17 @@ export default async function ClientRecordPage({
       select: { id: true, title: true, kind: true },
     }),
     getClientRecord(params.clientId),
+    prisma.worksheet.findMany({
+      where: { active: true },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, title: true },
+    }),
+    prisma.worksheetAssignment.findMany({
+      where: { clientId: params.clientId },
+      orderBy: { createdAt: "desc" },
+      include: { worksheet: { select: { title: true } }, response: { select: { id: true, completedAt: true } } },
+      take: 50,
+    }),
   ]);
 
   const groups = groupByDay(entries);
@@ -112,7 +123,83 @@ export default async function ClientRecordPage({
         <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
           <AssignForm action={boundAssign} library={library} />
         </div>
+        <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
+          {worksheets.length === 0 ? (
+            <p className="text-sm text-ink">
+              No worksheets yet — create one in{" "}
+              <Link href="/practitioner/worksheets" className="font-medium text-wine underline-offset-4 hover:underline">
+                Worksheets
+              </Link>
+              .
+            </p>
+          ) : (
+            <form action={assignWorksheet.bind(null, client.id)} className="flex flex-col gap-4">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-label font-semibold uppercase tracking-wide text-mocha">
+                  A worksheet
+                </span>
+                <select
+                  name="worksheetId"
+                  required
+                  className="rounded-md border border-line bg-white px-3 py-2.5 text-base text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
+                >
+                  {worksheets.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-label font-semibold uppercase tracking-wide text-mocha">
+                  Due <span className="normal-case tracking-normal text-slate">(optional)</span>
+                </span>
+                <input
+                  type="date"
+                  name="dueAt"
+                  className="rounded-md border border-line bg-white px-3 py-2.5 text-base text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
+                />
+              </label>
+              <button className="self-start rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+                Send worksheet
+              </button>
+            </form>
+          )}
+        </div>
       </section>
+
+      {worksheetAssignments.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <h2 className="text-xl font-semibold">Worksheets</h2>
+          <div className="flex flex-col gap-3">
+            {worksheetAssignments.map((wa) => (
+              <div
+                key={wa.id}
+                className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white p-5 shadow-soft"
+              >
+                <span className="inline-flex items-center rounded-full bg-blush-deep px-2.5 py-0.5 text-xs font-medium text-wine">
+                  Worksheet
+                </span>
+                <p className="font-medium text-ink-strong">{wa.worksheet.title}</p>
+                <span className="ml-auto flex items-center gap-4 text-sm">
+                  <span className={`text-xs font-medium ${wa.status === "COMPLETED" ? "text-wine" : "text-slate"}`}>
+                    {STATUS_LABEL[wa.status] ?? wa.status}
+                    {wa.dueAt && wa.status === "PENDING" ? ` · due ${formatDay(wa.dueAt)}` : ""}
+                  </span>
+                  {wa.response && (
+                    <Link
+                      href={`/practitioner/clients/${client.id}/worksheets/${wa.id}`}
+                      className="font-medium text-wine underline-offset-4 hover:underline"
+                    >
+                      Read response
+                    </Link>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Between sessions</h2>

@@ -23,9 +23,12 @@ An engineer-charter build, one verified component at a time.
 - **C8 — Practitioner dashboard** ✅: Valentina's home base — the practice at a glance,
   needs-attention signals, an enriched roster, the consolidated client file, and cross-client
   search. Composition + read layer over C1/C3/C4/C5; no new client-data models.
-- **C6+C7 — Course builder & player** (this build): Valentina builds a course — chapters with
+- **C6+C7 — Course builder & player** ✅: Valentina builds a course — chapters with
   video (embed), writing, and exercise lessons — publishes it, enrolls clients; clients work
   through it lesson by lesson with progress tracking, and exercise responses feed the record.
+- **C9 — Worksheet Studio** (this build, completing C0–C9): an idea or pasted reference becomes
+  a branded, fillable worksheet in Valentina's voice (AI-drafted, she refines); assigned like a
+  prompt; the client fills it out with on-device draft autosave; structured answers feed the record.
 
 ## Stack
 - Next.js 14 (App Router)
@@ -140,6 +143,23 @@ An engineer-charter build, one verified component at a time.
   ticks + resume, distraction-free lesson pages with mark-complete and next/previous.
 - Deferred per spec: payments, certificates, quizzes, comments, drip (`releaseRule` nullable).
 
+## What C9 adds
+- **The studio** (`/practitioner/worksheets/new`): describe the worksheet or paste reference
+  text → a server-side Anthropic call (worksheet content only, **never client data**) drafts a
+  structured worksheet in Valentina's brand voice → it lands in the builder for her to reshape.
+  Originality guardrail is in the prompt *and* the UI ("use references for ideas, not wording").
+  Voice grounding lives in `ai/worksheetAuthorPrompt.ts` — her §5 vocabulary folds in there.
+- **Builder**: typed fields (section, short/long answer, 1–5 scale, pick-one, pick-any,
+  checkbox) as a JSON schema — any shape, no migrations. Autosave, reorder, required toggles,
+  duplicate/archive, preview-as-client.
+- **Assign + fill**: sent from the client file like a prompt; appears under "From Valentina"
+  with a Worksheet pill; the fill-out form autosaves a draft on-device (localStorage) so a long
+  worksheet is never lost; server-side required-field validation; submit → structured
+  `WorksheetResponse`.
+- **Feeds everything**: responses append `WORKSHEET_RESPONSE` record items (digest snapshot),
+  so they appear in the journey, the client file, search, and C5 session prep automatically.
+- Reference input is paste/text (spec MVP); file upload is the flagged upgrade.
+
 ### Routes
 | Route | Who |
 |-------|-----|
@@ -154,12 +174,15 @@ An engineer-charter build, one verified component at a time.
 | `/practitioner/clients/[clientId]/prep` | practitioner only (AI session prep — C5) |
 | `/practitioner/library` | practitioner only (library CRUD) |
 | `/practitioner/courses` (+ `[id]`, `[id]/preview`, `[id]/lessons/[lessonId]`) | practitioner only (course builder) |
+| `/practitioner/worksheets` (+ `/new`, `[id]`, `[id]/preview`) | practitioner only (worksheet studio) |
+| `/practitioner/clients/[clientId]/worksheets/[assignmentId]` | practitioner only (read response) |
 | `/practitioner/library/[promptId]` | practitioner only (edit item) |
 | `/space` | client only (timeline + "From Valentina") |
 | `/space/new` | client only (capture) |
 | `/space/entries/[id]` | client only (own entry: view/edit/delete) |
 | `/space/journey` | client only (own unified history + rollups) |
 | `/space/courses` (+ `[id]`, `[id]/lessons/[lessonId]`) | client only (enrolled courses + player) |
+| `/space/worksheets/[assignmentId]` | client only (fill out / revisit own worksheet) |
 | `/space/prompts` | client only (past responses) |
 | `/space/prompts/[id]` | client only (open + respond) |
 | `/api/health` | public health check |
