@@ -52,18 +52,64 @@
   color-scheme: light;
 }
 
+/*
+  Dusk is active when the toggle forces it (html[data-theme="dark"]) OR when the
+  system is dark and the toggle hasn't forced light. The toggle lives top-right
+  in both portals and writes data-theme on <html> (persisted in localStorage).
+  Because the auto rules are gated on :not([data-theme="light"]), forcing light
+  wins even on a dark device — and forcing dark wins on a light device.
+
+  DUSK_VARS below is intentionally duplicated across the explicit-dark selector
+  and the system-dark media query — CSS can't share one ruleset across a bare
+  selector and an @media block. Keep the two lists in sync.
+*/
+html[data-theme="dark"] [data-portal] {
+  --c-canvas: 25 17 20; /* deep plum-charcoal, never tech-black */
+  --c-surface: 36 26 33;
+  --c-surface-2: 44 33 40;
+  --c-cream: 44 33 40;
+  --c-wine: 196 106 133; /* wine, lifted to rosewood for contrast */
+  --c-wine-dark: 208 126 151;
+  --c-mocha: 199 163 133;
+  --c-blush: 44 33 40;
+  --c-blush-deep: 52 38 46;
+  --c-ink: 233 223 215; /* candlelit cream */
+  --c-ink-strong: 248 241 233;
+  --c-slate: 154 139 144;
+  --c-whisper: 154 139 144;
+  --c-line: 56 43 50;
+  --c-rose: 224 128 153;
+  --c-on-primary: 25 17 20;
+  color-scheme: dark;
+}
+html[data-theme="dark"] [data-portal] .bg-white {
+  background-color: rgb(var(--c-surface));
+}
+html[data-theme="dark"] [data-portal] .bg-white\/60 {
+  background-color: rgb(var(--c-surface) / 0.6);
+}
+html[data-theme="dark"] [data-portal] .text-white {
+  color: rgb(var(--c-on-primary));
+}
+html[data-theme="dark"] [data-portal] .shadow-soft {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.34);
+}
+html[data-theme="dark"] [data-portal] .shadow-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 14px 36px rgba(0, 0, 0, 0.36);
+}
+
 @media (prefers-color-scheme: dark) {
-  [data-portal] {
-    --c-canvas: 25 17 20; /* deep plum-charcoal, never tech-black */
+  html:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] {
+    --c-canvas: 25 17 20;
     --c-surface: 36 26 33;
     --c-surface-2: 44 33 40;
     --c-cream: 44 33 40;
-    --c-wine: 196 106 133; /* wine, lifted to rosewood for contrast */
+    --c-wine: 196 106 133;
     --c-wine-dark: 208 126 151;
     --c-mocha: 199 163 133;
     --c-blush: 44 33 40;
     --c-blush-deep: 52 38 46;
-    --c-ink: 233 223 215; /* candlelit cream */
+    --c-ink: 233 223 215;
     --c-ink-strong: 248 241 233;
     --c-slate: 154 139 144;
     --c-whisper: 154 139 144;
@@ -72,20 +118,19 @@
     --c-on-primary: 25 17 20;
     color-scheme: dark;
   }
-  /* Core Tailwind literals that can't be var-backed, re-themed in scope only. */
-  [data-portal] .bg-white {
+  html:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .bg-white {
     background-color: rgb(var(--c-surface));
   }
-  [data-portal] .bg-white\/60 {
+  html:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .bg-white\/60 {
     background-color: rgb(var(--c-surface) / 0.6);
   }
-  [data-portal] .text-white {
+  html:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .text-white {
     color: rgb(var(--c-on-primary));
   }
-  [data-portal] .shadow-soft {
+  html:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .shadow-soft {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.34);
   }
-  [data-portal] .shadow-card {
+  html:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .shadow-card {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 14px 36px rgba(0, 0, 0, 0.36);
   }
 }

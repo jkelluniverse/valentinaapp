@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignOutForm } from "@/components/SignOutForm";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // The Study frame (UI-PRACTITIONER-DESIGN). A hairline bar — wordmark, quiet
 // wayfinding, name + avatar — over the warm canvas. data-portal="practitioner"
@@ -44,6 +45,7 @@ export default async function PractitionerLayout({ children }: { children: React
             </Link>
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             <span className="hidden text-[13px] text-whisper sm:inline">{first}</span>
             <span className="flex h-9 w-9 items-center justify-center rounded-pill bg-blush text-sm font-semibold text-wine ring-1 ring-line">
               {initial}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireClient } from "@/lib/auth-guards";
 import { SignOutForm } from "@/components/SignOutForm";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // The client frame (UI-CLIENT-DESIGN A). A hairline top bar — wordmark and a
 // calm set of quiet links — over the warm "canvas". data-portal="client" scopes
@@ -30,10 +31,13 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
               Your design
             </Link>
           </nav>
+          <span className="ml-auto sm:ml-0">
+            <ThemeToggle />
+          </span>
           <Link
             href="/space/profile"
             aria-label="Your profile"
-            className="ml-auto flex h-9 w-9 items-center justify-center rounded-pill bg-blush text-sm font-semibold text-wine ring-1 ring-line transition-colors hover:bg-blush-deep sm:ml-0"
+            className="flex h-9 w-9 items-center justify-center rounded-pill bg-blush text-sm font-semibold text-wine ring-1 ring-line transition-colors hover:bg-blush-deep"
           >
             {initial}
           </Link>
