@@ -22,9 +22,11 @@ function SendButton() {
 export function AssignForm({
   action,
   library,
+  back,
 }: {
   action: (formData: FormData) => Promise<void>;
   library: LibraryItem[];
+  back?: string;
 }) {
   if (library.length === 0) {
     return (
@@ -36,6 +38,7 @@ export function AssignForm({
 
   return (
     <form action={action} className="flex flex-col gap-4">
+      {back && <input type="hidden" name="back" value={back} />}
       <label className="flex flex-col gap-1.5">
         <span className="text-label font-semibold uppercase tracking-wide text-mocha">
           From your library

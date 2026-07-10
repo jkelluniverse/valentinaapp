@@ -80,6 +80,59 @@ export function ThemeList({ themes }: { themes: Theme[] }) {
   );
 }
 
+// Themes with felt weight (UI-PRACTITIONER-DESIGN A2): dots, not counts.
+// Weight is relative to the busiest theme (max 5). Tap filters the timeline.
+export function ThemeDots({ themes, clientId }: { themes: Theme[]; clientId: string }) {
+  if (!themes.length) return null;
+  const max = Math.max(...themes.map((t) => t.count), 1);
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+      {themes.slice(0, 6).map((t) => {
+        const weight = Math.max(1, Math.min(5, Math.round((t.count / max) * 5)));
+        return (
+          <Link
+            key={t.tag}
+            href={`/practitioner/clients/${clientId}?tab=record&theme=${encodeURIComponent(t.tag)}`}
+            className="group flex items-center gap-1.5"
+            title={`${t.count} times · ${t.trend}`}
+          >
+            <span className="text-sm text-ink group-hover:text-wine">{t.tag}</span>
+            <span className="flex items-center gap-0.5" aria-hidden>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <span
+                  key={n}
+                  className={`h-1.5 w-1.5 rounded-full ${n <= weight ? "bg-mocha" : "bg-line"}`}
+                />
+              ))}
+            </span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
+// The mood river: a quiet sparkline, no axis, no numbers — trend visible,
+// judgment isn't.
+export function MoodRiver({ trend }: { trend: MoodPoint[] }) {
+  if (trend.length < 2) return null;
+  const w = 220;
+  const h = 34;
+  const pad = 3;
+  const xs = (i: number) => pad + (i / (trend.length - 1)) * (w - 2 * pad);
+  const ys = (m: number) => pad + (1 - (m - 1) / 4) * (h - 2 * pad);
+  const d = trend.map((p, i) => `${i === 0 ? "M" : "L"} ${xs(i).toFixed(1)} ${ys(p.avgMood).toFixed(1)}`).join(" ");
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[13px] text-whisper">mood, these weeks</span>
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-[34px] w-[220px]" role="img" aria-label="Mood trend">
+        <path d={d} fill="none" stroke="rgb(var(--c-mocha))" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={xs(trend.length - 1)} cy={ys(trend[trend.length - 1].avgMood)} r={3} fill="rgb(var(--c-wine))" />
+      </svg>
+    </div>
+  );
+}
+
 export function MoodTrend({ trend }: { trend: MoodPoint[] }) {
   if (!trend.length) {
     return <p className="text-sm text-ink">No mood data yet.</p>;

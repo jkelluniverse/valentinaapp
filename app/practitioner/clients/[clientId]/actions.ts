@@ -12,6 +12,14 @@ import { zonedWallToUtc } from "@/lib/schedule";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { record } from "@/lib/record";
 
+// Return to the same tab when a form is submitted from within the Portrait.
+function returnTo(clientId: string, formData: FormData, query: string): string {
+  const base = `/practitioner/clients/${clientId}`;
+  const back = String(formData.get("back") ?? "");
+  const target = back.startsWith(base) ? back : base;
+  return `${target}${target.includes("?") ? "&" : "?"}${query}`;
+}
+
 // Manual assignment (C3 spec §3 default). Recurring delivery is deferred —
 // scheduleRule stays null until the scheduler pass.
 export async function assignPrompt(clientId: string, formData: FormData) {
@@ -29,7 +37,7 @@ export async function assignPrompt(clientId: string, formData: FormData) {
     select: { id: true },
   });
   const back = `/practitioner/clients/${clientId}`;
-  if (!prompt) redirect(`${back}?error=prompt`);
+  if (!prompt) redirect(returnTo(clientId, formData, "error=prompt"));
 
   const rawDue = String(formData.get("dueAt") ?? "").trim();
   const parsedDue = rawDue ? new Date(rawDue) : null;
@@ -45,7 +53,7 @@ export async function assignPrompt(clientId: string, formData: FormData) {
   });
 
   revalidatePath(back);
-  redirect(`${back}?sent=1`);
+  redirect(returnTo(clientId, formData, "sent=1"));
 }
 
 // Assign a worksheet (C9) — same manual pattern as prompts.
@@ -64,7 +72,7 @@ export async function assignWorksheet(clientId: string, formData: FormData) {
     select: { id: true },
   });
   const back = `/practitioner/clients/${clientId}`;
-  if (!worksheet) redirect(`${back}?error=prompt`);
+  if (!worksheet) redirect(returnTo(clientId, formData, "error=prompt"));
 
   const rawDue = String(formData.get("dueAt") ?? "").trim();
   const parsedDue = rawDue ? new Date(rawDue) : null;
@@ -80,7 +88,7 @@ export async function assignWorksheet(clientId: string, formData: FormData) {
   });
 
   revalidatePath(back);
-  redirect(`${back}?sent=1`);
+  redirect(returnTo(clientId, formData, "sent=1"));
 }
 
 // C13.1 — move a client between program stages. Practitioner-only; history
@@ -132,7 +140,7 @@ export async function setClientStage(clientId: string, formData: FormData) {
   });
 
   revalidatePath(`/practitioner/clients/${clientId}`);
-  redirect(`/practitioner/clients/${clientId}?staged=1`);
+  redirect(returnTo(clientId, formData, "staged=1"));
 }
 
 // C10.4 — the end-of-session habit: book the client's next session on the spot.

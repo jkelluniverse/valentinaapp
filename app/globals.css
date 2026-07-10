@@ -8,10 +8,9 @@
   (bg-wine/90, ring-wine/20, …) keep working while the client portal can shift
   into "Dusk" (dark) after sunset.
 
-  Dusk is scoped to [data-portal="client"] via prefers-color-scheme, so shared
-  components (entry cards, record, charts) render dark ONLY under the client
-  layout and stay light everywhere in the practitioner app — which is a separate
-  design pass and must remain untouched.
+  Dusk is scoped to [data-portal] via prefers-color-scheme. Both portals set
+  the attribute (client + practitioner), so both shift into Dusk after sunset;
+  public pages (login, invite) have no attribute and stay in the light world.
 */
 :root {
   --c-canvas: 254 244 234;
@@ -48,13 +47,13 @@
   }
 }
 
-/* The client portal sets this attribute on its layout root. */
-[data-portal="client"] {
+/* Each portal sets this attribute on its layout root. */
+[data-portal] {
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
-  [data-portal="client"] {
+  [data-portal] {
     --c-canvas: 25 17 20; /* deep plum-charcoal, never tech-black */
     --c-surface: 36 26 33;
     --c-surface-2: 44 33 40;
@@ -74,19 +73,19 @@
     color-scheme: dark;
   }
   /* Core Tailwind literals that can't be var-backed, re-themed in scope only. */
-  [data-portal="client"] .bg-white {
+  [data-portal] .bg-white {
     background-color: rgb(var(--c-surface));
   }
-  [data-portal="client"] .bg-white\/60 {
+  [data-portal] .bg-white\/60 {
     background-color: rgb(var(--c-surface) / 0.6);
   }
-  [data-portal="client"] .text-white {
+  [data-portal] .text-white {
     color: rgb(var(--c-on-primary));
   }
-  [data-portal="client"] .shadow-soft {
+  [data-portal] .shadow-soft {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.34);
   }
-  [data-portal="client"] .shadow-card {
+  [data-portal] .shadow-card {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 14px 36px rgba(0, 0, 0, 0.36);
   }
 }
@@ -156,6 +155,19 @@
     transform: translateY(0);
   }
 }
+/* The Portrait's mocha rule draws itself left-to-right. */
+@keyframes rule-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.rule-draw {
+  transform-origin: left center;
+  animation: rule-draw 520ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
+}
 .stone-arrive {
   animation: stone-arrive 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -169,7 +181,8 @@
 @media (prefers-reduced-motion: reduce) {
   .stone-arrive,
   .stone-ripple,
-  .gentle-rise {
+  .gentle-rise,
+  .rule-draw {
     animation-duration: 0.001ms !important;
     animation-delay: 0 !important;
   }
