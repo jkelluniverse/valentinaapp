@@ -5,20 +5,28 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { promptKindLabel } from "@/lib/prompt-meta";
 import { PromptForm } from "./PromptForm";
 import { ArchiveToggle } from "./ArchiveToggle";
-import { createPrompt } from "./actions";
+import { SendToClient } from "./SendToClient";
+import { createPrompt, sendPromptToClient } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function LibraryPage({
   searchParams,
 }: {
-  searchParams: { saved?: string; error?: string };
+  searchParams: { saved?: string; sent?: string; error?: string };
 }) {
   await requirePractitioner();
 
-  const prompts = await prisma.prompt.findMany({
-    orderBy: [{ active: "desc" }, { createdAt: "desc" }],
-  });
+  const [prompts, clients] = await Promise.all([
+    prisma.prompt.findMany({
+      orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+    }),
+    prisma.user.findMany({
+      where: { role: "CLIENT", active: true },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const active = prompts.filter((p) => p.active);
   const archived = prompts.filter((p) => !p.active);
@@ -37,11 +45,22 @@ export default async function LibraryPage({
       {searchParams.saved && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">Saved to library.</p>
       )}
+      {searchParams.sent && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          Sent — it&apos;s waiting in their space.
+        </p>
+      )}
+      {searchParams.error === "send" && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          That couldn&apos;t be sent — check the item and client and try again.
+        </p>
+      )}
 
       <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
         <h2 className="mb-4 text-xl font-semibold">Add to the library</h2>
         <PromptForm
           action={createPrompt}
+          clients={clients}
           error={searchParams.error === "missing" ? "A title and the text are both needed." : null}
         />
       </div>
@@ -62,6 +81,7 @@ export default async function LibraryPage({
                 </span>
                 <p className="font-medium text-ink-strong">{p.title}</p>
                 <span className="ml-auto flex items-center gap-4">
+                  <SendToClient action={sendPromptToClient.bind(null, p.id)} clients={clients} />
                   <Link
                     href={`/practitioner/library/${p.id}`}
                     className="text-sm font-medium text-wine underline-offset-4 hover:underline"

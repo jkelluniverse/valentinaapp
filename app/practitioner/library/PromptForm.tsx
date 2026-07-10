@@ -23,13 +23,16 @@ export function PromptForm({
   defaults = {},
   submitLabel = "Save to library",
   error,
+  clients = [],
 }: {
   action: (formData: FormData) => Promise<void>;
   defaults?: { title?: string; body?: string; kind?: PromptKind };
   submitLabel?: string;
   error?: string | null;
+  clients?: { id: string; name: string | null; email: string }[];
 }) {
   const [kind, setKind] = useState<PromptKind>(defaults.kind ?? "PROMPT");
+  const [sending, setSending] = useState(false);
 
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -80,7 +83,42 @@ export function PromptForm({
       </label>
 
       {error && <p className="text-sm text-rose">{error}</p>}
-      <SaveButton label={submitLabel} />
+
+      <div className="flex flex-wrap items-center gap-3">
+        {!sending && <SaveButton label={submitLabel} />}
+        {clients.length > 0 &&
+          (sending ? (
+            <>
+              <select
+                name="clientId"
+                autoFocus
+                className="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-wine"
+              >
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name || c.email}
+                  </option>
+                ))}
+              </select>
+              <SaveButton label="Save & send" />
+              <button
+                type="button"
+                onClick={() => setSending(false)}
+                className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSending(true)}
+              className="rounded-md border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush"
+            >
+              Send to client…
+            </button>
+          ))}
+      </div>
     </form>
   );
 }
