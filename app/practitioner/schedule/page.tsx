@@ -33,6 +33,11 @@ export default async function PractitionerSchedulePage({
     orderBy: { startAt: "asc" },
     take: 100,
   });
+  // C13.6c — the quiet payment mark: ring = awaiting, filled = paid.
+  const charges = await prisma.charge.findMany({
+    where: { appointmentId: { in: appointments.map((a) => a.id) } },
+  });
+  const chargeFor = new Map(charges.map((c) => [c.appointmentId!, c]));
 
   const base = getBaseUrl();
   const httpsFeed = `${base}/api/calendar/${config.calendarFeedSecret}.ics`;
@@ -130,6 +135,22 @@ export default async function PractitionerSchedulePage({
               <span className="inline-flex items-center rounded-full bg-blush-deep px-2.5 py-0.5 text-xs font-medium text-wine">
                 {a.location === "VIRTUAL" ? "Virtual" : "In person"}
               </span>
+              {(() => {
+                const c = chargeFor.get(a.id);
+                if (!c) return null;
+                if (c.status === "PAID")
+                  return (
+                    <span title="Paid" className="inline-block h-2.5 w-2.5 rounded-full bg-wine" />
+                  );
+                if (c.status === "DUE" || c.status === "PENDING")
+                  return (
+                    <span
+                      title="Awaiting payment"
+                      className="inline-block h-2.5 w-2.5 rounded-full border-2 border-mocha"
+                    />
+                  );
+                return null;
+              })()}
               {a.bookedBy === "client" && (
                 <span className="text-xs text-slate">booked by client</span>
               )}

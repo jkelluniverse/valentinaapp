@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function ClientSchedulePage({
   searchParams,
 }: {
-  searchParams: { booked?: string; cancelled?: string; error?: string };
+  searchParams: { booked?: string; cancelled?: string; error?: string; paid?: string };
 }) {
   const user = await requireClient();
   const practitioner = await getPractitioner();
@@ -28,13 +28,15 @@ export default async function ClientSchedulePage({
   const config = await getOrCreateConfig(practitioner.id);
   const now = new Date();
 
-  const [upcoming, { slots }] = await Promise.all([
+  const [upcoming, { slots }, charges] = await Promise.all([
     prisma.appointment.findMany({
       where: { clientId: user.id, status: "SCHEDULED", startAt: { gte: now } },
       orderBy: { startAt: "asc" },
     }),
     openSlots(practitioner.id, now, new Date(now.getTime() + config.maxAdvanceDays * DAY_MS), now),
+    prisma.charge.findMany({ where: { clientId: user.id } }),
   ]);
+  const chargeFor = new Map(charges.filter((c) => c.appointmentId).map((c) => [c.appointmentId!, c]));
 
   return (
     <div className="flex flex-col gap-8">
@@ -52,6 +54,11 @@ export default async function ClientSchedulePage({
       {searchParams.cancelled && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
           That session was cancelled.
+        </p>
+      )}
+      {searchParams.paid && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          Paid — thank you. The receipt is with your card statement.
         </p>
       )}
       {searchParams.error === "taken" && (
@@ -115,6 +122,40 @@ export default async function ClientSchedulePage({
                   </span>
                 </div>
                 {a.clientNote && <p className="text-sm text-slate">Topic: {a.clientNote}</p>}
+                {(() => {
+                  const charge = chargeFor.get(a.id);
+                  if (!charge) return null;
+                  if (charge.status === "PAID") {
+                    return (
+                      <p className="flex items-center gap-2 text-sm text-slate">
+                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-wine" />
+                        Paid
+                        {charge.paidAt ? ` · ${charge.paidAt.toISOString().slice(0, 10)}` : ""}
+                      </p>
+                    );
+                  }
+                  if (charge.status === "DUE" || charge.status === "PENDING") {
+                    return (
+                      <p className="flex flex-wrap items-center gap-3 text-sm">
+                        <span className="flex items-center gap-2 text-slate">
+                          <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-mocha" />
+                          {charge.status === "PENDING"
+                            ? "Payment on its way"
+                            : `When you're ready before the session`}
+                        </span>
+                        {charge.status === "DUE" && (
+                          <Link
+                            href={`/space/schedule/pay/${charge.id}`}
+                            className="rounded-md bg-wine px-3.5 py-1.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90"
+                          >
+                            Settle this session
+                          </Link>
+                        )}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             );
           })}

@@ -57,6 +57,7 @@ model ClientProfile {
   birthLng         Float?
   birthTz          String? // IANA tz for that place (historical rules applied by tz db)
   intakeCompletedAt DateTime?
+  stage            String? // current program stage (C13); history in StageChange
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 }
@@ -131,6 +132,86 @@ model PracticeSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// C13 — program stages, billing ledger, and the Square rail. The app owns the
+// ledger and dashboard; Square owns moving money. Card data NEVER touches this
+// server (Web Payments SDK tokenizes in the browser); money actions carry an
+// actor id; logs stay metadata-only.
+
+model StageChange {
+  id          String   @id @default(cuid())
+  clientId    String
+  fromStage   String?
+  toStage     String
+  changedById String // practitioner
+  note        String?
+  changedAt   DateTime @default(now())
+
+  @@index([clientId, changedAt])
+}
+
+enum ChargeStatus {
+  DUE
+  PENDING
+  PAID
+  REFUNDED
+  WAIVED
+  CANCELED
+}
+
+model PriceBook {
+  id               String  @id @default(cuid())
+  name             String // "Standard session", "Stage-2 rate"
+  amountCents      Int
+  currency         String  @default("USD")
+  stage            String? // optional stage-specific rate
+  kind             String  @default("SESSION") // SESSION | PACKAGE
+  sessionsIncluded Int? // for packages (fast-follow; columns ship now)
+  active           Boolean @default(true)
+  createdAt        DateTime @default(now())
+}
+
+model Charge {
+  id              String       @id @default(cuid())
+  clientId        String
+  appointmentId   String?      @unique // the session it bills (null for custom)
+  priceBookId     String?
+  description     String
+  amountCents     Int
+  currency        String       @default("USD")
+  status          ChargeStatus @default(DUE)
+  dueAt           DateTime?
+  paidAt          DateTime?
+  paidVia         String? // "portal-card" | "in-person" | "square-external" | "waived"
+  squarePaymentId String?      @unique
+  squareInvoiceId String?
+  lastActionById  String? // who moved the status (audit)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([clientId, status])
+  @@index([status, dueAt])
+}
+
+model SquareCustomerLink {
+  id               String  @id @default(cuid())
+  clientId         String  @unique
+  squareCustomerId String  @unique
+  cardOnFile       Boolean @default(false)
+}
+
+// Square payments seen by webhook that don't reference one of our charges —
+// e.g. taken on her POS/reader — surfaced in the ledger for one-tap matching.
+model ExternalPayment {
+  id               String    @id @default(cuid())
+  squarePaymentId  String    @unique
+  squareCustomerId String?
+  amountCents      Int
+  currency         String    @default("USD")
+  status           String // Square status, e.g. COMPLETED
+  receivedAt       DateTime  @default(now())
+  matchedChargeId  String? // set when matched to a Charge
 }
 
 // C9 — Worksheet Studio. The field schema lives as JSON (ordered typed

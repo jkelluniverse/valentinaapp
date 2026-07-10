@@ -4,6 +4,7 @@ import { requirePractitioner } from "@/lib/auth-guards";
 import { getPracticeOverview, type ClientRow } from "@/lib/attention";
 import { SignatureRule, Eyebrow, StatusPill } from "@/components/brand";
 import { formatDay } from "@/components/entries";
+import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { InviteClientForm } from "./InviteClientForm";
 import { InviteRowActions } from "./InviteRowActions";
 import { ClientRowActions } from "./ClientRowActions";
@@ -29,8 +30,8 @@ function MoodArrow({ row }: { row: ClientRow }) {
   );
 }
 
-// Enriched roster (C8.2): name, last active, status, and a small signal.
-// Stage column awaits Valentina's worksheet vocabulary (spec §4b).
+// Enriched roster (C8.2): name, last active, status, stage (C13.1), and a
+// small signal. Filterable by attention or program stage.
 export default async function ClientsPage({
   searchParams,
 }: {
@@ -38,19 +39,25 @@ export default async function ClientsPage({
 }) {
   await requirePractitioner();
 
-  const [overview, invites] = await Promise.all([
+  const [overview, invites, profiles] = await Promise.all([
     getPracticeOverview(),
     prisma.invite.findMany({
       where: { status: { in: ["PENDING", "REVOKED"] } },
       select: { id: true, name: true, email: true, status: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.clientProfile.findMany({ select: { userId: true, stage: true } }),
   ]);
+  const stageOf = new Map(profiles.map((p) => [p.userId, p.stage]));
 
   const attentionOnly = searchParams.filter === "attention";
+  const stageFilter = PROGRAM_STAGES.some((s) => s.key === searchParams.filter)
+    ? searchParams.filter
+    : null;
   const clients = [...overview.clients]
     .sort((a, b) => (b.signal.lastActive?.getTime() ?? 0) - (a.signal.lastActive?.getTime() ?? 0))
-    .filter((r) => (attentionOnly ? needsAttention(r) : true));
+    .filter((r) => (attentionOnly ? needsAttention(r) : true))
+    .filter((r) => (stageFilter ? stageOf.get(r.id) === stageFilter : true));
 
   return (
     <div className="flex flex-col gap-8">
@@ -79,6 +86,19 @@ export default async function ClientsPage({
         >
           Worth a look
         </Link>
+        {PROGRAM_STAGES.map((s) => (
+          <Link
+            key={s.key}
+            href={`/practitioner/clients?filter=${s.key}`}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+              stageFilter === s.key
+                ? "bg-wine text-white"
+                : "border border-line bg-white text-ink hover:bg-blush"
+            }`}
+          >
+            {s.label}
+          </Link>
+        ))}
       </div>
 
       {clients.length === 0 && invites.length === 0 ? (
@@ -102,6 +122,11 @@ export default async function ClientsPage({
                   >
                     {row.name || "Unnamed"}
                   </Link>
+                  {stageOf.get(row.id) && (
+                    <span className="rounded-full border border-mocha px-2 py-0.5 text-xs font-medium text-mocha">
+                      {programStageLabel(stageOf.get(row.id))}
+                    </span>
+                  )}
                   {row.signal.referralFlagged && (
                     <span className="rounded-full bg-blush-deep px-2 py-0.5 text-xs font-medium text-rose">
                       referral flagged

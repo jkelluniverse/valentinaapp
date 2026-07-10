@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getOrCreateConfig, hasConflict, formatInZone, zoneAbbrev } from "@/lib/schedule";
 import { appointmentEvent, buildInvite } from "@/lib/ics";
 import { sendEmail } from "@/lib/notify";
+import { createChargeForAppointment, cancelChargeForAppointment } from "@/lib/billing";
 
 // The service layer for appointments: booking with a server-side double-book
 // guard, reschedule, cancel, and the practitioner/client notification email
@@ -54,6 +55,10 @@ export async function createAppointment(args: BookArgs) {
     },
   });
 
+  // C13.2: every booked session gets a DUE charge at her current rate
+  // (silently skipped while the price book is empty — shows as "unbilled").
+  await createChargeForAppointment(appt);
+
   await notify(appt.id, "booked");
   return { ok: true as const, appointment: appt };
 }
@@ -76,11 +81,13 @@ export async function rescheduleAppointment(
   return { ok: true as const };
 }
 
-export async function cancelAppointment(appointmentId: string) {
-  await prisma.appointment.update({
+export async function cancelAppointment(appointmentId: string, actorId = "system") {
+  const appt = await prisma.appointment.update({
     where: { id: appointmentId },
     data: { status: "CANCELLED" },
   });
+  // An open charge dies with its session; paid ones stay (refunds live in Square).
+  await cancelChargeForAppointment(appt.id, actorId);
   await notify(appointmentId, "cancelled");
   return { ok: true as const };
 }

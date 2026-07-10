@@ -9,6 +9,8 @@ import { getPractitioner, getOrCreateConfig, isSlotOpen } from "@/lib/schedule";
 import { createAppointment, rescheduleAppointment, cancelAppointment } from "@/lib/appointments";
 import { timeValueToMinutes } from "@/lib/schedule-meta";
 import { zonedWallToUtc } from "@/lib/schedule";
+import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
+import { record } from "@/lib/record";
 
 // Manual assignment (C3 spec §3 default). Recurring delivery is deferred —
 // scheduleRule stays null until the scheduler pass.
@@ -81,6 +83,58 @@ export async function assignWorksheet(clientId: string, formData: FormData) {
   redirect(`${back}?sent=1`);
 }
 
+// C13.1 — move a client between program stages. Practitioner-only; history
+// appends to StageChange and to the C4 record so the journey shows it.
+export async function setClientStage(clientId: string, formData: FormData) {
+  const practitioner = await requirePractitioner();
+  const toStage = String(formData.get("stage") ?? "");
+  if (!PROGRAM_STAGES.some((s) => s.key === toStage)) {
+    redirect(`/practitioner/clients/${clientId}`);
+  }
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  const client = await prisma.user.findFirst({
+    where: { id: clientId, role: "CLIENT" },
+    select: { id: true },
+  });
+  if (!client) redirect("/practitioner/clients");
+
+  const profile = await prisma.clientProfile.upsert({
+    where: { userId: clientId },
+    create: { userId: clientId },
+    update: {},
+  });
+  if (profile.stage === toStage) redirect(`/practitioner/clients/${clientId}`);
+
+  const change = await prisma.$transaction(async (tx) => {
+    const c = await tx.stageChange.create({
+      data: {
+        clientId,
+        fromStage: profile.stage,
+        toStage,
+        changedById: practitioner.id,
+        note,
+      },
+    });
+    await tx.clientProfile.update({ where: { userId: clientId }, data: { stage: toStage } });
+    return c;
+  });
+
+  await record.append({
+    clientId,
+    kind: "NOTE",
+    occurredAt: change.changedAt,
+    title: `Moved to ${programStageLabel(toStage)}`,
+    summary: note ?? `Program stage set to ${programStageLabel(toStage)}.`,
+    tags: [],
+    sourceType: "StageChange",
+    sourceId: change.id,
+  });
+
+  revalidatePath(`/practitioner/clients/${clientId}`);
+  redirect(`/practitioner/clients/${clientId}?staged=1`);
+}
+
 // C10.4 — the end-of-session habit: book the client's next session on the spot.
 // Two paths: a slot from the grid, or an "any time" override (date + time in the
 // practitioner's timezone) for booking outside standard availability.
@@ -144,10 +198,10 @@ export async function bookForClient(clientId: string, formData: FormData) {
 }
 
 export async function cancelForClient(clientId: string, appointmentId: string) {
-  await requirePractitioner();
+  const practitioner = await requirePractitioner();
   const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
   if (appt && appt.clientId === clientId && appt.status === "SCHEDULED") {
-    await cancelAppointment(appointmentId);
+    await cancelAppointment(appointmentId, practitioner.id);
   }
   revalidatePath(`/practitioner/clients/${clientId}`);
   redirect(`/practitioner/clients/${clientId}?booked=cancelled`);

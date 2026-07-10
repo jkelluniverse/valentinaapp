@@ -8,8 +8,11 @@ import { EntryCard, MoodDots, groupByDay, formatDay } from "@/components/entries
 import { ThemeList, CadenceLine } from "@/components/record";
 import { promptKindLabel } from "@/lib/prompt-meta";
 import { getOrCreateConfig, getPractitioner, formatInZone, zoneAbbrev } from "@/lib/schedule";
+import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
+import { formatMoney } from "@/lib/billing";
+import { markChargePaid, waiveCharge, remindCharge } from "../../billing/actions";
 import { AssignForm } from "./AssignForm";
-import { assignPrompt, assignWorksheet, cancelForClient } from "./actions";
+import { assignPrompt, assignWorksheet, cancelForClient, setClientStage } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +29,7 @@ export default async function ClientRecordPage({
   searchParams,
 }: {
   params: { clientId: string };
-  searchParams: { sent?: string; error?: string; booked?: string };
+  searchParams: { sent?: string; error?: string; booked?: string; staged?: string };
 }) {
   await requirePractitioner();
 
@@ -38,7 +41,7 @@ export default async function ClientRecordPage({
 
   const practitioner = await getPractitioner();
   const schedConfig = practitioner ? await getOrCreateConfig(practitioner.id) : null;
-  const [upcomingSessions, hd] = await Promise.all([
+  const [upcomingSessions, hd, clientProfile] = await Promise.all([
     prisma.appointment.findMany({
       where: { clientId: client.id, status: "SCHEDULED", startAt: { gte: new Date() } },
       orderBy: { startAt: "asc" },
@@ -47,7 +50,16 @@ export default async function ClientRecordPage({
       where: { userId: client.id },
       select: { type: true, profile: true },
     }),
+    prisma.clientProfile.findUnique({
+      where: { userId: client.id },
+      select: { stage: true },
+    }),
   ]);
+  const clientCharges = await prisma.charge.findMany({
+    where: { clientId: client.id },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
 
   const [entries, assignments, library, rec, worksheets, worksheetAssignments] = await Promise.all([
     prisma.logEntry.findMany({
@@ -90,6 +102,39 @@ export default async function ClientRecordPage({
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-[2.25rem] font-semibold">{client.name || client.email}</h1>
           <StatusPill status={client.active ? "Active" : "Inactive"} />
+          <details className="relative">
+            <summary className="cursor-pointer list-none rounded-full border border-mocha px-3 py-1 text-xs font-medium text-wine transition-colors hover:bg-blush">
+              {programStageLabel(clientProfile?.stage) ?? "Set stage"}
+            </summary>
+            <form
+              action={setClientStage.bind(null, client.id)}
+              className="absolute left-0 top-8 z-10 flex w-72 flex-col gap-3 rounded-lg border border-line bg-white p-4 shadow-soft"
+            >
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-ink-strong">Program stage</span>
+                <select
+                  name="stage"
+                  defaultValue={clientProfile?.stage ?? PROGRAM_STAGES[0].key}
+                  className="rounded-md border border-line px-3 py-2 text-sm text-ink"
+                >
+                  {PROGRAM_STAGES.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <input
+                type="text"
+                name="note"
+                placeholder="A word on why (optional)"
+                className="rounded-md border border-line px-3 py-2 text-sm text-ink"
+              />
+              <button className="self-start rounded-md bg-wine px-4 py-1.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
+                Move stage
+              </button>
+            </form>
+          </details>
         </div>
         <p className="text-sm text-slate">
           {client.email}
@@ -139,6 +184,11 @@ export default async function ClientRecordPage({
       )}
       {searchParams.booked === "cancelled" && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">Session cancelled.</p>
+      )}
+      {searchParams.staged && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          Stage updated — it&apos;s on their journey too.
+        </p>
       )}
       {searchParams.error === "prompt" && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
@@ -205,6 +255,50 @@ export default async function ClientRecordPage({
           </div>
         )}
       </section>
+
+      {clientCharges.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold">Billing</h2>
+          {clientCharges.map((c) => (
+            <div
+              key={c.id}
+              className="flex flex-wrap items-center gap-3 rounded-md border border-line bg-white px-5 py-3 text-sm"
+            >
+              <span className="font-medium text-ink-strong">{c.description}</span>
+              <span className="text-ink">{formatMoney(c.amountCents, c.currency)}</span>
+              <span className="text-slate">
+                {c.status === "PAID"
+                  ? `paid${c.paidAt ? ` · ${c.paidAt.toISOString().slice(0, 10)}` : ""}`
+                  : c.status === "DUE"
+                    ? `awaiting${c.dueAt ? ` · due ${c.dueAt.toISOString().slice(0, 10)}` : ""}`
+                    : c.status.toLowerCase()}
+              </span>
+              {(c.status === "DUE" || c.status === "PENDING") && (
+                <span className="ml-auto flex items-center gap-3">
+                  <form action={remindCharge.bind(null, c.id)}>
+                    <input type="hidden" name="back" value={`/practitioner/clients/${client.id}`} />
+                    <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                      Remind
+                    </button>
+                  </form>
+                  <form action={markChargePaid.bind(null, c.id)}>
+                    <input type="hidden" name="back" value={`/practitioner/clients/${client.id}`} />
+                    <button className="font-medium text-wine underline-offset-4 hover:underline">
+                      Mark paid
+                    </button>
+                  </form>
+                  <form action={waiveCharge.bind(null, c.id)}>
+                    <input type="hidden" name="back" value={`/practitioner/clients/${client.id}`} />
+                    <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                      Waive
+                    </button>
+                  </form>
+                </span>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">Send something for between sessions</h2>
