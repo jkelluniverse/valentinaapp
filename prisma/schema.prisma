@@ -28,8 +28,58 @@ model User {
   enrollments  Enrollment[]  @relation("ClientEnrollments")
   worksheets   WorksheetAssignment[] @relation("ClientWorksheets")
   appointments Appointment[] @relation("ClientAppointments")
+  profile      ClientProfile?
+  humanDesign  HumanDesignChart?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+}
+
+// C11 — client profile. DOB, birth time, and birthplace are sensitive PII:
+// stored to the app's high standard, never logged, and (with the in-house HD
+// engine) never sent to any external service — only the place NAME goes to a
+// geocoder, with no identity or date attached.
+model ClientProfile {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredName    String?
+  pronouns         String?
+  phone            String?
+  // birth data (drives Human Design)
+  birthDate        DateTime? // civil date, stored midnight UTC
+  birthTime        String? // "HH:MM" local; exact if known
+  birthTimeUnknown Boolean   @default(false)
+  birthPlace       String? // as entered by the client
+  birthLat         Float? // geocoded
+  birthLng         Float?
+  birthTz          String? // IANA tz for that place (historical rules applied by tz db)
+  intakeCompletedAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// The generated Human Design chart. Computed fully in-house (astronomy-engine
+// ephemeris + HD mechanics) — provider records engine + version for audit;
+// raw keeps the full computation so a provider switch needs no schema change.
+model HumanDesignChart {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String
+  type         String?
+  strategy     String?
+  authority    String?
+  profile      String? // e.g. "1/3"
+  definition   String?
+  centers      Json? // { centerName: "defined" | "open" }
+  channels     Json? // active channel list
+  gates        Json? // personality/design activations
+  variables    Json?
+  bodygraphSvg String? // reserved: the app renders from `centers`/`channels` live
+  raw          Json?
+  inputHash    String? // hash of birth inputs → detect change → regenerate
+  generatedAt  DateTime @default(now())
+  accuracyNote String? // set when birth time was estimated
 }
 
 // C9 — Worksheet Studio. The field schema lives as JSON (ordered typed
@@ -41,6 +91,7 @@ model Worksheet {
   intro       String?
   schema      Json // ordered array of typed fields (lib/worksheet-meta.ts)
   active      Boolean               @default(true)
+  isIntake    Boolean               @default(false) // the practice intake (C11) — at most one
   createdById String
   sourceNote  String? // where the idea came from (practitioner's own note)
   createdAt   DateTime              @default(now())

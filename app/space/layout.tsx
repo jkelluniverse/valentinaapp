@@ -27,6 +27,12 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
               <Link href="/space/schedule" className="text-ink underline-offset-4 hover:text-wine hover:underline">
                 Sessions
               </Link>
+              <Link href="/space/design" className="text-ink underline-offset-4 hover:text-wine hover:underline">
+                Your design
+              </Link>
+              <Link href="/space/profile" className="text-ink underline-offset-4 hover:text-wine hover:underline">
+                Profile
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-4">

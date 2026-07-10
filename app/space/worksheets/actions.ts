@@ -81,6 +81,14 @@ export async function submitWorksheet(assignmentId: string, formData: FormData) 
       },
       tx,
     );
+    // C11: completing the practice intake stamps the profile.
+    if (assignment.worksheet.isIntake) {
+      await tx.clientProfile.upsert({
+        where: { userId: user.id },
+        create: { userId: user.id, intakeCompletedAt: response.completedAt },
+        update: { intakeCompletedAt: response.completedAt },
+      });
+    }
   });
 
   revalidatePath("/space");

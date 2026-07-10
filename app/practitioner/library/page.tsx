@@ -13,6 +13,7 @@ import {
   sendPromptToClient,
   sendWorksheetToClient,
   setWorksheetActiveInLibrary,
+  setIntakeWorksheet,
   deletePrompt,
   deleteWorksheetEverywhere,
 } from "./actions";
@@ -117,6 +118,11 @@ export default async function LibraryPage({
                 <span className="inline-flex items-center rounded-full bg-blush-deep px-2.5 py-0.5 text-xs font-medium text-wine">
                   Worksheet
                 </span>
+                {w.isIntake && (
+                  <span className="inline-flex items-center rounded-full bg-wine px-2.5 py-0.5 text-xs font-medium text-cream">
+                    Intake
+                  </span>
+                )}
                 <p className="font-medium text-ink-strong">{w.title}</p>
                 <span className="ml-auto flex items-center gap-4">
                   <SendToClient action={sendWorksheetToClient.bind(null, w.id)} clients={clients} />
@@ -126,6 +132,14 @@ export default async function LibraryPage({
                   >
                     Edit
                   </Link>
+                  <form action={setIntakeWorksheet.bind(null, w.id, !w.isIntake)}>
+                    <button
+                      className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline"
+                      title="The intake is auto-assigned to every new client when they accept their invite."
+                    >
+                      {w.isIntake ? "Unset intake" : "Set as intake"}
+                    </button>
+                  </form>
                   <form action={setWorksheetActiveInLibrary.bind(null, w.id, false)}>
                     <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
                       Archive

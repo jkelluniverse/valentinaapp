@@ -38,10 +38,16 @@ export default async function ClientRecordPage({
 
   const practitioner = await getPractitioner();
   const schedConfig = practitioner ? await getOrCreateConfig(practitioner.id) : null;
-  const upcomingSessions = await prisma.appointment.findMany({
-    where: { clientId: client.id, status: "SCHEDULED", startAt: { gte: new Date() } },
-    orderBy: { startAt: "asc" },
-  });
+  const [upcomingSessions, hd] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { clientId: client.id, status: "SCHEDULED", startAt: { gte: new Date() } },
+      orderBy: { startAt: "asc" },
+    }),
+    prisma.humanDesignChart.findUnique({
+      where: { userId: client.id },
+      select: { type: true, profile: true },
+    }),
+  ]);
 
   const [entries, assignments, library, rec, worksheets, worksheetAssignments] = await Promise.all([
     prisma.logEntry.findMany({
@@ -111,6 +117,12 @@ export default async function ClientRecordPage({
             className="text-sm font-medium text-wine underline-offset-4 hover:underline"
           >
             Session prep →
+          </Link>
+          <Link
+            href={`/practitioner/clients/${client.id}/design`}
+            className="text-sm font-medium text-wine underline-offset-4 hover:underline"
+          >
+            Profile &amp; design{hd ? ` · ${hd.type}${hd.profile ? ` ${hd.profile}` : ""}` : ""} →
           </Link>
         </div>
       </div>

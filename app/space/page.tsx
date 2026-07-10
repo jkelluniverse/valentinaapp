@@ -27,7 +27,7 @@ export default async function SpaceHome({
     ? (searchParams.type as EntryType)
     : null;
 
-  const [entries, pendingItems, pendingWorksheets, doneCount] = await Promise.all([
+  const [entries, pendingItems, pendingWorksheets, doneCount, profile] = await Promise.all([
     prisma.logEntry.findMany({
       where: { clientId: user.id, ...(typeFilter ? { type: typeFilter } : {}) },
       orderBy: { occurredAt: "desc" },
@@ -44,6 +44,10 @@ export default async function SpaceHome({
       include: { worksheet: { select: { title: true } } },
     }),
     prisma.assignment.count({ where: { clientId: user.id, status: "COMPLETED" } }),
+    prisma.clientProfile.findUnique({
+      where: { userId: user.id },
+      select: { birthDate: true },
+    }),
   ]);
 
   const pendingCount = pendingItems.length + pendingWorksheets.length;
@@ -76,6 +80,21 @@ export default async function SpaceHome({
       )}
 
       {!user.aiConsentAt && <AiConsentCard granted={false} />}
+
+      {!profile?.birthDate && (
+        <div className="rounded-lg border border-line bg-white p-5 shadow-soft">
+          <p className="text-ink">
+            When you&apos;re ready, add your birth details to your profile — your Human Design
+            chart generates from them, as another lens for our work together.
+          </p>
+          <Link
+            href="/space/profile"
+            className="mt-3 inline-block rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+          >
+            Complete your profile
+          </Link>
+        </div>
+      )}
 
       {(pendingCount > 0 || doneCount > 0) && (
         <section className="flex flex-col gap-3">

@@ -124,6 +124,20 @@ export async function setWorksheetActiveInLibrary(worksheetId: string, active: b
   redirect(LIBRARY);
 }
 
+// C11: designate one worksheet as the practice intake — auto-assigned to every
+// new client on invite acceptance. Setting a new one clears the old.
+export async function setIntakeWorksheet(worksheetId: string, on: boolean) {
+  await requirePractitioner();
+  await prisma.$transaction([
+    prisma.worksheet.updateMany({ where: { isIntake: true }, data: { isIntake: false } }),
+    ...(on
+      ? [prisma.worksheet.update({ where: { id: worksheetId }, data: { isIntake: true } })]
+      : []),
+  ]);
+  revalidatePath(LIBRARY);
+  redirect(LIBRARY);
+}
+
 // AI drafting for prompts/exercises/check-ins: the draft is saved and opened
 // in the editor to refine — same rhythm as the worksheet studio.
 export async function draftPromptWithAi(formData: FormData) {

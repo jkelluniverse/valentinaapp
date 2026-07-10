@@ -46,6 +46,21 @@ export async function acceptInvite(token: string, formData: FormData) {
       where: { id: invite.id },
       data: { status: "ACCEPTED", acceptedUserId: user.id },
     });
+    // C11: hand the practice intake (if one is designated) to every new
+    // client, so onboarding starts with it waiting in their space.
+    const intake = await tx.worksheet.findFirst({
+      where: { isIntake: true, active: true },
+      select: { id: true },
+    });
+    if (intake) {
+      await tx.worksheetAssignment.create({
+        data: {
+          worksheetId: intake.id,
+          clientId: user.id,
+          assignedById: invite.invitedById,
+        },
+      });
+    }
   });
 
   // Auto sign-in, then land on the client home. signIn throws the redirect.
