@@ -33,6 +33,7 @@ model User {
   birthCore    BirthChartCore?
   lensResults  LensResult[]  @relation("ClientLenses")
   integrativeProfile IntegrativeProfile?
+  notes        Note[]        @relation("ClientNotes")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 }
@@ -132,6 +133,55 @@ model PracticeSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// C14 — The Margins. Valentina's private notes: her thinking, NEVER client-
+// visible and never written to the C4 record. A jot and a note are the same
+// row at different depths. The strictest boundary in the app — every read is
+// practitioner-scoped and no note content ever reaches logs.
+
+enum NoteDepth {
+  JOT
+  NOTE
+}
+
+enum NoteStatus {
+  OPEN
+  ELABORATED
+  ARCHIVED
+}
+
+model Note {
+  id                  String     @id @default(cuid())
+  authorId            String // practitioner (always)
+  clientId            String? // null = free-floating idea (unfiled notebook)
+  client              User?      @relation("ClientNotes", fields: [clientId], references: [id], onDelete: Cascade)
+  appointmentId       String? // optional link to a session (C10)
+  depth               NoteDepth  @default(JOT)
+  status              NoteStatus @default(OPEN)
+  title               String?
+  body                String
+  tags                String[] // theme/belief areas (same vocabulary as client themes)
+  linkedRecordItemIds String[] // record items she tied this to (C4)
+  parentNoteId        String? // a note elaborated FROM another (thread)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  scans               NoteScan[]
+
+  @@index([clientId, createdAt])
+  @@index([authorId, depth, status])
+}
+
+model NoteScan {
+  id           String   @id @default(cuid())
+  noteId       String
+  note         Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  model        String
+  connections  Json // [{ area, link, evidenceRecordItemIds[], suggestion, confidence }]
+  referralFlag Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([noteId, createdAt])
 }
 
 // C13 — program stages, billing ledger, and the Square rail. The app owns the
@@ -241,6 +291,7 @@ model WorksheetAssignment {
   assignedById String
   status       String             @default("PENDING") // PENDING | COMPLETED | DISMISSED
   dueAt        DateTime?
+  fromNoteId   String? // C14 — the practitioner note this grew from
   createdAt    DateTime           @default(now())
   response     WorksheetResponse?
 
@@ -424,6 +475,7 @@ model Assignment {
   status       AssignmentStatus @default(PENDING)
   dueAt        DateTime?
   scheduleRule String? // NULLABLE now; recurring cadence deferred (spec §3)
+  fromNoteId   String? // C14 — the practitioner note this grew from
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   response     PromptResponse?

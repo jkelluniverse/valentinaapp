@@ -12,6 +12,10 @@ import { listEnrolledCourses } from "@/lib/courses";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { formatMoney } from "@/lib/billing";
 import { markChargePaid, waiveCharge, remindCharge } from "../../billing/actions";
+import { clientNotes } from "@/lib/notes";
+import { JotBox } from "@/components/JotBox";
+import { NoteRow } from "@/components/NoteRow";
+import { createJot } from "../../notes/actions";
 import { AssignForm } from "./AssignForm";
 import { assignPrompt, assignWorksheet, cancelForClient, setClientStage } from "./actions";
 
@@ -25,6 +29,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const TABS = [
   { key: "record", label: "Record" },
+  { key: "margins", label: "Margins" },
   { key: "prep", label: "Prep" },
   { key: "between", label: "Between" },
   { key: "courses", label: "Courses" },
@@ -57,6 +62,7 @@ export default async function Portrait({
     error?: string;
     booked?: string;
     staged?: string;
+    noteTag?: string;
   };
 }) {
   await requirePractitioner();
@@ -346,6 +352,10 @@ export default async function Portrait({
           </section>
         )}
 
+        {tab === "margins" && (
+          <MarginsTab clientId={client.id} clientName={client.name || client.email} tag={searchParams.noteTag} />
+        )}
+
         {tab === "billing" && (
           <BillingTab clientId={client.id} back={tabHref("billing")} />
         )}
@@ -512,6 +522,74 @@ async function BetweenTab({ clientId, back }: { clientId: string; back: string }
                   )}
                 </div>
               )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// C14 — the Margins tab: her private notes on this client, a timeline of jots
+// and notes, filterable by theme tag. Never client-visible.
+async function MarginsTab({
+  clientId,
+  clientName,
+  tag,
+}: {
+  clientId: string;
+  clientName: string;
+  tag?: string;
+}) {
+  const notes = await clientNotes(clientId, tag);
+  const tags = [...new Set(notes.flatMap((n) => n.tags))].sort();
+  const groups = groupByDay(notes.map((n) => ({ ...n, occurredAt: n.createdAt })));
+  const marginsBase = `/practitioner/clients/${clientId}?tab=margins`;
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <JotBox action={createJot.bind(null, clientId)} placeholder={`a jot about ${clientName}…`} />
+        <Link
+          href="/practitioner/notes"
+          className="text-[13px] text-whisper underline-offset-4 hover:text-wine hover:underline"
+        >
+          the whole notebook →
+        </Link>
+      </div>
+
+      {tags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Link
+            href={marginsBase}
+            className={`rounded-pill px-3 py-1 text-xs font-medium transition-colors ${!tag ? "bg-wine text-white" : "border border-line text-ink hover:bg-blush"}`}
+          >
+            All
+          </Link>
+          {tags.map((t) => (
+            <Link
+              key={t}
+              href={`${marginsBase}&noteTag=${encodeURIComponent(t)}`}
+              className={`rounded-pill px-3 py-1 text-xs font-medium transition-colors ${tag === t ? "bg-wine text-white" : "border border-line text-ink hover:bg-blush"}`}
+            >
+              {t}
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {notes.length === 0 ? (
+        <p className="text-ink">
+          {tag ? "No notes under this theme yet." : "No notes yet — jot something above, even mid-session."}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {groups.map((group) => (
+            <div key={group.day} className="flex flex-col">
+              <h3 className="mb-1 text-eyebrow font-semibold uppercase text-mocha">{group.day}</h3>
+              {group.items.map((n) => (
+                <NoteRow key={n.id} note={n} />
+              ))}
             </div>
           ))}
         </div>

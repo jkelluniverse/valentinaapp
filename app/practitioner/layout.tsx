@@ -18,6 +18,7 @@ export default async function PractitionerLayout({ children }: { children: React
     { href: "/practitioner/courses", label: "Courses" },
     { href: "/practitioner/schedule", label: "Schedule" },
     { href: "/practitioner/billing", label: "Billing" },
+    { href: "/practitioner/notes", label: "Notes" },
   ];
 
   return (
