@@ -24,12 +24,14 @@ export function PromptForm({
   submitLabel = "Save to library",
   error,
   clients = [],
+  showAiLink = false,
 }: {
   action: (formData: FormData) => Promise<void>;
   defaults?: { title?: string; body?: string; kind?: PromptKind };
   submitLabel?: string;
   error?: string | null;
   clients?: { id: string; name: string | null; email: string }[];
+  showAiLink?: boolean;
 }) {
   const [kind, setKind] = useState<PromptKind>(defaults.kind ?? "PROMPT");
   const [sending, setSending] = useState(false);
@@ -118,6 +120,14 @@ export function PromptForm({
               Send to client…
             </button>
           ))}
+        {showAiLink && !sending && (
+          <a
+            href="/practitioner/library/new"
+            className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline"
+          >
+            or let AI draft it for you →
+          </a>
+        )}
       </div>
     </form>
   );
