@@ -5,6 +5,9 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { HdChartView } from "@/components/HdChartView";
 import { GeneKeysView, SpiralView } from "@/components/LensViews";
 import { ensureChart } from "@/lib/human-design";
+import { assembleCharts, chartInputHash } from "@/lib/integrative-reading";
+import { ReadingSection } from "@/components/ReadingSection";
+import { generateMyReading } from "./reading-actions";
 import type { SpherePosition } from "@/lib/gene-keys";
 import type { SpiralScore } from "@/lib/spiral";
 
@@ -31,6 +34,19 @@ export default async function DesignPage({
   const spiralLens = lenses.find((l) => l.lens === "SPIRAL");
   const spheres = ((gkLens?.result as { spheres?: SpherePosition[] } | null)?.spheres ?? []) as SpherePosition[];
   const spiralScore = spiralLens?.result as (SpiralScore & { practitionerCenter?: string }) | null;
+
+  // The integrative reading (C12r) — chart-only. Fresh published readings show
+  // instantly; otherwise the client component draws it together (respecting the
+  // hold-for-review setting).
+  const [readingRow, assembled] = await Promise.all([
+    prisma.integrativeReading.findUnique({ where: { userId: user.id } }),
+    assembleCharts(user.id),
+  ]);
+  const readingComplete = assembled?.complete ?? false;
+  const currentHash = assembled ? chartInputHash(assembled.payload) : null;
+  const fresh = Boolean(readingRow && currentHash && readingRow.inputHash === currentHash);
+  const readingInitial = fresh && readingRow?.status === "PUBLISHED" ? readingRow!.content : null;
+  const readingPending = readingRow?.status === "PENDING_REVIEW";
 
   return (
     <div className="flex flex-col gap-8">
@@ -89,6 +105,22 @@ export default async function DesignPage({
               once she has.
             </p>
           )}
+
+          {/* C12r — the woven reading, at the foot of the charts. */}
+          <section className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl font-semibold">What it all means to you</h2>
+              <p className="max-w-prose text-sm text-slate">
+                A reading woven from all three maps — read slowly, keep what rings true.
+              </p>
+            </div>
+            <ReadingSection
+              initialContent={readingInitial}
+              pendingReviewForClient={readingPending}
+              chartsComplete={readingComplete}
+              generate={generateMyReading}
+            />
+          </section>
 
           <p className="text-sm text-slate">
             Birth details changed or refined?{" "}

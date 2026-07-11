@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { METHOD_SETTING_KEY, runIntegrativeSynthesis } from "@/lib/integrative";
+import { ensureReading, READING_HOLD_KEY } from "@/lib/integrative-reading";
 import { STAGES } from "@/lib/spiral";
 
 const page = (clientId: string) => `/practitioner/clients/${clientId}/design`;
@@ -54,4 +55,54 @@ export async function draftSynthesis(clientId: string) {
   const result = await runIntegrativeSynthesis(clientId, practitioner.id);
   revalidatePath(page(clientId));
   redirect(result.ok ? `${page(clientId)}?saved=synthesis` : `${page(clientId)}?error=${result.error}`);
+}
+
+// ---- C12r: the client-facing reading (practitioner control) ----
+
+// Generate or refresh a client's reading (force = ignore the input hash).
+export async function regenerateReading(clientId: string) {
+  await requirePractitioner();
+  const result = await ensureReading(clientId, { force: true });
+  revalidatePath(page(clientId));
+  redirect(result.ok ? `${page(clientId)}?saved=reading` : `${page(clientId)}?error=${result.error}`);
+}
+
+// Lightly edit the reading in her voice (and publish it if it was held).
+export async function saveReadingEdit(clientId: string, formData: FormData) {
+  await requirePractitioner();
+  const content = String(formData.get("content") ?? "").trim();
+  if (!content) redirect(`${page(clientId)}?error=empty`);
+  await prisma.integrativeReading.updateMany({
+    where: { userId: clientId },
+    data: { content, editedByPractitioner: true, status: "PUBLISHED" },
+  });
+  revalidatePath(page(clientId));
+  redirect(`${page(clientId)}?saved=reading`);
+}
+
+// Approve a held reading so the client can see it.
+export async function approveReading(clientId: string) {
+  await requirePractitioner();
+  await prisma.integrativeReading.updateMany({
+    where: { userId: clientId, status: "PENDING_REVIEW" },
+    data: { status: "PUBLISHED" },
+  });
+  revalidatePath(page(clientId));
+  redirect(`${page(clientId)}?saved=reading`);
+}
+
+// Practice-wide: hold new readings for her review before clients see them.
+export async function setReadingHold(clientId: string, on: boolean) {
+  await requirePractitioner();
+  if (on) {
+    await prisma.practiceSetting.upsert({
+      where: { key: READING_HOLD_KEY },
+      create: { key: READING_HOLD_KEY, value: "1" },
+      update: { value: "1" },
+    });
+  } else {
+    await prisma.practiceSetting.deleteMany({ where: { key: READING_HOLD_KEY } });
+  }
+  revalidatePath(page(clientId));
+  redirect(`${page(clientId)}?saved=reading`);
 }

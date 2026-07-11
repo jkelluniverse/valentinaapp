@@ -7,10 +7,20 @@ import { HdChartView } from "@/components/HdChartView";
 import { GeneKeysView, SpiralView } from "@/components/LensViews";
 import { ensureChart } from "@/lib/human-design";
 import { getMethodText } from "@/lib/integrative";
+import { READING_HOLD_KEY } from "@/lib/integrative-reading";
+import { ReadingProse } from "@/components/ReadingProse";
 import { STAGES, stageLabel, type SpiralScore } from "@/lib/spiral";
 import type { SpherePosition } from "@/lib/gene-keys";
 import type { IntegrativeOutput } from "@/ai/integrativePrompt";
-import { saveMethodText, reviewSpiralLens, draftSynthesis } from "./actions";
+import {
+  saveMethodText,
+  reviewSpiralLens,
+  draftSynthesis,
+  regenerateReading,
+  saveReadingEdit,
+  approveReading,
+  setReadingHold,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +30,9 @@ const ERRORS: Record<string, string> = {
   method: "Add your integration method first — the draft works through your method, never its own.",
   lenses: "The birth-data lenses aren't in yet — the chart generates from their profile.",
   api: "The draft couldn't be completed just now — try again in a moment.",
+  incomplete: "The reading needs all three charts — their values assessment isn't in yet.",
+  "no-charts": "No chart yet — it generates once their birth details are in.",
+  empty: "The reading can't be saved empty.",
 };
 
 // The client's full integrative map (C11 profile + chart, C12 lenses and
@@ -62,6 +75,13 @@ export default async function ClientDesignPage({
   const spiralScore = spiralLens?.result as (SpiralScore & { practitionerCenter?: string }) | null;
   const methodText = await getMethodText();
   const synthesis = client.integrativeProfile?.synthesis as IntegrativeOutput | null;
+
+  // C12r — the client-facing reading and its controls.
+  const [reading, holdRow] = await Promise.all([
+    prisma.integrativeReading.findUnique({ where: { userId: client.id } }),
+    prisma.practiceSetting.findUnique({ where: { key: READING_HOLD_KEY } }),
+  ]);
+  const holdForReview = holdRow?.value === "1";
 
   return (
     <div className="flex flex-col gap-8">
@@ -280,6 +300,84 @@ export default async function ClientDesignPage({
             )}
           </div>
         )}
+      </section>
+
+      {/* C12r — the client-facing reading (chart-only; the one AI output they see). */}
+      <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-xl font-semibold">Their reading — &ldquo;What it all means to you&rdquo;</h2>
+          <form action={setReadingHold.bind(null, client.id, !holdForReview)} className="ml-auto">
+            <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+              {holdForReview ? "Hold-for-review: on" : "Hold-for-review: off"}
+            </button>
+          </form>
+        </div>
+        <p className="max-w-prose text-sm text-slate">
+          Woven from their three charts only — never their private record. It appears on their own
+          design page {holdForReview ? "once you approve it." : "automatically."}
+        </p>
+
+        <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
+          {reading ? (
+            <div className="flex flex-col gap-4">
+              <p className="text-xs text-slate">
+                {reading.status === "PENDING_REVIEW" ? "Awaiting your approval" : "Live for the client"} ·{" "}
+                {reading.model} · {reading.generatedAt.toISOString().slice(0, 10)}
+                {reading.editedByPractitioner ? " · edited by you" : ""}
+              </p>
+
+              <details>
+                <summary className="cursor-pointer list-none text-sm font-medium text-wine underline-offset-4 hover:underline">
+                  Read it
+                </summary>
+                <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-md bg-cream p-4">
+                  <ReadingProse content={reading.content} />
+                </div>
+              </details>
+
+              <form action={saveReadingEdit.bind(null, client.id)} className="flex flex-col gap-2">
+                <label className="text-label font-semibold uppercase tracking-wide text-mocha">
+                  Lightly edit (in your voice) — saving publishes it
+                </label>
+                <textarea
+                  name="content"
+                  rows={8}
+                  defaultValue={reading.content}
+                  className="rounded-md border border-line bg-white px-3 py-2.5 font-headline text-sm leading-relaxed text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
+                />
+                <div className="flex flex-wrap items-center gap-4">
+                  <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                    Save edits &amp; publish
+                  </button>
+                  {reading.status === "PENDING_REVIEW" && (
+                    <form action={approveReading.bind(null, client.id)}>
+                      <button className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+                        Approve as-is
+                      </button>
+                    </form>
+                  )}
+                  <form action={regenerateReading.bind(null, client.id)}>
+                    <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                      Regenerate
+                    </button>
+                  </form>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-ink">
+                No reading yet — it generates from their three charts (all must be present: birth
+                data + values assessment).
+              </p>
+              <form action={regenerateReading.bind(null, client.id)}>
+                <button className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                  Generate now
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
       </section>
 
       <Link

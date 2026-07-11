@@ -33,6 +33,7 @@ model User {
   birthCore    BirthChartCore?
   lensResults  LensResult[]  @relation("ClientLenses")
   integrativeProfile IntegrativeProfile?
+  integrativeReading IntegrativeReading?
   notes        Note[]        @relation("ClientNotes")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -126,6 +127,23 @@ model IntegrativeProfile {
   narrative   String? // AI-drafted integrative summary — practitioner-facing
   version     String // method + prompt version (audit)
   generatedAt DateTime @default(now())
+}
+
+// C12 reading addendum — "What It All Means to You". The ONE client-facing AI
+// output. Generated from the three CHARTS ONLY (HD + Gene Keys + Spiral) —
+// never the private record. A reflective reading of their design, not a
+// formulation of their blocks (which stays practitioner-only, C5).
+model IntegrativeReading {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content              String // the reading (markdown)
+  model                String // model + prompt version (audit)
+  inputHash            String // hash of the 3 charts → detect change → regenerate
+  status               String   @default("PUBLISHED") // PUBLISHED | PENDING_REVIEW
+  editedByPractitioner Boolean  @default(false)
+  generatedAt          DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 // Small practice-wide key/value settings (e.g. her synthesis-method text).
