@@ -3,6 +3,7 @@ import { Bodygraph } from "@/components/Bodygraph";
 import { CENTERS, type Center } from "@/lib/human-design/wheel";
 import {
   TYPE_MEANING,
+  STRATEGY_MEANING,
   AUTHORITY_MEANING,
   CENTER_LABEL,
   CENTER_MEANING,
@@ -64,6 +65,11 @@ export function HdChartView({ chart }: { chart: HumanDesignChart }) {
         <div className="rounded-lg border border-line bg-white p-5 shadow-soft">
           <p className="text-label font-semibold uppercase tracking-wide text-mocha">Strategy</p>
           <p className="mt-1 text-lg font-semibold text-ink-strong">{chart.strategy}</p>
+          {chart.strategy && STRATEGY_MEANING[chart.strategy] && (
+            <p className="mt-2 text-sm leading-relaxed text-ink">
+              {STRATEGY_MEANING[chart.strategy]}
+            </p>
+          )}
         </div>
         <div className="rounded-lg border border-line bg-white p-5 shadow-soft">
           <p className="text-label font-semibold uppercase tracking-wide text-mocha">Authority</p>

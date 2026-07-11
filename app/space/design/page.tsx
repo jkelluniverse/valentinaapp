@@ -4,6 +4,7 @@ import { requireClient } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { HdChartView } from "@/components/HdChartView";
 import { GeneKeysView, SpiralView } from "@/components/LensViews";
+import { ensureChart } from "@/lib/human-design";
 import type { SpherePosition } from "@/lib/gene-keys";
 import type { SpiralScore } from "@/lib/spiral";
 
@@ -15,6 +16,13 @@ export default async function DesignPage({
   searchParams: { generated?: string };
 }) {
   const user = await requireClient();
+
+  // Self-heal: charts generated before the integrative engine (C12) lack the
+  // Gene Keys spheres — ensureChart is idempotent and backfills them (a cheap
+  // two-lookup no-op once everything exists).
+  const profile = await prisma.clientProfile.findUnique({ where: { userId: user.id } });
+  if (profile) await ensureChart(profile);
+
   const [chart, lenses] = await Promise.all([
     prisma.humanDesignChart.findUnique({ where: { userId: user.id } }),
     prisma.lensResult.findMany({ where: { userId: user.id } }),

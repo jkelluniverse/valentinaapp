@@ -5,6 +5,7 @@ import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { HdChartView } from "@/components/HdChartView";
 import { GeneKeysView, SpiralView } from "@/components/LensViews";
+import { ensureChart } from "@/lib/human-design";
 import { getMethodText } from "@/lib/integrative";
 import { STAGES, stageLabel, type SpiralScore } from "@/lib/spiral";
 import type { SpherePosition } from "@/lib/gene-keys";
@@ -32,6 +33,13 @@ export default async function ClientDesignPage({
   searchParams: { saved?: string; error?: string };
 }) {
   await requirePractitioner();
+
+  // Self-heal pre-C12 charts: backfill the Gene Keys spheres if missing
+  // (idempotent; a cheap no-op once the core exists).
+  const preProfile = await prisma.clientProfile.findUnique({
+    where: { userId: params.clientId },
+  });
+  if (preProfile) await ensureChart(preProfile);
 
   const client = await prisma.user.findFirst({
     where: { id: params.clientId, role: "CLIENT" },

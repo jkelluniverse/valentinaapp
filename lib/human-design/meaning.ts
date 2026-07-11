@@ -21,6 +21,20 @@ export const TYPE_MEANING: Record<string, string> = {
     "You're a rare, open mirror for the world around you. Your experience shifts with your environment and with time, so the people and places you surround yourself with matter more for you than for anyone.",
 };
 
+// Keyed by the strategy string the engine produces (lib/human-design/engine.ts).
+export const STRATEGY_MEANING: Record<string, string> = {
+  "To respond":
+    "Rather than chasing or forcing, let life bring things to you — a question, an offer, something to react to. Your energy commits truthfully when it's answering something real, and drains when it's pushing at nothing.",
+  "To respond, then inform":
+    "Let life bring things to you to respond to — and because you move fast and change lanes quickly, a simple heads-up to the people affected keeps your speed from leaving bruises. Respond first; inform as you move.",
+  "To inform, then act":
+    "You don't need to wait for permission — but a simple heads-up before you act clears the path. Informing isn't asking; it dissolves the resistance that otherwise meets your moves.",
+  "To wait for the invitation":
+    "For the big doors — love, work, where your gifts go — wait until you're genuinely seen and invited. Your wisdom lands when it's asked for; day-to-day life doesn't need an invitation, but the major commitments do.",
+  "To wait a lunar cycle":
+    "For big decisions, give yourself a full lunar cycle — about a month — and notice how the question feels as you move through different days and places. Time isn't delay for you; it's how your clarity arrives.",
+};
+
 export const AUTHORITY_MEANING: Record<string, string> = {
   Emotional:
     "Clarity comes to you over time, not in the moment. Feelings arrive in waves — the invitation is to sleep on the big decisions and notice what's still true once the wave has passed.",
