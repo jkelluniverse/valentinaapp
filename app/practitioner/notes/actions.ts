@@ -18,16 +18,19 @@ const notePath = (id: string) => `${NOTES}/${id}`;
 const portraitMargins = (clientId: string) => `/practitioner/clients/${clientId}?tab=margins`;
 
 // The Jot — one line, saved instantly. Called from the client JotBox; returns
-// without navigating so her flow isn't interrupted mid-session.
+// without navigating so her flow isn't interrupted mid-session. The client
+// comes from the binding (a Portrait's jot) or from the form (the notebook's
+// optional "about" picker) — either way it's validated against the roster.
 export async function createJot(clientId: string | null, formData: FormData): Promise<void> {
   const practitioner = await requirePractitioner();
   const body = String(formData.get("body") ?? "").trim();
   if (!body) return;
 
+  const requested = clientId ?? (String(formData.get("clientId") ?? "").trim() || null);
   let filedTo: string | null = null;
-  if (clientId) {
+  if (requested) {
     const client = await prisma.user.findFirst({
-      where: { id: clientId, role: "CLIENT" },
+      where: { id: requested, role: "CLIENT" },
       select: { id: true },
     });
     filedTo = client?.id ?? null;

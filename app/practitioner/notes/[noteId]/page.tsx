@@ -4,7 +4,8 @@ import type { RecordItem } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { formatDay, formatTime } from "@/components/entries";
-import { noteSnippet } from "@/lib/notes";
+import { noteSnippet, allNoteTags } from "@/lib/notes";
+import { PendingButton } from "@/components/PendingButton";
 import { getOrCreateConfig, getPractitioner, formatInZone } from "@/lib/schedule";
 import type { NoteScanOutput } from "@/ai/noteScanPrompt";
 import { NoteEditor } from "./NoteEditor";
@@ -49,18 +50,35 @@ export default async function NotePage({
   });
   if (!note) notFound();
 
-  const [client, parent, clients] = await Promise.all([
+  const [client, parent, clients, noteTags] = await Promise.all([
     note.clientId
       ? prisma.user.findFirst({ where: { id: note.clientId }, select: { id: true, name: true, email: true } })
       : Promise.resolve(null),
     note.parentNoteId
       ? prisma.note.findUnique({ where: { id: note.parentNoteId }, select: { id: true, title: true, body: true } })
       : Promise.resolve(null),
-    note.clientId
-      ? Promise.resolve([])
-      : prisma.user.findMany({ where: { role: "CLIENT" }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
+    prisma.user.findMany({
+      where: { role: "CLIENT" },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+    allNoteTags(),
   ]);
   const clientName = client?.name || client?.email || null;
+
+  // Tag vocabulary: every tag her notes use, plus this client's own record
+  // themes — the same language the Portrait speaks.
+  const clientRecordTags = note.clientId
+    ? (
+        await prisma.recordItem.findMany({
+          where: { clientId: note.clientId },
+          select: { tags: true },
+          orderBy: { occurredAt: "desc" },
+          take: 300,
+        })
+      ).flatMap((i) => i.tags)
+    : [];
+  const tagSuggestions = [...new Set([...noteTags, ...clientRecordTags])].slice(0, 24);
 
   // Sessions for the optional link (this client's appointments).
   const practitioner = await getPractitioner();
@@ -120,18 +138,44 @@ export default async function NotePage({
       {searchParams.assigned && <Banner>Assigned — it&apos;s waiting in their space, linked to this note.</Banner>}
       {searchParams.error && SCAN_ERRORS[searchParams.error] && <Banner>{SCAN_ERRORS[searchParams.error]}</Banner>}
 
-      <div className="flex flex-wrap items-center gap-2 text-[13px] text-whisper">
-        <span>{note.depth === "JOT" ? "Jot" : "Note"}</span>
-        <span>· {formatDay(note.createdAt)} {formatTime(note.createdAt)}</span>
-        {client ? <span className="text-mocha">· {clientName}</span> : <span>· unfiled</span>}
-        {note.status === "ELABORATED" && <span>· became an assignment</span>}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center gap-2 text-[13px] text-whisper">
+          <span>{note.depth === "JOT" ? "Jot" : "Note"}</span>
+          <span>· {formatDay(note.createdAt)} {formatTime(note.createdAt)}</span>
+          {note.status === "ELABORATED" && <span>· became an assignment</span>}
+        </div>
+        {/* File the note to a client while writing — always at hand. */}
+        <form
+          action={fileNoteToClient.bind(null, note.id)}
+          className="ml-auto flex items-center gap-2"
+        >
+          <label className="flex items-center gap-2 text-[13px] text-whisper">
+            About
+            <select
+              name="clientId"
+              defaultValue={note.clientId ?? ""}
+              className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-sm text-ink outline-none focus:border-wine"
+            >
+              <option value="">— no one yet (unfiled) —</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name || c.email}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button className="rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+            {note.clientId ? "Move" : "File"}
+          </button>
+        </form>
       </div>
 
       <NoteEditor
         action={saveNoteFields.bind(null, note.id)}
         title={note.title ?? ""}
         body={note.body}
-        tags={note.tags.join(", ")}
+        tags={note.tags}
+        tagSuggestions={tagSuggestions}
       />
 
       {/* Session link */}
@@ -150,26 +194,6 @@ export default async function NotePage({
           </label>
           <button className="rounded-md border border-mocha px-3 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
             {linkedSession ? "Update link" : "Link"}
-          </button>
-        </form>
-      )}
-
-      {/* File an unfiled note to a client */}
-      {!note.clientId && clients.length > 0 && (
-        <form action={fileNoteToClient.bind(null, note.id)} className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-eyebrow font-semibold uppercase text-mocha">File to a client</span>
-            <select name="clientId" className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink">
-              <option value="">— keep unfiled —</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name || c.email}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="rounded-md border border-mocha px-3 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
-            File
           </button>
         </form>
       )}
@@ -198,9 +222,12 @@ export default async function NotePage({
       {note.clientId && (
         <div className="flex flex-col gap-1">
           <form action={scanNote.bind(null, note.id)}>
-            <button className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark">
+            <PendingButton
+              pendingLabel="Scanning their record…"
+              className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark"
+            >
               {latestScan ? "Scan again" : "Find connections"}
-            </button>
+            </PendingButton>
           </form>
           {!latestScan && substantial && (
             <p className="text-[13px] text-whisper">
@@ -325,14 +352,20 @@ function NoteTurnInto({ noteId }: { noteId: string }) {
       </summary>
       <div className="absolute left-0 top-7 z-10 flex w-56 flex-col gap-1 rounded-card border border-line bg-surface p-2 shadow-card">
         <form action={draftPromptFromNote.bind(null, noteId)}>
-          <button className="w-full rounded-md px-3 py-2 text-left text-sm text-ink hover:bg-blush hover:text-wine">
+          <PendingButton
+            pendingLabel="Drafting…"
+            className="w-full rounded-md px-3 py-2 text-left text-sm text-ink hover:bg-blush hover:text-wine"
+          >
             A prompt
-          </button>
+          </PendingButton>
         </form>
         <form action={draftWorksheetFromNote.bind(null, noteId)}>
-          <button className="w-full rounded-md px-3 py-2 text-left text-sm text-ink hover:bg-blush hover:text-wine">
+          <PendingButton
+            pendingLabel="Drafting…"
+            className="w-full rounded-md px-3 py-2 text-left text-sm text-ink hover:bg-blush hover:text-wine"
+          >
             A worksheet
-          </button>
+          </PendingButton>
         </form>
       </div>
     </details>

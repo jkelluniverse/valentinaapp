@@ -21,9 +21,14 @@ export default async function Notebook({
   const tag = searchParams.tag?.trim() || undefined;
   const q = searchParams.q?.trim() || undefined;
 
-  const [notes, tags] = await Promise.all([
+  const [notes, tags, roster] = await Promise.all([
     q ? searchNotes(q) : tag ? notesByTag(tag) : unfiledNotes(),
     allNoteTags(),
+    prisma.user.findMany({
+      where: { role: "CLIENT" },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   // Names for any client-filed notes shown across the notebook.
@@ -50,7 +55,11 @@ export default async function Notebook({
         </p>
       </div>
 
-      <JotBox action={createJot.bind(null, null)} placeholder="an idea, unfiled…" />
+      <JotBox
+        action={createJot.bind(null, null)}
+        placeholder="an idea — file it to someone, or keep it loose…"
+        clients={roster}
+      />
 
       <form action="/practitioner/notes" className="flex flex-wrap items-center gap-2">
         <input
