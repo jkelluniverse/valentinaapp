@@ -13,9 +13,11 @@ export default async function PractitionerLayout({ children }: { children: React
   const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();
 
   // A soft "•" presence when a client is waiting on a reply — never a count.
-  const unread = await prisma.message.count({
-    where: { senderRole: "CLIENT", readAt: null, deletedAt: null },
-  });
+  // Fail-soft: this runs on EVERY page, so a not-yet-migrated Message table
+  // must dim the dot, not take down the whole portal.
+  const unread = await prisma.message
+    .count({ where: { senderRole: "CLIENT", readAt: null, deletedAt: null } })
+    .catch(() => 0);
 
   const NAV = [
     { href: "/practitioner", label: "The Study" },

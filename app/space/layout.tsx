@@ -12,14 +12,18 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
   const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();
 
   // A soft "•" presence when a reply is waiting — never an unread count.
-  const unread = await prisma.message.count({
-    where: {
-      conversation: { clientId: user.id },
-      senderRole: "PRACTITIONER",
-      readAt: null,
-      deletedAt: null,
-    },
-  });
+  // Fail-soft: this runs on EVERY page, so a not-yet-migrated Message table
+  // must dim the dot, not take down the whole portal.
+  const unread = await prisma.message
+    .count({
+      where: {
+        conversation: { clientId: user.id },
+        senderRole: "PRACTITIONER",
+        readAt: null,
+        deletedAt: null,
+      },
+    })
+    .catch(() => 0);
 
   return (
     <div data-portal="client" className="min-h-screen bg-canvas text-ink">

@@ -57,12 +57,14 @@ export default async function TheStudy() {
   // Worth a look — at most three, worded, in priority order. A client who
   // reached out in distress leads everything else.
   const signals: { text: string; href: string }[] = [];
-  const crisisFlags = await prisma.message.findMany({
-    where: { safetyFlag: true, safetyCleared: false, deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    include: { conversation: { select: { clientId: true, client: { select: { name: true, email: true } } } } },
-    take: 5,
-  });
+  const crisisFlags = await prisma.message
+    .findMany({
+      where: { safetyFlag: true, safetyCleared: false, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      include: { conversation: { select: { clientId: true, client: { select: { name: true, email: true } } } } },
+      take: 5,
+    })
+    .catch(() => []);
   for (const m of crisisFlags) {
     signals.push({
       text: `${m.conversation.client.name || m.conversation.client.email} reached out in distress — please check in.`,
