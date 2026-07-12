@@ -42,7 +42,25 @@ export default async function LibraryPage({
   searchParams: { folder?: string; view?: string; sort?: string; q?: string };
 }) {
   const me = await requirePractitioner();
-  await ensureLibrary(me.id);
+
+  // Fail-soft during the deploy→migrate window: if the folder tables aren't
+  // there yet, show a calm "setting up" note instead of a 500.
+  try {
+    await ensureLibrary(me.id);
+  } catch (e) {
+    if (isMissingTable(e)) {
+      return (
+        <div className="flex flex-col gap-6">
+          <Header />
+          <p className="rounded-card border border-line bg-white px-5 py-8 text-center text-slate shadow-soft">
+            Your library is being set up — the folder update just needs its database migration applied.
+            It&apos;ll be here in a moment.
+          </p>
+        </div>
+      );
+    }
+    throw e;
+  }
 
   const q = (searchParams.q ?? "").trim();
   const view = searchParams.view === "list" ? "list" : "grid";
@@ -158,6 +176,10 @@ export default async function LibraryPage({
       )}
     </div>
   );
+}
+
+function isMissingTable(e: unknown): boolean {
+  return !!e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2021";
 }
 
 function Header() {
