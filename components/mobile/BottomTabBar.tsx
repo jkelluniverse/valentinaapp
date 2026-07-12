@@ -59,7 +59,7 @@ export function BottomTabBar({
     <>
       <nav
         aria-label="Primary"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas/85 pb-safe backdrop-blur-md md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-mocha/30 bg-surface pb-safe shadow-[0_-6px_24px_rgba(88,12,34,0.12)] md:hidden"
       >
         <ul className="mx-auto flex max-w-lg items-stretch justify-around">
           {tabs.map((t) => {
@@ -69,28 +69,37 @@ export function BottomTabBar({
             const inner = (
               <span className="relative flex flex-col items-center justify-center gap-1">
                 {t.center ? (
-                  <span className="-mt-5 flex h-12 w-12 items-center justify-center rounded-full bg-wine text-white shadow-stone">
+                  <span className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-wine text-white shadow-stone ring-4 ring-surface">
                     <Icon className="h-6 w-6" />
                   </span>
                 ) : (
-                  <span className="relative">
+                  <span
+                    className={`relative flex h-9 w-12 items-center justify-center rounded-pill transition-colors ${
+                      active ? "bg-blush-deep" : ""
+                    }`}
+                  >
                     <Icon className="h-[22px] w-[22px]" />
                     {t.dot && (
-                      <span className="absolute -right-1.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-wine" />
+                      <span className="absolute right-2 top-1 h-2 w-2 rounded-full bg-wine ring-2 ring-surface" />
                     )}
                   </span>
                 )}
-                <span className={`text-[11px] leading-none ${t.center ? "text-wine" : ""}`}>
+                <span
+                  className={`text-[11px] leading-none ${active || t.center ? "font-semibold text-wine" : ""}`}
+                >
                   {t.label}
                 </span>
               </span>
             );
             return (
-              <li key={t.key} className="flex-1">
+              <li key={t.key} className="relative flex-1">
+                {active && !t.center && (
+                  <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-wine" aria-hidden />
+                )}
                 <Link
                   href={t.href ?? "#"}
                   aria-current={active ? "page" : undefined}
-                  className={`flex min-h-[3.5rem] items-center justify-center py-1.5 ${tone} transition-colors`}
+                  className={`flex min-h-[3.75rem] items-center justify-center py-1.5 ${tone} transition-colors`}
                 >
                   {inner}
                 </Link>
@@ -98,18 +107,29 @@ export function BottomTabBar({
             );
           })}
           {moreLinks.length > 0 && (
-            <li className="flex-1">
+            <li className="relative flex-1">
+              {moreActive && (
+                <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-wine" aria-hidden />
+              )}
               <button
                 type="button"
                 onClick={() => setMoreOpen(true)}
                 aria-haspopup="dialog"
-                className={`flex min-h-[3.5rem] w-full items-center justify-center py-1.5 transition-colors ${
+                className={`flex min-h-[3.75rem] w-full items-center justify-center py-1.5 transition-colors ${
                   moreActive ? "text-wine" : "text-whisper"
                 }`}
               >
                 <span className="flex flex-col items-center justify-center gap-1">
-                  {MoreGlyph ? <MoreGlyph className="h-[22px] w-[22px]" /> : <MoreDots />}
-                  <span className="text-[11px] leading-none">{moreLabel}</span>
+                  <span
+                    className={`flex h-9 w-12 items-center justify-center rounded-pill transition-colors ${
+                      moreActive ? "bg-blush-deep" : ""
+                    }`}
+                  >
+                    {MoreGlyph ? <MoreGlyph className="h-[22px] w-[22px]" /> : <MoreDots />}
+                  </span>
+                  <span className={`text-[11px] leading-none ${moreActive ? "font-semibold text-wine" : ""}`}>
+                    {moreLabel}
+                  </span>
                 </span>
               </button>
             </li>

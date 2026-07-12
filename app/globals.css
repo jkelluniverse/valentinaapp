@@ -82,7 +82,7 @@
 /* Space a scroll region leaves for the bottom tab bar so nothing hides behind
    it. 3.5rem bar + safe-area. */
 .pb-tabbar {
-  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
 }
 @media (min-width: 768px) {
   .pb-tabbar {
@@ -91,7 +91,7 @@
 }
 /* Sit just above the bottom tab bar (for the PWA hint / toasts). */
 .above-tabbar {
-  bottom: calc(3.5rem + env(safe-area-inset-bottom) + 0.75rem);
+  bottom: calc(4.25rem + env(safe-area-inset-bottom) + 0.75rem);
 }
 /* Bottom-sheet slide-up. */
 @keyframes sheet-up {

@@ -107,7 +107,7 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
 
       <main className="mx-auto max-w-[720px] px-6 py-10 pb-tabbar">{children}</main>
 
-      <BottomTabBar tabs={tabs} moreLabel="You" moreIcon="person" moreLinks={youLinks} hideOn={["/space/new"]} />
+      <BottomTabBar tabs={tabs} moreLabel="You" moreIcon="person" moreLinks={youLinks} />
     </div>
   );
 }
