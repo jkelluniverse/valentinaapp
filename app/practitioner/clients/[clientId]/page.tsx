@@ -243,13 +243,14 @@ export default async function Portrait({
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="gentle-rise flex flex-wrap gap-1 border-b border-line" style={{ animationDelay: "340ms" }}>
+      {/* Tabs — a scrollable segmented row on mobile (no wrap), settling into a
+          plain row on desktop. */}
+      <div className="gentle-rise -mx-6 flex gap-1 overflow-x-auto border-b border-line px-6 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden" style={{ animationDelay: "340ms" }}>
         {TABS.map((t) => (
           <Link
             key={t.key}
             href={tabHref(t.key)}
-            className={`-mb-px inline-flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`-mb-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === t.key
                 ? "border-wine text-wine"
                 : "border-transparent text-slate hover:text-wine"

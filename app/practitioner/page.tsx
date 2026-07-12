@@ -6,6 +6,7 @@ import { getPracticeOverview } from "@/lib/attention";
 import { Greeting } from "@/components/Greeting";
 import { getPractitioner, getOrCreateConfig, formatInZone, zonedParts, zonedWallToUtc, DAY_MS } from "@/lib/schedule";
 import { clientLabel } from "@/lib/appointments";
+import { firstNameOf } from "@/lib/name";
 
 export const dynamic = "force-dynamic";
 
@@ -29,16 +30,44 @@ function relDay(d: Date): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d);
 }
 
-function feedSentence(item: RecordItem & { clientName: string }): string {
+const NUM_WORD = ["zero", "two", "three", "four", "five", "six", "several"];
+function countWord(n: number): string {
+  return n <= 1 ? "" : NUM_WORD[Math.min(n, 6)] ?? "several";
+}
+
+type FeedGroup = { item: RecordItem & { clientName: string }; count: number };
+
+// AMENDMENT-02 §5 — aggregate same-actor-same-kind-same-day repeats into one
+// line, use display-cased first names.
+function aggregateFeed(feed: (RecordItem & { clientName: string })[]): FeedGroup[] {
+  const groups = new Map<string, FeedGroup>();
+  for (const item of feed) {
+    const day = relDay(item.occurredAt);
+    const key = `${item.clientId}|${item.kind}|${day}`;
+    const g = groups.get(key);
+    if (g) g.count += 1;
+    else groups.set(key, { item, count: 1 });
+  }
+  return [...groups.values()];
+}
+
+function feedSentence({ item, count }: FeedGroup): string {
   const when = relDay(item.occurredAt);
+  const name = firstNameOf(item.clientName);
   const t = item.title ? `“${item.title}”` : "something";
+  const n = countWord(count);
   const byKind: Record<RecordKind, string> = {
-    LOG_ENTRY: `${item.clientName} kept a reflection ${when}.`,
-    PROMPT_RESPONSE: `${item.clientName} responded to a prompt ${when}.`,
-    WORKSHEET_RESPONSE: `${item.clientName} finished ${t} ${when}.`,
-    COURSE_ACTIVITY: `${item.clientName} moved through ${t} ${when}.`,
-    NOTE: `${item.clientName} — ${item.title ?? "a note"} ${when}.`,
-    MESSAGE: `${item.clientName} sent a message ${when}.`,
+    LOG_ENTRY:
+      count > 1 ? `${name} kept ${n} reflections ${when}.` : `${name} kept a reflection ${when}.`,
+    PROMPT_RESPONSE:
+      count > 1 ? `${name} answered ${n} prompts ${when}.` : `${name} responded to a prompt ${when}.`,
+    WORKSHEET_RESPONSE:
+      count > 1 ? `${name} finished ${n} worksheets ${when}.` : `${name} finished ${t} ${when}.`,
+    COURSE_ACTIVITY:
+      count > 1 ? `${name} moved through ${n} lessons ${when}.` : `${name} moved through ${t} ${when}.`,
+    NOTE: `${name} — ${item.title ?? "a note"} ${when}.`,
+    MESSAGE:
+      count > 1 ? `${name} sent ${n} messages ${when}.` : `${name} sent a message ${when}.`,
   };
   return byKind[item.kind];
 }
@@ -183,16 +212,18 @@ export default async function TheStudy() {
           </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {o.feed.slice(0, 7).map((item) => (
-              <li key={item.id} className="text-[15px] text-ink">
-                <Link
-                  href={`/practitioner/clients/${item.clientId}`}
-                  className="underline-offset-4 hover:text-wine hover:underline"
-                >
-                  {feedSentence(item)}
-                </Link>
-              </li>
-            ))}
+            {aggregateFeed(o.feed)
+              .slice(0, 7)
+              .map((g) => (
+                <li key={g.item.id} className="text-[15px] text-ink">
+                  <Link
+                    href={`/practitioner/clients/${g.item.clientId}`}
+                    className="underline-offset-4 hover:text-wine hover:underline"
+                  >
+                    {feedSentence(g)}
+                  </Link>
+                </li>
+              ))}
           </ul>
         )}
       </section>

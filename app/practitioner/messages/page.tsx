@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { getAwayNote } from "@/lib/messaging";
+import { displayName } from "@/lib/name";
 import { saveAwayNote } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -67,7 +68,7 @@ export default async function MessagesInbox({ searchParams }: { searchParams: { 
     getAwayNote(),
   ]);
 
-  const nameOf = (c: { name: string | null; email: string }) => c.name || c.email;
+  const nameOf = (c: { name: string | null; email: string }) => displayName(c);
   const threads = conversations.filter((c) => c.messages[0]);
   const threadedIds = new Set(threads.map((c) => c.client.id));
   const untouched = clients.filter((c) => !threadedIds.has(c.id));

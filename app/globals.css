@@ -45,6 +45,83 @@
     color: rgb(var(--c-wine));
     line-height: 1.15;
   }
+  /* AMENDMENT-02 §3.5 — 16px form controls on phones stop iOS from auto-zooming
+     on focus. Desktop density is untouched. */
+  @media (max-width: 767px) {
+    input,
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+}
+
+/* ---- AMENDMENT-02 Mobile-First: shell utilities ---- */
+/* Safe-area insets (notch / home indicator). */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.top-safe {
+  top: env(safe-area-inset-top);
+}
+.h-safe-top {
+  height: env(safe-area-inset-top);
+}
+/* Keyboard/URL-bar-safe full height. */
+.min-h-dvh {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.h-dvh {
+  height: 100vh;
+  height: 100dvh;
+}
+/* Space a scroll region leaves for the bottom tab bar so nothing hides behind
+   it. 3.5rem bar + safe-area. */
+.pb-tabbar {
+  padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .pb-tabbar {
+    padding-bottom: 0;
+  }
+}
+/* Sit just above the bottom tab bar (for the PWA hint / toasts). */
+.above-tabbar {
+  bottom: calc(3.5rem + env(safe-area-inset-bottom) + 0.75rem);
+}
+/* Bottom-sheet slide-up. */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sheet-panel {
+  animation: sheet-up 320ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  overscroll-behavior: contain;
+}
+.sheet-scrim {
+  animation: sheet-fade 240ms ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel,
+  .sheet-scrim {
+    animation-duration: 0.001ms !important;
+  }
 }
 
 /* Each portal sets this attribute on its layout root. */
