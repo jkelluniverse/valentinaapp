@@ -100,6 +100,32 @@ export default async function TheStudy() {
       href: `/practitioner/clients/${m.conversation.clientId}?tab=messages`,
     });
   }
+
+  // C17 — a reflection that met something heavy (Deepening's crisis path). Safety
+  // never stays only client-side; it surfaces here too.
+  const entryCrisis = await prisma.entryDeepening
+    .findMany({
+      where: { crisis: true, crisisCleared: false },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    })
+    .catch(() => []);
+  if (entryCrisis.length > 0) {
+    const names = new Map(
+      (
+        await prisma.user.findMany({
+          where: { id: { in: [...new Set(entryCrisis.map((e) => e.clientId))] } },
+          select: { id: true, name: true, email: true },
+        })
+      ).map((u) => [u.id, u.name || u.email]),
+    );
+    for (const e of entryCrisis) {
+      signals.push({
+        text: `${names.get(e.clientId) ?? "A client"} wrote something heavy in their journal — please check in.`,
+        href: `/practitioner/clients/${e.clientId}?tab=record`,
+      });
+    }
+  }
   for (const r of o.attention.referralFlagged) {
     signals.push({
       text: `${r.name || r.email}'s last prep suggested care — worth reviewing before today.`,

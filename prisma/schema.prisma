@@ -56,6 +56,32 @@ model ConsentGrant {
   @@unique([userId, version])
 }
 
+// C17 — The Deepening. After a reflection is kept, an async safety-first pass
+// may offer ONE gentle, optional "door" to go a little further. Answers become
+// record items (feeding C16) and self-map stars. A skip is signal, never a nag;
+// crisis suppresses deepening and flags Valentina. No entry content is logged.
+model EntryDeepening {
+  id                 String    @id @default(cuid())
+  entryId            String    @unique // one deepening per kept entry
+  clientId           String
+  door               String? // somatic | recurrence | belief | temporal | origin | protection | resource | connection
+  question           String?
+  pacing             String    @default("settled") // settled | tender | raw | crisis
+  routeToSession     Boolean   @default(false) // significant material → hand to the room
+  groundingNote      String? // shown when raw/flooded instead of a probe
+  connectionItemId   String? // an echo to the client's OWN earlier record item
+  connectionLine     String?
+  answer             String? // the client's answer (if they walk through the door)
+  answeredNodeId     String? // SELF_REPORTED node the answer became
+  dismissed          Boolean   @default(false)
+  crisis             Boolean   @default(false)
+  crisisCleared      Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  answeredAt         DateTime?
+
+  @@index([clientId, createdAt])
+}
+
 // C16 — The Constellation: the visual psyche map. PRACTITIONER-ONLY (the
 // app's most sensitive artifact); every AI node/edge carries evidence links to
 // the client's actual record items; language is experiential, never diagnostic.

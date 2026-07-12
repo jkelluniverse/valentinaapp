@@ -1,12 +1,13 @@
 import { requireClient } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
+import { CRISIS_RESOURCES } from "@/lib/message-safety";
 import { ReflectionPortal } from "../ReflectionPortal";
-import { createEntry } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-// A2 — the Reflection Portal. Recent reflections seed the "river of stones" the
-// new one settles into (D).
+// A2 + C17 — the Reflection Portal. Recent reflections seed the "river of
+// stones" the new one settles into (D); after closure, the Deepening may offer
+// one gentle door (the crisis resources ride along for the safety path).
 export default async function NewReflection() {
   const user = await requireClient();
 
@@ -17,5 +18,7 @@ export default async function NewReflection() {
     select: { mood: true },
   });
 
-  return <ReflectionPortal action={createEntry} recentMoods={recent.map((r) => r.mood)} />;
+  return (
+    <ReflectionPortal recentMoods={recent.map((r) => r.mood)} crisisResources={CRISIS_RESOURCES} />
+  );
 }

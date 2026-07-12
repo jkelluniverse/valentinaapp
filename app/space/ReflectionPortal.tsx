@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { EntryType } from "@prisma/client";
+import { keepReflection, answerDoor, dismissDoor } from "./actions";
+import type { DoorOffer } from "@/lib/deepening";
 
-// A2 + D — the Reflection Portal and the Settling Stone. A conversation, not a
-// form: one question per view, everything optional except the words. When the
-// reflection is kept, it condenses into a luminous stone and settles into a
-// river at the foot of the page — data submission becomes a closure ritual.
+// A2 + D + C17 — the Reflection Portal, the Settling Stone, and the Deepening.
+// A conversation, not a form. When a reflection is kept it condenses into a
+// luminous stone and settles; THEN, only after closure, the engine may offer a
+// single gentle door to go a little further — always dismissible, never a gate.
 
 type Door = { type: EntryType; label: string; primary: boolean };
 
-// The two doors map to the C2 taxonomy without jargon (they rename via config).
 const DOORS: Door[] = [
   { type: "TRIGGER", label: "Something stirred me", primary: true },
   { type: "INSIGHT", label: "Something shifted in me", primary: true },
@@ -21,32 +23,42 @@ const DOORS: Door[] = [
 const DRAFT_KEY = "veritas-reflection-draft";
 
 function stoneColor(moodOrNull: number | null): string {
-  // barely (mocha) → fully (wine); themes with Dusk via CSS variables.
   const pct = moodOrNull ? ((moodOrNull - 1) / 4) * 100 : 0;
   return `color-mix(in srgb, rgb(var(--c-wine)) ${pct}%, rgb(var(--c-mocha)))`;
 }
+function fmtWhen(iso: string) {
+  const d = new Date(iso);
+  const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
+  if (days < 30) return "recently";
+  return new Intl.DateTimeFormat("en-US", { month: "long" }).format(d);
+}
 
 export function ReflectionPortal({
-  action,
   recentMoods,
+  crisisResources,
 }: {
-  action: (formData: FormData) => Promise<void>;
   recentMoods: (number | null)[];
+  crisisResources: { label: string; detail: string }[];
 }) {
+  const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [type, setType] = useState<EntryType>("REFLECTION");
   const [body, setBody] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [showMore, setShowMore] = useState(false);
   const [whisper, setWhisper] = useState(false);
-  const [phase, setPhase] = useState<"compose" | "settling">("compose");
+  const [phase, setPhase] = useState<"compose" | "settling" | "deepen">("compose");
   const [trigger, setTrigger] = useState("");
   const [tags, setTags] = useState("");
+
+  const [offer, setOffer] = useState<DoorOffer | null>(null);
+  const [answer, setAnswer] = useState("");
+  const [answering, setAnswering] = useState(false);
+  const [answered, setAnswered] = useState(false);
 
   const textRef = useRef<HTMLTextAreaElement>(null);
   const whisperTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Restore an unfinished draft wordlessly.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
@@ -64,7 +76,6 @@ export function ReflectionPortal({
     }
   }, []);
 
-  // Autosave whisper: "kept as you write" after a pause. No save anxiety.
   useEffect(() => {
     if (!body) return;
     if (whisperTimer.current) clearTimeout(whisperTimer.current);
@@ -88,34 +99,63 @@ export function ReflectionPortal({
     setTimeout(() => textRef.current?.focus(), 60);
   }
 
+  function goHome() {
+    router.push("/space?saved=1");
+    router.refresh();
+  }
+
   async function keep() {
     if (!body.trim()) return;
     const reduced =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
     setPhase("settling");
-
     const fd = new FormData();
     fd.set("body", body.trim());
     fd.set("type", type);
     fd.set("mood", mood ? String(mood) : "");
     if (trigger.trim()) fd.set("trigger", trigger.trim());
     if (tags.trim()) fd.set("tags", tags.trim());
-
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {
       /* ignore */
     }
 
-    // Let the ceremony breathe, then commit (createEntry redirects home).
-    window.setTimeout(
-      () => {
-        void action(fd);
-      },
-      reduced ? 260 : 1250,
-    );
+    // Run the keep + deepening in parallel with the ceremony breathing.
+    const started = Date.now();
+    const res = await keepReflection(fd);
+    const wait = Math.max(0, (reduced ? 260 : 1250) - (Date.now() - started));
+    window.setTimeout(() => {
+      if (!res.ok) {
+        goHome();
+        return;
+      }
+      const d = res.deepening ?? null;
+      // Nothing more to offer → complete the closure and go home.
+      const hasSomething = d && (d.crisis || d.door || d.groundingNote || d.connection || d.routeToSession);
+      if (hasSomething) {
+        setOffer(d);
+        setPhase("deepen");
+      } else {
+        goHome();
+      }
+    }, wait);
+  }
+
+  async function walkThrough() {
+    if (!offer?.deepeningId || !answer.trim() || answering) return;
+    setAnswering(true);
+    try {
+      await answerDoor(offer.deepeningId, answer.trim());
+      setAnswered(true);
+    } finally {
+      setAnswering(false);
+    }
+  }
+  function notNow() {
+    if (offer?.deepeningId) void dismissDoor(offer.deepeningId);
+    goHome();
   }
 
   // ---- The settling ceremony ----
@@ -140,6 +180,126 @@ export function ReflectionPortal({
             style={{ background: stoneColor(mood) }}
           />
         </div>
+      </div>
+    );
+  }
+
+  // ---- The Deepening — after closure, one gentle, optional door ----
+  if (phase === "deepen" && offer) {
+    // Crisis path: warmth + resources, never a probe.
+    if (offer.crisis) {
+      return (
+        <div className="mx-auto flex min-h-[55vh] max-w-[560px] flex-col justify-center gap-5">
+          <div className="flex flex-col gap-3 rounded-card border-2 border-rose bg-surface p-6 shadow-card">
+            <p className="font-headline text-2xl font-medium text-rose">
+              That sounds like a lot — you deserve support right now.
+            </p>
+            <p className="text-[15px] leading-relaxed text-ink">
+              What you wrote is kept safely, and Valentina will see it. This isn&apos;t a place to
+              be alone with something this heavy — please reach out to someone who can be with you
+              now.
+            </p>
+            <ul className="mt-1 flex flex-col gap-1.5">
+              {crisisResources.map((r) => (
+                <li key={r.label} className="text-[15px] text-ink">
+                  <span className="font-semibold text-wine">{r.label}</span> — {r.detail}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <button onClick={goHome} className="self-center text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
+            Return to my space
+          </button>
+        </div>
+      );
+    }
+
+    // Answered → a quiet "a piece found its place", then home.
+    if (answered) {
+      return (
+        <div className="mx-auto flex min-h-[55vh] max-w-[520px] flex-col items-center justify-center gap-6 text-center">
+          <span className="text-3xl text-wine" aria-hidden>
+            ✦
+          </span>
+          <p className="font-headline text-2xl font-medium text-ink-strong">A piece found its place.</p>
+          <p className="max-w-prose text-[15px] text-slate">
+            It&apos;s on your map now, in your own words. You can always revisit it.
+          </p>
+          <div className="flex items-center gap-4">
+            <button onClick={goHome} className="rounded-lg bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+              Back to my space
+            </button>
+            <button onClick={() => router.push("/space/first-map")} className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
+              see my map
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mx-auto flex min-h-[55vh] max-w-[560px] flex-col justify-center gap-6">
+        <p className="text-center font-headline text-lg italic text-mocha">Kept. And if you&apos;d like…</p>
+
+        {/* The connection reveal — the click, from their own words. */}
+        {offer.connection && (
+          <div className="flex flex-col gap-2 rounded-card border border-mocha/40 bg-blush/40 p-5">
+            <p className="text-sm font-medium text-wine">{offer.connection.line}</p>
+            <p className="border-l-2 border-mocha/50 pl-3 text-[14px] italic leading-relaxed text-slate">
+              &ldquo;{offer.connection.snippet}&rdquo;
+              <span className="mt-1 block text-[12px] not-italic text-whisper">
+                — you, {fmtWhen(offer.connection.when)}
+              </span>
+            </p>
+          </div>
+        )}
+
+        {/* Grounding when raw — validate, offer steadiness, no probe. */}
+        {offer.groundingNote && !offer.door && (
+          <div className="rounded-card border border-line bg-surface p-6 shadow-soft">
+            <p className="text-[15px] leading-relaxed text-ink">{offer.groundingNote}</p>
+          </div>
+        )}
+
+        {/* The single door. */}
+        {offer.door && offer.question && (
+          <div className="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 shadow-soft">
+            <p className="font-headline text-xl leading-relaxed text-ink-strong">{offer.question}</p>
+            <textarea
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              rows={3}
+              autoFocus
+              placeholder="Only if it comes easily…"
+              className="resize-y rounded-md border border-line bg-white px-3 py-2.5 text-ink outline-none focus:border-wine"
+            />
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={walkThrough}
+                disabled={answering || !answer.trim()}
+                className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark disabled:opacity-40"
+              >
+                {answering ? "Placing…" : "Share this too"}
+              </button>
+              <button onClick={notNow} className="text-sm text-whisper underline-offset-4 hover:text-wine hover:underline">
+                Not right now
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Route to session — the app opens doors; Valentina walks through them. */}
+        {offer.routeToSession && (
+          <p className="max-w-prose text-center text-[14px] text-slate">
+            This feels important — it might be worth bringing to Valentina.
+          </p>
+        )}
+
+        {!offer.door && (
+          <button onClick={goHome} className="self-center rounded-lg bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+            Back to my space
+          </button>
+        )}
       </div>
     );
   }
@@ -202,9 +362,7 @@ export function ReflectionPortal({
         />
         <div className="flex items-center justify-between">
           <span
-            className={`text-[13px] text-whisper transition-opacity duration-500 ${
-              whisper ? "opacity-100" : "opacity-0"
-            }`}
+            className={`text-[13px] text-whisper transition-opacity duration-500 ${whisper ? "opacity-100" : "opacity-0"}`}
           >
             kept as you write
           </span>
@@ -233,9 +391,7 @@ export function ReflectionPortal({
       </button>
 
       <div className="flex flex-col gap-4">
-        <p className="font-headline text-xl text-ink-strong">
-          How strongly is it sitting with you?
-        </p>
+        <p className="font-headline text-xl text-ink-strong">How strongly is it sitting with you?</p>
         <div className="flex flex-col gap-2">
           <input
             type="range"
