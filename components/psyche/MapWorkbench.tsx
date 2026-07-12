@@ -163,6 +163,40 @@ export function MapWorkbench({
     }
   }
 
+  // Extraction closes its own loop — a zero-result read shouldn't look broken.
+  async function runExtract(label: string, deep: boolean) {
+    if (busy) return;
+    setBusy(label);
+    setNotice(null);
+    try {
+      const res = await extract(clientId, deep);
+      if (!res.ok) {
+        setNotice(
+          res.error === "consent"
+            ? "No consent on file — the map can't run."
+            : res.error === "empty"
+              ? "Nothing new in the record to read yet — it fills as they reflect."
+              : "That didn't go through — try again.",
+        );
+      } else if (res.referral) {
+        setNotice("Something in the recent material needs a person — please review it directly, not the map.");
+      } else if ((res.created ?? 0) + (res.updated ?? 0) === 0) {
+        setNotice(
+          deep
+            ? "Read the whole record — nothing firm enough to add yet. The map stays conservative on purpose; it grows as patterns repeat."
+            : "Read the new material — nothing firm enough to map yet. Single moments rarely become nodes; the constellation fills in as themes recur.",
+        );
+      } else {
+        setNotice(
+          `Read the material — ${res.created ? `added ${res.created} ${res.created === 1 ? "star" : "stars"}` : "added none"}${res.updated ? `, deepened ${res.updated}` : ""}.`,
+        );
+      }
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
   function doSearch(e: React.FormEvent) {
     e.preventDefault();
     const q = search.trim().toLowerCase();
@@ -346,14 +380,14 @@ export function MapWorkbench({
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         <button
-          onClick={() => run("extract", () => extract(clientId, false))}
+          onClick={() => runExtract("extract", false)}
           disabled={!!busy}
           className="rounded-lg bg-wine px-4 py-2 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark disabled:opacity-50"
         >
           {busy === "extract" ? "Reading…" : "Read new material"}
         </button>
         <button
-          onClick={() => run("deep", () => extract(clientId, true))}
+          onClick={() => runExtract("deep", true)}
           disabled={!!busy}
           title="Re-reads the whole record to catch slow arcs"
           className="rounded-lg border border-mocha px-3.5 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush disabled:opacity-50"
