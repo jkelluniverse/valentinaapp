@@ -56,6 +56,41 @@ model ConsentGrant {
   @@unique([userId, version])
 }
 
+// AMENDMENT-03 — The Library, as Folders. Folders nest without limit; items are
+// POINTERS to existing C9 worksheets / C3 prompts / C6 courses (refId), or
+// storage-free docs (body) and links (url). Deleting moves to trash (deletedAt),
+// never silent loss.
+model LibraryFolder {
+  id             String   @id @default(cuid())
+  practitionerId String
+  name           String
+  parentId       String? // null = top level; nesting unlimited
+  isDefault      Boolean  @default(false) // the seeded four (renameable, not deletable)
+  order          Int      @default(0)
+  deletedAt      DateTime? // trashed
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([practitionerId, parentId, order])
+}
+
+model LibraryItem {
+  id        String   @id @default(cuid())
+  folderId  String
+  kind      String // WORKSHEET | PROMPT | COURSE | FILE | LINK | DOC
+  refId     String? // points at the C9 Worksheet / C3 Prompt / C6 Course (no duplication)
+  fileKey   String? // object-storage key for uploads (when storage is configured)
+  url       String? // LINK target
+  body      String? // DOC text content
+  name      String
+  order     Int      @default(0)
+  deletedAt DateTime? // trashed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([folderId, order])
+}
+
 // C11 — client profile. DOB, birth time, and birthplace are sensitive PII:
 // stored to the app's high standard, never logged, and (with the in-house HD
 // engine) never sent to any external service — only the place NAME goes to a
