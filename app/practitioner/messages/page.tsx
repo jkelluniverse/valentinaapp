@@ -9,28 +9,54 @@ export const dynamic = "force-dynamic";
 
 function relDay(d: Date): string {
   const days = Math.floor((Date.now() - d.getTime()) / 86_400_000);
-  if (days <= 0) return "today";
-  if (days === 1) return "yesterday";
-  if (days < 7) return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d).toLowerCase();
+  if (days <= 0) {
+    return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(d);
+  }
+  if (days === 1) return "Yesterday";
+  if (days < 7) return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(d);
   return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(d);
 }
 
-// C15.5 — the inbox. Threads needing a reply, surfaced by WORDS, crisis-flagged
-// first, never a red count.
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "·";
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function preview(body: string, fromYou: boolean): string {
+  const text = body.trim().replace(/\s+/g, " ") || "Shared something";
+  const line = fromYou ? `You: ${text}` : text;
+  return line.length > 72 ? `${line.slice(0, 72).trimEnd()}…` : line;
+}
+
+// C15.5 — the inbox, shaped like a familiar messages list: every client a row,
+// name in bold, a one-line preview, time at the right, a wine badge when
+// something's waiting. Crisis first, always.
 export default async function MessagesInbox({ searchParams }: { searchParams: { saved?: string } }) {
   await requirePractitioner();
 
-  const [conversations, crisisMessages, awayNote] = await Promise.all([
+  const [conversations, clients, crisisMessages, awayNote] = await Promise.all([
     prisma.conversation.findMany({
       orderBy: { lastMessageAt: { sort: "desc", nulls: "last" } },
       include: {
-        client: { select: { id: true, name: true, email: true } },
+        client: { select: { id: true, name: true, email: true, active: true } },
         messages: {
           where: { deletedAt: null },
           orderBy: { createdAt: "desc" },
           take: 1,
         },
+        _count: {
+          select: {
+            messages: { where: { senderRole: "CLIENT", readAt: null, deletedAt: null } },
+          },
+        },
       },
+    }),
+    prisma.user.findMany({
+      where: { role: "CLIENT", active: true },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
     }),
     prisma.message.findMany({
       where: { safetyFlag: true, safetyCleared: false, deletedAt: null },
@@ -41,12 +67,10 @@ export default async function MessagesInbox({ searchParams }: { searchParams: { 
     getAwayNote(),
   ]);
 
-  // Awaiting a reply = last message is from the client and unread.
-  const awaiting = conversations.filter(
-    (c) => c.messages[0] && c.messages[0].senderRole === "CLIENT" && !c.messages[0].readAt,
-  );
-  const rest = conversations.filter((c) => !awaiting.includes(c) && c.messages[0]);
   const nameOf = (c: { name: string | null; email: string }) => c.name || c.email;
+  const threads = conversations.filter((c) => c.messages[0]);
+  const threadedIds = new Set(threads.map((c) => c.client.id));
+  const untouched = clients.filter((c) => !threadedIds.has(c.id));
 
   return (
     <div className="flex flex-col gap-8">
@@ -60,7 +84,7 @@ export default async function MessagesInbox({ searchParams }: { searchParams: { 
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">Away note saved.</p>
       )}
 
-      {/* Crisis first — a worded priority signal, never a badge. */}
+      {/* Crisis first — a worded priority signal. */}
       {crisisMessages.length > 0 && (
         <section className="flex flex-col gap-3 rounded-card border-2 border-rose bg-white p-6 shadow-card">
           <p className="text-eyebrow font-semibold uppercase text-rose">Reached out in distress</p>
@@ -70,54 +94,85 @@ export default async function MessagesInbox({ searchParams }: { searchParams: { 
               href={`/practitioner/clients/${m.conversation.clientId}?tab=messages`}
               className="text-[15px] text-ink underline-offset-4 hover:text-wine hover:underline"
             >
-              {nameOf(m.conversation.client)} reached out {relDay(m.createdAt)} with something heavy —
-              they were shown crisis resources; please check in.
+              {nameOf(m.conversation.client)} reached out with something heavy — they were shown
+              crisis resources; please check in.
             </Link>
           ))}
         </section>
       )}
 
-      <section className="flex flex-col gap-3">
-        <p className="text-eyebrow font-semibold uppercase text-mocha">Awaiting your reply</p>
-        {awaiting.length === 0 ? (
-          <p className="text-[15px] text-slate">All caught up — nothing waiting on you.</p>
-        ) : (
-          <ul className="flex flex-col">
-            {awaiting.map((c) => (
-              <li key={c.id} className="border-b border-line py-3">
-                <Link
-                  href={`/practitioner/clients/${c.client.id}?tab=messages`}
-                  className="text-[15px] text-ink underline-offset-4 hover:text-wine hover:underline"
-                >
-                  <span className="font-medium text-ink-strong">{nameOf(c.client)}</span> wrote{" "}
-                  {c.messages[0] ? relDay(c.messages[0].createdAt) : ""}
-                  {c.status === "PAUSED" && <span className="text-whisper"> · paused</span>}
-                </Link>
-              </li>
-            ))}
+      {/* The inbox — every thread, most recent first. */}
+      {threads.length === 0 ? (
+        <p className="text-[15px] text-slate">
+          No conversations yet — open any client below to start one.
+        </p>
+      ) : (
+        <section className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+          <ul className="flex flex-col divide-y divide-line">
+            {threads.map((c) => {
+              const last = c.messages[0];
+              const unread = c._count.messages;
+              return (
+                <li key={c.id}>
+                  <Link
+                    href={`/practitioner/clients/${c.client.id}?tab=messages`}
+                    className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-blush/40"
+                  >
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blush text-sm font-semibold text-wine ring-1 ring-line">
+                      {initials(nameOf(c.client))}
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="flex items-baseline gap-3">
+                        <span className={`truncate text-[15px] ${unread > 0 ? "font-semibold text-ink-strong" : "font-medium text-ink-strong"}`}>
+                          {nameOf(c.client)}
+                        </span>
+                        {c.status === "PAUSED" && (
+                          <span className="text-[11px] text-whisper">paused</span>
+                        )}
+                        {!c.client.active && (
+                          <span className="text-[11px] text-whisper">inactive</span>
+                        )}
+                        <span className="ml-auto shrink-0 text-[13px] text-whisper">
+                          {relDay(last.createdAt)}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-3">
+                        <span className={`truncate text-sm ${unread > 0 ? "text-ink" : "text-slate"}`}>
+                          {preview(last.body, last.senderRole === "PRACTITIONER")}
+                        </span>
+                        {unread > 0 && (
+                          <span className="ml-auto inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-pill bg-wine px-1.5 text-[11px] font-semibold text-white">
+                            {unread}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
 
-      {rest.length > 0 && (
+      {/* Everyone else — open a line with any client. */}
+      {untouched.length > 0 && (
         <section className="flex flex-col gap-3">
-          <p className="text-eyebrow font-semibold uppercase text-mocha">Recent threads</p>
-          <ul className="flex flex-col">
-            {rest.map((c) => (
-              <li key={c.id} className="border-b border-line py-3">
-                <Link
-                  href={`/practitioner/clients/${c.client.id}?tab=messages`}
-                  className="flex flex-wrap items-baseline gap-2 text-[15px] text-ink underline-offset-4 hover:text-wine hover:underline"
-                >
-                  <span className="font-medium text-ink-strong">{nameOf(c.client)}</span>
-                  <span className="text-[13px] text-whisper">
-                    {c.messages[0]?.senderRole === "PRACTITIONER" ? "you replied" : "they wrote"}{" "}
-                    {c.messages[0] ? relDay(c.messages[0].createdAt) : ""}
-                  </span>
-                </Link>
-              </li>
+          <p className="text-eyebrow font-semibold uppercase text-mocha">Start a thread</p>
+          <div className="flex flex-wrap gap-2">
+            {untouched.map((c) => (
+              <Link
+                key={c.id}
+                href={`/practitioner/clients/${c.id}?tab=messages`}
+                className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-3 py-1.5 text-sm text-ink transition-colors hover:border-mocha hover:bg-blush"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blush text-[11px] font-semibold text-wine">
+                  {initials(nameOf(c))}
+                </span>
+                {nameOf(c)}
+              </Link>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
