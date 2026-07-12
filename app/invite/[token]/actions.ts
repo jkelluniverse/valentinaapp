@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hashToken } from "@/lib/invites";
+import { recordConsent } from "@/lib/consent";
 import { signIn } from "@/auth";
 
 // Accept an invite: validate the token, set a password, record consent, create
@@ -36,12 +37,11 @@ export async function acceptInvite(token: string, formData: FormData) {
         role: "CLIENT",
         active: true,
         passwordHash,
-        consentAt: new Date(),
-        // The acceptance consent text explicitly covers AI-assisted
-        // practitioner review (C5 spec §9); both consents record together.
-        aiConsentAt: new Date(),
       },
     });
+    // AMENDMENT-01: one versioned global consent covers the whole portal
+    // (storage, review, AI-assisted processing, charts, messages-as-record).
+    await recordConsent(user.id, tx);
     await tx.invite.update({
       where: { id: invite.id },
       data: { status: "ACCEPTED", acceptedUserId: user.id },

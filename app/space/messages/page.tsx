@@ -48,7 +48,6 @@ export default async function MessagesPage() {
         <p className="max-w-prose text-sm text-slate">
           A quiet, held line between your sessions. Share what&apos;s on your mind, ask a question,
           or bring something up.
-          {!user.consentAt && " (Until your consent is on record, messages here stay just between you two.)"}
         </p>
       </div>
 

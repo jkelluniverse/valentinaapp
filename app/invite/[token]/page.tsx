@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { hashToken } from "@/lib/invites";
 import { SignatureRule, Eyebrow } from "@/components/brand";
+import { ReadingProse } from "@/components/ReadingProse";
+import { getConsentText } from "@/lib/consent";
 import { acceptInvite } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -44,11 +46,12 @@ export default async function InvitePage({
 
   const errorMessage = searchParams.error ? ERRORS[searchParams.error] ?? ERRORS.invalid : null;
   const accept = acceptInvite.bind(null, params.token);
+  const consentText = getConsentText();
   const fieldClass =
     "rounded-md border border-line bg-white px-3 py-2 text-base text-ink outline-none placeholder:text-slate focus:border-wine focus:ring-2 focus:ring-wine/20";
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-8 px-6 py-12">
+    <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-8 px-6 py-12">
       <div className="flex flex-col gap-3">
         <Eyebrow>You&apos;re invited</Eyebrow>
         <h1 className="text-[2.25rem] font-semibold">Welcome</h1>
@@ -57,6 +60,11 @@ export default async function InvitePage({
           Set a password to create your private space. This is where your reflection and
           progress live between sessions.
         </p>
+      </div>
+
+      {/* AMENDMENT-01 §4 — the whole picture, once, in plain language. */}
+      <div className="rounded-card border border-line bg-white p-6 shadow-soft">
+        <ReadingProse content={consentText} />
       </div>
 
       <form action={accept} className="flex flex-col gap-4">
@@ -97,15 +105,7 @@ export default async function InvitePage({
             required
             className="mt-1 h-4 w-4 rounded border-line text-wine focus:ring-wine/20"
           />
-          <span>
-            I agree to the{" "}
-            <Link href="/privacy" target="_blank" className="text-wine underline underline-offset-4">
-              privacy notice
-            </Link>{" "}
-            and consent to storing my reflections in this private space, and to Valentina using
-            a private AI assistant to review my reflections when preparing for our sessions. I
-            can change the AI choice anytime from my space.
-          </span>
+          <span>I understand and agree — let&apos;s begin.</span>
         </label>
 
         {errorMessage && <p className="text-sm text-rose">{errorMessage}</p>}

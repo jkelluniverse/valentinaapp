@@ -2,6 +2,7 @@
 
 import { requireClient } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
+import { hasConsent } from "@/lib/consent";
 import {
   sendMessage,
   markRead,
@@ -42,7 +43,7 @@ export async function sendClientMessage(
     body: String(formData.get("body") ?? ""),
     references: parseRefsField(formData),
     excludedFromRecord: formData.get("offRecord") === "1",
-    clientHasConsent: Boolean(user.consentAt),
+    clientHasConsent: await hasConsent(user.id),
   });
   return res.ok ? { ok: true, crisis: res.crisis } : { ok: false, error: res.error };
 }

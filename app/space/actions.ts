@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import type { EntryType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
+import { hasConsent } from "@/lib/consent";
 import { ENTRY_TYPES } from "@/lib/entry-meta";
 import { record, logEntryToRecord } from "@/lib/record";
 
@@ -47,8 +48,8 @@ function parseEntryForm(formData: FormData) {
 export async function createEntry(formData: FormData) {
   const user = await requireClient();
 
-  // Consent gate (spec §7): no recorded consent, no entries.
-  if (!user.consentAt) redirect("/space?error=consent");
+  // Consent gate (AMENDMENT-01): the one unified consent, no entries without it.
+  if (!(await hasConsent(user.id))) redirect("/space/consent");
 
   const parsed = parseEntryForm(formData);
   if ("error" in parsed) redirect("/space/new?error=empty");
@@ -88,19 +89,6 @@ export async function updateEntry(entryId: string, formData: FormData) {
 
   revalidatePath(SPACE);
   redirect(`/space/entries/${entryId}?saved=1`);
-}
-
-// Client-controlled consent to AI-assisted practitioner review (C5 spec §9).
-export async function setAiConsent(granted: boolean) {
-  const user = await requireClient();
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { aiConsentAt: granted ? new Date() : null },
-  });
-
-  revalidatePath(SPACE);
-  redirect(SPACE);
 }
 
 export async function deleteEntry(entryId: string) {

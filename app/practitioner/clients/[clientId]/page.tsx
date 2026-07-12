@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { RecordKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
+import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
 import { MoodDots, groupByDay, formatDay } from "@/components/entries";
 import { RecordCard, ThemeDots, MoodRiver } from "@/components/record";
@@ -91,12 +92,13 @@ export default async function Portrait({
       name: true,
       email: true,
       active: true,
-      consentAt: true,
-      aiConsentAt: true,
       createdAt: true,
     },
   });
   if (!client) notFound();
+
+  // AMENDMENT-01: one unified consent answers every gate on this file.
+  const clientConsent = await hasConsent(client.id);
 
   const tab: TabKey = TABS.some((t) => t.key === searchParams.tab)
     ? (searchParams.tab as TabKey)
@@ -200,7 +202,7 @@ export default async function Portrait({
         </div>
         <p className="gentle-rise text-[15px] text-slate">
           with you since {since} · last wrote {relDay(rec.cadence.lastActive)}
-          {!client.consentAt && " · no consent on file"}
+          {!clientConsent && " · no consent on file"}
         </p>
         <div className="h-px w-16 origin-left bg-mocha rule-draw" />
       </div>
@@ -293,11 +295,11 @@ export default async function Portrait({
 
         {tab === "prep" && (
           <section className="flex flex-col gap-4">
-            {!client.aiConsentAt ? (
+            {!clientConsent ? (
               <div className="rounded-card border border-line bg-surface p-6 shadow-soft">
                 <p className="max-w-prose text-ink">
-                  {client.name || "This client"} hasn&apos;t agreed to AI-assisted review, so
-                  session prep is off for them. They can turn it on from their own space.
+                  {client.name || "This client"} doesn&apos;t have consent on file yet, so session
+                  prep is off for them until they accept.
                 </p>
               </div>
             ) : latestPrep ? (
@@ -369,8 +371,7 @@ export default async function Portrait({
             <div className="rounded-card border border-line bg-surface p-6 shadow-soft">
               <dl className="grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
                 <Row label="Stage" value={stageLabel ?? "—"} />
-                <Row label="Consent" value={client.consentAt ? "on file" : "not on file"} />
-                <Row label="AI review" value={client.aiConsentAt ? "allowed" : "off"} />
+                <Row label="Consent" value={clientConsent ? "on file" : "not on file"} />
                 <Row label="Intake" value={profile?.intakeCompletedAt ? `done ${profile.intakeCompletedAt.toISOString().slice(0, 10)}` : "not yet"} />
                 {profile?.birthDate && (
                   <Row
@@ -398,7 +399,7 @@ export default async function Portrait({
           <MessagesTab
             clientId={client.id}
             clientName={client.name || client.email}
-            clientHasConsent={Boolean(client.consentAt)}
+            clientHasConsent={clientConsent}
           />
         )}
 

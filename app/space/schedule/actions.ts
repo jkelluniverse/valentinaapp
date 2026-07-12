@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
+import { hasConsent } from "@/lib/consent";
 import { getPractitioner, isSlotOpen, getOrCreateConfig } from "@/lib/schedule";
 import { createAppointment, cancelAppointment } from "@/lib/appointments";
 import { ensureSquareCustomer, createSquarePayment, squareConfigured } from "@/lib/square";
@@ -15,7 +16,7 @@ const PATH = "/space/schedule";
 // every other client write path.
 export async function bookSlot(formData: FormData) {
   const user = await requireClient();
-  if (!user.consentAt) redirect("/space?error=consent");
+  if (!(await hasConsent(user.id))) redirect("/space/consent");
 
   const startIso = String(formData.get("start") ?? "");
   const startAt = new Date(startIso);

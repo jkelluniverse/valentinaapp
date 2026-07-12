@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
 import {
   SYSTEM_PROMPT,
@@ -11,7 +12,8 @@ import {
 
 // C5 pipeline (spec §4). Non-negotiables enforced here as code:
 // - runs server-side only; the API key never leaves this module
-// - only for a client with explicit AI-review consent (aiConsentAt)
+// - only for a client who holds the unified consent (AMENDMENT-01), which
+//   covers AI-assisted processing of the record
 // - scoped window, pseudonymized payload (no name/email/ids)
 // - referral flag is read from structured output and stored
 // - logging is METADATA ONLY — never any record or formulation content
@@ -36,12 +38,12 @@ function stripIdentifiers(text: string | null, identifiers: string[]) {
 export async function runSessionPrep(clientId: string, practitionerId: string): Promise<PrepResult> {
   const client = await prisma.user.findFirst({
     where: { id: clientId, role: "CLIENT" },
-    select: { id: true, name: true, email: true, aiConsentAt: true },
+    select: { id: true, name: true, email: true },
   });
   if (!client) return { ok: false, error: "consent" };
 
-  // Gate (spec §9): no explicit AI-review consent, no pipeline. Ever.
-  if (!client.aiConsentAt) return { ok: false, error: "consent" };
+  // Gate (AMENDMENT-01): no unified consent on record, no pipeline. Ever.
+  if (!(await hasConsent(client.id))) return { ok: false, error: "consent" };
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { ok: false, error: "config" };

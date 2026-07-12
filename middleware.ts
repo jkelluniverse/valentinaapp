@@ -13,7 +13,11 @@ export default auth((req) => {
   if (isProtected && !req.auth?.user) {
     return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
   }
-  return NextResponse.next();
+  // Expose the path to server components (the client space uses it to enforce
+  // the one-time consent re-ask without re-asking on the consent page itself).
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 });
 
 export const config = {

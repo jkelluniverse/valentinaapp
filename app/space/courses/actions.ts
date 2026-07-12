@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
+import { hasConsent } from "@/lib/consent";
 import { record, promptResponseToRecord, snapshot } from "@/lib/record";
 
 // Player writes (C7). Ownership is always re-derived from the session; a
@@ -57,7 +58,7 @@ export async function markLessonComplete(lessonId: string, nextUrl: string) {
 // assignment → response path as C3, so it feeds the record automatically.
 export async function respondToExercise(lessonId: string, formData: FormData) {
   const user = await requireClient();
-  if (!user.consentAt) redirect("/space?error=consent");
+  if (!(await hasConsent(user.id))) redirect("/space/consent");
 
   const playable = await getPlayable(lessonId, user.id);
   if (!playable || !playable.lesson.promptId) redirect("/space/courses");

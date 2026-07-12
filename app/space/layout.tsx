@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { requireClient } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
+import { hasConsent } from "@/lib/consent";
 import { SignOutForm } from "@/components/SignOutForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -10,6 +13,17 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export default async function SpaceLayout({ children }: { children: React.ReactNode }) {
   const user = await requireClient();
   const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();
+
+  // AMENDMENT-01 §5 — the one-time consent re-ask. Any space page a client lands
+  // on sends them to the consent screen first (the screen itself is exempt, so
+  // no loop). Once granted, this never fires again.
+  const pathname = headers().get("x-pathname") ?? "";
+  // Only redirect when we can confirm we're NOT already on the consent screen;
+  // an unknown path fails open (write-action gates still protect writes), so
+  // there is never a redirect loop.
+  if (pathname && !pathname.startsWith("/space/consent") && !(await hasConsent(user.id))) {
+    redirect("/space/consent");
+  }
 
   // A soft "•" presence when a reply is waiting — never an unread count.
   // Fail-soft: this runs on EVERY page, so a not-yet-migrated Message table

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
+import { hasConsent } from "@/lib/consent";
 import { geocodePlace } from "@/lib/geocode";
 import { ensureChart } from "@/lib/human-design";
 
@@ -14,7 +15,7 @@ const PATH = "/space/profile";
 // goes to the geocoder — no date, no identity.
 export async function saveProfile(formData: FormData) {
   const user = await requireClient();
-  if (!user.consentAt) redirect("/space?error=consent");
+  if (!(await hasConsent(user.id))) redirect("/space/consent");
 
   const preferredName = String(formData.get("preferredName") ?? "").trim() || null;
   const pronouns = String(formData.get("pronouns") ?? "").trim() || null;

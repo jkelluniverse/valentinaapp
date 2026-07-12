@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
 import {
   SYSTEM_PROMPT,
@@ -10,8 +11,8 @@ import {
 } from "@/ai/noteScanPrompt";
 
 // C14.4 — scan a private note against a client's record for connections worth
-// exploring. Reuses the C5 non-negotiables: server-side only; explicit AI
-// consent; pseudonymized payload; mandatory referral safety; metadata-only
+// exploring. Reuses the C5 non-negotiables: server-side only; unified consent
+// (AMENDMENT-01); pseudonymized payload; mandatory referral safety; metadata-only
 // logging (never the note or record content). Practitioner-only by route.
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -36,10 +37,10 @@ export async function runNoteScan(noteId: string, practitionerId: string): Promi
 
   const client = await prisma.user.findFirst({
     where: { id: note.clientId, role: "CLIENT" },
-    select: { id: true, name: true, email: true, aiConsentAt: true },
+    select: { id: true, name: true, email: true },
   });
   if (!client) return { ok: false, error: "unfiled" };
-  if (!client.aiConsentAt) return { ok: false, error: "consent" };
+  if (!(await hasConsent(client.id))) return { ok: false, error: "consent" };
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { ok: false, error: "config" };

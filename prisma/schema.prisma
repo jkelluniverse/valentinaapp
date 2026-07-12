@@ -19,8 +19,9 @@ model User {
   passwordHash String?
   role         Role       @default(CLIENT)
   active       Boolean    @default(true) // deactivation gate for login
-  consentAt    DateTime? // set when a client accepts consent
-  aiConsentAt  DateTime? // explicit consent to AI-assisted practitioner review (C5)
+  consentAt    DateTime? // legacy account consent (kept for back-compat; AMENDMENT-01)
+  aiConsentAt  DateTime? // legacy AI-review opt-in — folded into unified consent (AMENDMENT-01)
+  consentGrants ConsentGrant[]
   entries      LogEntry[]
   assignments  Assignment[]  @relation("ClientAssignments")
   record       RecordItem[]  @relation("ClientRecord")
@@ -38,6 +39,21 @@ model User {
   notes        Note[]        @relation("ClientNotes")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+}
+
+// AMENDMENT-01 — Unified Consent. One versioned global grant covers the whole
+// portal scope (storage, practitioner review, AI-assisted processing, charts,
+// messages-as-record). lib/consent.ts is the single gate; a version bump is the
+// only thing that ever re-asks. Card-on-file and session recording stay
+// separate in-context opt-ins and are NOT represented here.
+model ConsentGrant {
+  id        String   @id @default(cuid())
+  userId    String
+  version   String // e.g. "2026-07"
+  grantedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, version])
 }
 
 // C11 — client profile. DOB, birth time, and birthplace are sensitive PII:

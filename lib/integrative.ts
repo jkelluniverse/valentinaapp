@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
 import {
   SYSTEM_PROMPT,
@@ -10,9 +11,9 @@ import {
 } from "@/ai/integrativePrompt";
 
 // C12.5 — the synthesis pipeline, following C5's non-negotiables:
-// server-side only; explicit AI consent required; pseudonymized payload;
-// metadata-only logging. Plus C12's own gate: her method text must exist —
-// the app never invents the integration logic.
+// server-side only; unified consent required (AMENDMENT-01); pseudonymized
+// payload; metadata-only logging. Plus C12's own gate: her method text must
+// exist — the app never invents the integration logic.
 
 export const METHOD_SETTING_KEY = "synthesisMethod";
 
@@ -32,9 +33,9 @@ export async function runIntegrativeSynthesis(
 ): Promise<SynthesisResult> {
   const client = await prisma.user.findFirst({
     where: { id: clientId, role: "CLIENT" },
-    select: { id: true, aiConsentAt: true },
+    select: { id: true },
   });
-  if (!client?.aiConsentAt) return { ok: false, error: "consent" };
+  if (!client || !(await hasConsent(client.id))) return { ok: false, error: "consent" };
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return { ok: false, error: "config" };

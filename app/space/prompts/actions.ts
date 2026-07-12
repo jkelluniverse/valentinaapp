@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
+import { hasConsent } from "@/lib/consent";
 import { record, promptResponseToRecord } from "@/lib/record";
 
 // Ownership is re-derived from the session on every action; an assignment id
@@ -13,8 +14,8 @@ import { record, promptResponseToRecord } from "@/lib/record";
 export async function respondToAssignment(assignmentId: string, formData: FormData) {
   const user = await requireClient();
 
-  // Consent gate from C1 applies to responses too.
-  if (!user.consentAt) redirect("/space?error=consent");
+  // Unified consent (AMENDMENT-01) applies to responses too.
+  if (!(await hasConsent(user.id))) redirect("/space/consent");
 
   const assignment = await prisma.assignment.findFirst({
     where: { id: assignmentId, clientId: user.id, status: "PENDING" },

@@ -13,8 +13,7 @@ export type SessionUser = {
   email: string;
   role: "PRACTITIONER" | "CLIENT";
   active: boolean;
-  consentAt: Date | null;
-  aiConsentAt: Date | null;
+  consentAt: Date | null; // legacy; new consent checks go through lib/consent.ts
 };
 
 export async function getSessionUser(): Promise<SessionUser | null> {
@@ -22,7 +21,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   if (!session?.user?.email) return null;
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { id: true, name: true, email: true, role: true, active: true, consentAt: true, aiConsentAt: true },
+    select: { id: true, name: true, email: true, role: true, active: true, consentAt: true },
   });
   return user as SessionUser | null;
 }

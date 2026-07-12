@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
+import { hasConsent } from "@/lib/consent";
 import { formatDay, formatTime } from "@/components/entries";
 import type { PrepOutput } from "@/ai/sessionPrepPrompt";
 import { RunPrepButton } from "./RunPrepButton";
@@ -10,7 +11,7 @@ import { savePrepNotes } from "./actions";
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  consent: "This client hasn't consented to AI-assisted review, so prep can't run.",
+  consent: "This client doesn't have consent on file, so prep can't run.",
   config: "The AI service isn't configured yet — add ANTHROPIC_API_KEY to the app service.",
   empty: "There's nothing in the last 90 days to prepare from yet.",
   api: "The preparation service had a problem. Nothing was stored — try again in a moment.",
@@ -30,11 +31,12 @@ export default async function PrepRoom({
 
   const client = await prisma.user.findFirst({
     where: { id: params.clientId, role: "CLIENT" },
-    select: { id: true, name: true, email: true, aiConsentAt: true },
+    select: { id: true, name: true, email: true },
   });
   if (!client) notFound();
   const base = `/practitioner/clients/${client.id}`;
   const name = client.name || client.email;
+  const clientConsent = await hasConsent(client.id);
 
   const preps = await prisma.sessionPrep.findMany({
     where: { clientId: client.id },
@@ -65,20 +67,18 @@ export default async function PrepRoom({
       {searchParams.saved && <Banner>Notes saved.</Banner>}
       {errorMessage && <Banner>{errorMessage}</Banner>}
 
-      {client.aiConsentAt ? (
+      {clientConsent ? (
         <div className="flex flex-col gap-2">
           <RunPrepButton clientId={client.id} />
-          {client.aiConsentAt && (
-            <p className="text-[13px] text-whisper">
-              Reads the last 90 days (pseudonymized) plus rollups. Consented {formatDay(client.aiConsentAt)}.
-            </p>
-          )}
+          <p className="text-[13px] text-whisper">
+            Reads the last 90 days (pseudonymized) plus rollups.
+          </p>
         </div>
       ) : (
         <div className="rounded-card border border-line bg-surface p-6 shadow-soft">
           <p className="max-w-prose text-ink">
-            {name} hasn&apos;t agreed to AI-assisted review yet, so session prep is off for them.
-            They can turn it on from the privacy choices in their own space.
+            {name} doesn&apos;t have consent on file yet, so session prep is off for them until
+            they accept.
           </p>
         </div>
       )}

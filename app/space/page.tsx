@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
 import { listEnrolledCourses } from "@/lib/courses";
 import { Greeting } from "@/components/Greeting";
-import { AiConsentCard } from "./AiConsentCard";
 
 export const dynamic = "force-dynamic";
 
@@ -101,12 +100,6 @@ export default async function Sanctuary() {
           Your journey
         </Link>
       </div>
-
-      {!user.aiConsentAt && (
-        <div className="mt-4 w-full text-left">
-          <AiConsentCard granted={false} />
-        </div>
-      )}
     </div>
   );
 }

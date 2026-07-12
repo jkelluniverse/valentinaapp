@@ -25,7 +25,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  consent: "This client hasn't consented to AI-assisted review, so no draft can run.",
+  consent: "This client doesn't have consent on file, so no draft can run.",
   config: "The AI drafting isn't configured (ANTHROPIC_API_KEY).",
   method: "Add your integration method first — the draft works through your method, never its own.",
   lenses: "The birth-data lenses aren't in yet — the chart generates from their profile.",
@@ -222,8 +222,8 @@ export default async function ClientDesignPage({
               </button>
             </form>
             <p className="text-xs text-slate">
-              Practitioner-facing hypotheses through your method · needs the client&apos;s AI
-              consent · the spiral joins once you&apos;ve approved it.
+              Practitioner-facing hypotheses through your method · needs the client&apos;s consent
+              on file · the spiral joins once you&apos;ve approved it.
             </p>
           </div>
         </div>

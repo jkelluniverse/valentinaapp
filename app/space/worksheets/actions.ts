@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
+import { hasConsent } from "@/lib/consent";
 import { record, snapshot } from "@/lib/record";
 import { parseFields, answerableFields, answersDigest, type WorksheetAnswers } from "@/lib/worksheet-meta";
 
@@ -12,7 +13,7 @@ import { parseFields, answerableFields, answersDigest, type WorksheetAnswers } f
 
 export async function submitWorksheet(assignmentId: string, formData: FormData) {
   const user = await requireClient();
-  if (!user.consentAt) redirect("/space?error=consent");
+  if (!(await hasConsent(user.id))) redirect("/space/consent");
 
   const assignment = await prisma.worksheetAssignment.findFirst({
     where: { id: assignmentId, clientId: user.id, status: "PENDING" },
