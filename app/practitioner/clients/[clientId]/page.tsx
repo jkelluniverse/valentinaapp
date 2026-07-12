@@ -15,7 +15,23 @@ import { markChargePaid, waiveCharge, remindCharge } from "../../billing/actions
 import { clientNotes } from "@/lib/notes";
 import { JotBox } from "@/components/JotBox";
 import { NoteRow } from "@/components/NoteRow";
+import { MessageThread } from "@/components/MessageThread";
+import {
+  getOrCreateConversation,
+  listMessageViews,
+  markRead,
+  getAwayNote,
+  RESPONSE_RHYTHM,
+} from "@/lib/messaging";
+import { referenceableFor } from "@/lib/message-refs";
+import { CRISIS_RESOURCES } from "@/lib/message-safety";
 import { createJot } from "../../notes/actions";
+import {
+  sendPractitionerMessage,
+  pollPractitioner,
+  pauseThread,
+  acknowledgeFlag,
+} from "../../messages/actions";
 import { AssignForm } from "./AssignForm";
 import { assignPrompt, assignWorksheet, cancelForClient, setClientStage } from "./actions";
 
@@ -30,6 +46,7 @@ const STATUS_LABEL: Record<string, string> = {
 const TABS = [
   { key: "record", label: "Record" },
   { key: "margins", label: "Margins" },
+  { key: "messages", label: "Messages" },
   { key: "prep", label: "Prep" },
   { key: "between", label: "Between" },
   { key: "courses", label: "Courses" },
@@ -356,6 +373,10 @@ export default async function Portrait({
           <MarginsTab clientId={client.id} clientName={client.name || client.email} tag={searchParams.noteTag} />
         )}
 
+        {tab === "messages" && (
+          <MessagesTab clientId={client.id} clientHasConsent={Boolean(client.consentAt)} />
+        )}
+
         {tab === "billing" && (
           <BillingTab clientId={client.id} back={tabHref("billing")} />
         )}
@@ -594,6 +615,86 @@ async function MarginsTab({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// C15 — the Messages tab on the Portrait. The one thread with this client lives
+// inside their file, so context is a glance away. Crisis flags surface first,
+// with a gentle acknowledge; the thread itself is the same calm exchange.
+async function MessagesTab({
+  clientId,
+  clientHasConsent,
+}: {
+  clientId: string;
+  clientHasConsent: boolean;
+}) {
+  const convo = await getOrCreateConversation(clientId);
+  if (!convo) {
+    return <p className="text-ink">Messaging isn&apos;t available yet.</p>;
+  }
+
+  await markRead(convo.id, "PRACTITIONER");
+  const [initial, refGroups, awayNote, flagged] = await Promise.all([
+    listMessageViews(convo.id, { role: "PRACTITIONER", clientId }),
+    referenceableFor({ role: "PRACTITIONER", clientId }),
+    getAwayNote(),
+    prisma.message.findMany({
+      where: { conversationId: convo.id, safetyFlag: true, safetyCleared: false, deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, createdAt: true },
+    }),
+  ]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Crisis flags — worded, acknowledgeable, never a red badge. */}
+      {flagged.length > 0 && (
+        <div className="flex flex-col gap-3 rounded-card border-2 border-rose bg-white p-5 shadow-card">
+          <p className="text-eyebrow font-semibold uppercase text-rose">Reached out in distress</p>
+          <p className="max-w-prose text-sm text-ink">
+            They wrote something heavy {relDay(flagged[0].createdAt)} and were shown crisis
+            resources on the spot. When you&apos;ve checked in, you can set this down.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {flagged.map((f) => (
+              <form key={f.id} action={acknowledgeFlag.bind(null, clientId, f.id)}>
+                <button className="rounded-md border border-rose px-4 py-1.5 text-sm font-medium text-rose transition-colors hover:bg-rose hover:text-white">
+                  I&apos;ve checked in
+                </button>
+              </form>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pause / reopen — a held boundary she controls. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px] text-whisper">
+          {convo.status === "PAUSED"
+            ? "This line is paused — nothing new can be sent until you reopen it."
+            : clientHasConsent
+              ? "Their messages join the record unless marked just between us."
+              : "No consent on file — their messages stay just between you two."}
+        </p>
+        <form action={pauseThread.bind(null, clientId, convo.status !== "PAUSED")}>
+          <button className="text-[13px] text-slate underline-offset-4 hover:text-wine hover:underline">
+            {convo.status === "PAUSED" ? "Reopen this line" : "Pause this line"}
+          </button>
+        </form>
+      </div>
+
+      <MessageThread
+        viewerRole="PRACTITIONER"
+        initial={initial}
+        refGroups={refGroups}
+        paused={convo.status === "PAUSED"}
+        awayNote={awayNote}
+        responseRhythm={RESPONSE_RHYTHM}
+        crisisResources={CRISIS_RESOURCES}
+        send={sendPractitionerMessage.bind(null, clientId)}
+        poll={pollPractitioner.bind(null, clientId)}
+      />
     </div>
   );
 }

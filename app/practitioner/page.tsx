@@ -38,6 +38,7 @@ function feedSentence(item: RecordItem & { clientName: string }): string {
     WORKSHEET_RESPONSE: `${item.clientName} finished ${t} ${when}.`,
     COURSE_ACTIVITY: `${item.clientName} moved through ${t} ${when}.`,
     NOTE: `${item.clientName} — ${item.title ?? "a note"} ${when}.`,
+    MESSAGE: `${item.clientName} sent a message ${when}.`,
   };
   return byKind[item.kind];
 }
@@ -53,8 +54,21 @@ export default async function TheStudy() {
   let todays: Awaited<ReturnType<typeof loadToday>> = [];
   if (p && config) todays = await loadToday(p.id, config.timezone);
 
-  // Worth a look — at most three, worded, in priority order.
+  // Worth a look — at most three, worded, in priority order. A client who
+  // reached out in distress leads everything else.
   const signals: { text: string; href: string }[] = [];
+  const crisisFlags = await prisma.message.findMany({
+    where: { safetyFlag: true, safetyCleared: false, deletedAt: null },
+    orderBy: { createdAt: "desc" },
+    include: { conversation: { select: { clientId: true, client: { select: { name: true, email: true } } } } },
+    take: 5,
+  });
+  for (const m of crisisFlags) {
+    signals.push({
+      text: `${m.conversation.client.name || m.conversation.client.email} reached out in distress — please check in.`,
+      href: `/practitioner/clients/${m.conversation.clientId}?tab=messages`,
+    });
+  }
   for (const r of o.attention.referralFlagged) {
     signals.push({
       text: `${r.name || r.email}'s last prep suggested care — worth reviewing before today.`,

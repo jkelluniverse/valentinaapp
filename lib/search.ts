@@ -51,6 +51,7 @@ export async function searchEverything(q: string): Promise<SearchGroup[]> {
     appointments,
     charges,
     invites,
+    messages,
   ] = await Promise.all([
     prisma.user.findMany({
       where: { role: "CLIENT", OR: [{ name: ci(term) }, { email: ci(term) }] },
@@ -135,6 +136,14 @@ export async function searchEverything(q: string): Promise<SearchGroup[]> {
       select: { id: true, name: true, email: true, createdAt: true },
       take: 10,
     }),
+    // Messages (C15) — the most sensitive text in the app, but this surface is
+    // practitioner-only and never logged, so her thread is searchable.
+    prisma.message.findMany({
+      where: { body: ci(term), deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      include: { conversation: { select: { clientId: true } } },
+      take: 20,
+    }),
   ]);
 
   // One name lookup for every client id any hit references.
@@ -146,6 +155,7 @@ export async function searchEverything(q: string): Promise<SearchGroup[]> {
   for (const p of preps) clientIds.add(p.clientId);
   for (const a of appointments) clientIds.add(a.clientId);
   for (const c of charges) clientIds.add(c.clientId);
+  for (const m of messages) clientIds.add(m.conversation.clientId);
   const names = new Map(
     (
       await prisma.user.findMany({
@@ -268,6 +278,16 @@ export async function searchEverything(q: string): Promise<SearchGroup[]> {
         label: nameOf(c.clientId),
         kind: "charge",
         meta: `${c.description} · ${c.status.toLowerCase()} · ${day(c.createdAt)}`,
+      })),
+    },
+    {
+      title: "Messages",
+      hits: messages.map((m) => ({
+        href: `/practitioner/clients/${m.conversation.clientId}?tab=messages`,
+        label: nameOf(m.conversation.clientId),
+        kind: m.senderRole === "CLIENT" ? "they wrote" : "you wrote",
+        meta: `${day(m.createdAt)}${m.excludedFromRecord ? " · just between us" : ""}`,
+        snippet: searchSnippet(m.body, term),
       })),
     },
     {

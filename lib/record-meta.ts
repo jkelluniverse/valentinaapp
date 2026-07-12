@@ -7,6 +7,7 @@ export const RECORD_KINDS: { value: RecordKind; label: string; pill: string }[] 
   { value: "WORKSHEET_RESPONSE", label: "Worksheet", pill: "bg-blush-deep text-wine" },
   { value: "COURSE_ACTIVITY", label: "Course", pill: "bg-cream text-ink" },
   { value: "NOTE", label: "Note", pill: "bg-line/50 text-slate" },
+  { value: "MESSAGE", label: "Message", pill: "border border-mocha text-mocha" },
 ];
 
 export function recordKindLabel(kind: RecordKind) {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireClient } from "@/lib/auth-guards";
+import { prisma } from "@/lib/prisma";
 import { SignOutForm } from "@/components/SignOutForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -9,6 +10,16 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 export default async function SpaceLayout({ children }: { children: React.ReactNode }) {
   const user = await requireClient();
   const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();
+
+  // A soft "•" presence when a reply is waiting — never an unread count.
+  const unread = await prisma.message.count({
+    where: {
+      conversation: { clientId: user.id },
+      senderRole: "PRACTITIONER",
+      readAt: null,
+      deletedAt: null,
+    },
+  });
 
   return (
     <div data-portal="client" className="min-h-screen bg-canvas text-ink">
@@ -29,6 +40,10 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
             </Link>
             <Link href="/space/design" className="underline-offset-4 hover:text-wine hover:underline">
               Your design
+            </Link>
+            <Link href="/space/messages" className="inline-flex items-center gap-1 underline-offset-4 hover:text-wine hover:underline">
+              Messages
+              {unread > 0 && <span className="h-1.5 w-1.5 rounded-full bg-wine" aria-label="new message" />}
             </Link>
           </nav>
           <span className="ml-auto sm:ml-0">

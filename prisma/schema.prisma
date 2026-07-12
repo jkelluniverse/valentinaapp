@@ -34,6 +34,7 @@ model User {
   lensResults  LensResult[]  @relation("ClientLenses")
   integrativeProfile IntegrativeProfile?
   integrativeReading IntegrativeReading?
+  conversation Conversation? @relation("ClientConversation")
   notes        Note[]        @relation("ClientNotes")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
@@ -200,6 +201,51 @@ model NoteScan {
   createdAt    DateTime @default(now())
 
   @@index([noteId, createdAt])
+}
+
+// C15 — The Open Line. One calm async 1:1 thread per client. Message content is
+// among the most sensitive data in the app: practitioner-scoped reads, never in
+// logs, consent governs record-feeding. Client messages (unless off-record)
+// become RecordItem(MESSAGE) and feed the psyche net; hers are context only.
+
+enum SenderRole {
+  PRACTITIONER
+  CLIENT
+}
+
+enum ConvoStatus {
+  ACTIVE
+  PAUSED
+}
+
+model Conversation {
+  id             String      @id @default(cuid())
+  clientId       String      @unique // single practitioner: one thread per client
+  client         User        @relation("ClientConversation", fields: [clientId], references: [id], onDelete: Cascade)
+  practitionerId String
+  status         ConvoStatus @default(ACTIVE)
+  lastMessageAt  DateTime?
+  createdAt      DateTime    @default(now())
+  messages       Message[]
+}
+
+model Message {
+  id                 String       @id @default(cuid())
+  conversationId     String
+  conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId           String
+  senderRole         SenderRole
+  body               String
+  references         Json? // [{ type, id }] — ASSIGNMENT|WORKSHEET|COURSE|LESSON|READING|REFLECTION
+  excludedFromRecord Boolean      @default(false) // the "just between us" toggle
+  safetyFlag         Boolean      @default(false) // crisis signal detected on a client message
+  safetyCleared      Boolean      @default(false) // practitioner acknowledged the flag
+  deliveredAt        DateTime?
+  readAt             DateTime?
+  deletedAt          DateTime? // soft delete (audited)
+  createdAt          DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
 }
 
 // C13 — program stages, billing ledger, and the Square rail. The app owns the
@@ -433,6 +479,7 @@ enum RecordKind {
   WORKSHEET_RESPONSE
   COURSE_ACTIVITY
   NOTE
+  MESSAGE
 }
 
 // The unified longitudinal record (C4): every feature appends here through

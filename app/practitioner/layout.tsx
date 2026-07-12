@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requirePractitioner } from "@/lib/auth-guards";
+import { prisma } from "@/lib/prisma";
 import { SignOutForm } from "@/components/SignOutForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -11,9 +12,15 @@ export default async function PractitionerLayout({ children }: { children: React
   const first = user.name?.trim().split(/\s+/)[0] ?? "you";
   const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();
 
+  // A soft "•" presence when a client is waiting on a reply — never a count.
+  const unread = await prisma.message.count({
+    where: { senderRole: "CLIENT", readAt: null, deletedAt: null },
+  });
+
   const NAV = [
     { href: "/practitioner", label: "The Study" },
     { href: "/practitioner/clients", label: "Clients" },
+    { href: "/practitioner/messages", label: "Messages" },
     { href: "/practitioner/library", label: "Library" },
     { href: "/practitioner/courses", label: "Courses" },
     { href: "/practitioner/schedule", label: "Schedule" },
@@ -33,9 +40,12 @@ export default async function PractitionerLayout({ children }: { children: React
               <Link
                 key={n.href}
                 href={n.href}
-                className="underline-offset-4 hover:text-wine hover:underline"
+                className="inline-flex items-center gap-1 underline-offset-4 hover:text-wine hover:underline"
               >
                 {n.label}
+                {n.href === "/practitioner/messages" && unread > 0 && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-wine" aria-label="waiting on you" />
+                )}
               </Link>
             ))}
             <Link
