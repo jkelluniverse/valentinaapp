@@ -85,3 +85,29 @@ export function PersonIcon({ className }: P) {
     </svg>
   );
 }
+
+// Registry so server layouts can pass a serializable icon NAME (a string) to
+// the client tab bar, which resolves it here. Function components can't cross
+// the server→client props boundary.
+export type IconName =
+  | "home"
+  | "users"
+  | "message"
+  | "calendar"
+  | "pen"
+  | "star"
+  | "path"
+  | "person"
+  | "more";
+
+export const ICONS: Record<IconName, (props: P) => JSX.Element> = {
+  home: HomeIcon,
+  users: UsersIcon,
+  message: MessageIcon,
+  calendar: CalendarIcon,
+  pen: PenIcon,
+  star: StarIcon,
+  path: PathIcon,
+  person: PersonIcon,
+  more: MoreIcon,
+};

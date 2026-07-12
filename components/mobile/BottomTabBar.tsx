@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ComponentType } from "react";
+import { useState } from "react";
 import { Sheet } from "./Sheet";
+import { ICONS, type IconName } from "./icons";
 
 // AMENDMENT-02 §1 — the bottom tab bar (the missing spine). Mobile only
 // (<768px); hidden on desktop where the top-row links take over. Quiet Warm
@@ -16,7 +17,7 @@ export type Tab = {
   key: string;
   label: string;
   href?: string; // omit for the More tab (opens the sheet)
-  icon: ComponentType<{ className?: string }>;
+  icon: IconName; // a serializable name; resolved to a component client-side
   dot?: boolean;
   center?: boolean; // the one raised flourish (client Reflect)
   match?: string; // path prefix that counts as active (defaults to href)
@@ -27,16 +28,17 @@ export type MoreLink = { href: string; label: string; hint?: string };
 export function BottomTabBar({
   tabs,
   moreLabel = "More",
-  moreIcon: MoreGlyph,
+  moreIcon,
   moreLinks = [],
   hideOn = [],
 }: {
   tabs: Tab[];
   moreLabel?: string;
-  moreIcon?: ComponentType<{ className?: string }>;
+  moreIcon?: IconName;
   moreLinks?: MoreLink[];
   hideOn?: string[];
 }) {
+  const MoreGlyph = moreIcon ? ICONS[moreIcon] : null;
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -62,7 +64,7 @@ export function BottomTabBar({
         <ul className="mx-auto flex max-w-lg items-stretch justify-around">
           {tabs.map((t) => {
             const active = isActive(t);
-            const Icon = t.icon;
+            const Icon = ICONS[t.icon];
             const tone = active ? "text-wine" : "text-whisper";
             const inner = (
               <span className="relative flex flex-col items-center justify-center gap-1">

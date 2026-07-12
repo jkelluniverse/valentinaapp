@@ -6,7 +6,6 @@ import { SignOutForm } from "@/components/SignOutForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AvatarSheet } from "@/components/mobile/AvatarSheet";
 import { BottomTabBar, type Tab, type MoreLink } from "@/components/mobile/BottomTabBar";
-import { HomeIcon, UsersIcon, MessageIcon, CalendarIcon } from "@/components/mobile/icons";
 
 // The Study frame (UI-PRACTITIONER-DESIGN + AMENDMENT-02 Mobile-First). Mobile:
 // a 48px top bar (wordmark + avatar sheet) over the notch, a bottom tab bar for
@@ -33,10 +32,10 @@ export default async function PractitionerLayout({ children }: { children: React
   ];
 
   const tabs: Tab[] = [
-    { key: "today", label: "Today", href: "/practitioner", icon: HomeIcon },
-    { key: "clients", label: "Clients", href: "/practitioner/clients", icon: UsersIcon },
-    { key: "messages", label: "Messages", href: "/practitioner/messages", icon: MessageIcon, dot: unread > 0 },
-    { key: "calendar", label: "Calendar", href: "/practitioner/schedule", icon: CalendarIcon, match: "/practitioner/schedule" },
+    { key: "today", label: "Today", href: "/practitioner", icon: "home" },
+    { key: "clients", label: "Clients", href: "/practitioner/clients", icon: "users" },
+    { key: "messages", label: "Messages", href: "/practitioner/messages", icon: "message", dot: unread > 0 },
+    { key: "calendar", label: "Calendar", href: "/practitioner/schedule", icon: "calendar", match: "/practitioner/schedule" },
   ];
   const moreLinks: MoreLink[] = [
     { href: "/practitioner/library", label: "Library", hint: "Prompts, exercises, worksheets" },

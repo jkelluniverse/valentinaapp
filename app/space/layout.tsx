@@ -9,7 +9,6 @@ import { SignOutForm } from "@/components/SignOutForm";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AvatarSheet } from "@/components/mobile/AvatarSheet";
 import { BottomTabBar, type Tab, type MoreLink } from "@/components/mobile/BottomTabBar";
-import { HomeIcon, StarIcon, PathIcon, MessageIcon, PersonIcon } from "@/components/mobile/icons";
 
 // The client frame (UI-CLIENT-DESIGN + AMENDMENT-02 Mobile-First). Mobile: a
 // 48px top bar (wordmark + avatar sheet) over the notch, and a bottom tab bar
@@ -38,10 +37,10 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
     .catch(() => 0);
 
   const tabs: Tab[] = [
-    { key: "home", label: "Home", href: "/space", icon: HomeIcon },
-    { key: "path", label: "Path", href: "/space/courses", icon: PathIcon },
-    { key: "reflect", label: "Reflect", href: "/space/new", icon: StarIcon, center: true },
-    { key: "messages", label: "Messages", href: "/space/messages", icon: MessageIcon, dot: unread > 0 },
+    { key: "home", label: "Home", href: "/space", icon: "home" },
+    { key: "path", label: "Path", href: "/space/courses", icon: "path" },
+    { key: "reflect", label: "Reflect", href: "/space/new", icon: "star", center: true },
+    { key: "messages", label: "Messages", href: "/space/messages", icon: "message", dot: unread > 0 },
   ];
   const youLinks: MoreLink[] = [
     { href: "/space/journey", label: "Your journey", hint: "The record, over time" },
@@ -108,7 +107,7 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
 
       <main className="mx-auto max-w-[720px] px-6 py-10 pb-tabbar">{children}</main>
 
-      <BottomTabBar tabs={tabs} moreLabel="You" moreIcon={PersonIcon} moreLinks={youLinks} hideOn={["/space/new"]} />
+      <BottomTabBar tabs={tabs} moreLabel="You" moreIcon="person" moreLinks={youLinks} hideOn={["/space/new"]} />
     </div>
   );
 }
