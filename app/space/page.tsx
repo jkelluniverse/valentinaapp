@@ -102,7 +102,11 @@ export default async function Sanctuary() {
         Begin a reflection
       </Link>
 
-      <div className="flex items-center gap-6 text-[15px]">
+      <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[15px]">
+        <Link href="/space/first-map" className="text-slate underline-offset-4 hover:text-wine hover:underline">
+          Your map
+        </Link>
+        <span className="text-line">·</span>
         <Link href="/space/courses" className="text-slate underline-offset-4 hover:text-wine hover:underline">
           Your path
         </Link>

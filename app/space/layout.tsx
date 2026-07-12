@@ -75,6 +75,9 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
             veritas <span className="text-mocha">✧</span>
           </Link>
           <nav className="ml-auto flex items-center gap-4 text-[13px] text-whisper">
+            <Link href="/space/first-map" className="underline-offset-4 hover:text-wine hover:underline">
+              Your map
+            </Link>
             <Link href="/space/courses" className="underline-offset-4 hover:text-wine hover:underline">
               Your path
             </Link>
