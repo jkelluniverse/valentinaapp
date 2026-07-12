@@ -93,6 +93,45 @@ export async function placeStar(nodeId: string, x: number, y: number): Promise<{
   return { ok: true };
 }
 
+// The client draws a connection between two of their OWN stars — their own
+// awareness, rendered gold. Stored as a CONNECTED edge (normalized so A–B and
+// B–A are the same line); it surfaces on Valentina's constellation too.
+export async function connectStars(
+  aId: string,
+  bId: string,
+): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const user = await requireClient();
+  if (aId === bId) return { ok: false, error: "same" };
+  const both = await prisma.psycheNode.findMany({
+    where: { id: { in: [aId, bId] }, clientId: user.id, source: "SELF_REPORTED", state: { not: "ARCHIVED" } },
+    select: { id: true },
+  });
+  if (both.length !== 2) return { ok: false, error: "not-found" };
+  // Normalize order so the pair is one edge regardless of tap order.
+  const [fromId, toId] = [aId, bId].sort();
+  const edge = await prisma.psycheEdge.upsert({
+    where: { fromId_toId_relation: { fromId, toId, relation: "CONNECTED" } },
+    create: { clientId: user.id, fromId, toId, relation: "CONNECTED", evidenceRecordItemIds: [] },
+    update: {},
+    select: { id: true },
+  });
+  revalidatePath(PATH);
+  return { ok: true, id: edge.id };
+}
+
+export async function disconnectStars(edgeId: string): Promise<{ ok: boolean }> {
+  const user = await requireClient();
+  // Only the client's OWN hand-drawn connections — never a practitioner/AI edge.
+  const edge = await prisma.psycheEdge.findFirst({
+    where: { id: edgeId, clientId: user.id, relation: "CONNECTED" },
+    select: { id: true },
+  });
+  if (!edge) return { ok: false };
+  await prisma.psycheEdge.delete({ where: { id: edge.id } });
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
 export async function finishFirstMap(skippedKeys: string[]): Promise<{ ok: boolean }> {
   const user = await requireClient();
   const skipped = skippedKeys.filter((k) => k in PROMPT_KINDS);

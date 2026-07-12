@@ -169,4 +169,5 @@ export const RELATION_LABEL: Record<string, string> = {
   ROOTED_IN: "rooted in",
   REINFORCES: "reinforces",
   SOFTENED_BY: "softened by",
+  CONNECTED: "connected (their own)", // client-drawn, gold awareness
 };

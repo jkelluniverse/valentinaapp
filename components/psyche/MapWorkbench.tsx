@@ -58,6 +58,7 @@ const REL_LABEL: Record<string, string> = {
   ROOTED_IN: "rooted in",
   REINFORCES: "reinforces",
   SOFTENED_BY: "softened by",
+  CONNECTED: "connected (their own)",
 };
 const KIND_GROUPS: { key: string; label: string; kinds: string[] }[] = [
   { key: "wounds", label: "Wounds & shadows", kinds: ["WOUND", "SHADOW"] },
