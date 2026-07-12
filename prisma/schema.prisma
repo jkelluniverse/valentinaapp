@@ -56,6 +56,123 @@ model ConsentGrant {
   @@unique([userId, version])
 }
 
+// C16 — The Constellation: the visual psyche map. PRACTITIONER-ONLY (the
+// app's most sensitive artifact); every AI node/edge carries evidence links to
+// the client's actual record items; language is experiential, never diagnostic.
+enum NodeKind {
+  WOUND
+  SHADOW
+  CORE_BELIEF
+  PROTECTION
+  PATTERN
+  BEHAVIOR
+  TRAIT
+  RESOURCE
+  GIFT
+}
+
+enum NodeSource {
+  AI_EXTRACTED
+  PRACTITIONER
+  SELF_REPORTED
+}
+
+enum NodeState {
+  ACTIVE
+  LOOSENING
+  INTEGRATED
+  ARCHIVED
+}
+
+model PsycheNode {
+  id                    String     @id @default(cuid())
+  clientId              String
+  kind                  NodeKind
+  label                 String // short, human ("Not enough as I am")
+  description           String? // one paragraph, plain language
+  source                NodeSource
+  state                 NodeState  @default(ACTIVE)
+  weight                Float      @default(1) // computed from evidence count/recency — drives size
+  evidenceRecordItemIds String[] // every node traces to the client's actual material
+  chartRefs             Json? // optional resonance: gate/key/center/stage this echoes
+  giftLabel             String? // the Gene Keys-style transmutation target ("Sovereign worth")
+  suggestedState        NodeState? // AI-suggested transition, Valentina-confirmed (§5)
+  suggestedReason       String?
+  selfX                 Float? // the client's own star placement (Your First Map)
+  selfY                 Float?
+  promptKey             String? // which First Map prompt birthed a self-reported node
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  @@index([clientId, kind, state])
+}
+
+model PsycheEdge {
+  id                    String   @id @default(cuid())
+  clientId              String
+  fromId                String // e.g. the wound
+  toId                  String // e.g. the protection it drives
+  relation              String // DRIVES | PROTECTS_FROM | EXPRESSES_AS | ROOTED_IN | REINFORCES | SOFTENED_BY
+  weight                Float    @default(1)
+  evidenceRecordItemIds String[]
+  createdAt             DateTime @default(now())
+
+  @@unique([fromId, toId, relation])
+  @@index([clientId])
+}
+
+// Metadata-only audit of extraction runs (C5-grade handling).
+model PsycheExtraction {
+  id            String    @id @default(cuid())
+  clientId      String
+  requestedById String
+  deep          Boolean   @default(false) // full-record re-read vs incremental
+  scopeFrom     DateTime?
+  scopeTo       DateTime
+  model         String
+  nodesCreated  Int       @default(0)
+  nodesUpdated  Int       @default(0)
+  edgesCreated  Int       @default(0)
+  referralFlag  Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  @@index([clientId, createdAt])
+}
+
+// Every curation action Valentina takes on a map, audited.
+model PsycheAudit {
+  id        String   @id @default(cuid())
+  clientId  String
+  actorId   String
+  action    String // ADD_NODE | EDIT_NODE | SET_STATE | MERGE | ARCHIVE | ADD_EDGE | DELETE_EDGE | TO_NOTE
+  detail    String
+  createdAt DateTime @default(now())
+
+  @@index([clientId, createdAt])
+}
+
+// C16.8 — the Pattern Library: the practice ontology. NO client references, by
+// design — the schema cannot hold client content, IDs, or text from records.
+model PatternArchetype {
+  id          String   @id @default(cuid())
+  kind        NodeKind
+  label       String   @unique // "Not-enoughness"
+  definition  String
+  clientCount Int      @default(0) // k-floored (k >= 5) before any use
+  updatedAt   DateTime @updatedAt
+}
+
+model PatternLink {
+  id          String @id @default(cuid())
+  fromId      String
+  toId        String
+  relation    String
+  strength    Float // aggregate, k-floored
+  clientCount Int
+
+  @@unique([fromId, toId, relation])
+}
+
 // AMENDMENT-03 — The Library, as Folders. Folders nest without limit; items are
 // POINTERS to existing C9 worksheets / C3 prompts / C6 courses (refId), or
 // storage-free docs (body) and links (url). Deleting moves to trash (deletedAt),
@@ -111,6 +228,7 @@ model ClientProfile {
   birthLng         Float?
   birthTz          String? // IANA tz for that place (historical rules applied by tz db)
   intakeCompletedAt DateTime?
+  firstMapCompletedAt DateTime? // C16.5 — "Your First Map" self-mapping exercise
   stage            String? // current program stage (C13); history in StageChange
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

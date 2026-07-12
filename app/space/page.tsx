@@ -22,7 +22,7 @@ export default async function Sanctuary() {
   const user = await requireClient();
   const firstName = (user.name?.trim().split(/\s+/)[0]) || "there";
 
-  const [pendingPrompt, pendingWorksheet, courses] = await Promise.all([
+  const [pendingPrompt, pendingWorksheet, courses, profile] = await Promise.all([
     prisma.assignment.findFirst({
       where: { clientId: user.id, status: "PENDING" },
       orderBy: [{ dueAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
@@ -34,6 +34,10 @@ export default async function Sanctuary() {
       include: { worksheet: { select: { title: true } } },
     }),
     listEnrolledCourses(user.id),
+    prisma.clientProfile.findUnique({
+      where: { userId: user.id },
+      select: { firstMapCompletedAt: true },
+    }),
   ]);
 
   // Focus line, by precedence: an unanswered item → a course to continue →
@@ -42,7 +46,14 @@ export default async function Sanctuary() {
   const nextCourse = inProgress ?? courses.find((c) => c.percent < 100);
 
   let focus: { text: string; href?: string; kind: "item" | "course" | "still" };
-  if (pendingWorksheet) {
+  if (!profile?.firstMapCompletedAt) {
+    // C16.5 — the First Map opens the work; it leads until it's made.
+    focus = {
+      text: "Begin with what you already know — Your First Map is waiting.",
+      href: "/space/first-map",
+      kind: "item",
+    };
+  } else if (pendingWorksheet) {
     focus = {
       text: `Valentina left you something — ${pendingWorksheet.worksheet.title}.`,
       href: `/space/worksheets/${pendingWorksheet.id}`,

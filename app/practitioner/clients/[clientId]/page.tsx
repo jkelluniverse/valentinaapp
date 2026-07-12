@@ -14,6 +14,9 @@ import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { formatMoney } from "@/lib/billing";
 import { markChargePaid, waiveCharge, remindCharge } from "../../billing/actions";
 import { clientNotes } from "@/lib/notes";
+import { loadGraph } from "@/lib/psyche";
+import { NOTES_SOURCE_KEY } from "@/lib/psyche-extract";
+import { MapWorkbench } from "@/components/psyche/MapWorkbench";
 import { JotBox } from "@/components/JotBox";
 import { NoteRow } from "@/components/NoteRow";
 import { MessageThread } from "@/components/MessageThread";
@@ -46,6 +49,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const TABS = [
   { key: "record", label: "Record" },
+  { key: "map", label: "Map" },
   { key: "margins", label: "Margins" },
   { key: "messages", label: "Messages" },
   { key: "prep", label: "Prep" },
@@ -392,6 +396,8 @@ export default async function Portrait({
           </section>
         )}
 
+        {tab === "map" && <MapTab clientId={client.id} />}
+
         {tab === "margins" && (
           <MarginsTab clientId={client.id} clientName={client.name || client.email} tag={searchParams.noteTag} />
         )}
@@ -642,6 +648,44 @@ async function MarginsTab({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// C16 — The Map tab: the constellation. PRACTITIONER-ONLY (no client route
+// renders this); every node's evidence opens the client's actual words.
+async function MapTab({ clientId }: { clientId: string }) {
+  const [graph, lastRun, notesSetting] = await Promise.all([
+    loadGraph(clientId),
+    prisma.psycheExtraction.findFirst({
+      where: { clientId },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true, referralFlag: true },
+    }),
+    prisma.practiceSetting.findUnique({ where: { key: NOTES_SOURCE_KEY } }),
+  ]);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {lastRun?.referralFlag && (
+        <div className="rounded-card border-2 border-rose bg-white p-5 shadow-card">
+          <p className="max-w-prose text-sm text-ink">
+            The last reading met something heavy and stopped instead of mapping — please review
+            their recent material directly and consider involving a licensed professional.
+          </p>
+        </div>
+      )}
+      <MapWorkbench
+        clientId={clientId}
+        nodes={graph.nodes}
+        edges={graph.edges}
+        lastRunAt={lastRun?.createdAt.toISOString() ?? null}
+        notesEnabled={notesSetting?.value === "true"}
+      />
+      <p className="max-w-prose text-[13px] text-whisper">
+        A working model of patterns — hypotheses with evidence, never a diagnosis. Larger bodies
+        carry more evidence; warmth is recency; a gold ring means they named it themselves.
+      </p>
     </div>
   );
 }

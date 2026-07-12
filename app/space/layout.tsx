@@ -43,6 +43,7 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
     { key: "messages", label: "Messages", href: "/space/messages", icon: "message", dot: unread > 0 },
   ];
   const youLinks: MoreLink[] = [
+    { href: "/space/first-map", label: "Your First Map", hint: "Your sky, in your words" },
     { href: "/space/journey", label: "Your journey", hint: "The record, over time" },
     { href: "/space/design", label: "Your design", hint: "Charts & First Map" },
     { href: "/space/design/reading", label: "Your reading", hint: "What it all means to you" },
