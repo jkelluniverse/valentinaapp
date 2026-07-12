@@ -12,9 +12,9 @@ export default async function PractitionerLayout({ children }: { children: React
   const first = user.name?.trim().split(/\s+/)[0] ?? "you";
   const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();
 
-  // A soft "•" presence when a client is waiting on a reply — never a count.
+  // Unread client messages, shown as a number on the Messages link.
   // Fail-soft: this runs on EVERY page, so a not-yet-migrated Message table
-  // must dim the dot, not take down the whole portal.
+  // must hide the badge, not take down the whole portal.
   const unread = await prisma.message
     .count({ where: { senderRole: "CLIENT", readAt: null, deletedAt: null } })
     .catch(() => 0);
@@ -46,7 +46,12 @@ export default async function PractitionerLayout({ children }: { children: React
               >
                 {n.label}
                 {n.href === "/practitioner/messages" && unread > 0 && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-wine" aria-label="waiting on you" />
+                  <span
+                    className="inline-flex h-4 min-w-4 items-center justify-center rounded-pill bg-wine px-1 text-[10px] font-semibold text-white"
+                    aria-label={`${unread} unread`}
+                  >
+                    {unread}
+                  </span>
                 )}
               </Link>
             ))}

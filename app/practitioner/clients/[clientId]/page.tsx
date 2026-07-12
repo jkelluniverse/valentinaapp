@@ -127,6 +127,22 @@ export default async function Portrait({
     listEnrolledCourses(client.id),
   ]);
 
+  // Unread messages from this client — shown as a number on the Messages tab.
+  // Zero while the tab is open (opening it marks them read).
+  const unreadMessages =
+    tab === "messages"
+      ? 0
+      : await prisma.message
+          .count({
+            where: {
+              conversation: { clientId: client.id },
+              senderRole: "CLIENT",
+              readAt: null,
+              deletedAt: null,
+            },
+          })
+          .catch(() => 0);
+
   const stageLabel = programStageLabel(profile?.stage);
   const since = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(client.createdAt);
   const groups = groupByDay(rec.timeline);
@@ -231,13 +247,18 @@ export default async function Portrait({
           <Link
             key={t.key}
             href={tabHref(t.key)}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+            className={`-mb-px inline-flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
               tab === t.key
                 ? "border-wine text-wine"
                 : "border-transparent text-slate hover:text-wine"
             }`}
           >
             {t.label}
+            {t.key === "messages" && unreadMessages > 0 && (
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-pill bg-wine px-1.5 text-[11px] font-semibold text-white">
+                {unreadMessages}
+              </span>
+            )}
           </Link>
         ))}
       </div>
@@ -374,7 +395,11 @@ export default async function Portrait({
         )}
 
         {tab === "messages" && (
-          <MessagesTab clientId={client.id} clientHasConsent={Boolean(client.consentAt)} />
+          <MessagesTab
+            clientId={client.id}
+            clientName={client.name || client.email}
+            clientHasConsent={Boolean(client.consentAt)}
+          />
         )}
 
         {tab === "billing" && (
@@ -624,9 +649,11 @@ async function MarginsTab({
 // with a gentle acknowledge; the thread itself is the same calm exchange.
 async function MessagesTab({
   clientId,
+  clientName,
   clientHasConsent,
 }: {
   clientId: string;
+  clientName: string;
   clientHasConsent: boolean;
 }) {
   const convo = await getOrCreateConversation(clientId);
@@ -686,6 +713,7 @@ async function MessagesTab({
 
       <MessageThread
         viewerRole="PRACTITIONER"
+        counterpartName={clientName.trim().split(/\s+/)[0] || clientName}
         initial={initial}
         refGroups={refGroups}
         paused={convo.status === "PAUSED"}

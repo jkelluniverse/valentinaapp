@@ -21,6 +21,7 @@ function fmtDay(iso: string) {
 
 export function MessageThread({
   viewerRole,
+  counterpartName,
   initial,
   refGroups,
   paused,
@@ -31,6 +32,7 @@ export function MessageThread({
   poll,
 }: {
   viewerRole: "CLIENT" | "PRACTITIONER";
+  counterpartName: string;
   initial: MessageView[];
   refGroups: RefGroup[];
   paused: boolean;
@@ -129,13 +131,13 @@ export function MessageThread({
         </div>
       )}
 
-      {/* The thread */}
-      <div className="flex max-h-[62vh] flex-col gap-3 overflow-y-auto rounded-card border border-line bg-canvas p-4 sm:p-6">
+      {/* The thread — a clearly held surface, set apart from the page. */}
+      <div className="flex max-h-[62vh] flex-col gap-3 overflow-y-auto rounded-card border border-mocha/40 bg-surface p-4 shadow-card sm:p-6">
         {messages.length === 0 ? (
           <p className="py-10 text-center text-sm text-whisper">
             {viewerRole === "CLIENT"
-              ? "The start of your open line with Valentina. Say anything — a question, how something landed."
-              : "No messages yet."}
+              ? `The start of your open line with ${counterpartName}. Say anything — a question, how something landed.`
+              : `Nothing here yet — write ${counterpartName} a first note below.`}
           </p>
         ) : (
           messages.map((m, i) => {
@@ -152,7 +154,7 @@ export function MessageThread({
                     className={`flex max-w-[80%] flex-col gap-2 rounded-2xl px-4 py-3 shadow-soft ${
                       m.role === "PRACTITIONER"
                         ? "bg-blush-deep"
-                        : "bg-surface border border-line"
+                        : "bg-canvas border border-line"
                     }`}
                   >
                     {m.body && (
@@ -242,7 +244,7 @@ export function MessageThread({
             </div>
           )}
 
-          <div className="flex items-end gap-2 rounded-card border border-line bg-surface p-2 shadow-soft">
+          <div className="flex items-end gap-2 rounded-card border border-mocha/40 bg-surface p-2 shadow-card">
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -253,7 +255,7 @@ export function MessageThread({
                 }
               }}
               rows={2}
-              placeholder="Write to Valentina…"
+              placeholder={`Write to ${counterpartName}…`}
               className="max-h-40 min-h-[2.5rem] flex-1 resize-none bg-transparent px-2 py-2 text-ink outline-none placeholder:text-whisper"
             />
             <button
@@ -285,21 +287,29 @@ export function MessageThread({
               />
               just between us
             </label>
-            <span className="ml-auto">{awayNote || responseRhythm}</span>
+            <span className="ml-auto">
+              {viewerRole === "CLIENT"
+                ? awayNote || responseRhythm
+                : awayNote
+                  ? `Your away note is up: “${awayNote}”`
+                  : ""}
+            </span>
           </div>
 
-          <details className="px-1">
-            <summary className="cursor-pointer list-none text-[13px] text-whisper underline-offset-4 hover:text-wine hover:underline">
-              A space for reflection between sessions — not for emergencies. Need help now?
-            </summary>
-            <ul className="mt-2 flex flex-col gap-1 pl-1">
-              {crisisResources.map((r) => (
-                <li key={r.label} className="text-[13px] text-ink">
-                  <span className="font-semibold text-wine">{r.label}</span> — {r.detail}
-                </li>
-              ))}
-            </ul>
-          </details>
+          {viewerRole === "CLIENT" && (
+            <details className="px-1">
+              <summary className="cursor-pointer list-none text-[13px] text-whisper underline-offset-4 hover:text-wine hover:underline">
+                A space for reflection between sessions — not for emergencies. Need help now?
+              </summary>
+              <ul className="mt-2 flex flex-col gap-1 pl-1">
+                {crisisResources.map((r) => (
+                  <li key={r.label} className="text-[13px] text-ink">
+                    <span className="font-semibold text-wine">{r.label}</span> — {r.detail}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
       )}
     </div>

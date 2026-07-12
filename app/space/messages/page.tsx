@@ -54,6 +54,7 @@ export default async function MessagesPage() {
 
       <MessageThread
         viewerRole="CLIENT"
+        counterpartName="Valentina"
         initial={initial}
         refGroups={refGroups}
         paused={convo.status === "PAUSED"}
