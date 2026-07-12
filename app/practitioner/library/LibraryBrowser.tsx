@@ -253,11 +253,11 @@ export function LibraryBrowser({
                 onDrop={() => onDropInto(f.id)}
                 className={
                   grid
-                    ? "group relative flex flex-col gap-2 rounded-card border border-line bg-white p-4 shadow-soft transition-shadow hover:shadow-card"
+                    ? "group relative flex flex-col gap-2 overflow-hidden rounded-card border border-line bg-white p-4 pr-10 shadow-soft transition-shadow hover:shadow-card"
                     : "group relative flex items-center gap-3 px-4 py-3"
                 }
               >
-                <Link href={`/practitioner/library?folder=${f.id}`} className="flex flex-1 items-center gap-3">
+                <Link href={`/practitioner/library?folder=${f.id}`} className="flex min-w-0 flex-1 items-center gap-3">
                   <FolderGlyph />
                   {isRenaming ? (
                     <RenameInput
@@ -267,7 +267,7 @@ export function LibraryBrowser({
                       onCancel={() => setRenaming(null)}
                     />
                   ) : (
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium text-ink-strong">{f.name}</span>
                       <span className="text-[13px] text-whisper">
                         {f.childCount === 0 ? "empty" : f.childCount === 1 ? "1 item" : `${f.childCount} items`}
@@ -291,7 +291,7 @@ export function LibraryBrowser({
             const key = `item:${it.id}`;
             const isRenaming = renaming === key;
             const body = (
-              <span className="flex flex-1 items-center gap-3">
+              <span className="flex min-w-0 flex-1 items-center gap-3">
                 <ItemGlyph kind={it.kind} />
                 {isRenaming ? (
                   <RenameInput
@@ -301,7 +301,7 @@ export function LibraryBrowser({
                     onCancel={() => setRenaming(null)}
                   />
                 ) : (
-                  <span className="min-w-0">
+                  <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium text-ink-strong">{it.name}</span>
                     <span className="text-[13px] text-whisper">{KIND_LABEL[it.kind] ?? it.kind}</span>
                   </span>
@@ -316,24 +316,24 @@ export function LibraryBrowser({
                 onDragEnd={() => setDragId(null)}
                 className={
                   grid
-                    ? "group relative flex flex-col gap-2 rounded-card border border-line bg-white p-4 shadow-soft transition-shadow hover:shadow-card"
+                    ? "group relative flex flex-col gap-2 overflow-hidden rounded-card border border-line bg-white p-4 pr-10 shadow-soft transition-shadow hover:shadow-card"
                     : "group relative flex items-center gap-3 px-4 py-3"
                 }
               >
                 {isRenaming || !it.href ? (
                   it.kind === "DOC" && !isRenaming ? (
-                    <button onClick={() => setDocEditor({ id: it.id, name: it.name, body: it.body ?? "" })} className="flex flex-1 items-center gap-3 text-left">
+                    <button onClick={() => setDocEditor({ id: it.id, name: it.name, body: it.body ?? "" })} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                       {body}
                     </button>
                   ) : (
                     body
                   )
                 ) : it.external ? (
-                  <a href={it.href} target="_blank" rel="noopener noreferrer" className="flex flex-1 items-center gap-3">
+                  <a href={it.href} target="_blank" rel="noopener noreferrer" className="flex min-w-0 flex-1 items-center gap-3">
                     {body}
                   </a>
                 ) : (
-                  <Link href={it.href} className="flex flex-1 items-center gap-3">
+                  <Link href={it.href} className="flex min-w-0 flex-1 items-center gap-3">
                     {body}
                   </Link>
                 )}
