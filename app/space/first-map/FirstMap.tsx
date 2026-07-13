@@ -44,11 +44,13 @@ const PROMPTS: { key: string; q: string; hint: string }[] = [
 export function FirstMap({
   initialStars,
   initialConnections = [],
+  initialAiEdges = [],
   completed,
   crisisResources,
 }: {
   initialStars: Star[];
   initialConnections?: Conn[];
+  initialAiEdges?: Conn[];
   completed: boolean;
   crisisResources: { label: string; detail: string }[];
 }) {
@@ -162,9 +164,17 @@ export function FirstMap({
       })),
     [stars],
   );
+  // Both their own gold threads AND the AI's inferred links between the stars
+  // they named — the same connections the practitioner sees, drawn as lines.
   const renderEdges: RenderEdge[] = useMemo(
-    () => conns.map((c) => ({ from: c.from, to: c.to, weight: 2 })),
-    [conns],
+    () => [
+      ...conns.map((c) => ({ from: c.from, to: c.to, weight: 2.4 })),
+      ...initialAiEdges
+        .filter((e) => starById(e.from) && starById(e.to))
+        .map((e) => ({ from: e.from, to: e.to, weight: 1.4 })),
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [conns, initialAiEdges, stars],
   );
 
   function onStarSelect(id: string | null) {
@@ -240,6 +250,12 @@ export function FirstMap({
             );
           })}
         </div>
+      )}
+      {initialAiEdges.length > 0 && (
+        <p className="text-[12px] text-whisper">
+          The fainter threads are links noticed between the stars you named — a place to wonder,
+          not a conclusion.
+        </p>
       )}
     </div>
   );

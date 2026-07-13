@@ -27,13 +27,18 @@ export default async function FirstMapPage() {
     }),
   ]);
   const starIds = new Set(stars.map((s) => s.id));
-  // Their own hand-drawn connections only.
-  const connections = (
+  // Every edge among the client's OWN stars — their hand-drawn connections AND
+  // the AI-inferred links between the pieces THEY named. Edges that touch an
+  // AI-only node (a wound/shadow they never named) reference an id not in
+  // starIds and are dropped here, so the practitioner-only nodes never leak.
+  const edgesAmongStars = (
     await prisma.psycheEdge.findMany({
-      where: { clientId: user.id, relation: "CONNECTED" },
-      select: { id: true, fromId: true, toId: true },
+      where: { clientId: user.id },
+      select: { id: true, fromId: true, toId: true, relation: true },
     })
   ).filter((e) => starIds.has(e.fromId) && starIds.has(e.toId));
+  const connections = edgesAmongStars.filter((e) => e.relation === "CONNECTED");
+  const aiEdges = edgesAmongStars.filter((e) => e.relation !== "CONNECTED");
 
   const done = Boolean(profile?.firstMapCompletedAt);
 
@@ -62,6 +67,7 @@ export default async function FirstMapPage() {
           y: s.selfY ?? 0.5,
         }))}
         initialConnections={connections.map((c) => ({ id: c.id, from: c.fromId, to: c.toId }))}
+        initialAiEdges={aiEdges.map((c) => ({ id: c.id, from: c.fromId, to: c.toId }))}
         completed={done}
         crisisResources={CRISIS_RESOURCES}
       />
