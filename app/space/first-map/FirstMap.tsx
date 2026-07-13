@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { addStar, placeStar, finishFirstMap, connectStars, disconnectStars } from "./actions";
+import { ConstellationMap, type RenderNode, type RenderEdge } from "@/components/psyche/ConstellationMap";
+import { addStar, finishFirstMap, connectStars, disconnectStars } from "./actions";
 
 // C16.5 + C17.5 — the client's own living self-map. One warm prompt at a time at
 // intake (the Reflection Portal grammar), then a sky they keep: place stars,
@@ -40,14 +41,6 @@ const PROMPTS: { key: string; q: string; hint: string }[] = [
   },
 ];
 
-const KIND_TINT: Record<string, string> = {
-  PATTERN: "#946E80",
-  PROTECTION: "#B79175",
-  CORE_BELIEF: "#B24A5C",
-  WOUND: "#801634",
-  RESOURCE: "#D4A860",
-};
-
 export function FirstMap({
   initialStars,
   initialConnections = [],
@@ -73,8 +66,6 @@ export function FirstMap({
   const [addingMore, setAddingMore] = useState<string | null>(null);
   const [mode, setMode] = useState<"arrange" | "connect">("arrange");
   const [linkFrom, setLinkFrom] = useState<string | null>(null);
-  const skyRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<string | null>(null);
 
   const prompt = PROMPTS[step];
   const starById = (id: string) => stars.find((s) => s.id === id);
@@ -151,98 +142,54 @@ export function FirstMap({
     }
   }
 
-  // ---- the sky: drag stars (arrange) or tap two to connect (connect) ----
-  function starPointerDown(id: string) {
-    if (mode === "connect") return; // taps handled on click in connect mode
-    dragRef.current = id;
-  }
-  function skyPointerMove(e: React.PointerEvent) {
-    const id = dragRef.current;
-    const sky = skyRef.current;
-    if (!id || !sky) return;
-    const rect = sky.getBoundingClientRect();
-    const x = Math.min(0.97, Math.max(0.03, (e.clientX - rect.left) / rect.width));
-    const y = Math.min(0.94, Math.max(0.04, (e.clientY - rect.top) / rect.height));
-    setStars((s) => s.map((st) => (st.id === id ? { ...st, x, y } : st)));
-  }
-  async function skyPointerUp() {
-    const id = dragRef.current;
-    dragRef.current = null;
-    if (!id) return;
-    const st = stars.find((s) => s.id === id);
-    if (st) void placeStar(st.id, st.x, st.y);
-  }
-
-  const sky = (
-    <div
-      ref={skyRef}
-      onPointerMove={skyPointerMove}
-      onPointerUp={skyPointerUp}
-      className="relative h-[46vh] min-h-[320px] w-full touch-none overflow-hidden rounded-card border border-white/10"
-      style={{ background: "radial-gradient(ellipse at 50% 35%, #241820 0%, #191114 72%)" }}
-    >
-      {/* Their own connections — gold threads between stars. */}
-      <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-        {conns.map((c) => {
-          const a = starById(c.from);
-          const b = starById(c.to);
-          if (!a || !b) return null;
-          return (
-            <line
-              key={c.id}
-              x1={a.x * 100}
-              y1={a.y * 100}
-              x2={b.x * 100}
-              y2={b.y * 100}
-              stroke="rgba(232,198,135,0.5)"
-              strokeWidth={0.4}
-              vectorEffect="non-scaling-stroke"
-            />
-          );
-        })}
-      </svg>
-
-      {stars.map((st) => {
-        const selected = linkFrom === st.id;
-        return (
-          <button
-            key={st.id}
-            onPointerDown={(e) => {
-              if (mode === "arrange") {
-                e.preventDefault();
-                starPointerDown(st.id);
-              }
-            }}
-            onClick={() => {
-              if (mode === "connect") void tapStar(st.id);
-            }}
-            className={`absolute -translate-x-1/2 -translate-y-1/2 touch-none select-none ${mode === "connect" ? "cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}
-            style={{ left: `${st.x * 100}%`, top: `${st.y * 100}%` }}
-          >
-            <span
-              aria-hidden
-              className="block text-xl leading-none transition-transform"
-              style={{
-                color: KIND_TINT[st.kind] ?? "#E8C687",
-                textShadow: selected ? "0 0 18px rgba(232,198,135,1)" : "0 0 12px rgba(232,198,135,0.65)",
-                transform: selected ? "scale(1.4)" : undefined,
-              }}
-            >
-              ✦
-            </span>
-            <span className="mt-1 block max-w-[9rem] truncate text-center text-[11px] text-white/75">
-              {st.label}
-            </span>
-          </button>
-        );
-      })}
-      {stars.length === 0 && (
-        <p className="absolute inset-0 flex items-center justify-center px-8 text-center text-sm text-white/50">
-          Your stars will appear here as you name them.
-        </p>
-      )}
-    </div>
+  // ---- the sky: the same living constellation engine as the practitioner map.
+  // Stars drift and can be dragged; connections pull linked stars together into
+  // their own clusters; tap-to-connect adds their own gold threads. ----
+  const renderNodes: RenderNode[] = useMemo(
+    () =>
+      stars.map((s) => ({
+        id: s.id,
+        kind: s.kind || "PATTERN",
+        label: s.label,
+        state: "ACTIVE",
+        source: "SELF_REPORTED", // all their own — every star wears the gold ring
+        weight: 1.6,
+        glow: 0.72,
+        hasSuggestion: false,
+        selfX: s.x,
+        selfY: s.y,
+        createdAt: Date.now(),
+      })),
+    [stars],
   );
+  const renderEdges: RenderEdge[] = useMemo(
+    () => conns.map((c) => ({ from: c.from, to: c.to, weight: 2 })),
+    [conns],
+  );
+
+  function onStarSelect(id: string | null) {
+    if (mode === "connect" && id) void tapStar(id);
+  }
+
+  const sky =
+    stars.length === 0 ? (
+      <div
+        className="flex h-[46vh] min-h-[320px] w-full items-center justify-center overflow-hidden rounded-card border border-white/10 px-8 text-center text-sm text-white/50"
+        style={{ background: "radial-gradient(ellipse at 50% 35%, #241820 0%, #191114 72%)" }}
+      >
+        Your stars will appear here as you name them.
+      </div>
+    ) : (
+      <ConstellationMap
+        nodes={renderNodes}
+        edges={renderEdges}
+        visibleIds={null}
+        selectedId={linkFrom}
+        focusId={null}
+        cutoff={null}
+        onSelect={onStarSelect}
+      />
+    );
 
   // The arrange/connect toolbar + the list of connections, shown once there's a
   // sky to work with.
@@ -271,8 +218,8 @@ export function FirstMap({
           {mode === "connect"
             ? linkFrom
               ? "Now tap the star it connects to."
-              : "Tap two stars that feel connected."
-            : "Drag stars — the ones that feel connected, close together."}
+              : "Tap two stars that feel connected — a gold thread will draw between them."
+            : "Drag any star to move it; connected ones drift together. Pinch or scroll to zoom."}
         </p>
       </div>
       {conns.length > 0 && (
