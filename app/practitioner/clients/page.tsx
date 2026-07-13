@@ -2,7 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { getPracticeOverview, type ClientRow } from "@/lib/attention";
-import { SignatureRule, Eyebrow, StatusPill } from "@/components/brand";
+import { StatusPill } from "@/components/brand";
+import { PageHeader } from "@/components/PageHeader";
 import { formatDay } from "@/components/entries";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { InviteClientForm } from "./InviteClientForm";
@@ -60,12 +61,8 @@ export default async function ClientsPage({
     .filter((r) => (stageFilter ? stageOf.get(r.id) === stageFilter : true));
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2">
-        <Eyebrow>Your practice</Eyebrow>
-        <h1 className="text-[2.25rem] font-semibold">Your clients</h1>
-        <SignatureRule />
-      </div>
+    <div className="flex flex-col gap-4 md:gap-8">
+      <PageHeader title="Your clients" eyebrow="Your practice" />
 
       <InviteClientForm />
 
@@ -108,11 +105,11 @@ export default async function ClientsPage({
           </p>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="-mx-4 flex flex-col divide-y divide-line md:mx-0">
           {clients.map((row) => (
             <li
               key={row.id}
-              className="flex flex-col gap-3 rounded-lg border border-line bg-white p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between"
+              className="flex min-h-[52px] flex-col justify-center gap-1 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between md:px-2"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -154,7 +151,7 @@ export default async function ClientsPage({
             invites.map((row) => (
               <li
                 key={`invite-${row.id}`}
-                className="flex flex-col gap-3 rounded-lg border border-line bg-white p-5 shadow-soft sm:flex-row sm:items-center sm:justify-between"
+                className="flex min-h-[52px] flex-col justify-center gap-1 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between md:px-2"
               >
                 <div className="min-w-0">
                   <p className="truncate font-medium text-ink-strong">{row.name || "Unnamed"}</p>

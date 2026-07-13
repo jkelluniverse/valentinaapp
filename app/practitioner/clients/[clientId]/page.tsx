@@ -19,23 +19,7 @@ import { NOTES_SOURCE_KEY } from "@/lib/psyche-extract";
 import { MapWorkbench } from "@/components/psyche/MapWorkbench";
 import { JotBox } from "@/components/JotBox";
 import { NoteRow } from "@/components/NoteRow";
-import { MessageThread } from "@/components/MessageThread";
-import {
-  getOrCreateConversation,
-  listMessageViews,
-  markRead,
-  getAwayNote,
-  RESPONSE_RHYTHM,
-} from "@/lib/messaging";
-import { referenceableFor } from "@/lib/message-refs";
-import { CRISIS_RESOURCES } from "@/lib/message-safety";
 import { createJot } from "../../notes/actions";
-import {
-  sendPractitionerMessage,
-  pollPractitioner,
-  pauseThread,
-  acknowledgeFlag,
-} from "../../messages/actions";
 import { AssignForm } from "./AssignForm";
 import { assignPrompt, assignWorksheet, cancelForClient, setClientStage } from "./actions";
 
@@ -163,15 +147,15 @@ export default async function Portrait({
         ← clients
       </Link>
 
-      {/* Header — the Portrait settles: name, then the rule, then rollups. */}
-      <div className="flex flex-col gap-3">
+      {/* Header — minimal (AMENDMENT-04 §3): name + stage chip, one line, one verb. */}
+      <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3 gentle-rise">
-          <h1 className="font-headline text-[2.25rem] font-medium text-ink-strong">
+          <h1 className="font-headline text-[1.375rem] font-medium text-ink-strong md:text-[2.25rem]">
             {client.name || client.email}
           </h1>
           <details className="relative">
             <summary className="cursor-pointer list-none rounded-pill border border-mocha px-3 py-1 text-xs font-medium text-mocha transition-colors hover:bg-blush">
-              {stageLabel ?? "Set stage"}
+              {stageLabel ?? "Set stage"} ▾
             </summary>
             <form
               action={setClientStage.bind(null, client.id)}
@@ -204,20 +188,12 @@ export default async function Portrait({
             </form>
           </details>
         </div>
-        <p className="gentle-rise text-[15px] text-slate">
+        <p className="gentle-rise text-[12px] text-whisper md:text-[15px] md:text-slate">
           with you since {since} · last wrote {relDay(rec.cadence.lastActive)}
           {!clientConsent && " · no consent on file"}
         </p>
-        <div className="h-px w-16 origin-left bg-mocha rule-draw" />
+        <div className="hidden h-px w-16 origin-left bg-mocha rule-draw md:block" />
       </div>
-
-      {/* Rollups */}
-      {rec.counts.total > 0 && (
-        <div className="flex flex-col gap-4 gentle-rise" style={{ animationDelay: "200ms" }}>
-          <ThemeDots themes={rec.themes} clientId={client.id} />
-          <MoodRiver trend={rec.moodTrend} />
-        </div>
-      )}
 
       {/* Banners */}
       {searchParams.sent && <Banner>Sent — it&apos;s waiting in their space.</Banner>}
@@ -226,22 +202,35 @@ export default async function Portrait({
       {searchParams.staged && <Banner>Stage updated — it&apos;s on their journey too.</Banner>}
       {searchParams.error === "prompt" && <Banner>That library item isn&apos;t available.</Banner>}
 
-      {/* The two verbs */}
-      <div className="flex flex-wrap items-center gap-3 gentle-rise" style={{ animationDelay: "280ms" }}>
+      {/* ONE verb + a quiet ⋯ menu (Book next moved there, AMENDMENT-04 §3). */}
+      <div className="flex items-center gap-2 gentle-rise" style={{ animationDelay: "280ms" }}>
         <Link
           href={`${base}/prep`}
-          className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark"
+          className="flex min-h-[40px] flex-1 items-center justify-center rounded-lg bg-wine px-5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark sm:flex-none"
         >
           Prepare for session
         </Link>
-        <Link
-          href={`${base}/book`}
-          className="rounded-lg border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush"
-        >
-          Book next session
-        </Link>
+        <details className="relative">
+          <summary
+            aria-label="More actions"
+            className="flex min-h-[40px] cursor-pointer list-none items-center rounded-lg border border-line px-3 text-lg leading-none text-mocha transition-colors hover:bg-blush"
+          >
+            ⋯
+          </summary>
+          <div className="absolute right-0 top-11 z-10 flex w-56 flex-col rounded-lg border border-line bg-surface py-1 shadow-card">
+            <Link href={`${base}/book`} className="px-4 py-2.5 text-sm text-ink hover:bg-blush hover:text-wine">
+              Book next session
+            </Link>
+            <Link href={`/practitioner/messages/${client.id}`} className="px-4 py-2.5 text-sm text-ink hover:bg-blush hover:text-wine">
+              Open conversation
+            </Link>
+            <Link href={`${base}/design`} className="px-4 py-2.5 text-sm text-ink hover:bg-blush hover:text-wine">
+              Chart &amp; integrative map
+            </Link>
+          </div>
+        </details>
         {nextSession && schedConfig && (
-          <span className="text-[13px] text-whisper">
+          <span className="hidden text-[13px] text-whisper sm:inline">
             next · {formatInZone(nextSession.startAt, schedConfig.timezone, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
           </span>
         )}
@@ -272,7 +261,14 @@ export default async function Portrait({
 
       <div className="gentle-rise" style={{ animationDelay: "400ms" }}>
         {tab === "record" && (
-          <section className="flex flex-col gap-6">
+          <section className="flex flex-col gap-4 md:gap-6">
+            {/* Theme + mood strip lives where it's used as a filter (§3). */}
+            {rec.counts.total > 0 && (
+              <div className="flex flex-col gap-3">
+                <ThemeDots themes={rec.themes} clientId={client.id} />
+                <MoodRiver trend={rec.moodTrend} />
+              </div>
+            )}
             {themeFilter && (
               <p className="flex items-center gap-3 text-sm text-slate">
                 Filtered to <span className="font-medium text-wine">{themeFilter}</span>
@@ -402,13 +398,7 @@ export default async function Portrait({
           <MarginsTab clientId={client.id} clientName={client.name || client.email} tag={searchParams.noteTag} />
         )}
 
-        {tab === "messages" && (
-          <MessagesTab
-            clientId={client.id}
-            clientName={client.name || client.email}
-            clientHasConsent={clientConsent}
-          />
-        )}
+        {tab === "messages" && <MessagesShortcut clientId={client.id} />}
 
         {tab === "billing" && (
           <BillingTab clientId={client.id} back={tabHref("billing")} />
@@ -690,86 +680,36 @@ async function MapTab({ clientId }: { clientId: string }) {
   );
 }
 
-// C15 — the Messages tab on the Portrait. The one thread with this client lives
-// inside their file, so context is a glance away. Crisis flags surface first,
-// with a gentle acknowledge; the thread itself is the same calm exchange.
-async function MessagesTab({
-  clientId,
-  clientName,
-  clientHasConsent,
-}: {
-  clientId: string;
-  clientName: string;
-  clientHasConsent: boolean;
-}) {
-  const convo = await getOrCreateConversation(clientId);
-  if (!convo) {
-    return <p className="text-ink">Messaging isn&apos;t available yet.</p>;
-  }
-
-  await markRead(convo.id, "PRACTITIONER");
-  const [initial, refGroups, awayNote, flagged] = await Promise.all([
-    listMessageViews(convo.id, { role: "PRACTITIONER", clientId }),
-    referenceableFor({ role: "PRACTITIONER", clientId }),
-    getAwayNote(),
-    prisma.message.findMany({
-      where: { conversationId: convo.id, safetyFlag: true, safetyCleared: false, deletedAt: null },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, createdAt: true },
-    }),
-  ]);
+// AMENDMENT-04 §2c — the Portrait's Messages tab is a shortcut, not a second
+// implementation: one hairline row deep-linking to the one thread.
+async function MessagesShortcut({ clientId }: { clientId: string }) {
+  const convo = await prisma.conversation.findUnique({
+    where: { clientId },
+    include: {
+      messages: { where: { deletedAt: null }, orderBy: { createdAt: "desc" }, take: 1 },
+      _count: {
+        select: { messages: { where: { senderRole: "CLIENT", readAt: null, deletedAt: null } } },
+      },
+    },
+  });
+  const last = convo?.messages[0] ?? null;
+  const unread = convo?._count.messages ?? 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Crisis flags — worded, acknowledgeable, never a red badge. */}
-      {flagged.length > 0 && (
-        <div className="flex flex-col gap-3 rounded-card border-2 border-rose bg-white p-5 shadow-card">
-          <p className="text-eyebrow font-semibold uppercase text-rose">Reached out in distress</p>
-          <p className="max-w-prose text-sm text-ink">
-            They wrote something heavy {relDay(flagged[0].createdAt)} and were shown crisis
-            resources on the spot. When you&apos;ve checked in, you can set this down.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {flagged.map((f) => (
-              <form key={f.id} action={acknowledgeFlag.bind(null, clientId, f.id)}>
-                <button className="rounded-md border border-rose px-4 py-1.5 text-sm font-medium text-rose transition-colors hover:bg-rose hover:text-white">
-                  I&apos;ve checked in
-                </button>
-              </form>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Pause / reopen — a held boundary she controls. */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-whisper">
-          {convo.status === "PAUSED"
-            ? "This line is paused — nothing new can be sent until you reopen it."
-            : clientHasConsent
-              ? "Their messages join the record unless marked just between us."
-              : "No consent on file — their messages stay just between you two."}
-        </p>
-        <form action={pauseThread.bind(null, clientId, convo.status !== "PAUSED")}>
-          <button className="text-[13px] text-slate underline-offset-4 hover:text-wine hover:underline">
-            {convo.status === "PAUSED" ? "Reopen this line" : "Pause this line"}
-          </button>
-        </form>
-      </div>
-
-      <MessageThread
-        viewerRole="PRACTITIONER"
-        counterpartName={clientName.trim().split(/\s+/)[0] || clientName}
-        initial={initial}
-        refGroups={refGroups}
-        paused={convo.status === "PAUSED"}
-        awayNote={awayNote}
-        responseRhythm={RESPONSE_RHYTHM}
-        crisisResources={CRISIS_RESOURCES}
-        send={sendPractitionerMessage.bind(null, clientId)}
-        poll={pollPractitioner.bind(null, clientId)}
-      />
-    </div>
+    <Link
+      href={`/practitioner/messages/${clientId}`}
+      className="-mx-4 flex min-h-[52px] items-center gap-3 border-y border-line px-4 transition-colors hover:bg-blush/30 md:mx-0 md:rounded-lg md:border"
+    >
+      {unread > 0 && <span className="h-2 w-2 shrink-0 rounded-full bg-wine" aria-label="unread" />}
+      <span className="min-w-0 flex-1 text-[15px] text-ink">
+        Conversation
+        <span className="text-whisper">
+          {" "}
+          · {last ? `last message ${relDay(last.createdAt)}` : "nothing yet — say hello"}
+        </span>
+      </span>
+      <span className="text-lg text-mocha">›</span>
+    </Link>
   );
 }
 

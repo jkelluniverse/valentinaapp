@@ -48,8 +48,8 @@ const config: Config = {
       borderRadius: {
         sm: "8px",
         md: "12px",
-        lg: "16px",
-        card: "24px",
+        lg: "var(--r-lg)", // 16px desktop · 12px mobile (AMENDMENT-04)
+        card: "var(--r-card)", // 24px desktop · 16px mobile
         pill: "9999px",
       },
       boxShadow: {

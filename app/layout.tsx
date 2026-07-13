@@ -40,6 +40,9 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  // AMENDMENT-04 §2b — the keyboard resizes the layout viewport, so a pinned
+  // composer rides directly above it.
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#FEF4EA" },
     { media: "(prefers-color-scheme: dark)", color: "#191114" },

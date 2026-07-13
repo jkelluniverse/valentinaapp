@@ -52,7 +52,7 @@ export function TagChips({ tags }: { tags: string[] }) {
     <div className="flex flex-wrap gap-1.5">
       {tags.map((tag) => (
         <span key={tag} className="rounded-full bg-cream px-2 py-0.5 text-xs text-slate">
-          {tag}
+          {tag.replace(/_/g, " ")}
         </span>
       ))}
     </div>

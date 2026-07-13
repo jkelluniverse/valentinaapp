@@ -1,6 +1,5 @@
 import { requireClient } from "@/lib/auth-guards";
-import { SignatureRule, Eyebrow } from "@/components/brand";
-import { MessageThread } from "@/components/MessageThread";
+import { ThreadScreen } from "@/components/ThreadScreen";
 import {
   getOrCreateConversation,
   listMessageViews,
@@ -14,20 +13,15 @@ import { sendClientMessage, pollClient } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-// C15 — the client's open line to Valentina. One thread, calm and unhurried.
+// C15 + AMENDMENT-04 — the client's one thread, as a fixed native screen:
+// header · scrolling messages · pinned composer. The away note / response
+// rhythm shows as a quiet system line at the top of the thread.
 export default async function MessagesPage() {
   const user = await requireClient();
   const convo = await getOrCreateConversation(user.id);
 
   if (!convo) {
-    return (
-      <div className="flex flex-col gap-2">
-        <Eyebrow>Your line</Eyebrow>
-        <h1 className="text-[2.25rem] font-semibold">Messages</h1>
-        <SignatureRule />
-        <p className="mt-2 text-ink">Messaging isn&apos;t set up yet.</p>
-      </div>
-    );
+    return <p className="py-10 text-center text-ink">Messaging isn&apos;t set up yet.</p>;
   }
 
   await markRead(convo.id, "CLIENT");
@@ -38,31 +32,18 @@ export default async function MessagesPage() {
   ]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <Eyebrow>Your line</Eyebrow>
-        <h1 className="text-[2.125rem] font-medium text-ink-strong font-headline">
-          Messages with Valentina
-        </h1>
-        <SignatureRule />
-        <p className="max-w-prose text-sm text-slate">
-          A quiet, held line between your sessions. Share what&apos;s on your mind, ask a question,
-          or bring something up.
-        </p>
-      </div>
-
-      <MessageThread
-        viewerRole="CLIENT"
-        counterpartName="Valentina"
-        initial={initial}
-        refGroups={refGroups}
-        paused={convo.status === "PAUSED"}
-        awayNote={awayNote}
-        responseRhythm={RESPONSE_RHYTHM}
-        crisisResources={CRISIS_RESOURCES}
-        send={sendClientMessage.bind(null, convo.id)}
-        poll={pollClient.bind(null, convo.id)}
-      />
-    </div>
+    <ThreadScreen
+      viewerRole="CLIENT"
+      counterpartName="Valentina"
+      counterpartInitial="V"
+      backHref="/space"
+      initial={initial}
+      refGroups={refGroups}
+      paused={convo.status === "PAUSED"}
+      topNote={awayNote || RESPONSE_RHYTHM}
+      crisisResources={CRISIS_RESOURCES}
+      send={sendClientMessage.bind(null, convo.id)}
+      poll={pollClient.bind(null, convo.id)}
+    />
   );
 }

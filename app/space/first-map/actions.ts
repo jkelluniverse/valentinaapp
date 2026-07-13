@@ -59,7 +59,7 @@ export async function addStar(
     occurredAt: new Date(),
     title: crisis ? "First Map — reached out with something heavy" : "First Map",
     summary: snapshot(body),
-    tags: ["first-map", kind.toLowerCase()],
+    tags: ["first-map", kind.toLowerCase().replace(/_/g, " ")],
     sourceType: "PsycheNode",
     sourceId: node.id,
   });

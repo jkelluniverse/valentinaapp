@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
-import { SignatureRule, Eyebrow } from "@/components/brand";
+import { PageHeader } from "@/components/PageHeader";
 import { ledgerSummary, formatMoney } from "@/lib/billing";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { squareConfigured } from "@/lib/square";
@@ -95,15 +95,12 @@ export default async function BillingPage({
       : d?.toISOString().slice(0, 10) ?? "—";
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2">
-        <Eyebrow>Your practice</Eyebrow>
-        <h1 className="text-[2.25rem] font-semibold">Billing</h1>
-        <SignatureRule />
-        <p className="max-w-prose text-ink">
-          Your ledger — Square remains the money&apos;s home; this mirrors it for practice context.
-        </p>
-      </div>
+    <div className="flex flex-col gap-4 md:gap-8">
+      <PageHeader
+        title="Billing"
+        eyebrow="Your practice"
+        lede="Your ledger — Square remains the money's home; this mirrors it for practice context."
+      />
 
       {searchParams.billing && BANNERS[searchParams.billing] && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">

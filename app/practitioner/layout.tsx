@@ -104,7 +104,7 @@ export default async function PractitionerLayout({ children }: { children: React
         </div>
       </header>
 
-      <main className="mx-auto max-w-[960px] px-6 py-8 pb-tabbar md:py-10">{children}</main>
+      <main className="mx-auto max-w-[960px] px-4 py-5 pb-tabbar md:px-6 md:py-10">{children}</main>
 
       <BottomTabBar tabs={tabs} moreLinks={moreLinks} />
     </div>

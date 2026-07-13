@@ -59,16 +59,16 @@ export async function pauseThread(clientId: string, pause: boolean) {
   await requirePractitioner();
   await getOrCreateConversation(clientId);
   await setConversationStatus(clientId, pause ? "PAUSED" : "ACTIVE");
-  revalidatePath(`/practitioner/clients/${clientId}`);
-  redirect(`/practitioner/clients/${clientId}?tab=messages`);
+  revalidatePath(`/practitioner/messages/${clientId}`);
+  redirect(`/practitioner/messages/${clientId}`);
 }
 
 export async function acknowledgeFlag(clientId: string, messageId: string) {
   await requirePractitioner();
   await clearSafetyFlag(messageId);
   revalidatePath("/practitioner/messages");
-  revalidatePath(`/practitioner/clients/${clientId}`);
-  redirect(`/practitioner/clients/${clientId}?tab=messages`);
+  revalidatePath(`/practitioner/messages/${clientId}`);
+  redirect(`/practitioner/messages/${clientId}`);
 }
 
 export async function saveAwayNote(formData: FormData) {
