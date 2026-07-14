@@ -8,3 +8,7 @@ next-env.d.ts
 
 # UX audit screenshot output (regenerable via e2e/walk.mjs)
 /audit/
+
+# TypeScript incremental build cache (regenerated each build)
+tsconfig.tsbuildinfo
+*.tsbuildinfo
