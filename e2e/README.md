@@ -22,7 +22,7 @@ real browser as its users, capturing screenshots at every judgment point.
 ```bash
 # 1. a throwaway Postgres (any empty DB works)
 export DATABASE_URL="postgresql://postgres@localhost:5433/veritas"
-npm run db:push            # sync schema (see note below — do NOT use migrate deploy on a fresh DB)
+npm run db:migrate         # prisma migrate deploy — now applies in order on a fresh DB
 npm run db:seed:staging    # prints the onboarding invite token
 
 # 2. build + serve on :3100
@@ -38,8 +38,9 @@ Browser binary is the pre-installed headless shell
 (`/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell`); the
 walk points at it directly — do not run `playwright install`.
 
-## Known gotcha (tracked as P1 in the audit)
+## Migration ordering (P1 — fixed 2026-07-14)
 
-`prisma migrate deploy` **fails on a fresh DB** because migration folders use
-unpadded numeric prefixes that sort lexically (`10_` before `1_`). Use
-`npm run db:push` to bootstrap staging until the prefixes are zero-padded.
+The old unpadded folder prefixes (`10_` sorting before `1_`) made a fresh
+`migrate deploy` fail with `42P01`. Prefixes are now zero-padded, so `db:migrate`
+applies in order on an empty DB. See `scripts/migration-reorder-runbook.md` for
+the one-time production ledger reconciliation.
