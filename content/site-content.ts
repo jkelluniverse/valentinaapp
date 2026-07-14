@@ -19,6 +19,7 @@ export const SITE = {
     subhead:
       "Harness the power of neuropsychology and Psych-K® to break free from self-sabotage, release past trauma, and unlock your fullest potential.",
     cta: "Book a free discovery call",
+    reassure: "A relaxed, no-pressure conversation — no commitment.",
   },
 
   about: {
@@ -28,6 +29,7 @@ export const SITE = {
       "I'm a Neuropsychology Specialist committed to helping you shift deep-rooted beliefs and patterns at the subconscious level.",
       "I blend cutting-edge neuroscience with the power of Psych-K® to help you reprogram self-sabotaging behaviors, heal from past trauma, and experience sustainable, life-changing results.",
     ],
+    credentialChip: "Certified Psych-K® Facilitator · Florida",
   },
 
   program: {
@@ -64,6 +66,7 @@ export const SITE = {
     ],
   },
 
+  testimonialsHead: { eyebrow: "In their words", heading: "Change that held" },
   testimonials: [
     {
       quote:
