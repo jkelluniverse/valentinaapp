@@ -5,3 +5,6 @@
 .env*.local
 next-env.d.ts
 .DS_Store
+
+# UX audit screenshot output (regenerable via e2e/walk.mjs)
+/audit/

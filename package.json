@@ -9,7 +9,9 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:staging": "tsx prisma/staging-seed.ts",
     "db:backfill": "tsx prisma/backfill-record.ts",
+    "e2e:walk": "node e2e/walk.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -28,6 +30,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.4.20",
+    "playwright": "^1.48.0",
     "postcss": "^8.4.47",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.14",
