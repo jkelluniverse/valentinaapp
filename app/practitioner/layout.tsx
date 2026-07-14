@@ -11,6 +11,9 @@ import { BottomTabBar, type Tab, type MoreLink } from "@/components/mobile/Botto
 // a 48px top bar (wordmark + avatar sheet) over the notch, a bottom tab bar for
 // the spine. Desktop (≥768px): the quiet top-row of links returns and the tab
 // bar disappears. data-portal="practitioner" carries the shared Dusk theme.
+// C18 §2 — the portal is private; never index it.
+export const metadata = { robots: { index: false, follow: false } };
+
 export default async function PractitionerLayout({ children }: { children: React.ReactNode }) {
   const user = await requirePractitioner();
   const first = user.name?.trim().split(/\s+/)[0] ?? "you";

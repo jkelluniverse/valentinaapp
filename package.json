@@ -12,6 +12,7 @@
     "db:seed:staging": "tsx prisma/staging-seed.ts",
     "db:backfill": "tsx prisma/backfill-record.ts",
     "e2e:walk": "node e2e/walk.mjs",
+    "lint:wall": "node scripts/check-public-wall.mjs",
     "postinstall": "prisma generate"
   },
   "dependencies": {

@@ -14,6 +14,9 @@ import { BottomTabBar, type Tab, type MoreLink } from "@/components/mobile/Botto
 // 48px top bar (wordmark + avatar sheet) over the notch, and a bottom tab bar
 // with the Reflect flourish at center. Desktop (≥768px): the quiet top-row of
 // links returns, no tab bar. data-portal="client" scopes Dusk to this subtree.
+// C18 §2 — the portal is private; never index it.
+export const metadata = { robots: { index: false, follow: false } };
+
 export default async function SpaceLayout({ children }: { children: React.ReactNode }) {
   const user = await requireClient();
   const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();

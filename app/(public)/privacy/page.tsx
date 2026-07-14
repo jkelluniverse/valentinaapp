@@ -1,12 +1,13 @@
 import { SignatureRule, Eyebrow } from "@/components/brand";
 
-export const metadata = { title: "Privacy notice · Valentina's Coaching Platform" };
+export const metadata = { title: "Privacy notice" };
 
 // Minimal C1 privacy notice so consent is informed. Expanded alongside the
-// retention/deletion policy in a later component (per the charter).
+// retention/deletion policy in a later component (per the charter). Now inside
+// the public marketing frame (C18), so no min-h-screen of its own.
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-[720px] flex-col gap-6 px-6 py-16">
+    <main className="mx-auto flex max-w-[720px] flex-col gap-6 px-5 py-16 md:px-8">
       <div className="flex flex-col gap-2">
         <Eyebrow>Your privacy</Eyebrow>
         <h1 className="text-[2.25rem] font-semibold">Privacy notice</h1>
