@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildCalendar, appointmentEvent } from "@/lib/ics";
-import { clientLabel } from "@/lib/appointments";
+import { partyLabel } from "@/lib/appointments";
 import { DAY_MS } from "@/lib/schedule";
 
 // The private iCalendar subscription feed (spec §6). Protected only by the
@@ -36,11 +36,14 @@ export async function GET(_req: Request, { params }: { params: { secret: string 
       startAt: { gte: from, lte: to },
       status: { in: ["SCHEDULED", "COMPLETED"] },
     },
-    include: { client: { select: { name: true, email: true } } },
+    include: {
+      client: { select: { name: true, email: true } },
+      lead: { select: { name: true, email: true } },
+    },
     orderBy: { startAt: "asc" },
   });
 
-  const events = appointments.map((a) => appointmentEvent(a, clientLabel(a.client)));
+  const events = appointments.map((a) => appointmentEvent(a, partyLabel(a)));
   const body = buildCalendar(events, "Veritas · Sessions");
 
   return new NextResponse(body, {

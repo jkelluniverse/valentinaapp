@@ -153,7 +153,7 @@ export async function searchEverything(q: string): Promise<SearchGroup[]> {
   for (const i of recordItems) clientIds.add(i.clientId);
   for (const n of notes) if (n.clientId) clientIds.add(n.clientId);
   for (const p of preps) clientIds.add(p.clientId);
-  for (const a of appointments) clientIds.add(a.clientId);
+  for (const a of appointments) if (a.clientId) clientIds.add(a.clientId);
   for (const c of charges) clientIds.add(c.clientId);
   for (const m of messages) clientIds.add(m.conversation.clientId);
   const names = new Map(

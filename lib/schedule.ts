@@ -199,7 +199,12 @@ export type SlotInputs = {
   from: Date; // window start (UTC); usually now
   to: Date; // window end (UTC)
   now: Date; // for min-notice
+  durationMinutes?: number; // C18 — slot length; defaults to config.sessionMinutes
 };
+
+// C18 — which kind of booking a slot query is for. SESSION reuses the standard
+// session hours + length; DISCOVERY uses the separate discovery hours + length.
+export type BookingKind = "SESSION" | "DISCOVERY";
 
 // All bookable slots in [from, to], in the practitioner's timezone, honoring
 // availability rules, one-off openings/blocks, min-notice, max-advance, and
@@ -207,7 +212,8 @@ export type SlotInputs = {
 export function generateSlots(input: SlotInputs): Slot[] {
   const { config, rules, exceptions, appointments, from, to, now } = input;
   const tz = config.timezone;
-  const step = config.sessionMinutes + config.bufferMinutes;
+  const duration = input.durationMinutes ?? config.sessionMinutes;
+  const step = duration + config.bufferMinutes;
   const bufferMs = config.bufferMinutes * 60000;
 
   const minStart = new Date(now.getTime() + config.minNoticeHours * 3600_000);
@@ -263,9 +269,9 @@ export function generateSlots(input: SlotInputs): Slot[] {
     intervals.sort((a, b) => a.start - b.start);
 
     for (const iv of intervals) {
-      for (let m = iv.start; m + config.sessionMinutes <= iv.end; m += step) {
+      for (let m = iv.start; m + duration <= iv.end; m += step) {
         const slotStart = zonedWallToUtc(y, m0, d, m, tz);
-        const slotEnd = new Date(slotStart.getTime() + config.sessionMinutes * 60000);
+        const slotEnd = new Date(slotStart.getTime() + duration * 60000);
         if (slotStart.getTime() < minStart.getTime()) continue;
         if (slotStart.getTime() < from.getTime()) continue;
         if (slotStart.getTime() > windowEnd.getTime()) continue;
@@ -282,15 +288,19 @@ export function generateSlots(input: SlotInputs): Slot[] {
 }
 
 // Load everything slot generation needs and return the open slots for a window.
+// `kind` (C18) selects session vs discovery hours + length. Busy intervals come
+// from ALL scheduled appointments regardless of kind, so a discovery call can
+// never overlap a session and vice-versa.
 export async function openSlots(
   practitionerId: string,
   from: Date,
   to: Date,
   now: Date,
+  kind: BookingKind = "SESSION",
 ): Promise<{ config: SchedulingConfig; slots: Slot[] }> {
   const config = await getOrCreateConfig(practitionerId);
   const [rules, exceptions, appointments] = await Promise.all([
-    prisma.availabilityRule.findMany({ where: { practitionerId } }),
+    prisma.availabilityRule.findMany({ where: { practitionerId, kind } }),
     prisma.availabilityException.findMany({
       where: { practitionerId, date: { gte: startOfCivilDay(from), lte: to } },
     }),
@@ -299,7 +309,8 @@ export async function openSlots(
       select: { startAt: true, endAt: true, status: true },
     }),
   ]);
-  const slots = generateSlots({ config, rules, exceptions, appointments, from, to, now });
+  const durationMinutes = kind === "DISCOVERY" ? config.discoveryMinutes : config.sessionMinutes;
+  const slots = generateSlots({ config, rules, exceptions, appointments, from, to, now, durationMinutes });
   return { config, slots };
 }
 
@@ -313,11 +324,11 @@ export async function isSlotOpen(
   practitionerId: string,
   startAt: Date,
   now: Date,
+  kind: BookingKind = "SESSION",
 ): Promise<boolean> {
-  const config = await getOrCreateConfig(practitionerId);
   const from = new Date(startAt.getTime() - DAY_MS);
   const to = new Date(startAt.getTime() + DAY_MS);
-  const { slots } = await openSlots(practitionerId, from, to, now);
+  const { slots } = await openSlots(practitionerId, from, to, now, kind);
   return slots.some((s) => s.startAt.getTime() === startAt.getTime());
 }
 

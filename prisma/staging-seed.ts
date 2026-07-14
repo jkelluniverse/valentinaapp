@@ -29,9 +29,28 @@ async function main() {
 
   await prisma.schedulingConfig.upsert({
     where: { practitionerId: pw.id },
-    update: {},
-    create: { practitionerId: pw.id, timezone: "America/New_York", defaultVideoUrl: "https://example.com/room/valentina", calendarFeedSecret: randomBytes(12).toString("hex") },
+    update: { discoveryMinutes: 20, discoveryVideoUrl: "https://example.com/room/discovery" },
+    create: {
+      practitionerId: pw.id,
+      timezone: "America/New_York",
+      defaultVideoUrl: "https://example.com/room/valentina",
+      discoveryMinutes: 20,
+      discoveryVideoUrl: "https://example.com/room/discovery",
+      calendarFeedSecret: randomBytes(12).toString("hex"),
+    },
   });
+
+  // Availability: session hours (Mon–Fri 9–5) + separate discovery hours
+  // (Mon–Fri 12–2) so the public /book funnel has open slots to show (C18).
+  await prisma.availabilityRule.deleteMany({ where: { practitionerId: pw.id } });
+  for (let weekday = 1; weekday <= 5; weekday++) {
+    await prisma.availabilityRule.create({
+      data: { practitionerId: pw.id, kind: "SESSION", weekday, startMinute: 9 * 60, endMinute: 17 * 60, active: true },
+    });
+    await prisma.availabilityRule.create({
+      data: { practitionerId: pw.id, kind: "DISCOVERY", weekday, startMinute: 12 * 60, endMinute: 14 * 60, active: true },
+    });
+  }
 
   // A fresh PENDING invite for Journey 1 (onboarding). Token printed below.
   const token = randomBytes(16).toString("hex");

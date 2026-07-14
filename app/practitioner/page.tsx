@@ -5,7 +5,7 @@ import { requirePractitioner } from "@/lib/auth-guards";
 import { getPracticeOverview } from "@/lib/attention";
 import { Greeting } from "@/components/Greeting";
 import { getPractitioner, getOrCreateConfig, formatInZone, zonedParts, zonedWallToUtc, DAY_MS } from "@/lib/schedule";
-import { clientLabel } from "@/lib/appointments";
+import { partyLabel } from "@/lib/appointments";
 import { firstNameOf } from "@/lib/name";
 
 export const dynamic = "force-dynamic";
@@ -169,40 +169,59 @@ export default async function TheStudy() {
         <section className="flex flex-col gap-3 gentle-rise" style={{ animationDelay: "80ms" }}>
           <p className="text-eyebrow font-semibold uppercase text-mocha">Today</p>
           <div className="flex flex-col divide-y divide-line rounded-card border border-line bg-surface shadow-soft">
-            {todays.map((a) => (
-              <div key={a.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
-                <span className="font-medium text-ink-strong">
-                  {formatInZone(a.startAt, config.timezone, { hour: "numeric", minute: "2-digit" })}
-                </span>
-                <Link
-                  href={`/practitioner/clients/${a.clientId}`}
-                  className="font-medium text-wine underline-offset-4 hover:underline"
-                >
-                  {clientLabel(a.client)}
-                </Link>
-                <span className="text-[13px] text-whisper">
-                  {a.location === "VIRTUAL" ? "virtual" : "in person"}
-                </span>
-                <span className="ml-auto flex items-center gap-4 text-sm">
-                  {a.location === "VIRTUAL" && a.videoUrl && (
-                    <a
-                      href={a.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+            {todays.map((a) => {
+              const discovery = a.kind === "DISCOVERY"; // C18
+              return (
+                <div key={a.id} className="flex flex-wrap items-center gap-4 px-5 py-4">
+                  <span className="font-medium text-ink-strong">
+                    {formatInZone(a.startAt, config.timezone, { hour: "numeric", minute: "2-digit" })}
+                  </span>
+                  {discovery ? (
+                    <Link
+                      href="/practitioner/leads"
                       className="font-medium text-wine underline-offset-4 hover:underline"
                     >
-                      Join
-                    </a>
+                      Discovery — {partyLabel(a)}
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/practitioner/clients/${a.clientId}`}
+                      className="font-medium text-wine underline-offset-4 hover:underline"
+                    >
+                      {partyLabel(a)}
+                    </Link>
                   )}
-                  <Link
-                    href={`/practitioner/clients/${a.clientId}/prep`}
-                    className="font-medium text-wine underline-offset-4 hover:underline"
-                  >
-                    Prepare →
-                  </Link>
-                </span>
-              </div>
-            ))}
+                  <span className="text-[13px] text-whisper">
+                    {a.location === "VIRTUAL" ? "virtual" : "in person"}
+                  </span>
+                  <span className="ml-auto flex items-center gap-4 text-sm">
+                    {a.location === "VIRTUAL" && a.videoUrl && (
+                      <a
+                        href={a.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-wine underline-offset-4 hover:underline"
+                      >
+                        Join
+                      </a>
+                    )}
+                    {!discovery && (
+                      <Link
+                        href={`/practitioner/clients/${a.clientId}/prep`}
+                        className="font-medium text-wine underline-offset-4 hover:underline"
+                      >
+                        Prepare →
+                      </Link>
+                    )}
+                    {discovery && a.clientNote && (
+                      <span className="max-w-[16rem] truncate text-[13px] text-slate" title={a.clientNote}>
+                        “{a.clientNote}”
+                      </span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -289,7 +308,10 @@ async function loadToday(practitionerId: string, tz: string) {
       status: "SCHEDULED",
       startAt: { gte: dayStart, lt: dayEnd },
     },
-    include: { client: { select: { id: true, name: true, email: true } } },
+    include: {
+      client: { select: { id: true, name: true, email: true } },
+      lead: { select: { name: true, email: true } }, // C18 — discovery calls
+    },
     orderBy: { startAt: "asc" },
   });
 }

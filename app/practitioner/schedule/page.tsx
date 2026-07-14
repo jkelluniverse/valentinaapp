@@ -4,7 +4,7 @@ import { requirePractitioner } from "@/lib/auth-guards";
 import { getBaseUrl } from "@/lib/base-url";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { getPractitioner, getOrCreateConfig, formatInZone, zoneAbbrev, DAY_MS } from "@/lib/schedule";
-import { clientLabel } from "@/lib/appointments";
+import { partyLabel } from "@/lib/appointments";
 import { emailConfigured } from "@/lib/notify";
 import { CopyField } from "@/components/CopyField";
 import { rotateFeedSecret } from "../availability/actions";
@@ -29,7 +29,10 @@ export default async function PractitionerSchedulePage({
       status: "SCHEDULED",
       startAt: { gte: new Date(now.getTime() - DAY_MS) },
     },
-    include: { client: { select: { id: true, name: true, email: true } } },
+    include: {
+      client: { select: { id: true, name: true, email: true } },
+      lead: { select: { name: true, email: true } }, // C18 — discovery calls
+    },
     orderBy: { startAt: "asc" },
     take: 100,
   });
@@ -126,12 +129,21 @@ export default async function PractitionerSchedulePage({
                 })}{" "}
                 <span className="text-slate">{zoneAbbrev(a.startAt, config.timezone)}</span>
               </p>
-              <Link
-                href={`/practitioner/clients/${a.client.id}`}
-                className="font-medium text-wine underline-offset-4 hover:underline"
-              >
-                {clientLabel(a.client)}
-              </Link>
+              {a.kind === "DISCOVERY" ? (
+                <Link
+                  href="/practitioner/leads"
+                  className="font-medium text-wine underline-offset-4 hover:underline"
+                >
+                  Discovery — {partyLabel(a)}
+                </Link>
+              ) : (
+                <Link
+                  href={`/practitioner/clients/${a.client?.id ?? ""}`}
+                  className="font-medium text-wine underline-offset-4 hover:underline"
+                >
+                  {partyLabel(a)}
+                </Link>
+              )}
               <span className="inline-flex items-center rounded-full bg-blush-deep px-2.5 py-0.5 text-xs font-medium text-wine">
                 {a.location === "VIRTUAL" ? "Virtual" : "In person"}
               </span>

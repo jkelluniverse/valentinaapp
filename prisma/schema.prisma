@@ -809,6 +809,28 @@ enum AppointmentStatus {
   NO_SHOW
 }
 
+// C18 — sessions belong to clients; discovery calls belong to leads (prospects).
+enum AppointmentKind {
+  SESSION
+  DISCOVERY
+}
+
+// C18 — discovery hours are set separately from session hours, so availability
+// rules are tagged by which kind of booking they open.
+enum AvailabilityKind {
+  SESSION
+  DISCOVERY
+}
+
+// C18 — a prospect's journey: stranger → lead → discovery → invited → client.
+enum LeadStatus {
+  NEW
+  SCHEDULED
+  COMPLETED
+  CONVERTED
+  CLOSED
+}
+
 enum SessionLocation {
   VIRTUAL
   IN_PERSON
@@ -828,6 +850,8 @@ model SchedulingConfig {
   minNoticeHours    Int    @default(12)
   maxAdvanceDays    Int    @default(60)
   cancelCutoffHours Int    @default(24)
+  discoveryMinutes  Int    @default(20) // C18 — free discovery call length
+  discoveryVideoUrl String? // C18 — standing room for discovery calls (falls back to defaultVideoUrl)
   defaultVideoUrl   String? // standing room link used when an appointment has none
   calendarFeedSecret String @unique // unguessable token for the ICS feed (rotatable)
   createdAt         DateTime @default(now())
@@ -835,12 +859,13 @@ model SchedulingConfig {
 }
 
 model AvailabilityRule {
-  id             String  @id @default(cuid())
+  id             String           @id @default(cuid())
   practitionerId String
+  kind           AvailabilityKind @default(SESSION) // C18 — SESSION or DISCOVERY hours
   weekday        Int // 0-6 (Sunday..Saturday), practitioner tz
   startMinute    Int // minutes from midnight
   endMinute      Int
-  active         Boolean @default(true)
+  active         Boolean          @default(true)
 
   @@index([practitionerId, weekday])
 }
@@ -860,8 +885,13 @@ model AvailabilityException {
 model Appointment {
   id             String            @id @default(cuid())
   practitionerId String
-  clientId       String
-  client         User              @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  // Nullable because a DISCOVERY appointment belongs to a Lead (a prospect), not
+  // a client User (C18). Exactly one of client / lead is set — enforced in the
+  // service layer (lib/appointments.ts, lib/discovery.ts).
+  clientId       String?
+  client         User?             @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  kind           AppointmentKind   @default(SESSION)
+  lead           Lead?             @relation("LeadAppointment") // set for DISCOVERY (C18)
   startAt        DateTime // UTC
   endAt          DateTime // UTC
   status         AppointmentStatus @default(SCHEDULED)
@@ -876,4 +906,23 @@ model Appointment {
 
   @@index([practitionerId, startAt])
   @@index([clientId, startAt])
+}
+
+// C18 — a prospect from the public site. Becomes a client via the conversion
+// bridge ("Invite as client"), which pre-fills the C1 invite and links back here.
+model Lead {
+  id              String      @id @default(cuid())
+  name            String
+  email           String
+  phone           String?
+  note            String? // "what brings you?"
+  status          LeadStatus  @default(NEW)
+  appointmentId   String?     @unique // the discovery call
+  appointment     Appointment? @relation("LeadAppointment", fields: [appointmentId], references: [id], onDelete: SetNull)
+  convertedUserId String? // set when she invites them as a client
+  source          String? // page/UTM, for later
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([status, createdAt])
 }

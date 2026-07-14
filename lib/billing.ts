@@ -37,10 +37,11 @@ export async function resolveSessionRate(clientId: string) {
 // a booking failure.
 export async function createChargeForAppointment(appt: {
   id: string;
-  clientId: string;
+  clientId: string | null; // C18 — discovery calls have no client and are free
   startAt: Date;
 }): Promise<void> {
   try {
+    if (!appt.clientId) return; // free discovery call — never billed
     const existing = await prisma.charge.findUnique({ where: { appointmentId: appt.id } });
     if (existing) return;
     const rate = await resolveSessionRate(appt.clientId);

@@ -26,6 +26,7 @@ export default async function PractitionerLayout({ children }: { children: React
 
   const NAV = [
     { href: "/practitioner/clients", label: "Clients" },
+    { href: "/practitioner/leads", label: "Leads" },
     { href: "/practitioner/messages", label: "Messages" },
     { href: "/practitioner/library", label: "Library" },
     { href: "/practitioner/courses", label: "Courses" },
@@ -41,6 +42,7 @@ export default async function PractitionerLayout({ children }: { children: React
     { key: "calendar", label: "Calendar", href: "/practitioner/schedule", icon: "calendar", match: "/practitioner/schedule" },
   ];
   const moreLinks: MoreLink[] = [
+    { href: "/practitioner/leads", label: "Leads", hint: "Discovery-call prospects" },
     { href: "/practitioner/library", label: "Library", hint: "Prompts, exercises, worksheets" },
     { href: "/practitioner/worksheets", label: "Worksheets", hint: "The worksheet studio" },
     { href: "/practitioner/courses", label: "Courses", hint: "Course builders" },

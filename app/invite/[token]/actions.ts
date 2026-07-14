@@ -46,6 +46,12 @@ export async function acceptInvite(token: string, formData: FormData) {
       where: { id: invite.id },
       data: { status: "ACCEPTED", acceptedUserId: user.id },
     });
+    // C18 conversion bridge — if this person came in as a lead (matched by
+    // email), close the loop: stranger → lead → discovery → invited → client.
+    await tx.lead.updateMany({
+      where: { email: invite.email, status: { notIn: ["CONVERTED", "CLOSED"] } },
+      data: { status: "CONVERTED", convertedUserId: user.id },
+    });
     // C11: hand the practice intake (if one is designated) to every new
     // client, so onboarding starts with it waiting in their space.
     const intake = await tx.worksheet.findFirst({

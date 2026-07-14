@@ -40,9 +40,14 @@ export default async function AvailabilityPage({
     }),
   ]);
 
-  // One window per weekday in the grid (the model allows more; the UI keeps it calm).
+  // One window per weekday in each grid (the model allows more; the UI keeps it
+  // calm). Session and discovery hours are kept apart (C18).
   const byWeekday = new Map<number, (typeof rules)[number]>();
-  for (const r of rules) if (!byWeekday.has(r.weekday)) byWeekday.set(r.weekday, r);
+  const byWeekdayDiscovery = new Map<number, (typeof rules)[number]>();
+  for (const r of rules) {
+    const map = r.kind === "DISCOVERY" ? byWeekdayDiscovery : byWeekday;
+    if (!map.has(r.weekday)) map.set(r.weekday, r);
+  }
 
   const cfg = config as unknown as Record<string, number>;
 
@@ -85,7 +90,7 @@ export default async function AvailabilityPage({
             return (
               <form
                 key={day.value}
-                action={saveWeekdayHours.bind(null, day.value)}
+                action={saveWeekdayHours.bind(null, day.value, "SESSION")}
                 className="flex flex-wrap items-center gap-3 rounded-md border border-line/70 px-4 py-3"
               >
                 <label className="flex w-32 items-center gap-2">
@@ -109,6 +114,51 @@ export default async function AvailabilityPage({
                     type="time"
                     name="end"
                     defaultValue={rule ? minutesToTimeValue(rule.endMinute) : "17:00"}
+                    className="rounded-md border border-line px-2 py-1"
+                  />
+                </div>
+                <button className="ml-auto rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                  Save {day.short}
+                </button>
+              </form>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Discovery hours (C18) — kept apart from session hours. */}
+      <section className="rounded-lg border border-line bg-white p-6 shadow-soft">
+        <h2 className="mb-1 text-xl font-semibold">Discovery-call hours</h2>
+        <p className="mb-5 text-sm text-slate">
+          When strangers can book a free discovery call from your site. Separate from your session
+          hours — set only the windows you want to offer for first conversations.
+        </p>
+        <div className="flex flex-col gap-3">
+          {WEEKDAYS.map((day) => {
+            const rule = byWeekdayDiscovery.get(day.value);
+            const enabled = Boolean(rule);
+            return (
+              <form
+                key={day.value}
+                action={saveWeekdayHours.bind(null, day.value, "DISCOVERY")}
+                className="flex flex-wrap items-center gap-3 rounded-md border border-line/70 px-4 py-3"
+              >
+                <label className="flex w-32 items-center gap-2">
+                  <input type="checkbox" name="enabled" defaultChecked={enabled} className="h-4 w-4 accent-wine" />
+                  <span className="font-medium text-ink-strong">{day.long}</span>
+                </label>
+                <div className="flex items-center gap-2 text-sm text-ink">
+                  <input
+                    type="time"
+                    name="start"
+                    defaultValue={rule ? minutesToTimeValue(rule.startMinute) : "12:00"}
+                    className="rounded-md border border-line px-2 py-1"
+                  />
+                  <span className="text-slate">to</span>
+                  <input
+                    type="time"
+                    name="end"
+                    defaultValue={rule ? minutesToTimeValue(rule.endMinute) : "14:00"}
                     className="rounded-md border border-line px-2 py-1"
                   />
                 </div>
@@ -170,6 +220,33 @@ export default async function AvailabilityPage({
               Used for virtual sessions when an appointment has no link of its own.
             </span>
           </label>
+
+          {/* C18 — discovery specifics */}
+          <div className="grid grid-cols-1 gap-4 border-t border-line pt-5 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-ink-strong">Discovery-call length</span>
+              <input
+                type="number"
+                name="discoveryMinutes"
+                min={10}
+                max={120}
+                defaultValue={cfg.discoveryMinutes ?? 20}
+                className="rounded-md border border-line px-3 py-2 text-ink"
+              />
+              <span className="text-xs text-slate">minutes · the free first call</span>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-ink-strong">Discovery video link</span>
+              <input
+                type="url"
+                name="discoveryVideoUrl"
+                defaultValue={config.discoveryVideoUrl ?? ""}
+                placeholder="Leave blank to reuse your standing link"
+                className="rounded-md border border-line px-3 py-2 text-ink"
+              />
+              <span className="text-xs text-slate">Falls back to your standing video link.</span>
+            </label>
+          </div>
 
           <button className="self-start rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
             Save settings

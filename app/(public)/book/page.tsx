@@ -1,11 +1,14 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { SignatureRule, Eyebrow } from "@/components/brand";
+import { getDiscoverySlots } from "@/lib/discovery";
 import { SITE } from "@/content/site-content";
+import { BookingFlow } from "./BookingFlow";
+import { submitBooking } from "./actions";
 
-// C18.3 placeholder — the discovery funnel (slots → form → confirm) lands here
-// next. Kept graceful so the site's primary CTA never dead-ends in the interim.
-export const dynamic = "force-static";
+// C18.3/.4 — the discovery funnel. Dynamic (reads live open slots) while the
+// marketing home stays static. Reads ONLY free/busy times via the narrow
+// lib/discovery surface — no client data crosses the wall.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Book a free discovery call",
@@ -13,27 +16,19 @@ export const metadata: Metadata = {
     "Book a free, no-pressure discovery call with Valentina Vélez to see whether this work is the right fit.",
 };
 
-export default function BookPage() {
+export default async function BookPage({ searchParams }: { searchParams: { error?: string } }) {
+  const { days, timezone } = await getDiscoverySlots();
+
   return (
-    <main className="mx-auto flex max-w-2xl flex-col items-center gap-6 px-5 py-24 text-center md:px-8">
+    <main className="mx-auto max-w-2xl px-5 py-16 md:px-8">
       <Eyebrow>A free discovery call</Eyebrow>
-      <h1 className="font-headline text-[2.25rem] font-semibold leading-tight text-ink-strong md:text-5xl">
+      <h1 className="mt-2 font-headline text-[2.25rem] font-semibold leading-tight text-ink-strong md:text-5xl">
         Let&apos;s find a time to talk
       </h1>
       <SignatureRule />
-      <p className="max-w-lg text-lg leading-relaxed text-slate">
-        {SITE.closing.body}
-      </p>
-      <p className="rounded-card border border-line bg-surface px-6 py-5 text-[15px] text-ink shadow-soft">
-        Online booking opens here shortly. In the meantime, reach out and Valentina will find a
-        time with you.
-      </p>
-      <Link
-        href="/"
-        className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline"
-      >
-        ← Back to home
-      </Link>
+      <p className="mb-10 mt-4 max-w-lg text-lg leading-relaxed text-slate">{SITE.closing.body}</p>
+
+      <BookingFlow days={days} timezone={timezone} action={submitBooking} error={searchParams.error} />
     </main>
   );
 }

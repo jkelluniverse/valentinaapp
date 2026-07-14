@@ -15,6 +15,26 @@ export function clientLabel(user: { name: string | null; email: string }): strin
   return first || user.email.split("@")[0];
 }
 
+// C18 — an appointment's other party: a client User for sessions, or a Lead for
+// discovery calls. Callers that load ALL appointments (the ICS feed, Today, the
+// practitioner schedule) use this so a discovery call shows the prospect's name.
+export function apptParty(appt: {
+  client?: { name: string | null; email: string } | null;
+  lead?: { name: string; email: string } | null;
+}): { name: string | null; email: string } | null {
+  if (appt.client) return appt.client;
+  if (appt.lead) return { name: appt.lead.name, email: appt.lead.email };
+  return null;
+}
+
+export function partyLabel(appt: {
+  client?: { name: string | null; email: string } | null;
+  lead?: { name: string; email: string } | null;
+}): string {
+  const p = apptParty(appt);
+  return p ? clientLabel(p) : "Someone";
+}
+
 type BookArgs = {
   practitionerId: string;
   clientId: string;
@@ -104,6 +124,9 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
       include: { client: { select: { name: true, email: true } } },
     });
     if (!appt) return;
+    // Session notifications only — discovery calls (no client User) send their
+    // own emails from lib/discovery.ts.
+    if (!appt.client) return;
     const practitioner = await prisma.user.findFirst({
       where: { id: appt.practitionerId },
       select: { name: true, email: true },

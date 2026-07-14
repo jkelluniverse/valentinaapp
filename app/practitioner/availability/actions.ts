@@ -40,6 +40,11 @@ export async function saveConfig(formData: FormData) {
       maxAdvanceDays: clampInt(formData.get("maxAdvanceDays"), 1, 365, 60),
       cancelCutoffHours: clampInt(formData.get("cancelCutoffHours"), 0, 336, 24),
       defaultVideoUrl: rawVideo && isHttpUrl(rawVideo) ? rawVideo : null,
+      discoveryMinutes: clampInt(formData.get("discoveryMinutes"), 10, 120, 20), // C18
+      discoveryVideoUrl: (() => {
+        const v = String(formData.get("discoveryVideoUrl") ?? "").trim();
+        return v && isHttpUrl(v) ? v : null;
+      })(),
     },
   });
   revalidatePath(PATH);
@@ -57,17 +62,23 @@ function isHttpUrl(s: string): boolean {
 
 // One continuous window per weekday keeps the grid calm; a lunch gap is a
 // one-off BLOCK. Saving replaces that weekday's rules atomically.
-export async function saveWeekdayHours(weekday: number, formData: FormData) {
+export async function saveWeekdayHours(
+  weekday: number,
+  kind: "SESSION" | "DISCOVERY",
+  formData: FormData,
+) {
   const pid = await practitionerId();
   const enabled = formData.get("enabled") === "on";
   const start = timeValueToMinutes(String(formData.get("start") ?? ""));
   const end = timeValueToMinutes(String(formData.get("end") ?? ""));
+  const ruleKind = kind === "DISCOVERY" ? "DISCOVERY" : "SESSION"; // C18
 
   await prisma.$transaction(async (tx) => {
-    await tx.availabilityRule.deleteMany({ where: { practitionerId: pid, weekday } });
+    // Scope by kind so session hours and discovery hours never clobber each other.
+    await tx.availabilityRule.deleteMany({ where: { practitionerId: pid, weekday, kind: ruleKind } });
     if (enabled && start != null && end != null && end > start) {
       await tx.availabilityRule.create({
-        data: { practitionerId: pid, weekday, startMinute: start, endMinute: end, active: true },
+        data: { practitionerId: pid, kind: ruleKind, weekday, startMinute: start, endMinute: end, active: true },
       });
     }
   });

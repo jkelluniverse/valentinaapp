@@ -80,7 +80,12 @@ export default async function BillingPage({
   );
   const unbilled = (
     await prisma.appointment.findMany({
-      where: { status: { in: ["SCHEDULED", "COMPLETED"] }, startAt: { gte: new Date(now.getTime() - 60 * DAY) } },
+      // C18 — only billable sessions; free discovery calls are never "unbilled".
+      where: {
+        kind: "SESSION",
+        status: { in: ["SCHEDULED", "COMPLETED"] },
+        startAt: { gte: new Date(now.getTime() - 60 * DAY) },
+      },
       orderBy: { startAt: "asc" },
     })
   ).filter((a) => !chargedApptIds.has(a.id));
@@ -223,7 +228,7 @@ export default async function BillingPage({
               key={a.id}
               className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white px-5 py-4 shadow-soft"
             >
-              <span className="font-medium text-ink-strong">{nameOf(a.clientId)}</span>
+              <span className="font-medium text-ink-strong">{nameOf(a.clientId ?? "")}</span>
               <span className="text-sm text-slate">{fmtWhen(a.startAt)}</span>
               <form action={billAppointment.bind(null, a.id)} className="ml-auto">
                 <button className="rounded-md border border-mocha px-3.5 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">

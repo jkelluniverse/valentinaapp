@@ -86,18 +86,19 @@ export function buildInvite(event: IcsEvent): string {
 export function appointmentEvent(
   appt: Pick<
     Appointment,
-    "id" | "startAt" | "endAt" | "status" | "location" | "videoUrl" | "updatedAt"
+    "id" | "startAt" | "endAt" | "status" | "location" | "videoUrl" | "updatedAt" | "kind"
   >,
   clientLabel: string,
 ): IcsEvent {
   const cancelled = appt.status === "CANCELLED";
   const place =
     appt.location === "VIRTUAL" ? appt.videoUrl || "Virtual session" : "In person";
+  const kindLabel = appt.kind === "DISCOVERY" ? "Discovery" : "Session"; // C18
   return {
     uid: `appt-${appt.id}@veritas`,
     start: appt.startAt,
     end: appt.endAt,
-    summary: `Session · ${clientLabel}`,
+    summary: `${kindLabel} · ${clientLabel}`,
     description: appt.location === "VIRTUAL" && appt.videoUrl ? `Join: ${appt.videoUrl}` : undefined,
     location: place,
     status: cancelled ? "CANCELLED" : "CONFIRMED",
