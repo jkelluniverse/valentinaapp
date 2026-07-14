@@ -36,7 +36,7 @@ export default function MarketingHome() {
         <Img
           src="/brain-motif.webp"
           alt=""
-          className="pointer-events-none absolute -right-16 -top-10 z-0 w-[520px] max-w-[58%] opacity-10"
+          className="pointer-events-none absolute right-[3%] top-1/2 z-0 hidden w-[440px] max-w-[38%] -translate-y-1/2 opacity-[0.22] md:block"
           loading="eager"
           fallback={null}
         />

@@ -17,8 +17,8 @@ function Wordmark({ variant = "dark" }: { variant?: "dark" | "light" }) {
       height={220}
       className={
         variant === "light"
-          ? "h-9 w-auto opacity-90 [filter:brightness(0)_invert(1)]"
-          : "h-10 w-auto"
+          ? "h-11 w-auto shrink-0 self-start opacity-90 [filter:brightness(0)_invert(1)]"
+          : "h-14 w-auto shrink-0"
       }
       fallback={
         <span
@@ -36,7 +36,7 @@ function Wordmark({ variant = "dark" }: { variant?: "dark" | "light" }) {
 export function PublicHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-canvas/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 md:px-8">
+      <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 md:px-8">
         <Link href="/" aria-label={SITE.practitioner}>
           <Wordmark />
         </Link>
@@ -60,7 +60,7 @@ export function PublicFooter() {
   return (
     <footer className="bg-wine-dark text-cream/70">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-11 md:flex-row md:items-center md:justify-between md:px-8">
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col items-start gap-1.5">
           <Wordmark variant="light" />
           <p className="text-sm text-cream/70">{SITE.credential}</p>
           <p className="text-xs text-cream/50">
