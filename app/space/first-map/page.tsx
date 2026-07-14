@@ -43,18 +43,26 @@ export default async function FirstMapPage() {
   const done = Boolean(profile?.firstMapCompletedAt);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3 md:gap-4">
+      {/* Compact intro so the map itself clears the fold on mobile; the fuller
+          guidance lives one tap away in a native disclosure. */}
+      <div className="flex flex-col gap-1.5">
         <Eyebrow>Your map</Eyebrow>
-        <h1 className="font-headline text-[2.125rem] font-medium text-ink-strong">
+        <h1 className="font-headline text-[1.625rem] font-medium leading-tight text-ink-strong md:text-[2.125rem]">
           {done ? "Your inner landscape" : "What you already know"}
         </h1>
         <SignatureRule />
-        <p className="max-w-prose text-[15px] text-slate">
-          {done
-            ? "This is your living map — every star is something you named. Add to it whenever something new asks to be seen, drag the stars as your sense of them shifts, and draw a line between any two that feel connected. It's yours."
-            : "Before any chart or conversation, you already carry a map of yourself. This is a place to lay it out — a few gentle questions, and a sky to place your answers in. Nothing here is a test, and nothing is required to be ready."}
-        </p>
+        <details className="group max-w-prose text-[15px] text-slate">
+          <summary className="cursor-pointer list-none text-mocha marker:content-none hover:text-wine">
+            {done ? "How your map works" : "What this is"}
+            <span className="ml-1 text-whisper transition-transform group-open:inline-block">›</span>
+          </summary>
+          <p className="mt-2">
+            {done
+              ? "This is your living map — every star is something you named. Add to it whenever something new asks to be seen, drag the stars as your sense of them shifts, and draw a line between any two that feel connected. It's yours."
+              : "Before any chart or conversation, you already carry a map of yourself. This is a place to lay it out — a few gentle questions, and a sky to place your answers in. Nothing here is a test, and nothing is required to be ready."}
+          </p>
+        </details>
       </div>
 
       <FirstMap

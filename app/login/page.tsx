@@ -45,6 +45,9 @@ function LoginForm() {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-8 px-6">
       <div className="flex flex-col gap-3">
+        <span className="font-headline text-lg font-semibold text-wine">
+          veritas <span className="text-mocha">✧</span>
+        </span>
         <Eyebrow>Welcome back</Eyebrow>
         <h1 className="text-[2.25rem] font-semibold">Sign in</h1>
         <SignatureRule />
@@ -65,7 +68,7 @@ function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
-            className="rounded-md border border-line bg-white px-3 py-2 text-base font-normal normal-case tracking-normal text-ink outline-none placeholder:text-slate focus:border-wine focus:ring-2 focus:ring-wine/20"
+            className="rounded-md border border-mocha/30 bg-white px-3 py-2 text-base font-normal normal-case tracking-normal text-ink outline-none placeholder:text-slate focus:border-wine focus-visible:ring-2 focus-visible:ring-wine/40"
           />
         </label>
         <label className="flex flex-col gap-1.5 text-label font-semibold uppercase tracking-wide text-mocha">
@@ -76,7 +79,7 @@ function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            className="rounded-md border border-line bg-white px-3 py-2 text-base font-normal normal-case tracking-normal text-ink outline-none placeholder:text-slate focus:border-wine focus:ring-2 focus:ring-wine/20"
+            className="rounded-md border border-mocha/30 bg-white px-3 py-2 text-base font-normal normal-case tracking-normal text-ink outline-none placeholder:text-slate focus:border-wine focus-visible:ring-2 focus-visible:ring-wine/40"
           />
         </label>
         {error && <p className="text-sm text-rose">{error}</p>}

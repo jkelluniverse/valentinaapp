@@ -67,7 +67,7 @@ export function BottomTabBar({
             const Icon = ICONS[t.icon];
             const tone = active ? "text-wine" : "text-whisper";
             const inner = (
-              <span className="relative flex flex-col items-center justify-center gap-1">
+              <span className="relative flex min-w-0 max-w-full flex-col items-center justify-center gap-1">
                 {t.center ? (
                   <span className="-mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-wine text-white shadow-stone ring-4 ring-surface">
                     <Icon className="h-6 w-6" />
@@ -85,14 +85,14 @@ export function BottomTabBar({
                   </span>
                 )}
                 <span
-                  className={`text-[11px] leading-none ${active || t.center ? "font-semibold text-wine" : ""}`}
+                  className={`max-w-full truncate text-[11px] leading-none ${active || t.center ? "font-semibold text-wine" : ""}`}
                 >
                   {t.label}
                 </span>
               </span>
             );
             return (
-              <li key={t.key} className="relative flex-1">
+              <li key={t.key} className="relative flex-1 min-w-0">
                 {active && !t.center && (
                   <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-wine" aria-hidden />
                 )}
@@ -107,7 +107,7 @@ export function BottomTabBar({
             );
           })}
           {moreLinks.length > 0 && (
-            <li className="relative flex-1">
+            <li className="relative flex-1 min-w-0">
               {moreActive && (
                 <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-wine" aria-hidden />
               )}
@@ -119,7 +119,7 @@ export function BottomTabBar({
                   moreActive ? "text-wine" : "text-whisper"
                 }`}
               >
-                <span className="flex flex-col items-center justify-center gap-1">
+                <span className="flex min-w-0 max-w-full flex-col items-center justify-center gap-1">
                   <span
                     className={`flex h-9 w-12 items-center justify-center rounded-pill transition-colors ${
                       moreActive ? "bg-blush-deep" : ""
@@ -127,7 +127,7 @@ export function BottomTabBar({
                   >
                     {MoreGlyph ? <MoreGlyph className="h-[22px] w-[22px]" /> : <MoreDots />}
                   </span>
-                  <span className={`text-[11px] leading-none ${moreActive ? "font-semibold text-wine" : ""}`}>
+                  <span className={`max-w-full truncate text-[11px] leading-none ${moreActive ? "font-semibold text-wine" : ""}`}>
                     {moreLabel}
                   </span>
                 </span>

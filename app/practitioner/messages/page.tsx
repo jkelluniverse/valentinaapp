@@ -64,6 +64,15 @@ export default async function MessagesInbox() {
   const threadedIds = new Set(threads.map((c) => c.client.id));
   const untouched = clients.filter((c) => !threadedIds.has(c.id));
 
+  // One alert per client — a distressed client often sends several messages in a
+  // row; collapse to the most-recent flagged one (query is desc by createdAt) so
+  // the signal reads as one worried voice, not a stack of identical rows.
+  const crisisByClient = new Map<string, (typeof crisisMessages)[number]>();
+  for (const m of crisisMessages) {
+    if (!crisisByClient.has(m.conversation.clientId)) crisisByClient.set(m.conversation.clientId, m);
+  }
+  const crisisRows = [...crisisByClient.values()];
+
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       <PageHeader
@@ -72,17 +81,20 @@ export default async function MessagesInbox() {
         action={<InboxSettings awayNote={awayNote} />}
       />
 
-      {/* Crisis first — worded hairline rows, never badges. */}
-      {crisisMessages.length > 0 && (
+      {/* Crisis first — one worded hairline row per client, with the flagged
+          words and when, so the practitioner has context before opening. */}
+      {crisisRows.length > 0 && (
         <div className="flex flex-col divide-y divide-rose/30 rounded-lg border-2 border-rose bg-white">
-          {crisisMessages.map((m) => (
+          {crisisRows.map((m) => (
             <Link
               key={m.id}
               href={`/practitioner/messages/${m.conversation.clientId}`}
               className="px-4 py-3 text-[14px] text-ink hover:text-wine"
             >
-              <span className="font-semibold text-rose">{displayName(m.conversation.client)}</span>{" "}
-              reached out in distress — they were shown crisis resources; please check in.
+              <span className="font-semibold text-rose">{displayName(m.conversation.client)}</span>
+              <span className="text-whisper"> · {relTime(m.createdAt)}</span> reached out in distress
+              — <span className="italic text-slate">“{m.body.trim().replace(/\s+/g, " ").slice(0, 64)}
+              {m.body.trim().length > 64 ? "…" : ""}”</span> — shown crisis resources; please check in.
             </Link>
           ))}
         </div>
