@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { setChargeStatus, createChargeForAppointment, formatMoney } from "@/lib/billing";
 import { sendEmail, emailConfigured } from "@/lib/notify";
+import { pickLocale, paymentReminderEmail } from "@/lib/email-copy";
 import { PROGRAM_STAGES } from "@/lib/program-config";
 
 const LEDGER = "/practitioner/billing";
@@ -50,16 +51,19 @@ export async function remindCharge(chargeId: string, formData: FormData) {
   if (charge && charge.status === "DUE") {
     const client = await prisma.user.findUnique({
       where: { id: charge.clientId },
-      select: { email: true, name: true },
+      select: { email: true, name: true, locale: true },
     });
     if (client?.email) {
-      await sendEmail({
-        to: client.email,
-        subject: "A gentle note about your session",
-        text:
-          `Hi${client.name ? ` ${client.name.split(/\s+/)[0]}` : ""},\n\n` +
-          `Whenever you're ready, your ${charge.description.toLowerCase()} (${formatMoney(charge.amountCents, charge.currency)}) can be settled right in your space — the "Sessions" page has a button for it.\n\n` +
-          `No rush, and see you soon.\nValentina`,
+      // AMD-05 — the reminder renders in the client's language; C13-PKG §9 —
+      // lastRemindedAt recorded so nothing double-nudges.
+      const mail = paymentReminderEmail(pickLocale(client.locale), {
+        description: charge.description,
+        amount: formatMoney(charge.amountCents, charge.currency),
+      });
+      await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
+      await prisma.charge.update({
+        where: { id: charge.id },
+        data: { lastRemindedAt: new Date() },
       });
       console.log(`[billing] reminder charge=${charge.id}`);
     }
@@ -75,7 +79,9 @@ export async function billAppointment(appointmentId: string, formData: FormData)
   const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
   if (appt) {
     await createChargeForAppointment(appt);
-    const created = await prisma.charge.findUnique({ where: { appointmentId } });
+    const created = await prisma.charge.findUnique({
+      where: { appointmentId_kind: { appointmentId, kind: "SESSION" } },
+    });
     if (!created) redirect(`${back}?billing=norate`);
   }
   revalidatePath(back);

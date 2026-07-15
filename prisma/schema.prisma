@@ -19,9 +19,14 @@ model User {
   passwordHash String?
   role         Role       @default(CLIENT)
   active       Boolean    @default(true) // deactivation gate for login
+  locale       String     @default("en") // AMD-05 — UI chrome + client-facing AI + email ("en" | "es")
+  sessionVersion Int      @default(0) // AMD-05 B2 — stamped into the JWT; bump revokes all sessions
+  notifyPrefs  Json? // AMD-05 — per-kind email prefs (e.g. {"booking":true,"messages":true,"quietStart":22,"quietEnd":7})
   consentAt    DateTime? // legacy account consent (kept for back-compat; AMENDMENT-01)
   aiConsentAt  DateTime? // legacy AI-review opt-in — folded into unified consent (AMENDMENT-01)
   consentGrants ConsentGrant[]
+  emailChanges EmailChangeRequest[]
+  deletionRequests DeletionRequest[]
   entries      LogEntry[]
   assignments  Assignment[]  @relation("ClientAssignments")
   record       RecordItem[]  @relation("ClientRecord")
@@ -54,6 +59,37 @@ model ConsentGrant {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, version])
+}
+
+// AMD-05 B2 — verified email change. The address switches ONLY when the link
+// sent to the NEW address is confirmed; the old address is notified on request
+// (account-takeover tripwire). Tokens stored hashed, single-use, expiring.
+model EmailChangeRequest {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newEmail   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// AMD-05 B3 — "request deletion" is a REQUEST, not a self-serve nuke: it opens
+// a flagged task for the practitioner and gets honored on a defined timeline.
+model DeletionRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note        String?
+  status      String    @default("OPEN") // OPEN | ACKNOWLEDGED | CLOSED
+  handledById String?
+  handledAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, createdAt])
 }
 
 // C17 — The Deepening. After a reflection is kept, an async safety-first pass
@@ -249,6 +285,9 @@ model ClientProfile {
   birthDate        DateTime? // civil date, stored midnight UTC
   birthTime        String? // "HH:MM" local; exact if known
   birthTimeUnknown Boolean   @default(false)
+  birthTimePrecision String? // AMD-05 B5.3 — EXACT | APPROXIMATE | UNKNOWN (null = legacy, derive from birthTimeUnknown)
+  paymentRemindersMuted Boolean @default(false) // C13-PKG §9 — per-client auto-reminder mute
+  renewalMessagesMuted  Boolean @default(false) // C13-PKG §6 — suppress the automatic client renewal message
   birthPlace       String? // as entered by the client
   birthLat         Float? // geocoded
   birthLng         Float?
@@ -467,6 +506,56 @@ enum ChargeStatus {
   REFUNDED
   WAIVED
   CANCELED
+  COVERED // C13-PKG — covered by a package credit; no money due for this session
+}
+
+// C13-PACKAGES — session packages with an append-only credit ledger. Counters
+// are DERIVED, never stored: used = CONSUMED, reserved = RESERVED,
+// available = sessionsTotal − used − reserved. The ledger decides.
+enum PackageStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  REFUNDED
+}
+
+enum CreditState {
+  RESERVED
+  CONSUMED
+  RELEASED
+}
+
+model Package {
+  id                  String        @id @default(cuid())
+  clientId            String
+  priceBookId         String // the 3/6/9 SKU
+  sessionsTotal       Int
+  status              PackageStatus @default(ACTIVE)
+  chargeId            String        @unique // the payment that bought it
+  purchasedAt         DateTime      @default(now())
+  expiresAt           DateTime? // policy — hers (C13-PKG §12)
+  lastSessionNoticeAt DateTime? // "next session is her last" notice sent (dedup)
+  completedNoticeAt   DateTime? // completion notices sent (dedup)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  credits             SessionCredit[]
+
+  @@index([clientId, status])
+}
+
+model SessionCredit {
+  id            String      @id @default(cuid())
+  packageId     String
+  package       Package     @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  appointmentId String      @unique // the session it covers
+  state         CreditState @default(RESERVED)
+  reservedAt    DateTime    @default(now())
+  consumedAt    DateTime?
+  releasedAt    DateTime?
+  reason        String? // COMPLETED | LATE_CANCEL | NO_SHOW | MANUAL | CANCELLED
+  actorId       String? // who caused the transition (attributable)
+
+  @@index([packageId, state])
 }
 
 model PriceBook {
@@ -484,7 +573,9 @@ model PriceBook {
 model Charge {
   id              String       @id @default(cuid())
   clientId        String
-  appointmentId   String?      @unique // the session it bills (null for custom)
+  appointmentId   String? // the session it bills (null for custom/package charges)
+  kind            String       @default("SESSION") // SESSION | PACKAGE | LATE_FEE | CUSTOM
+  packageId       String? // C13-PKG — the package that covered this session
   priceBookId     String?
   description     String
   amountCents     Int
@@ -493,12 +584,18 @@ model Charge {
   dueAt           DateTime?
   paidAt          DateTime?
   paidVia         String? // "portal-card" | "in-person" | "square-external" | "waived"
+  feeReason       String? // C10-POLICY — LATE_RESCHEDULE | LATE_CANCEL | NO_SHOW
+  lastRemindedAt  DateTime? // C13-PKG §9 — no accidental double-nudging
+  remindCount     Int          @default(0) // auto-reminders: dueAt, +7d, stop
   squarePaymentId String?      @unique
-  squareInvoiceId String?
+  squareInvoiceId String?      @unique
   lastActionById  String? // who moved the status (audit)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  // One charge per appointment per kind — a session bill and a late fee can
+  // coexist; a late fee can never stack twice on the same appointment.
+  @@unique([appointmentId, kind])
   @@index([clientId, status])
   @@index([status, dueAt])
 }
@@ -534,6 +631,8 @@ model Worksheet {
   active      Boolean               @default(true)
   isIntake    Boolean               @default(false) // the practice intake (C11) — at most one
   isSpiral    Boolean               @default(false) // the values-spiral assessment (C12) — at most one
+  locale          String            @default("en") // AMD-05 A5 — content language
+  translationOfId String? // AMD-05 A5 — sibling locale version; serve by preference, fall back to origin
   createdById String
   sourceNote  String? // where the idea came from (practitioner's own note)
   createdAt   DateTime              @default(now())
@@ -588,6 +687,8 @@ model Course {
   description String?
   coverKey    String? // object-storage key (upload deferred)
   status      CourseStatus @default(DRAFT)
+  locale          String   @default("en") // AMD-05 A5 — content language
+  translationOfId String? // AMD-05 A5 — sibling locale version
   createdById String
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -693,6 +794,7 @@ model RecordItem {
   tags       String[] // normalized theme tags
   sourceType String // "LogEntry" | "PromptResponse" | "WorksheetResponse" | "LessonProgress"
   sourceId   String // reference-by-convention to the detail row
+  detectedLanguage String? // AMD-05 A2 — optional signal ("en" | "es" | "mixed"); never a gate
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 
@@ -719,6 +821,8 @@ model Prompt {
   title       String
   body        String // the prompt / exercise text
   active      Boolean      @default(true) // archive without deleting
+  locale          String   @default("en") // AMD-05 A5 — content language
+  translationOfId String? // AMD-05 A5 — sibling locale version
   createdById String // practitioner
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
@@ -849,7 +953,10 @@ model SchedulingConfig {
   bufferMinutes     Int    @default(10)
   minNoticeHours    Int    @default(12)
   maxAdvanceDays    Int    @default(60)
-  cancelCutoffHours Int    @default(24)
+  cancelCutoffHours Int    @default(24) // C10-POLICY — the fee boundary (>= cutoff is free)
+  lateFeeCents      Int    @default(5000) // C10-POLICY — the $50; hers to change
+  lateFeeAutoApply  Boolean @default(true) // C10-POLICY — auto-create the fee, or prompt her each time
+  noShowConsumesCredit Boolean @default(false) // C10-POLICY §5 — stricter alternative, shipped off
   discoveryMinutes  Int    @default(20) // C18 — free discovery call length
   discoveryVideoUrl String? // C18 — standing room for discovery calls (falls back to defaultVideoUrl)
   defaultVideoUrl   String? // standing room link used when an appointment has none

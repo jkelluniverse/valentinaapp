@@ -1,0 +1,203 @@
+// AMD-05 — transactional email in the recipient's language. Client-facing
+// emails render from User.locale; practitioner emails stay in her language.
+// Neutral Latin American Spanish (es-419), tú register (draft pending
+// Valentina's voice pass — AMD-05 flag E1/E2).
+
+export type Locale = "en" | "es";
+
+export function pickLocale(value?: string | null): Locale {
+  return value === "es" ? "es" : "en";
+}
+
+type Mail = { subject: string; text: string };
+
+// One line that prevents most late fees (C10-POLICY §2, expectation-setting).
+export const RESCHEDULE_LINE: Record<Locale, string> = {
+  en: "Life happens — you can reschedule free up to 24 hours before your session.",
+  es: "La vida pasa — puedes reprogramar sin costo hasta 24 horas antes de tu sesión.",
+};
+
+export function sessionEmail(
+  kind: "booked" | "rescheduled" | "cancelled",
+  locale: Locale,
+  v: { when: string; videoUrl?: string | null },
+): Mail {
+  if (locale === "es") {
+    if (kind === "cancelled") {
+      return {
+        subject: `Tu sesión del ${v.when} fue cancelada`,
+        text: `Tu sesión del ${v.when} ha sido cancelada.`,
+      };
+    }
+    return {
+      subject:
+        kind === "booked"
+          ? `Tu sesión está confirmada — ${v.when}`
+          : `Tu sesión fue actualizada — ${v.when}`,
+      text:
+        `Tu sesión queda para el ${v.when}.` +
+        (v.videoUrl ? `\n\nÚnete aquí a la hora acordada: ${v.videoUrl}` : "") +
+        `\n\n${RESCHEDULE_LINE.es}` +
+        `\n\nLa invitación adjunta la agrega a tu calendario.`,
+    };
+  }
+  if (kind === "cancelled") {
+    return {
+      subject: `Your session on ${v.when} was cancelled`,
+      text: `Your session on ${v.when} has been cancelled.`,
+    };
+  }
+  return {
+    subject:
+      kind === "booked"
+        ? `Your session is confirmed — ${v.when}`
+        : `Your session is updated — ${v.when}`,
+    text:
+      `Your session is set for ${v.when}.` +
+      (v.videoUrl ? `\n\nJoin here at the time: ${v.videoUrl}` : "") +
+      `\n\n${RESCHEDULE_LINE.en}` +
+      `\n\nThe attached invite adds it to your calendar.`,
+  };
+}
+
+// C13 §9 — the payment reminder, warm and never a dunning notice.
+export function paymentReminderEmail(
+  locale: Locale,
+  v: { description: string; amount: string },
+): Mail {
+  if (locale === "es") {
+    return {
+      subject: "Una nota amable sobre tu sesión",
+      text:
+        `Hola — una nota breve: hay un pago pendiente de ${v.amount} (${v.description}).\n\n` +
+        `Puedes resolverlo cuando quieras desde tu espacio, en Sesiones.\n\n` +
+        `Si ya lo arreglaste con Valentina, ignora este mensaje con confianza.`,
+    };
+  }
+  return {
+    subject: "A gentle note about your session",
+    text:
+      `Hi — a quick note: there's a payment of ${v.amount} waiting (${v.description}).\n\n` +
+      `You can settle it any time from your space, under Sessions.\n\n` +
+      `If you've already arranged this with Valentina, feel free to ignore this.`,
+  };
+}
+
+// C13-PKG §6 — the renewal moment. A relationship moment, not a subscription
+// lapse: never "your credits expired — buy now."
+export function packageCompletedEmail(
+  locale: Locale,
+  v: { sessionsTotal: number },
+): Mail {
+  if (locale === "es") {
+    return {
+      subject: "Esa fue la última sesión de tu paquete",
+      text:
+        `Acaban de completar las ${v.sessionsTotal} sesiones de tu paquete — un recorrido que vale la pena reconocer.\n\n` +
+        `Cuando estés lista o listo para continuar, en tu espacio (Sesiones → «Continuar nuestro trabajo») ` +
+        `encontrarás las opciones. Sin prisa — este trabajo va a tu ritmo.`,
+    };
+  }
+  return {
+    subject: "That was the last session of your package",
+    text:
+      `You've just completed all ${v.sessionsTotal} sessions of your package — a journey worth pausing to honor.\n\n` +
+      `Whenever you're ready to continue, you'll find the options in your space under Sessions → "Continue our work". ` +
+      `No rush — this work moves at your pace.`,
+  };
+}
+
+// C10-POLICY §6 — the fee, stated plainly once, with its reason.
+export function lateFeeEmail(
+  locale: Locale,
+  v: { amount: string; reason: "LATE_RESCHEDULE" | "LATE_CANCEL" | "NO_SHOW" },
+): Mail {
+  const reasonEn =
+    v.reason === "NO_SHOW"
+      ? "a missed session"
+      : v.reason === "LATE_CANCEL"
+        ? "a cancellation less than 24 hours before your session"
+        : "a reschedule less than 24 hours before your session";
+  const reasonEs =
+    v.reason === "NO_SHOW"
+      ? "una sesión a la que no fue posible asistir"
+      : v.reason === "LATE_CANCEL"
+        ? "una cancelación con menos de 24 horas de anticipación"
+        : "una reprogramación con menos de 24 horas de anticipación";
+  if (locale === "es") {
+    return {
+      subject: "Sobre el cambio de tu sesión",
+      text:
+        `Como la política de la práctica indica, se aplicó un cargo de ${v.amount} por ${reasonEs}.\n\n` +
+        `Puedes resolverlo desde tu espacio, en Sesiones. Si algo urgente ocurrió, escríbele a Valentina — siempre hay espacio para conversar.`,
+    };
+  }
+  return {
+    subject: "About your session change",
+    text:
+      `Per the practice policy, a ${v.amount} fee was applied for ${reasonEn}.\n\n` +
+      `You can settle it from your space under Sessions. If something urgent came up, message Valentina — there's always room for a conversation.`,
+  };
+}
+
+// AMD-05 B2 — verified email change: link to the NEW address…
+export function emailChangeVerifyEmail(locale: Locale, v: { link: string }): Mail {
+  if (locale === "es") {
+    return {
+      subject: "Confirma tu nueva dirección de correo",
+      text:
+        `Pediste cambiar el correo de tu cuenta a esta dirección.\n\n` +
+        `Confírmalo aquí (el enlace vence en 24 horas):\n${v.link}\n\n` +
+        `Si no fuiste tú, ignora este mensaje — nada cambia sin esta confirmación.`,
+    };
+  }
+  return {
+    subject: "Confirm your new email address",
+    text:
+      `You asked to change your account email to this address.\n\n` +
+      `Confirm it here (the link expires in 24 hours):\n${v.link}\n\n` +
+      `If this wasn't you, ignore this message — nothing changes without this confirmation.`,
+  };
+}
+
+// …and the tripwire notice to the OLD address.
+export function emailChangeNoticeEmail(locale: Locale, v: { newEmail: string }): Mail {
+  if (locale === "es") {
+    return {
+      subject: "Se solicitó un cambio de correo en tu cuenta",
+      text:
+        `Alguien pidió cambiar el correo de tu cuenta a ${v.newEmail}.\n\n` +
+        `Si fuiste tú, no necesitas hacer nada — el cambio solo ocurre al confirmar desde la nueva dirección.\n\n` +
+        `Si NO fuiste tú, cambia tu contraseña ahora mismo y avísale a Valentina.`,
+    };
+  }
+  return {
+    subject: "An email change was requested on your account",
+    text:
+      `Someone requested changing your account email to ${v.newEmail}.\n\n` +
+      `If this was you, nothing more is needed — the change only happens when confirmed from the new address.\n\n` +
+      `If this was NOT you, change your password right away and let Valentina know.`,
+  };
+}
+
+// AMD-05 B3 — deletion request acknowledged, with the stated timeline.
+export function deletionRequestAckEmail(locale: Locale): Mail {
+  if (locale === "es") {
+    return {
+      subject: "Recibimos tu solicitud de eliminación",
+      text:
+        `Recibimos tu solicitud de eliminar tu información.\n\n` +
+        `Valentina la revisará contigo directamente — este tipo de decisión merece una conversación humana. ` +
+        `Recibirás una respuesta dentro de los próximos 7 días, y la eliminación se completa dentro de 30 días de confirmarse.\n\n` +
+        `Mientras tanto, puedes descargar una copia de tu información desde Ajustes → Tu registro.`,
+    };
+  }
+  return {
+    subject: "We received your deletion request",
+    text:
+      `We received your request to delete your information.\n\n` +
+      `Valentina will review it with you directly — a decision like this deserves a human conversation. ` +
+      `You'll hear back within 7 days, and deletion completes within 30 days of confirmation.\n\n` +
+      `In the meantime, you can download a copy of your information from Settings → Your record.`,
+  };
+}

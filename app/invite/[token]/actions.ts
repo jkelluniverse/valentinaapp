@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { hashToken } from "@/lib/invites";
 import { recordConsent } from "@/lib/consent";
+import { syncSquareCustomer } from "@/lib/square";
 import { signIn } from "@/auth";
 
 // Accept an invite: validate the token, set a password, record consent, create
@@ -68,6 +69,15 @@ export async function acceptInvite(token: string, formData: FormData) {
       });
     }
   });
+
+  // C13-PKG §2 — mirror the new client into Square at ACCEPTANCE (a real
+  // person now exists; invites that were never accepted create nothing).
+  // Fire-and-forget: Square being down must never break onboarding.
+  const created = await prisma.user.findUnique({
+    where: { email: invite.email },
+    select: { id: true },
+  });
+  if (created) void syncSquareCustomer(created.id).catch(() => undefined);
 
   // Auto sign-in, then land on the client home. signIn throws the redirect.
   await signIn("credentials", { email: invite.email, password, redirectTo: "/space" });

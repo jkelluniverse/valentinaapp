@@ -105,7 +105,7 @@ export function civilWeekday(year: number, month0: number, day: number): number 
 export function formatInZone(
   date: Date,
   timeZone: string,
-  opts: Intl.DateTimeFormatOptions = {
+  opts: Intl.DateTimeFormatOptions & { locale?: string } = {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -113,7 +113,9 @@ export function formatInZone(
     minute: "2-digit",
   },
 ): string {
-  return new Intl.DateTimeFormat("en-US", { ...opts, timeZone }).format(date);
+  // AMD-05 — locale-aware dates ("es-419", neutral Latin American Spanish).
+  const { locale, ...rest } = opts;
+  return new Intl.DateTimeFormat(locale ?? "en-US", { ...rest, timeZone }).format(date);
 }
 
 // Short timezone label (e.g. "EDT") for a given instant, for display next to times.

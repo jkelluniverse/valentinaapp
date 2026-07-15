@@ -44,7 +44,7 @@ export default async function PayChargePage({
     : null;
   const practitioner = await getPractitioner();
   const config = practitioner ? await getOrCreateConfig(practitioner.id) : null;
-  const sq = squarePublicConfig();
+  const sq = await squarePublicConfig();
   const amountLabel = formatMoney(charge.amountCents, charge.currency);
   const boundPay = payChargeWithToken.bind(null, charge.id);
 

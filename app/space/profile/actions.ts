@@ -7,6 +7,7 @@ import { requireClient } from "@/lib/auth-guards";
 import { hasConsent } from "@/lib/consent";
 import { geocodePlace } from "@/lib/geocode";
 import { ensureChart } from "@/lib/human-design";
+import { syncSquareCustomer } from "@/lib/square";
 
 const PATH = "/space/profile";
 
@@ -75,6 +76,10 @@ export async function saveProfile(formData: FormData) {
 
   // Regenerates only when birth inputs actually changed (inputHash).
   const hasChart = await ensureChart(profile);
+
+  // C13-PKG §2 — profile changes enqueue a Square sync (name/phone stay
+  // current on her processor). Fire-and-forget; never blocks the save.
+  void syncSquareCustomer(user.id).catch(() => undefined);
 
   revalidatePath(PATH);
   revalidatePath("/space/design");

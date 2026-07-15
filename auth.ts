@@ -24,7 +24,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return null;
 
-        return { id: user.id, email: user.email, name: user.name, role: user.role };
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          // AMD-05 B2 — stamped into the JWT; a password change bumps the DB
+          // value and every token carrying the old one goes stale.
+          sessionVersion: user.sessionVersion,
+        } as never;
       },
     }),
   ],

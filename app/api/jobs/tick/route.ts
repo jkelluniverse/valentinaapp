@@ -1,0 +1,211 @@
+import { NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual, createHash } from "crypto";
+import { prisma } from "@/lib/prisma";
+import { completeAppointment, clientLabel } from "@/lib/appointments";
+import { packageCounters } from "@/lib/packages";
+import { formatMoney } from "@/lib/billing";
+import { sendEmail } from "@/lib/notify";
+import { pickLocale, paymentReminderEmail, packageCompletedEmail } from "@/lib/email-copy";
+
+export const dynamic = "force-dynamic";
+
+// C13-PKG §9 — the scheduler, now required: Railway cron → this one hardened
+// tick. Authenticated (JOBS_SECRET), idempotent, safe to re-run: every step
+// re-derives its work from state and marks what it did, so a double-fire does
+// nothing twice. Each step is isolated — one failure never starves the rest.
+
+const GRACE_MS = 2 * 3_600_000; // auto-complete at endAt + 2h (§5)
+const REMIND_GAP_MS = 7 * 86_400_000; // second nudge +7 days, then stop (§9)
+
+function authorized(req: NextRequest): boolean {
+  const secret = process.env.JOBS_SECRET;
+  if (!secret) return false;
+  const given =
+    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+    req.nextUrl.searchParams.get("secret") ??
+    "";
+  const a = createHash("sha256").update(secret).digest();
+  const b = createHash("sha256").update(given).digest();
+  return timingSafeEqual(a, b);
+}
+
+export async function POST(req: NextRequest) {
+  return handle(req);
+}
+export async function GET(req: NextRequest) {
+  return handle(req);
+}
+
+async function handle(req: NextRequest) {
+  if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const now = new Date();
+  const report: Record<string, number | string> = {};
+
+  // 1. Auto-complete past sessions (§5): SCHEDULED, endAt + 2h grace elapsed.
+  //    Completion consumes the reserved credit; her override stays one tap.
+  try {
+    const due = await prisma.appointment.findMany({
+      where: {
+        status: "SCHEDULED",
+        kind: "SESSION",
+        clientId: { not: null },
+        endAt: { lt: new Date(now.getTime() - GRACE_MS) },
+      },
+      select: { id: true },
+      take: 200,
+    });
+    let done = 0;
+    for (const a of due) {
+      const r = await completeAppointment(a.id, "system-autocomplete");
+      if (r.ok) done++;
+    }
+    report.autoCompleted = done;
+  } catch (e) {
+    report.autoCompleted = "error";
+    console.error("[tick] auto-complete failed", e instanceof Error ? e.message : "");
+  }
+
+  // 2. Renewal moment #1 (§6): the practitioner hears BEFORE the last session —
+  //    the renewal conversation belongs in the room.
+  try {
+    const practitioner = await prisma.user.findFirst({
+      where: { role: "PRACTITIONER" },
+      select: { id: true, email: true },
+    });
+    let notices = 0;
+    if (practitioner?.email) {
+      const active = await prisma.package.findMany({
+        where: { status: "ACTIVE", lastSessionNoticeAt: null },
+        include: { credits: { select: { state: true } } },
+      });
+      for (const pkg of active) {
+        const c = packageCounters(pkg);
+        // Fully booked out and one session away from the end: the next
+        // (or currently reserved last) session is the final one.
+        if (c.available === 0 && c.reserved > 0 && c.used + c.reserved >= pkg.sessionsTotal) {
+          const client = await prisma.user.findUnique({
+            where: { id: pkg.clientId },
+            select: { name: true, email: true },
+          });
+          if (!client) continue;
+          await sendEmail({
+            to: practitioner.email,
+            subject: `${clientLabel(client)}'s next session is the last of ${pkg.sessionsTotal}`,
+            text:
+              `${clientLabel(client)} has one session left on the ${pkg.sessionsTotal}-session package.\n\n` +
+              `If continuing feels right, the renewal conversation belongs in the room — ` +
+              `you'll find Send renewal and Create invoice on their Billing tab afterwards.`,
+          });
+          await prisma.package.update({
+            where: { id: pkg.id },
+            data: { lastSessionNoticeAt: now },
+          });
+          notices++;
+        }
+      }
+    }
+    report.lastSessionNotices = notices;
+  } catch (e) {
+    report.lastSessionNotices = "error";
+    console.error("[tick] renewal notice failed", e instanceof Error ? e.message : "");
+  }
+
+  // 3. Renewal moment #2 (§6): package completed — tell her, and (warmly,
+  //    suppressibly, in their language) the client. Never dunning.
+  try {
+    const practitioner = await prisma.user.findFirst({
+      where: { role: "PRACTITIONER" },
+      select: { email: true },
+    });
+    const completed = await prisma.package.findMany({
+      where: { status: "COMPLETED", completedNoticeAt: null },
+    });
+    let notices = 0;
+    for (const pkg of completed) {
+      const client = await prisma.user.findUnique({
+        where: { id: pkg.clientId },
+        select: { name: true, email: true, locale: true, profile: { select: { renewalMessagesMuted: true } } },
+      });
+      if (!client) continue;
+      if (practitioner?.email) {
+        await sendEmail({
+          to: practitioner.email,
+          subject: `${clientLabel(client)} has completed the ${pkg.sessionsTotal}-session package`,
+          text:
+            `${clientLabel(client)} just completed all ${pkg.sessionsTotal} sessions.\n\n` +
+            `From their Billing tab you can send a renewal note or create an invoice — ` +
+            `or let the conversation happen in person. Your call, always.`,
+        });
+      }
+      if (client.email && !client.profile?.renewalMessagesMuted) {
+        const mail = packageCompletedEmail(pickLocale(client.locale), {
+          sessionsTotal: pkg.sessionsTotal,
+        });
+        await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
+      }
+      await prisma.package.update({
+        where: { id: pkg.id },
+        data: { completedNoticeAt: now },
+      });
+      notices++;
+    }
+    report.completionNotices = notices;
+  } catch (e) {
+    report.completionNotices = "error";
+    console.error("[tick] completion notice failed", e instanceof Error ? e.message : "");
+  }
+
+  // 4. Package expiry (§12 — policy is hers; expiresAt only set if she uses it).
+  try {
+    const expired = await prisma.package.updateMany({
+      where: { status: "ACTIVE", expiresAt: { not: null, lt: now } },
+      data: { status: "EXPIRED" },
+    });
+    report.expired = expired.count;
+  } catch {
+    report.expired = "error";
+  }
+
+  // 5. Auto payment reminders (§9): opt-in, her tone, never a cascade —
+  //    at dueAt, once more +7 days, then stop. Per-client mute respected.
+  try {
+    const setting = await prisma.practiceSetting.findUnique({ where: { key: "autoPayReminders" } });
+    let sent = 0;
+    if (setting?.value === "on") {
+      const candidates = await prisma.charge.findMany({
+        where: {
+          status: "DUE",
+          dueAt: { lt: now },
+          remindCount: { lt: 2 },
+        },
+        take: 100,
+      });
+      for (const charge of candidates) {
+        if (charge.remindCount === 1 && charge.lastRemindedAt &&
+            now.getTime() - charge.lastRemindedAt.getTime() < REMIND_GAP_MS) continue;
+        const client = await prisma.user.findUnique({
+          where: { id: charge.clientId },
+          select: { email: true, locale: true, profile: { select: { paymentRemindersMuted: true } } },
+        });
+        if (!client?.email || client.profile?.paymentRemindersMuted) continue;
+        const mail = paymentReminderEmail(pickLocale(client.locale), {
+          description: charge.description,
+          amount: formatMoney(charge.amountCents, charge.currency),
+        });
+        await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
+        await prisma.charge.update({
+          where: { id: charge.id },
+          data: { lastRemindedAt: now, remindCount: { increment: 1 } },
+        });
+        sent++;
+      }
+    }
+    report.remindersSent = sent;
+  } catch (e) {
+    report.remindersSent = "error";
+    console.error("[tick] reminders failed", e instanceof Error ? e.message : "");
+  }
+
+  console.log(`[tick] ${JSON.stringify(report)}`);
+  return NextResponse.json({ ok: true, at: now.toISOString(), ...report });
+}
