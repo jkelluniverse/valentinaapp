@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { readFileSync, readdirSync, existsSync } from "fs";
 import { join } from "path";
 import { createHash, randomBytes } from "crypto";
+import { isCrisisSignal } from "../../lib/message-safety";
 
 // FIXTURES-SPEC §9 — the seed. Reads the committed briefs + generated content and
 // writes the roster to the DB. Deterministic (fixed NOW anchor, hashed
@@ -102,7 +103,7 @@ async function main() {
       continue;
     }
 
-    const active = b.lifecycle !== "deactivated";
+    const active = !isDeactivated; // Ruth (closed) → cannot log in
     const months = b.arc?.months ?? 3;
     const u = await prisma.user.upsert({
       where: { email },
@@ -169,7 +170,9 @@ async function main() {
         create: { clientId: u.id, practitionerId: pw.id, lastMessageAt: at(Math.max(...gen.messages.map((m) => m.day))) },
       });
       for (const m of gen.messages) {
-        const crisis = /\b(kill myself|end it|not worth living|can't keep going|pointless|no reason to)\b/i.test(m.body);
+        // Use the app's real crisis detector so the safety path is exercised
+        // exactly as production would flag it (§7).
+        const crisis = m.from === "CLIENT" && isCrisisSignal(m.body);
         if (crisis) crises++;
         await prisma.message.create({
           data: {
@@ -184,7 +187,7 @@ async function main() {
 
     // Margins notes (C14) — Valentina's voice, practitioner-authored.
     for (const n of gen.notes ?? []) {
-      await prisma.note.create({ data: { clientId: u.id, authorId: pw.id, body: n.body, createdAt: at(n.day), status: "ACTIVE" } as never });
+      await prisma.note.create({ data: { clientId: u.id, authorId: pw.id, body: n.body, createdAt: at(n.day), status: "OPEN", depth: "NOTE" } as never });
       notes++;
     }
 
