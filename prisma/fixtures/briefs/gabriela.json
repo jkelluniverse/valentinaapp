@@ -1,0 +1,63 @@
+{
+  "id": "gabriela",
+  "identity": {
+    "name": "Gabriela \"Gabi\" Amaya",
+    "age": 33,
+    "pronouns": "she/her",
+    "lives": "Ocoee, Orlando, FL",
+    "work": "dancer / dance instructor",
+    "email": "gabriela@fixture.test",
+    "language": "en, ES at emotional peaks"
+  },
+  "birth": {
+    "date": "1992-11-20",
+    "time": "04:15",
+    "precision": "EXACT",
+    "place": "Medellín, Colombia",
+    "tz_expect": "America/Bogota — Colombia observed DST ONLY from May 1992 to Feb 1993, so 1992-11-20 falls INSIDE that era and resolves to UTC-4 (DST), not the usual UTC-5. An engine assuming 'Colombia never has DST' computes her chart an hour off. Get this one and James right and the engine is trustworthy."
+  },
+  "arrived": {
+    "presenting": "brilliant on stage, exhausting to herself off it; says people find her 'a lot' and she has spent years dialing herself down to keep them, then resenting the smaller version she becomes",
+    "in_her_words": "On stage I'm exactly the right amount. The second the music stops I'm too much again — too loud, too fast, too feelingful. So I shrink, and then I hate her, the small one."
+  },
+  "psyche": {
+    "wounds": ["I-am-too-much", "unsafe-to-be-seen"],
+    "beliefs": ["my full size drives people away", "I have to earn the right to take up space", "if they really saw all of me they'd leave"],
+    "protections": ["performing so the bigness is 'allowed'", "self-editing in real time", "pre-emptively mocking herself before others can"],
+    "patterns": ["dazzles then apologizes for dazzling", "reads a flicker of a face as rejection", "over-gives energy then withdraws to recover"],
+    "resources": ["the studio, where her fullness is the point", "a company of dancers who love her volume", "a body she can always come home to"],
+    "origin": "the vivid child of a contained household, told to lower her voice at the table; learned her brightness was a disturbance to be managed"
+  },
+  "first_map": {
+    "self_named": [
+      "I-am-too-much",
+      "performing so the bigness is allowed",
+      "self-editing in real time",
+      "pre-emptively mocking herself",
+      "reading faces for rejection",
+      "over-give then withdraw",
+      "the studio as home",
+      "resenting the small version of herself",
+      "'lower your voice at the table'"
+    ],
+    "unaware_of": ["unsafe-to-be-seen", "if they really saw all of me they'd leave"]
+  },
+  "arc": {
+    "months": 5,
+    "stage": 2,
+    "beats": [
+      { "m": 1, "note": "arrives strikingly self-aware — names most of her own patterns in the intake, a dense 9-star First Map; the gap to fill is small but pointed" },
+      { "m": 2, "note": "notices the one node she named around but not through: it isn't only being 'too much,' it's not trusting anyone to keep looking" },
+      { "m": 3, "note": "slips into Spanish describing the dinner table — 'baja la voz, Gabi' — the emotional core surfaces in her first language" },
+      { "m": 5, "note": "lets a friend see her mid-meltdown and isn't left; begins separating 'big' from 'unsafe'" }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 14,
+    "messages_per_month": 8,
+    "worksheets": 4,
+    "course": "The Fear of Being Seen (65%)",
+    "cadence": "heavy — writes vividly and often; narrow awareness gap (she names nine of her own stars), so the extraction should mostly confirm and connect rather than reveal"
+  },
+  "voice": "kinetic, vivid, funny, a little breathless; long expressive runs that undercut themselves with a joke; drops into Spanish exactly when the feeling is too big to keep at arm's length in English"
+}

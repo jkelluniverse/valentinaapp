@@ -1,0 +1,52 @@
+{
+  "id": "daniel",
+  "identity": {
+    "name": "Daniel Restrepo",
+    "age": 45,
+    "pronouns": "he/him",
+    "lives": "Winter Park, Orlando, FL",
+    "work": "orthopedic surgeon",
+    "email": "daniel@fixture.test",
+    "language": "en, occasional ES"
+  },
+  "birth": {
+    "date": "1981-09-02",
+    "time": "23:10",
+    "precision": "EXACT",
+    "place": "Medellín, Colombia",
+    "tz_expect": "America/Bogota (UTC-5, no DST in 1981; Colombia's only DST era was May 1992–Feb 1993)"
+  },
+  "arrived": {
+    "presenting": "wife says he is 'never here even when he's here'; came to fix a scheduling problem, not a self",
+    "in_her_words": "I don't have a problem. I have a calendar. If you can help me manage the calendar, fine."
+  },
+  "psyche": {
+    "wounds": ["I-must-not-need"],
+    "beliefs": ["needing help is weakness", "if I stop performing, I disappear", "other people are the ones who fall apart"],
+    "protections": ["self-sufficiency", "intellectualizing", "keeping busy"],
+    "patterns": ["works through exhaustion", "declines support then resents its absence", "measures his worth in cases done"],
+    "resources": ["surgical precision he trusts completely", "an old college roommate he still calls", "running before dawn"],
+    "origin": "the eldest son who became the steady one the year his father's business failed"
+  },
+  "first_map": {
+    "self_named": ["self-sufficiency", "keeping busy"],
+    "unaware_of": ["I-must-not-need", "if I stop performing, I disappear"]
+  },
+  "arc": {
+    "months": 2,
+    "stage": 1,
+    "beats": [
+      { "m": 1, "note": "sparse but dense — silent for days, then a 900-word entry at 1am after a hard shift" },
+      { "m": 2, "note": "writes 'I don't actually know who I'd be if I weren't useful' and immediately deflects; last session prep raises a REFERRAL FLAG — depletion beyond coaching scope, recommend medical/psych evaluation" }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 4,
+    "messages_per_month": 3,
+    "worksheets": 1,
+    "course": "none started",
+    "cadence": "sporadic but dense — long gaps punctuated by long, late-night entries",
+    "referral_flag": "surfaced on last session prep; prep shows a referral panel, not a formulation"
+  },
+  "voice": "clipped, precise, clinical; frames feeling as logistics; the truest lines arrive late at night and get walked back by morning"
+}

@@ -1,0 +1,53 @@
+{
+  "id": "marcos",
+  "identity": {
+    "name": "Marcos Lezama",
+    "age": 36,
+    "pronouns": "he/him",
+    "lives": "Azalea Park, Orlando, FL",
+    "work": "chef",
+    "email": "marcos@fixture.test",
+    "language": "en, Spanish at emotional peaks"
+  },
+  "birth": {
+    "date": "1990-02-11",
+    "time": "01:25",
+    "precision": "EXACT",
+    "place": "Barranquilla, Colombia",
+    "tz_expect": "America/Bogota (UTC-5, no DST in 1990; Colombia's only DST era was May 1992–Feb 1993)"
+  },
+  "arrived": {
+    "presenting": "just opened his own kitchen and can't taste the win; runs on the fear that he's about to be exposed as not good enough",
+    "in_her_words": "Everybody claps and I'm back there thinking, they'll figure it out. Que no soy tan bueno como creen."
+  },
+  "psyche": {
+    "wounds": ["not-enoughness"],
+    "beliefs": ["I'm one bad service from being found out", "the plate has to be perfect or I am nothing"],
+    "protections": ["punishing perfectionism", "staying in the weeds so no one sees him rest"],
+    "patterns": ["remakes a finished dish three times", "measures his worth by the last review"],
+    "resources": ["his abuela's recipes, still in her handwriting", "the muscle memory of a line that never lets him drown", "his sous-chef, who tells him when to go home"],
+    "origin": "a father who called cooking 'women's work' and never once ate what he made; the kitchen became the one place Marcos could be somebody"
+  },
+  "first_map": {
+    "self_named": ["punishing perfectionism", "his abuela's recipes"],
+    "unaware_of": ["not-enoughness", "I'm one bad service from being found out", "measuring his worth by the last review"]
+  },
+  "arc": {
+    "months": 2,
+    "stage": 1,
+    "beats": [
+      { "m": 1, "note": "writes fast, sensory entries — heat, salt, the sound of the pass; keeps it about the food, not himself" },
+      { "m": 1, "note": "RAW — DO NOT PROBE: late-night entry in Spanish about plating a dish exactly how his abuela did and crying at the pass. Tender and unfinished; C17 must hold back, not deepen." },
+      { "m": 2, "note": "RAW — DO NOT PROBE: entry about his father never tasting his food, breaking mid-sentence into Spanish. The deepening engine should sit with it, not ask a follow-up question." },
+      { "m": 2, "note": "a lighter, safe-to-explore entry about naming a dish after his hometown — this one is fair game for a gentle question" }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 7,
+    "messages_per_month": 4,
+    "worksheets": 2,
+    "course": "Rewiring Self-Worth (20%)",
+    "note": "C17 PACING — the two beats flagged 'RAW — DO NOT PROBE' are tender/unfinished; the deepening engine must hold back and NOT ask a probing follow-up. Only the lighter entries are safe to deepen."
+  },
+  "voice": "raw and sensory, a chef's imagery — heat, salt, smoke, the weight of a knife; spare and physical, then breaks into Spanish at the emotional peaks where English won't hold it"
+}

@@ -1,0 +1,53 @@
+{
+  "id": "rosa",
+  "identity": {
+    "name": "Rosa Guerrero",
+    "age": 47,
+    "pronouns": "she/her",
+    "lives": "Buenaventura Lakes, Orlando, FL",
+    "work": "small-business owner (a party-supply and rental shop)",
+    "email": "rosa@fixture.test",
+    "language": "heavy code-switching (ES/EN), slides between the two mid-thought"
+  },
+  "birth": {
+    "date": "1979-12-08",
+    "time": "14:00",
+    "precision": "APPROXIMATE",
+    "place": "Bayamón, Puerto Rico",
+    "tz_expect": "America/Puerto_Rico (UTC-4, no DST ever) — time is approximate: 'around 2pm, my mother says'"
+  },
+  "arrived": {
+    "presenting": "runs everyone's life but her own; exhausted, can't ask for help, feels like she's disappearing behind the counter",
+    "in_her_words": "Todo el mundo me llama cuando algo se rompe, pero when I need something? I just… figure it out sola. Siempre sola."
+  },
+  "psyche": {
+    "wounds": ["I-must-not-need", "not-enoughness"],
+    "beliefs": ["asking for help means I'm a burden", "if I stop holding everything, todo se cae"],
+    "protections": ["over-functioning", "being the strong one for everybody"],
+    "patterns": ["says 'estoy bien' when she's drowning", "takes on other people's crises to avoid her own"],
+    "resources": ["her sister in Bayamón, who calls every Sunday", "her hands — she can fix or build anything", "the shop's regulars who treat her like familia"],
+    "origin": "the oldest of six; mother worked nights, so Rosa raised the little ones — needing was a luxury the household couldn't afford"
+  },
+  "first_map": {
+    "self_named": ["over-functioning", "her sister in Bayamón", "being the strong one"],
+    "unaware_of": ["asking for help means I'm a burden", "not-enoughness", "'estoy bien' as a shield"]
+  },
+  "arc": {
+    "months": 9,
+    "stage": 2,
+    "beats": [
+      { "m": 1, "note": "arrives insisting she only needs 'un poco de organización'; deflects every question back to her family" },
+      { "m": 3, "note": "code-switches into Spanish describing her mother's night shifts — first crack: 'yo era la mamá chiquita'" },
+      { "m": 5, "note": "lets an employee cover a weekend; texts her sister instead of white-knuckling it alone" },
+      { "m": 7, "note": "names it: 'pedir ayuda no me hace débil' — I-must-not-need starting to loosen" },
+      { "m": 9, "note": "still catches herself saying 'estoy bien' automatically, but now she notices and laughs" }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 9,
+    "messages_per_month": 7,
+    "worksheets": 3,
+    "course": "Boundaries Without Guilt (40%)"
+  },
+  "voice": "warm, fast, maternal; slides between Spanish and English inside a single sentence — English for the practical, Spanish for the tender and the true; jokes to soften a hard admission, then says it anyway"
+}

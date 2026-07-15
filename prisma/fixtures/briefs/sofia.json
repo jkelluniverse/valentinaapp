@@ -1,0 +1,54 @@
+{
+  "id": "sofia",
+  "identity": {
+    "name": "Sofía Betancourt",
+    "age": 29,
+    "pronouns": "she/her",
+    "lives": "Kissimmee, Orlando, FL",
+    "work": "ICU nurse",
+    "email": "sofia@fixture.test",
+    "language": "en, occasional ES"
+  },
+  "birth": {
+    "date": "1997-05-19",
+    "time": "14:05",
+    "precision": "EXACT",
+    "place": "Caracas, Venezuela",
+    "tz_expect": "America/Caracas (UTC-4 in 1997, no DST; note Venezuela's UTC-4:30 eras were pre-1965 and again 2007–2016 — 1997 falls in the UTC-4 stretch)"
+  },
+  "arrived": {
+    "presenting": "feels 'too much' for everyone; either over-gives at the bedside or goes numb; can't tell whether she's overreacting or the world really is unsafe",
+    "in_her_words": "I hold everyone at work all day and then I get home and there's nobody who can hold me, so I just… turn it off."
+  },
+  "psyche": {
+    "wounds": ["unsafe-to-be-seen", "I-am-too-much"],
+    "beliefs": ["the world isn't safe", "my feelings are dangerous to other people", "if they see how much I feel, they'll leave"],
+    "protections": ["hypervigilance", "emotional shutdown", "caretaking others to stay useful and unseen"],
+    "patterns": ["over-functions in crisis then crashes alone", "apologizes for crying", "goes quiet exactly when overwhelmed"],
+    "resources": ["fierce competence under pressure", "a younger sister who thinks she hung the moon", "the drive home with the windows down"],
+    "origin": "grew up translating adult panic in a household where big feeling meant danger arriving"
+  },
+  "first_map": {
+    "self_named": ["hypervigilance", "the world isn't safe", "I-am-too-much"],
+    "unaware_of": ["unsafe-to-be-seen", "caretaking others to stay useful and unseen"]
+  },
+  "arc": {
+    "months": 8,
+    "stage": 2,
+    "beats": [
+      { "m": 1, "note": "arrives heavy and articulate; journals nightly, often about patients rather than herself" },
+      { "m": 3, "note": "names the shutdown for what it is — 'I don't go calm, I go gone'" },
+      { "m": 5, "note": "a bad code at work; writes the most honest entry yet about feeling too much" },
+      { "m": 6, "note": "GOES SILENT — no reflections, no messages for 3 weeks (INACTIVITY SIGNAL; triggers a gentle re-engagement nudge, not alarm)" },
+      { "m": 7, "note": "returns quietly: 'I disappeared. That's the pattern, isn't it.'" }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 11,
+    "messages_per_month": 5,
+    "worksheets": 3,
+    "course": "Nervous System First Aid (45%)",
+    "inactivity_signal": "heavy engagement through month 5, then a 3-week silence in month 6 — the fixture that verifies the dormancy/re-engagement path"
+  },
+  "voice": "warm and vivid, then abruptly flat when it gets close; downplays her own weather; slips into Spanish for tenderness and for grief"
+}
