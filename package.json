@@ -14,6 +14,7 @@
     "fixtures:seed:staging": "tsx prisma/fixtures/seed-staging.ts",
     "fixtures:map": "tsx prisma/fixtures/map.ts",
     "fixtures:verify:kfloor": "tsx prisma/fixtures/kfloor-verify.ts",
+    "verify:packages": "tsx prisma/fixtures/packages-verify.ts",
     "db:backfill": "tsx prisma/backfill-record.ts",
     "e2e:walk": "node e2e/walk.mjs",
     "lint:wall": "node scripts/check-public-wall.mjs",

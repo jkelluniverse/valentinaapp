@@ -50,6 +50,7 @@ export default async function PractitionerLayout({ children }: { children: React
     { href: "/practitioner/patterns", label: "Pattern Library", hint: "Your method's vocabulary" },
     { href: "/practitioner/billing", label: "Billing", hint: "The ledger" },
     { href: "/practitioner/availability", label: "Availability", hint: "Your hours" },
+    { href: "/practitioner/settings", label: "Settings", hint: "Account, language, policy" },
     { href: "/practitioner/search", label: "Search", hint: "Everything, everywhere" },
   ];
 

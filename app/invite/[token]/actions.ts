@@ -49,10 +49,26 @@ export async function acceptInvite(token: string, formData: FormData) {
     });
     // C18 conversion bridge — if this person came in as a lead (matched by
     // email), close the loop: stranger → lead → discovery → invited → client.
+    const leads = await tx.lead.findMany({
+      where: { email: invite.email, status: { notIn: ["CLOSED"] } },
+      select: { id: true },
+    });
     await tx.lead.updateMany({
       where: { email: invite.email, status: { notIn: ["CONVERTED", "CLOSED"] } },
       data: { status: "CONVERTED", convertedUserId: user.id },
     });
+    // C13-PKG §8 — a package invoiced to them as a Lead follows them in:
+    // charges and packages keyed "lead:<id>" re-point to the real account.
+    for (const lead of leads) {
+      await tx.charge.updateMany({
+        where: { clientId: `lead:${lead.id}` },
+        data: { clientId: user.id },
+      });
+      await tx.package.updateMany({
+        where: { clientId: `lead:${lead.id}` },
+        data: { clientId: user.id },
+      });
+    }
     // C11: hand the practice intake (if one is designated) to every new
     // client, so onboarding starts with it waiting in their space.
     const intake = await tx.worksheet.findFirst({
