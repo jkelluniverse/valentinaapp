@@ -1,0 +1,146 @@
+{
+  "reflections": [
+    {
+      "day": -88,
+      "body": "Okay so. Dev took 26 hours to reply to a text that just said 'this weekend?' and by hour 4 I had already run the full simulation: he's bored, he met someone at that climbing gym, this is the polite fade-out. By hour 12 I'd drafted a breezy 'no worries if not!' that was neither breezy nor no-worries. He replied 'sorry, on-call weekend from hell, yes please.' So. The bug was on my end. Logging it.",
+      "mood": 2,
+      "tags": [
+        "texting",
+        "spiral",
+        "dev"
+      ]
+    },
+    {
+      "day": -82,
+      "body": "Debugging note to self: I treat a delayed reply like a stack trace. Something threw an exception, therefore something is broken, therefore find the fault line before it takes the whole thing down. But a slow text isn't an error. It's just a human being who has a job. I know this in the way you know a fact you don't believe.",
+      "mood": 3,
+      "tags": [
+        "patterns",
+        "monitoring"
+      ]
+    },
+    {
+      "day": -74,
+      "body": "Weekly call with Paati. She doesn't text, doesn't 'read receipt,' just picks up Sunday 8pm her time like she's picked up for thirty-one years. No auditioning. She asked what I ate and I nearly cried into the sambar. Cheating a little — this is the one relationship I've never had to earn, so of course it feels safe. The trick is the ones I do think I have to earn.",
+      "mood": 4,
+      "tags": [
+        "paati",
+        "safe",
+        "chennai"
+      ]
+    },
+    {
+      "day": -66,
+      "body": "Group chat blew up at 1am over which one of us would survive a horror movie (consensus: me, because I'd have already left the house on day one). And it landed funny because — yeah. I leave first. I called it 'reading the room' for years. It's not reading. It's pre-committing to the exit so the door doesn't get to close on me first.",
+      "mood": 3,
+      "tags": [
+        "group-chat",
+        "insight",
+        "leaving-first"
+      ]
+    },
+    {
+      "day": -55,
+      "body": "Here's the thing I noticed and it's making me itch: I'm not anxious when Dev and I fight. We haven't fought. I'm anxious because it's GOING WELL. He remembered I hate cilantro. He called just to say goodnight. And my whole nervous system read it as 'the higher you build the further it falls.' Closeness registers as threat. That's — that's a really inconvenient thing to find out about yourself on a Tuesday.",
+      "mood": 2,
+      "tags": [
+        "dev",
+        "fear",
+        "good-thing"
+      ]
+    },
+    {
+      "day": -48,
+      "body": "Named it out loud to Valentina and it came out embarrassingly clean: I'm scared of the good thing. Not the loss — the good. Because good is the setup. Payyi vekkanum-nnu nenaikkiren — like I have to keep a bag half-packed so I'm never the one caught surprised. I've been calling it low-maintenance. 'Oh I'm so easy, I need nothing.' Needing nothing isn't a virtue. It's me disappearing slowly so no one has to do the leaving. Ugh. Caught myself even mid-sentence trying to make that sound cute.",
+      "mood": 2,
+      "tags": [
+        "fear",
+        "low-maintenance",
+        "insight"
+      ]
+    },
+    {
+      "day": -33,
+      "body": "Worksheet on 'the test.' Turns out I do run tests. I go quiet to see if they chase. I under-reply to see if they notice. And when they don't chase perfectly, I file it as proof. It's the most rigged experiment in the world — I designed it to fail so I could be right that people leave. Green-lit my own conclusion before I ran the data. Bad science, Priya.",
+      "mood": 3,
+      "tags": [
+        "testing",
+        "worksheet",
+        "patterns"
+      ]
+    },
+    {
+      "day": -18,
+      "body": "It happened. Dev got quiet for two days — genuinely busy, a launch — and I felt the old script load: withdraw, go cold, get the exit ready. My thumb was on 'hey I think we should slow down.' The pre-emptive dump. And I just... didn't send it. Sat there. Let the wanting-to-leave move through me without obeying it. It was awful. Kadavule it was so uncomfortable. But I stayed.",
+      "mood": 3,
+      "tags": [
+        "dev",
+        "staying",
+        "leaving-first"
+      ]
+    },
+    {
+      "day": -6,
+      "body": "Not a triumph, just a note. The discomfort of staying hasn't gone away — I don't think it goes away yet. But I noticed it's a different kind of hard than leaving. Leaving hurt clean and fast, on my terms, done. Staying hurts slow and open-ended and out of my control. And I hate not being in control. Still here though. Bag's unpacked, or at least — I put a few things back in the drawer.",
+      "mood": 3,
+      "tags": [
+        "staying",
+        "tender",
+        "unfinished"
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "from": "CLIENT",
+      "day": -87,
+      "body": "Hi — signed up mostly because I spent a whole workday half-writing a breakup with someone who was just on-call. I'd like that to be less normal for me, if possible.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -86,
+      "body": "That's a very precise place to start, and I'm glad you're here. I noticed you called it a logistics problem and then laughed. We might come back to what the laugh is protecting. No rush.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -54,
+      "body": "Weird question. Is it a known bug that the anxiety gets LOUDER when things are good? Because that's not in the manual I was handed.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -53,
+      "body": "Not a bug — it's the system working exactly as it was built. If closeness once meant a loss was coming, your body learned to brace when things get warm. We can look at where it learned that. You don't have to defend the observation, it's a good one.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -17,
+      "body": "Update: had the urge to send the 'let's slow down' text and didn't. Feels less like a win and more like I willingly held my hand on a hot stove. Is that the assignment??",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -16,
+      "body": "That's exactly it, and I don't want to oversell it because you'll get suspicious of me. You felt the exit-reflex and didn't obey it. The discomfort you're sitting in is the old alarm going off with no fire behind it. Staying while it rings — that's the whole practice. Well done, Priya.",
+      "unread": false
+    }
+  ],
+  "notes": [
+    {
+      "day": -85,
+      "body": "Intake. Software engineer, razor-sharp, debugs her own feelings in real time — which is a strength and also her best hiding place. Presents an abandonment pattern as a 'logistics problem' and laughs at it before I can. Watch the laugh; it arrives right where the tenderness would. She names abandonment, over-monitoring, and her group chat readily. Two things she cannot yet see: that she leaves first and calls it self-protection, and that her prized 'low-maintenance' is a slow disappearing act. Not naming those yet. Let her find them."
+    },
+    {
+      "day": -50,
+      "body": "Major movement this month, entirely her own: she caught that the anxiety spikes when things are GOOD. First time she's named the fear of the good thing. Tamil started slipping in around it — 'payyi vekkanum,' keeping a bag packed — which for her is the tell that the feeling has outrun the engineering language. That's where the real material is. She also self-corrected 'low-maintenance' as disappearance mid-entry. The unaware-of list is becoming visible to her. Do not rush toward resolution; the wound is only just being seen."
+    },
+    {
+      "day": -15,
+      "body": "She reached the edge of the pre-emptive-withdrawal reflex and did not act on it. Notably she refuses to frame it as a victory — 'hand on a hot stove' — which is honest and correct for where she is. The belief is now visible and articulated but NOT yet loosening; she's tolerating the discomfort of staying without yet trusting it will end well, and control-loss is the sharpest part. Keep the frame gentle and specific. Resource to lean on: the grandmother's weekly call — proof, already in her life, that some bonds don't have to be earned. She hasn't fully connected that this could be possible with Dev too. Let her get there."
+    }
+  ],
+  "id": "priya"
+}
