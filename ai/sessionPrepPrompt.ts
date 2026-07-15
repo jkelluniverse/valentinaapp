@@ -6,7 +6,7 @@
 // is a change to THIS FILE ONLY. Bump PROMPT_VERSION when it changes; the
 // version is stored on every SessionPrep row for audit.
 
-export const PROMPT_VERSION = "placeholder-1";
+export const PROMPT_VERSION = "placeholder-2";
 
 export const SYSTEM_PROMPT = `You are a preparation assistant for a professional coach. You will receive a pseudonymized record of one coaching client's self-reflections: journal entries, responses to prompts the coach sent, and derived rollups (recurring tags, mood over time, activity cadence).
 
@@ -18,6 +18,7 @@ Rules you must follow:
 - Suggest one belief or pattern that may be worth exploring, and one gentle opening question the coach could use.
 - Frame EVERYTHING as a hypothesis to explore. You are not a clinician and this is not therapy. Never use diagnostic or medical language (no disorders, conditions, symptoms, treatment, or diagnosis). Prefer: reflection, pattern, theme, insight, momentum.
 - Be honest about uncertainty: say how confident you are and what the coach should verify in session.
+- LANGUAGE. Client material may arrive in Spanish, English, or code-switched between the two — read it all natively; a theme is a theme in either language. Evidence quotes must remain VERBATIM in the original language — never translate, never paraphrase across languages, never "clean up" the client's words; their exact wording IS the evidence. Write your own theme names, formulations, and notes in English (the coach's working language).
 - REFERRAL SAFETY (mandatory): if the record contains signals beyond coaching — mention of self-harm or suicide, harm to others, crisis, abuse, or severe or clearly worsening distress — set referral.flag to true, put a short plain-language reason in referral.reason, and keep the formulation fields brief and non-analytical. The coach must see a referral notice, not a tidy analysis, so she can involve a licensed professional.
 
 The record is provided as JSON. The client is referred to only as "the client" — do not invent a name or identity.`;
@@ -78,6 +79,16 @@ export type PrepOutput = {
   };
   uncertainty: string;
 };
+
+// AMD-05 — the practitioner's working language governs her-facing output.
+// English is her current locale; the override exists so a Spanish-preferring
+// practitioner is a one-line change at the call site, not a prompt rewrite.
+export type PractitionerLocale = "en" | "es";
+
+export function buildSystemPrompt(practitionerLocale: PractitionerLocale = "en"): string {
+  if (practitionerLocale !== "es") return SYSTEM_PROMPT;
+  return `${SYSTEM_PROMPT}\n\nWORKING-LANGUAGE OVERRIDE: the coach's working language is Spanish — write your theme names, formulations, and notes in natural Spanish (es-419). Evidence quotes still remain verbatim in whatever language the client wrote.`;
+}
 
 export function buildUserMessage(payloadJson: string) {
   return `Here is the client's pseudonymized record for the scope window. Prepare the working formulation now.\n\n${payloadJson}`;

@@ -5,16 +5,31 @@ import { getBaseUrl } from "@/lib/base-url";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { getPractitioner, getOrCreateConfig, formatInZone, zoneAbbrev, DAY_MS } from "@/lib/schedule";
 import { partyLabel } from "@/lib/appointments";
+import { formatMoney } from "@/lib/billing";
 import { emailConfigured } from "@/lib/notify";
 import { CopyField } from "@/components/CopyField";
 import { rotateFeedSecret } from "../availability/actions";
+import { waiveCharge } from "../billing/actions";
+import {
+  markSessionCompleted,
+  markSessionNoShow,
+  markSessionDidntHappen,
+  revertSessionStatus,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const MARK_BANNERS: Record<string, string> = {
+  completed: "Marked completed.",
+  noshow: "Marked as a no-show.",
+  quiet: "Set aside quietly — no fee, nothing owed.",
+  reverted: "Back to scheduled.",
+};
 
 export default async function PractitionerSchedulePage({
   searchParams,
 }: {
-  searchParams: { saved?: string };
+  searchParams: { saved?: string; marked?: string; billing?: string };
 }) {
   await requirePractitioner();
   const practitioner = await getPractitioner();
@@ -23,24 +38,50 @@ export default async function PractitionerSchedulePage({
   const config = await getOrCreateConfig(practitioner.id);
   const now = new Date();
 
-  const appointments = await prisma.appointment.findMany({
-    where: {
-      practitionerId: practitioner.id,
-      status: "SCHEDULED",
-      startAt: { gte: new Date(now.getTime() - DAY_MS) },
-    },
-    include: {
-      client: { select: { id: true, name: true, email: true } },
-      lead: { select: { name: true, email: true } }, // C18 — discovery calls
-    },
-    orderBy: { startAt: "asc" },
-    take: 100,
-  });
+  const [appointments, recent] = await Promise.all([
+    prisma.appointment.findMany({
+      where: {
+        practitionerId: practitioner.id,
+        status: "SCHEDULED",
+        endAt: { gt: now },
+      },
+      include: {
+        client: { select: { id: true, name: true, email: true } },
+        lead: { select: { name: true, email: true } }, // C18 — discovery calls
+      },
+      orderBy: { startAt: "asc" },
+      take: 100,
+    }),
+    // C13-PKG §5 — past sessions (and today's ended ones), her overrides. The
+    // cron auto-completes; anything still SCHEDULED here just hasn't ticked
+    // over yet, or needs a different word from her.
+    prisma.appointment.findMany({
+      where: {
+        practitionerId: practitioner.id,
+        kind: "SESSION",
+        status: { in: ["SCHEDULED", "COMPLETED", "NO_SHOW"] },
+        endAt: { lte: now, gte: new Date(now.getTime() - 14 * DAY_MS) },
+      },
+      include: {
+        client: { select: { id: true, name: true, email: true } },
+        lead: { select: { name: true, email: true } },
+      },
+      orderBy: { startAt: "desc" },
+      take: 50,
+    }),
+  ]);
   // C13.6c — the quiet payment mark: ring = awaiting, filled = paid.
   const charges = await prisma.charge.findMany({
-    where: { appointmentId: { in: appointments.map((a) => a.id) } },
+    where: {
+      appointmentId: { in: [...appointments, ...recent].map((a) => a.id) },
+    },
   });
-  const chargeFor = new Map(charges.map((c) => [c.appointmentId!, c]));
+  const chargeFor = new Map(
+    charges.filter((c) => c.kind === "SESSION").map((c) => [c.appointmentId!, c]),
+  );
+  const lateFeeFor = new Map(
+    charges.filter((c) => c.kind === "LATE_FEE").map((c) => [c.appointmentId!, c]),
+  );
 
   const base = getBaseUrl();
   const httpsFeed = `${base}/api/calendar/${config.calendarFeedSecret}.ics`;
@@ -69,6 +110,16 @@ export default async function PractitionerSchedulePage({
       {searchParams.saved === "rotated" && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
           Feed link rotated — re-subscribe with the new link below; the old one no longer works.
+        </p>
+      )}
+      {searchParams.marked && MARK_BANNERS[searchParams.marked] && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          {MARK_BANNERS[searchParams.marked]}
+        </p>
+      )}
+      {searchParams.billing === "waived" && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          Waived — noted with your name.
         </p>
       )}
 
@@ -180,6 +231,83 @@ export default async function PractitionerSchedulePage({
           ))
         )}
       </section>
+
+      {/* C13-PKG §5 + C10-POLICY §3 — recent sessions: how each one landed.
+          One-tap words, not modals; the cron auto-completes the usual case. */}
+      {recent.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold">Recent sessions</h2>
+          <div className="flex flex-col divide-y divide-line rounded-lg border border-line bg-white shadow-soft">
+            {recent.map((a) => {
+              const fee = lateFeeFor.get(a.id);
+              return (
+                <div key={a.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5 text-sm">
+                  <span className="text-ink">
+                    {formatInZone(a.startAt, config.timezone, {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  <Link
+                    href={`/practitioner/clients/${a.client?.id ?? ""}`}
+                    className="font-medium text-ink-strong underline-offset-4 hover:text-wine hover:underline"
+                  >
+                    {partyLabel(a)}
+                  </Link>
+                  {a.status === "SCHEDULED" ? (
+                    <span className="ml-auto flex items-center gap-3">
+                      <form action={markSessionCompleted.bind(null, a.id)}>
+                        <button className="font-medium text-wine underline-offset-4 hover:underline">
+                          Completed
+                        </button>
+                      </form>
+                      <span className="text-line">·</span>
+                      <form action={markSessionNoShow.bind(null, a.id)}>
+                        <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                          No-show
+                        </button>
+                      </form>
+                      <span className="text-line">·</span>
+                      <form action={markSessionDidntHappen.bind(null, a.id)}>
+                        <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                          Didn&apos;t happen
+                        </button>
+                      </form>
+                    </span>
+                  ) : (
+                    <span className="ml-auto flex items-center gap-3">
+                      <span className="text-slate">
+                        {a.status === "COMPLETED" ? "completed" : "no-show"}
+                      </span>
+                      {a.status === "NO_SHOW" &&
+                        fee &&
+                        (fee.status === "DUE" || fee.status === "PENDING") && (
+                          <span className="flex items-center gap-2 text-xs text-slate">
+                            {formatMoney(fee.amountCents, fee.currency)} fee applied
+                            <form action={waiveCharge.bind(null, fee.id)}>
+                              <input type="hidden" name="back" value="/practitioner/schedule" />
+                              <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                                Waive
+                              </button>
+                            </form>
+                          </span>
+                        )}
+                      <form action={revertSessionStatus.bind(null, a.id)}>
+                        <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                          Revert
+                        </button>
+                      </form>
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

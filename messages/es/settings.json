@@ -1,1 +1,106 @@
-{}
+{
+  "eyebrow": "Tu espacio",
+  "title": "Ajustes",
+  "intro": "Tu cuenta, tu idioma y tu registro — todo lo que hay aquí es tuyo para ajustarlo.",
+  "saved": {
+    "password": "Contraseña cambiada. Todas las demás sesiones se cerraron.",
+    "email": "Revisa la nueva dirección: te enviamos un enlace de confirmación. Nada cambia hasta confirmarlo.",
+    "language": "Idioma guardado.",
+    "notifications": "Preferencias de notificación guardadas.",
+    "deletion": "Tu solicitud quedó registrada. Valentina te contactará dentro de 7 días."
+  },
+  "errors": {
+    "pw-rate": "Demasiados intentos — espera quince minutos e inténtalo de nuevo.",
+    "pw-short": "La nueva contraseña necesita al menos 8 caracteres.",
+    "pw-match": "Las nuevas contraseñas no coinciden.",
+    "pw-current": "La contraseña actual no es correcta.",
+    "email-rate": "Demasiadas solicitudes — inténtalo de nuevo en una hora.",
+    "email-format": "Eso no parece una dirección de correo.",
+    "email-same": "Esa ya es tu dirección.",
+    "email-taken": "Esa dirección no se puede usar.",
+    "del-rate": "Demasiadas solicitudes — inténtalo de nuevo en una hora."
+  },
+  "profile": {
+    "heading": "Perfil",
+    "row": "Perfil y datos de nacimiento",
+    "hint": "Tu nombre preferido, tu teléfono y los datos de nacimiento detrás de tu carta.",
+    "open": "Abrir"
+  },
+  "account": {
+    "heading": "Cuenta",
+    "email": {
+      "label": "Correo",
+      "change": "Cambiar correo",
+      "newLabel": "Nueva dirección de correo",
+      "note": "Nada cambia hasta que confirmes desde la nueva dirección — allí llega un enlace (válido 24 horas), y tu dirección actual recibe un aviso.",
+      "send": "Enviar enlace de confirmación"
+    },
+    "password": {
+      "label": "Contraseña",
+      "change": "Cambiar contraseña",
+      "current": "Contraseña actual",
+      "new": "Nueva contraseña",
+      "confirm": "Confirma la nueva contraseña",
+      "hint": "Al menos 8 caracteres. Cambiarla cierra tu sesión en todos los demás dispositivos.",
+      "submit": "Cambiar contraseña"
+    },
+    "signout": {
+      "label": "Cerrar sesión en todas partes",
+      "hint": "Termina todas las sesiones en todos los dispositivos, incluido este — vuelve a iniciar sesión después.",
+      "button": "Cerrar sesión en todas partes"
+    }
+  },
+  "language": {
+    "heading": "Idioma y apariencia",
+    "label": "Idioma",
+    "hint": "Todo tu espacio se muestra en el idioma que elijas.",
+    "en": "English",
+    "es": "Español",
+    "save": "Guardar",
+    "theme": "Tema",
+    "themeHint": "Día o Atardecer — se recuerda en este dispositivo."
+  },
+  "notifications": {
+    "heading": "Notificaciones",
+    "hint": "Estos dos son interruptores reales — si apagas uno, ese correo deja de llegar de verdad.",
+    "payment": "Correos de recordatorio de pago",
+    "paymentHint": "Una nota amable cuando hay un pago pendiente.",
+    "renewal": "Notas de renovación de paquete",
+    "renewalHint": "Un mensaje cuando tu paquete se completa, con opciones para continuar.",
+    "save": "Guardar preferencias"
+  },
+  "record": {
+    "heading": "Tu registro",
+    "consent": "El consentimiento que aceptaste",
+    "consentHint": "Las palabras exactas, la versión y el día en que aceptaste.",
+    "read": "Leer",
+    "export": "Descargar mis datos",
+    "exportHint": "Todo lo que has creado o compartido aquí — una copia completa en JSON, más un recuerdo imprimible con tus propias palabras.",
+    "exportJson": "Descargar JSON",
+    "keepsake": "Recuerdo imprimible",
+    "deletion": "Solicitar eliminación",
+    "deletionHint": "Pide que tu información sea eliminada. Abre una conversación con Valentina, no un borrado instantáneo — una decisión así merece primero una conversación humana.",
+    "deletionOpen": "Iniciar una solicitud de eliminación",
+    "deletionNote": "Algo que quieras decir (opcional)",
+    "deletionTimeline": "Valentina revisa cada solicitud dentro de 7 días; la eliminación se completa dentro de 30 días de confirmarse.",
+    "deletionSubmit": "Enviar mi solicitud",
+    "deletionPending": "Solicitada el {date} — Valentina te contactará."
+  },
+  "consentPage": {
+    "eyebrow": "Tu registro",
+    "title": "El consentimiento que aceptaste",
+    "agreed": "Aceptaste la versión {version} el {date}. Estas son las palabras exactas, guardadas aquí para ti.",
+    "notAgreed": "Aún no has aceptado la versión actual — se te ofrecerá la próxima vez que haga falta.",
+    "back": "Volver a ajustes"
+  },
+  "keepsake": {
+    "eyebrow": "Veritas · tus palabras, guardadas",
+    "title": "Un recuerdo para {name}",
+    "intro": "Las reflexiones y respuestas que has escrito en el camino, reunidas en orden. Imprímelo o guárdalo como PDF — es tuyo.",
+    "empty": "Aún no hay nada aquí — tus reflexiones se irán reuniendo a medida que escribas.",
+    "reflections": "Tus reflexiones",
+    "worksheets": "Tus hojas de trabajo",
+    "footer": "Impreso desde tu espacio privado · {date}",
+    "back": "Volver a ajustes"
+  }
+}

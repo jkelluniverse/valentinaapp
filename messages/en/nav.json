@@ -1,1 +1,36 @@
-{}
+{
+  "tabs": {
+    "home": "Home",
+    "path": "Path",
+    "reflect": "Reflect",
+    "messages": "Messages"
+  },
+  "you": "You",
+  "menu": {
+    "firstMap": "Your First Map",
+    "firstMapHint": "Your sky, in your words",
+    "journey": "Your journey",
+    "journeyHint": "The record, over time",
+    "design": "Your design",
+    "designHint": "Charts & First Map",
+    "reading": "Your reading",
+    "readingHint": "What it all means to you",
+    "sessions": "Sessions",
+    "sessionsHint": "Book & upcoming",
+    "settings": "Settings",
+    "settingsHint": "Language & preferences",
+    "profile": "Profile",
+    "profileHint": "Your details"
+  },
+  "top": {
+    "map": "Your map",
+    "path": "Your path",
+    "journey": "Your journey",
+    "sessions": "Sessions",
+    "design": "Your design",
+    "settings": "Settings",
+    "messages": "Messages",
+    "profile": "Your profile",
+    "newMessage": "new message"
+  }
+}

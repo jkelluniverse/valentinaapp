@@ -3,11 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
 import {
-  SYSTEM_PROMPT,
+  buildSystemPrompt,
   OUTPUT_SCHEMA,
   NOTE_SCAN_VERSION,
   buildUserMessage,
   type NoteScanOutput,
+  type PractitionerLocale,
 } from "@/ai/noteScanPrompt";
 
 // C14.4 — scan a private note against a client's record for connections worth
@@ -29,7 +30,12 @@ function strip(text: string | null, identifiers: string[]): string | null {
   return out;
 }
 
-export async function runNoteScan(noteId: string, practitionerId: string): Promise<ScanResult> {
+export async function runNoteScan(
+  noteId: string,
+  practitionerId: string,
+  // AMD-05 — the scan is HER-facing; her working language governs (English today).
+  opts: { practitionerLocale?: PractitionerLocale } = {},
+): Promise<ScanResult> {
   const note = await prisma.note.findUnique({ where: { id: noteId } });
   if (!note) return { ok: false, error: "unfiled" };
   // A scan needs a client to scan against; unfiled notes carry no client data.
@@ -99,7 +105,7 @@ export async function runNoteScan(noteId: string, practitionerId: string): Promi
       model,
       max_tokens: 4096,
       thinking: { type: "adaptive" },
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(opts.practitionerLocale),
       output_config: {
         format: { type: "json_schema", schema: OUTPUT_SCHEMA as unknown as Record<string, unknown> },
       },

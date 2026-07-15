@@ -6,7 +6,11 @@ import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
 import { hasConsent } from "@/lib/consent";
 import { getPractitioner, isSlotOpen, getOrCreateConfig } from "@/lib/schedule";
-import { createAppointment, cancelAppointment } from "@/lib/appointments";
+import {
+  createAppointment,
+  clientCancelWithPolicy,
+  clientRescheduleWithPolicy,
+} from "@/lib/appointments";
 import { ensureSquareCustomer, createSquarePayment, squareConfigured } from "@/lib/square";
 import { setChargeStatus } from "@/lib/billing";
 
@@ -96,18 +100,120 @@ export async function payChargeWithToken(
   return { ok: true }; // the card form navigates on success
 }
 
-export async function cancelMyAppointment(appointmentId: string) {
+// C13-PKG §10 — buy a package from the portal with the Square card form. The
+// DUE charge is created (or reused on a retry — no duplicates) before the
+// token is spent; a PAID package charge auto-activates the package.
+export async function purchasePackage(
+  priceBookId: string,
+  token: string,
+): Promise<{ ok: boolean; error?: string }> {
   const user = await requireClient();
-  const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
-  // Scope: a client can only touch their own appointment.
-  if (!appt || appt.clientId !== user.id) redirect(`${PATH}?error=scope`);
+  if (!squareConfigured()) return { ok: false, error: "config" };
+  if (!token || typeof token !== "string") return { ok: false, error: "token" };
 
-  const config = await getOrCreateConfig(appt.practitionerId);
-  const cutoff = new Date(appt.startAt.getTime() - config.cancelCutoffHours * 3600_000);
-  if (new Date() > cutoff) redirect(`${PATH}?error=cutoff`);
-  if (appt.status !== "SCHEDULED") redirect(PATH);
+  const sku = await prisma.priceBook.findFirst({
+    where: { id: priceBookId, active: true, kind: "PACKAGE" },
+  });
+  if (!sku) return { ok: false, error: "sku" };
 
-  await cancelAppointment(appointmentId, user.id);
+  // Reuse an existing open charge for this SKU (retry after a decline, or an
+  // invoice she already sent) so a second attempt never doubles the ledger.
+  let charge = await prisma.charge.findFirst({
+    where: { clientId: user.id, kind: "PACKAGE", priceBookId: sku.id, status: "DUE" },
+  });
+  if (!charge) {
+    charge = await prisma.charge.create({
+      data: {
+        clientId: user.id,
+        kind: "PACKAGE",
+        priceBookId: sku.id,
+        description: sku.name,
+        amountCents: sku.amountCents,
+        currency: sku.currency,
+        status: "DUE",
+        dueAt: new Date(),
+      },
+    });
+  }
+
+  const squareCustomerId = await ensureSquareCustomer({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+  });
+
+  const result = await createSquarePayment({
+    token,
+    amountCents: charge.amountCents,
+    currency: charge.currency,
+    chargeId: charge.id,
+    squareCustomerId,
+  });
+  if (!result.ok) return { ok: false, error: "declined" };
+
+  if (result.status === "COMPLETED" || result.status === "APPROVED") {
+    // PAID on a PACKAGE charge activates the package automatically.
+    await setChargeStatus(charge.id, "PAID", user.id, {
+      paidVia: "portal-card",
+      squarePaymentId: result.paymentId,
+    });
+  } else {
+    await prisma.charge.update({
+      where: { id: charge.id },
+      data: { status: "PENDING", squarePaymentId: result.paymentId, lastActionById: user.id },
+    });
+  }
   revalidatePath(PATH);
-  redirect(`${PATH}?cancelled=1`);
+  return { ok: true }; // the card form navigates to /space/schedule?package=1
+}
+
+// C10-POLICY §2 — cancel with the policy enforced server-side. The cancel page
+// decides which sheet to show; the service layer is the real gate: inside the
+// window, feeConfirmed must be explicitly true.
+export async function cancelMyAppointmentWithPolicy(
+  appointmentId: string,
+  feeConfirmed: boolean,
+) {
+  const user = await requireClient();
+  const result = await clientCancelWithPolicy(appointmentId, { id: user.id }, feeConfirmed);
+
+  if (!result.ok) {
+    // Crossed the boundary between render and click — re-show the fee sheet.
+    if (result.error === "fee-confirm") {
+      redirect(`${PATH}/cancel/${appointmentId}?policy=1`);
+    }
+    redirect(PATH);
+  }
+  revalidatePath(PATH);
+  redirect(`${PATH}?cancelled=1${result.feeApplied ? "&fee=1" : ""}`);
+}
+
+// C10-POLICY §2 — reschedule with the policy judged against the ORIGINAL time.
+export async function rescheduleMyAppointment(appointmentId: string, formData: FormData) {
+  const user = await requireClient();
+  const base = `${PATH}/reschedule/${appointmentId}`;
+
+  const startIso = String(formData.get("start") ?? "");
+  const newStart = new Date(startIso);
+  if (Number.isNaN(newStart.getTime())) redirect(base);
+  const feeConfirmed = String(formData.get("feeConfirmed") ?? "") === "1";
+
+  const result = await clientRescheduleWithPolicy(
+    appointmentId,
+    { id: user.id },
+    newStart,
+    feeConfirmed,
+  );
+
+  if (!result.ok) {
+    if (result.error === "fee-confirm") {
+      redirect(`${base}?start=${encodeURIComponent(newStart.toISOString())}&policy=1`);
+    }
+    if (result.error === "slot-taken" || result.error === "conflict") {
+      redirect(`${base}?error=taken`);
+    }
+    redirect(PATH);
+  }
+  revalidatePath(PATH);
+  redirect(`${PATH}?rescheduled=1${result.feeApplied ? "&fee=1" : ""}`);
 }

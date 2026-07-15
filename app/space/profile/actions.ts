@@ -29,7 +29,13 @@ export async function saveProfile(formData: FormData) {
     : null;
   if (rawDate && !dm) redirect(`${PATH}?error=date`);
 
-  const birthTimeUnknown = formData.get("birthTimeUnknown") === "on";
+  // AMD-05 B5.3 — three-way precision. birthTimeUnknown stays in sync
+  // (UNKNOWN → true) so the chart engine behaves exactly as before.
+  const rawPrecision = String(formData.get("birthTimePrecision") ?? "");
+  const birthTimePrecision = ["EXACT", "APPROXIMATE", "UNKNOWN"].includes(rawPrecision)
+    ? rawPrecision
+    : "EXACT";
+  const birthTimeUnknown = birthTimePrecision === "UNKNOWN";
   const rawTime = String(formData.get("birthTime") ?? "").trim();
   const birthTime = /^\d{1,2}:\d{2}$/.test(rawTime) ? rawTime : null;
   if (birthDate && !birthTimeUnknown && !birthTime) redirect(`${PATH}?error=time`);
@@ -62,6 +68,7 @@ export async function saveProfile(formData: FormData) {
     birthDate,
     birthTime: birthTimeUnknown ? null : birthTime,
     birthTimeUnknown,
+    birthTimePrecision,
     birthPlace,
     birthLat,
     birthLng,

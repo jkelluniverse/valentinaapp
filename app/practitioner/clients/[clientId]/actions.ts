@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { getPractitioner, getOrCreateConfig, isSlotOpen } from "@/lib/schedule";
 import { createAppointment, rescheduleAppointment, cancelAppointment } from "@/lib/appointments";
+import { ensureSquareCustomer, sendSquareInvoice, squareConfigured } from "@/lib/square";
 import { timeValueToMinutes } from "@/lib/schedule-meta";
 import { zonedWallToUtc } from "@/lib/schedule";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
@@ -203,6 +204,92 @@ export async function bookForClient(clientId: string, formData: FormData) {
 
   revalidatePath(`/practitioner/clients/${clientId}`);
   redirect(`/practitioner/clients/${clientId}?booked=1`);
+}
+
+// C13-PKG §8 — send a Square invoice from the Portrait's Billing tab: a
+// package SKU, a session rate, or a custom line, with an optional note in her
+// voice. Square hosts payment and delivery; the webhook flips PAID (and a paid
+// PACKAGE charge activates its package on its own).
+export async function sendInvoice(clientId: string, formData: FormData) {
+  const practitioner = await requirePractitioner();
+  const base = `/practitioner/clients/${clientId}`;
+  const rawBack = String(formData.get("back") ?? "");
+  const target = rawBack.startsWith(base) ? rawBack : `${base}?tab=billing`;
+  const backWith = (q: string) => `${target}${target.includes("?") ? "&" : "?"}${q}`;
+
+  if (!squareConfigured()) redirect(backWith("invoice=config"));
+
+  const client = await prisma.user.findFirst({
+    where: { id: clientId, role: "CLIENT" },
+    select: { id: true, name: true, email: true },
+  });
+  if (!client) redirect("/practitioner/clients");
+
+  // Either a price book line (package or session rate) or a custom one.
+  const priceBookId = String(formData.get("priceBookId") ?? "");
+  const sku = priceBookId
+    ? await prisma.priceBook.findFirst({ where: { id: priceBookId, active: true } })
+    : null;
+
+  let description: string;
+  let amountCents: number;
+  let currency = "USD";
+  if (sku) {
+    description = sku.name;
+    amountCents = sku.amountCents;
+    currency = sku.currency;
+  } else {
+    description = String(formData.get("description") ?? "").trim();
+    const amount = Number(formData.get("amount"));
+    if (!description || !Number.isFinite(amount) || amount <= 0) {
+      redirect(backWith("invoice=bad"));
+    }
+    amountCents = Math.round(amount * 100);
+  }
+
+  const dueRaw = String(formData.get("dueDate") ?? "").trim();
+  const dueDate = /^\d{4}-\d{2}-\d{2}$/.test(dueRaw) ? dueRaw : null;
+  const note = String(formData.get("note") ?? "").trim() || null;
+
+  const squareCustomerId = await ensureSquareCustomer(client);
+  if (!squareCustomerId) redirect(backWith("invoice=square"));
+
+  const charge = await prisma.charge.create({
+    data: {
+      clientId: client.id,
+      kind: sku?.kind === "PACKAGE" ? "PACKAGE" : "CUSTOM",
+      priceBookId: sku?.id ?? null,
+      description,
+      amountCents,
+      currency,
+      status: "DUE",
+      dueAt: dueDate ? new Date(`${dueDate}T00:00:00Z`) : new Date(),
+      lastActionById: practitioner.id,
+    },
+  });
+
+  const sent = await sendSquareInvoice({
+    chargeId: charge.id,
+    squareCustomerId,
+    title: description,
+    amountCents,
+    currency,
+    dueDate,
+    note,
+  });
+  if (!sent.ok) {
+    // The invoice never went out — take the charge back out of the ledger.
+    await prisma.charge.delete({ where: { id: charge.id } }).catch(() => undefined);
+    redirect(backWith("invoice=failed"));
+  }
+  await prisma.charge.update({
+    where: { id: charge.id },
+    data: { squareInvoiceId: sent.invoiceId, lastActionById: practitioner.id },
+  });
+  console.log(`[billing] invoice sent charge=${charge.id} by=${practitioner.id}`);
+
+  revalidatePath(`/practitioner/clients/${clientId}`);
+  redirect(backWith("invoice=sent"));
 }
 
 export async function cancelForClient(clientId: string, appointmentId: string) {

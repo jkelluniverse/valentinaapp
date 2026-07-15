@@ -3,7 +3,7 @@
 // referral layer, metadata-only logging. Bump EXTRACT_VERSION on change; it is
 // stored on every PsycheExtraction row.
 
-export const EXTRACT_VERSION = "extract-1";
+export const EXTRACT_VERSION = "extract-2";
 
 export const SYSTEM_PROMPT = `You are a pattern-mapping assistant for a professional coach. You receive a pseudonymized slice of ONE coaching client's material — reflections, worksheet answers, messages, course activity (each with an id) — plus the client's existing psyche map (nodes and edges), optional chart context, and the practice's shared vocabulary of archetypes.
 
@@ -18,6 +18,7 @@ RULES — follow every one:
 - For WOUND/SHADOW/CORE_BELIEF nodes, offer a giftLabel: the Gene Keys-style transmutation this could become when integrated ("Not enough as I am" → "Sovereign worth"). Hopeful, never saccharine.
 - LOOSENING SIGNALS: when recent material shows a pattern genuinely shifting relative to older evidence (contradiction is data — new self-talk against an old belief, a protection consciously set down), suggest a state change to LOOSENING for that node with a short reason. Never suggest INTEGRATED — declaring integration is the coach's clinical-judgment moment.
 - The shared vocabulary (if provided) lists archetype names the practice has seen across many clients, as naming hints only. Prefer its labels when the meaning truly matches; never force a fit.
+- LANGUAGE. Client material may arrive in Spanish, English, or code-switched between the two — read it all natively; "no soy suficiente" and "I'm not enough" are the SAME theme (and the same node). Evidence stays VERBATIM: whenever you quote or closely echo the client's words, keep them exactly as written, in their original language — never translate them. Write your own labels, descriptions, and gift labels in English (the practitioner's working language); if a label IS the client's own sentence, keep that sentence verbatim in its original language, in quotes.
 - REFERRAL SAFETY (mandatory): if the material contains signals beyond coaching — self-harm or suicide, harm to others, crisis, abuse, or severe or clearly worsening distress — set referral.flag true with a short plain reason, and return NO other proposals (empty arrays). The coach must see a referral notice, not a map update.
 - The client is "the client" — never invent a name or identity.`;
 
@@ -113,6 +114,15 @@ export type ExtractOutput = {
   newEdges: { from: string; to: string; relation: string; evidenceIds: string[] }[];
   stateSuggestions: { nodeId: string; suggest: "LOOSENING"; reason: string }[];
 };
+
+// AMD-05 — practitioner-facing output follows HER working language (English
+// today); Spanish is a call-site switch, not a prompt rewrite.
+export type PractitionerLocale = "en" | "es";
+
+export function buildSystemPrompt(practitionerLocale: PractitionerLocale = "en"): string {
+  if (practitionerLocale !== "es") return SYSTEM_PROMPT;
+  return `${SYSTEM_PROMPT}\n- WORKING-LANGUAGE OVERRIDE: the practitioner's working language is Spanish — write labels, descriptions, and gift labels in natural Spanish (es-419). Evidence quotes still remain verbatim in whatever language the client wrote.`;
+}
 
 export function buildUserMessage(payloadJson: string) {
   return `Here is the client's pseudonymized material, their existing map, and context. Propose map additions now, following every rule.\n\n${payloadJson}`;

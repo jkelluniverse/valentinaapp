@@ -6,7 +6,7 @@
 // answers, block-mapping (C4/C5) — NEVER enters this. It is a reflective
 // reading of their design, a mirror to explore, not a verdict or a diagnosis.
 
-export const READING_VERSION = "reading-1";
+export const READING_VERSION = "reading-2";
 
 // [VALENTINA'S METHOD] stays empty until her integration method is elicited;
 // the reading is excellent without it. When it arrives, splice it into the
@@ -52,13 +52,34 @@ A brief, tender blessing-like close. Leave them feeling seen and hopeful.
 Length: generous but not padded — a satisfying long-read, roughly 900–1400 words. Every sentence earns its place.
 [VALENTINA'S METHOD]`;
 
-export function buildSystemPrompt(): string {
-  return SYSTEM_PROMPT.replace(
+// AMD-05 A5.2 — the reading renders in the READER's language (their User.locale).
+// The Spanish addendum swaps the section headers wholesale; the markdown
+// renderer (ReadingProse) is header-text-agnostic, so nothing else changes.
+const SPANISH_ADDENDUM = `
+
+LANGUAGE — write the ENTIRE reading in Spanish. Warm, natural Latin American Spanish (es-419), tú register throughout — the voice of a wise, kind guide speaking directly to them. Do NOT write in English and translate; think and write natively in Spanish, with its own rhythm and idiom. Where Spanish grammar would force a gendered self-description, prefer gender-neutral formulations ("tu manera de ser", "una persona que…") rather than assuming a gender.
+
+Use exactly these section headers, in this order, instead of the English ones:
+
+## La esencia
+## Cómo funciona tu energía
+## Tu vida en todos los ámbitos
+## Hacia dónde apunta todo
+## Empieza aquí
+## Unas palabras para cerrar
+
+Every other rule above still applies, unchanged.`;
+
+export type ReadingLocale = "en" | "es";
+
+export function buildSystemPrompt(locale: ReadingLocale = "en"): string {
+  const base = SYSTEM_PROMPT.replace(
     "[VALENTINA'S METHOD]",
     VALENTINA_METHOD
       ? `\n\nHER METHOD — integrate these principles as the through-lens of the reading:\n${VALENTINA_METHOD}`
       : "",
   );
+  return locale === "es" ? `${base}${SPANISH_ADDENDUM}` : base;
 }
 
 export function buildUserMessage(chartJson: string): string {

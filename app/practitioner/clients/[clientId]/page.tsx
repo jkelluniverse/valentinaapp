@@ -12,6 +12,8 @@ import { getOrCreateConfig, getPractitioner, formatInZone, zoneAbbrev } from "@/
 import { listEnrolledCourses } from "@/lib/courses";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { formatMoney } from "@/lib/billing";
+import { clientPackageSummary } from "@/lib/packages";
+import { squareConfigured } from "@/lib/square";
 import { markChargePaid, waiveCharge, remindCharge } from "../../billing/actions";
 import { clientNotes } from "@/lib/notes";
 import { loadGraph } from "@/lib/psyche";
@@ -21,7 +23,7 @@ import { JotBox } from "@/components/JotBox";
 import { NoteRow } from "@/components/NoteRow";
 import { createJot } from "../../notes/actions";
 import { AssignForm } from "./AssignForm";
-import { assignPrompt, assignWorksheet, cancelForClient, setClientStage } from "./actions";
+import { assignPrompt, assignWorksheet, cancelForClient, setClientStage, sendInvoice } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +71,7 @@ export default async function Portrait({
     booked?: string;
     staged?: string;
     noteTag?: string;
+    invoice?: string;
   };
 }) {
   await requirePractitioner();
@@ -201,6 +204,21 @@ export default async function Portrait({
       {searchParams.booked === "cancelled" && <Banner>Session cancelled.</Banner>}
       {searchParams.staged && <Banner>Stage updated — it&apos;s on their journey too.</Banner>}
       {searchParams.error === "prompt" && <Banner>That library item isn&apos;t available.</Banner>}
+      {searchParams.invoice === "sent" && (
+        <Banner>Sent — Square emailed the invoice; it&apos;ll show as paid here once settled.</Banner>
+      )}
+      {searchParams.invoice === "failed" && (
+        <Banner>The invoice couldn&apos;t be sent just now — nothing was recorded; try again in a moment.</Banner>
+      )}
+      {searchParams.invoice === "bad" && (
+        <Banner>A custom invoice needs a description and an amount above zero.</Banner>
+      )}
+      {searchParams.invoice === "square" && (
+        <Banner>Square couldn&apos;t place this client just now — try again in a moment.</Banner>
+      )}
+      {searchParams.invoice === "config" && (
+        <Banner>Square isn&apos;t connected yet, so invoices can&apos;t be sent from here.</Banner>
+      )}
 
       {/* ONE verb + a quiet ⋯ menu (Book next moved there, AMENDMENT-04 §3). */}
       <div className="flex items-center gap-2 gentle-rise" style={{ animationDelay: "280ms" }}>
@@ -713,46 +731,189 @@ async function MessagesShortcut({ clientId }: { clientId: string }) {
   );
 }
 
+// C13-PKG §8/§10 — the Portrait's money view: package standing, a new-invoice
+// form (Square hosts payment + delivery), and the charge history with its
+// kind/fee-reason words.
+const CHARGE_FEE_LABEL: Record<string, string> = {
+  LATE_RESCHEDULE: "late reschedule",
+  LATE_CANCEL: "late cancellation",
+  NO_SHOW: "no-show",
+};
+
 async function BillingTab({ clientId, back }: { clientId: string; back: string }) {
-  const charges = await prisma.charge.findMany({
-    where: { clientId },
-    orderBy: { createdAt: "desc" },
-    take: 30,
-  });
-  if (charges.length === 0) {
-    return <p className="text-ink">No charges yet — they appear as sessions are booked.</p>;
-  }
+  const [charges, packages, priceBook] = await Promise.all([
+    prisma.charge.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+    }),
+    clientPackageSummary(clientId),
+    prisma.priceBook.findMany({
+      where: { active: true },
+      orderBy: [{ kind: "desc" }, { createdAt: "desc" }], // packages first
+    }),
+  ]);
+
+  const monthYear = (d: Date) =>
+    new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(d);
+
   return (
-    <div className="flex flex-col gap-3">
-      {charges.map((c) => (
-        <div key={c.id} className="flex flex-wrap items-center gap-3 rounded-card border border-line bg-surface px-5 py-3 text-sm shadow-soft">
-          <span className="font-medium text-ink-strong">{c.description}</span>
-          <span className="text-ink">{formatMoney(c.amountCents, c.currency)}</span>
-          <span className="text-slate">
-            {c.status === "PAID"
-              ? `paid${c.paidAt ? ` · ${c.paidAt.toISOString().slice(0, 10)}` : ""}`
-              : c.status === "DUE"
-                ? `awaiting${c.dueAt ? ` · due ${c.dueAt.toISOString().slice(0, 10)}` : ""}`
-                : c.status.toLowerCase()}
-          </span>
-          {(c.status === "DUE" || c.status === "PENDING") && (
-            <span className="ml-auto flex items-center gap-3">
-              <form action={remindCharge.bind(null, c.id)}>
-                <input type="hidden" name="back" value={back} />
-                <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Remind</button>
-              </form>
-              <form action={markChargePaid.bind(null, c.id)}>
-                <input type="hidden" name="back" value={back} />
-                <button className="font-medium text-wine underline-offset-4 hover:underline">Mark paid</button>
-              </form>
-              <form action={waiveCharge.bind(null, c.id)}>
-                <input type="hidden" name="back" value={back} />
-                <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Waive</button>
-              </form>
-            </span>
-          )}
+    <div className="flex flex-col gap-6">
+      {/* Packages */}
+      {packages.length > 0 && (
+        <div className="rounded-card border border-line bg-surface p-6 shadow-soft">
+          <p className="text-eyebrow font-semibold uppercase text-mocha">Packages</p>
+          <div className="mt-3 flex flex-col gap-2">
+            {packages.map((p) => (
+              <p key={p.id} className="flex flex-wrap items-center gap-3 text-sm text-ink">
+                <span className="font-medium text-ink-strong">
+                  {p.sessionsTotal}-session package
+                </span>
+                <span className="text-slate">
+                  {p.used} of {p.sessionsTotal} used
+                  {p.reserved > 0 ? ` · ${p.reserved} reserved` : ""}
+                  {p.expiresAt ? ` · through ${monthYear(p.expiresAt)}` : ""}
+                </span>
+                <span className="ml-auto text-xs font-medium text-mocha">
+                  {p.status === "ACTIVE" ? "active" : "complete"}
+                </span>
+              </p>
+            ))}
+          </div>
         </div>
-      ))}
+      )}
+
+      {/* New invoice */}
+      <div className="rounded-card border border-line bg-surface p-6 shadow-soft">
+        <p className="text-eyebrow font-semibold uppercase text-mocha">New invoice</p>
+        {squareConfigured() ? (
+          <form action={sendInvoice.bind(null, clientId)} className="mt-3 flex flex-col gap-4">
+            <input type="hidden" name="back" value={back} />
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-ink-strong">Line item</span>
+              <select
+                name="priceBookId"
+                className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+              >
+                <option value="">Custom — describe it below</option>
+                {priceBook.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} · {formatMoney(r.amountCents, r.currency)}
+                    {r.kind === "PACKAGE" && r.sessionsIncluded
+                      ? ` · ${r.sessionsIncluded} sessions`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex flex-1 flex-col gap-1.5">
+                <span className="text-sm font-medium text-ink-strong">
+                  Description <span className="font-normal text-slate">(custom only)</span>
+                </span>
+                <input
+                  type="text"
+                  name="description"
+                  placeholder="What this covers"
+                  className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-ink-strong">
+                  Amount <span className="font-normal text-slate">(custom only)</span>
+                </span>
+                <input
+                  type="number"
+                  name="amount"
+                  min={1}
+                  step="0.01"
+                  className="w-28 rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium text-ink-strong">
+                  Due <span className="font-normal text-slate">(optional)</span>
+                </span>
+                <input
+                  type="date"
+                  name="dueDate"
+                  className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+                />
+              </label>
+            </div>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-ink-strong">
+                A note, in your voice <span className="font-normal text-slate">(optional)</span>
+              </span>
+              <input
+                type="text"
+                name="note"
+                placeholder="It goes on the invoice itself"
+                className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+              />
+            </label>
+            <button className="self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+              Send invoice
+            </button>
+            <p className="text-xs text-slate">
+              Square emails it with a hosted payment page; it shows as paid here on its own.
+            </p>
+          </form>
+        ) : (
+          <p className="mt-3 max-w-prose text-sm text-ink">
+            Square isn&apos;t connected yet — once it is, you can send invoices from here.
+          </p>
+        )}
+      </div>
+
+      {/* Charges */}
+      {charges.length === 0 ? (
+        <p className="text-ink">No charges yet — they appear as sessions are booked.</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {charges.map((c) => (
+            <div key={c.id} className="flex flex-wrap items-center gap-3 rounded-card border border-line bg-surface px-5 py-3 text-sm shadow-soft">
+              <span className="font-medium text-ink-strong">{c.description}</span>
+              <span className="text-ink">{formatMoney(c.amountCents, c.currency)}</span>
+              {c.kind === "PACKAGE" && (
+                <span className="rounded-full bg-blush-deep px-2 py-0.5 text-xs font-medium text-wine">
+                  package
+                </span>
+              )}
+              {c.kind === "LATE_FEE" && (
+                <span className="rounded-full border border-mocha px-2 py-0.5 text-xs font-medium text-mocha">
+                  {(c.feeReason && CHARGE_FEE_LABEL[c.feeReason]) ?? "fee"}
+                </span>
+              )}
+              <span className="text-slate">
+                {c.status === "PAID"
+                  ? `paid${c.paidAt ? ` · ${c.paidAt.toISOString().slice(0, 10)}` : ""}`
+                  : c.status === "DUE"
+                    ? `awaiting${c.dueAt ? ` · due ${c.dueAt.toISOString().slice(0, 10)}` : ""}`
+                    : c.status === "COVERED"
+                      ? "covered by package"
+                      : c.status.toLowerCase()}
+              </span>
+              {(c.status === "DUE" || c.status === "PENDING") && (
+                <span className="ml-auto flex items-center gap-3">
+                  <form action={remindCharge.bind(null, c.id)}>
+                    <input type="hidden" name="back" value={back} />
+                    <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Remind</button>
+                  </form>
+                  <form action={markChargePaid.bind(null, c.id)}>
+                    <input type="hidden" name="back" value={back} />
+                    <button className="font-medium text-wine underline-offset-4 hover:underline">Mark paid</button>
+                  </form>
+                  <form action={waiveCharge.bind(null, c.id)}>
+                    <input type="hidden" name="back" value={back} />
+                    <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Waive</button>
+                  </form>
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

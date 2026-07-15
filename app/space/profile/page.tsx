@@ -2,13 +2,14 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
+import { BirthTimeField } from "./BirthTimeField";
 import { saveProfile } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
   date: "That birth date doesn't look right.",
-  time: "Add your birth time, or tick “I don't know my exact time.”",
+  time: "Add your birth time, or choose “I don't know it.”",
   place: "Add the place you were born so the chart can be located.",
   geocode:
     "That place couldn't be found — try the nearest town or city, like “Medellín” or “Miami”.",
@@ -89,24 +90,13 @@ export default async function ProfilePage({
                 className="rounded-md border border-line px-3 py-2 text-ink"
               />
             </label>
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-ink-strong">Birth time (local)</span>
-              <input
-                type="time"
-                name="birthTime"
-                defaultValue={profile?.birthTime ?? ""}
-                className="rounded-md border border-line px-3 py-2 text-ink"
-              />
-              <label className="mt-1 flex items-center gap-2 text-sm text-ink">
-                <input
-                  type="checkbox"
-                  name="birthTimeUnknown"
-                  defaultChecked={profile?.birthTimeUnknown ?? false}
-                  className="h-4 w-4 accent-wine"
-                />
-                I don&apos;t know my exact time
-              </label>
-            </label>
+            <BirthTimeField
+              initialPrecision={
+                profile?.birthTimePrecision ??
+                (profile?.birthTimeUnknown ? "UNKNOWN" : "EXACT")
+              }
+              initialTime={profile?.birthTime ?? ""}
+            />
             <label className="flex flex-col gap-1.5 sm:col-span-2">
               <span className="text-sm font-medium text-ink-strong">Place of birth</span>
               <input

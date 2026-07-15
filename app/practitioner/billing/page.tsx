@@ -7,6 +7,7 @@ import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { squareConfigured } from "@/lib/square";
 import { getPractitioner, getOrCreateConfig, formatInZone } from "@/lib/schedule";
 import { clientLabel } from "@/lib/appointments";
+import { packageCounters } from "@/lib/packages";
 import {
   markChargePaid,
   waiveCharge,
@@ -30,7 +31,15 @@ const BANNERS: Record<string, string> = {
   norate: "No rate matched — add one below, then bill it again.",
   rate: "Rate added.",
   badrate: "A name and an amount above zero are both needed.",
+  badpackage: "A package needs how many sessions it includes (a whole number).",
   matched: "Matched — the session shows as paid.",
+};
+
+// C10-POLICY — the fee's reason, said plainly on the row.
+const FEE_REASON_LABEL: Record<string, string> = {
+  LATE_RESCHEDULE: "late reschedule",
+  LATE_CANCEL: "late cancellation",
+  NO_SHOW: "no-show",
 };
 
 export default async function BillingPage({
@@ -43,7 +52,7 @@ export default async function BillingPage({
   const config = practitioner ? await getOrCreateConfig(practitioner.id) : null;
   const now = new Date();
 
-  const [summary, awaiting, recent, rates, externals, clients] = await Promise.all([
+  const [summary, awaiting, recent, rates, externals, clients, packages] = await Promise.all([
     ledgerSummary(now),
     prisma.charge.findMany({
       where: { status: { in: ["DUE", "PENDING"] } },
@@ -63,13 +72,55 @@ export default async function BillingPage({
       where: { role: "CLIENT" },
       select: { id: true, name: true, email: true },
     }),
+    // C13-PKG §10 — the renewal pipeline: every ACTIVE package, plus the
+    // recently completed ones, counters derived from the credit ledger.
+    prisma.package.findMany({
+      where: {
+        OR: [
+          { status: "ACTIVE" },
+          { status: "COMPLETED", updatedAt: { gte: new Date(now.getTime() - 60 * DAY) } },
+        ],
+      },
+      include: { credits: { select: { state: true } } },
+    }),
   ]);
+
+  // Charges (and packages bought pre-conversion) can belong to a Lead — the
+  // clientId convention is "lead:<id>". Resolve those names too.
+  const leadIdOf = (id: string) => (id.startsWith("lead:") ? id.slice(5) : null);
+  const leadIds = [
+    ...new Set(
+      [...awaiting, ...recent].map((c) => leadIdOf(c.clientId)).concat(
+        packages.map((p) => leadIdOf(p.clientId)),
+      ).filter((x): x is string => Boolean(x)),
+    ),
+  ];
+  const leads = leadIds.length
+    ? await prisma.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, name: true } })
+    : [];
+  const leadById = new Map(leads.map((l) => [l.id, l]));
 
   const clientById = new Map(clients.map((c) => [c.id, c]));
   const nameOf = (id: string) => {
+    const leadId = leadIdOf(id);
+    if (leadId) {
+      const lead = leadById.get(leadId);
+      return lead ? `Lead — ${lead.name}` : "Lead";
+    }
     const c = clientById.get(id);
     return c ? clientLabel(c) : "Unknown";
   };
+  const clientHref = (id: string) =>
+    leadIdOf(id) ? "/practitioner/leads" : `/practitioner/clients/${id}`;
+
+  const activePackages = packages
+    .map((p) => ({ pkg: p, counters: packageCounters(p) }))
+    .filter((x) => x.pkg.status === "ACTIVE")
+    // Nearest-the-end first — the renewal pipeline in one glance.
+    .sort((a, b) => a.counters.available - b.counters.available);
+  const completedPackages = packages
+    .filter((p) => p.status === "COMPLETED")
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   // Unbilled sessions: booked but no charge (e.g. before rates existed).
   const chargedApptIds = new Set(
@@ -141,6 +192,46 @@ export default async function BillingPage({
         </Link>
       </section>
 
+      {/* Packages — the renewal pipeline (C13-PKG §10) */}
+      {(activePackages.length > 0 || completedPackages.length > 0) && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-xl font-semibold">Packages</h2>
+          {activePackages.map(({ pkg, counters }) => (
+            <div
+              key={pkg.id}
+              className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white px-5 py-4 shadow-soft"
+            >
+              <Link
+                href={clientHref(pkg.clientId)}
+                className="font-medium text-ink-strong underline-offset-4 hover:text-wine hover:underline"
+              >
+                {nameOf(pkg.clientId)}
+              </Link>
+              <span className="text-sm text-slate">
+                {counters.used} of {pkg.sessionsTotal} used
+                {counters.reserved > 0 ? ` · ${counters.reserved} reserved` : ""}
+                {pkg.expiresAt ? ` · through ${fmtWhen(pkg.expiresAt)}` : ""}
+              </span>
+              {counters.available === 0 && (
+                <span className="ml-auto text-xs font-medium text-mocha">
+                  {counters.reserved > 0 ? "last session booked" : "fully used"}
+                </span>
+              )}
+            </div>
+          ))}
+          {completedPackages.length > 0 && (
+            <div className="flex flex-col gap-1 pt-1">
+              {completedPackages.map((pkg) => (
+                <p key={pkg.id} className="text-sm text-slate">
+                  {nameOf(pkg.clientId)}&apos;s {pkg.sessionsTotal}-session package completed{" "}
+                  {fmtWhen(pkg.updatedAt)} — a natural moment to talk about what&apos;s next.
+                </p>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Worth a look */}
       {(aging.length > 0 || externals.length > 0) && (
         <section className="flex flex-col gap-3">
@@ -188,7 +279,7 @@ export default async function BillingPage({
               className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white px-5 py-4 shadow-soft"
             >
               <Link
-                href={`/practitioner/clients/${c.clientId}`}
+                href={clientHref(c.clientId)}
                 className="font-medium text-ink-strong underline-offset-4 hover:text-wine hover:underline"
               >
                 {nameOf(c.clientId)}
@@ -197,6 +288,11 @@ export default async function BillingPage({
                 {c.description} · {formatMoney(c.amountCents, c.currency)} · due {fmtWhen(c.dueAt)}
                 {c.status === "PENDING" ? " · payment on its way" : ""}
               </span>
+              {c.kind === "LATE_FEE" && c.feeReason && (
+                <span className="rounded-full border border-mocha px-2 py-0.5 text-xs font-medium text-mocha">
+                  {FEE_REASON_LABEL[c.feeReason] ?? c.feeReason.toLowerCase()}
+                </span>
+              )}
               <span className="ml-auto flex items-center gap-3">
                 <form action={remindCharge.bind(null, c.id)}>
                   <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
@@ -270,10 +366,11 @@ export default async function BillingPage({
 
       {/* Rates */}
       <section className="rounded-lg border border-line bg-white p-6 shadow-soft">
-        <h2 className="mb-1 text-xl font-semibold">Your rates</h2>
+        <h2 className="mb-1 text-xl font-semibold">Your rates &amp; packages</h2>
         <p className="mb-4 text-sm text-slate">
           New bookings are billed at the newest matching rate — a stage rate for clients in that
-          stage, otherwise the general one.
+          stage, otherwise the general one. Packages appear in the client portal under
+          &ldquo;Continue our work&rdquo;.
         </p>
         {rates.length > 0 && (
           <ul className="mb-4 flex flex-col gap-2">
@@ -281,6 +378,11 @@ export default async function BillingPage({
               <li key={r.id} className="flex flex-wrap items-center gap-3 rounded-md border border-line/70 px-4 py-2.5 text-sm">
                 <span className="font-medium text-ink-strong">{r.name}</span>
                 <span className="text-ink">{formatMoney(r.amountCents, r.currency)}</span>
+                {r.kind === "PACKAGE" && (
+                  <span className="rounded-full bg-blush-deep px-2 py-0.5 text-xs font-medium text-wine">
+                    {r.sessionsIncluded ?? "?"} session{r.sessionsIncluded === 1 ? "" : "s"}
+                  </span>
+                )}
                 {r.stage && (
                   <span className="rounded-full border border-mocha px-2 py-0.5 text-xs font-medium text-mocha">
                     {programStageLabel(r.stage)}
@@ -297,11 +399,18 @@ export default async function BillingPage({
         )}
         <form action={addRate} className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink-strong">Kind</span>
+            <select name="kind" className="rounded-md border border-line px-3 py-2 text-ink">
+              <option value="SESSION">Session rate</option>
+              <option value="PACKAGE">Package</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-ink-strong">Name</span>
             <input
               type="text"
               name="name"
-              placeholder="Standard session"
+              placeholder="Standard session · 6-session package"
               required
               className="rounded-md border border-line px-3 py-2 text-ink"
             />
@@ -318,7 +427,22 @@ export default async function BillingPage({
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-ink-strong">Stage (optional)</span>
+            <span className="text-sm font-medium text-ink-strong">
+              Sessions <span className="font-normal text-slate">(packages)</span>
+            </span>
+            <input
+              type="number"
+              name="sessions"
+              min={1}
+              step={1}
+              placeholder="3 · 6 · 9"
+              className="w-24 rounded-md border border-line px-3 py-2 text-ink"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink-strong">
+              Stage <span className="font-normal text-slate">(session rates)</span>
+            </span>
             <select name="stage" className="rounded-md border border-line px-3 py-2 text-ink">
               <option value="">Any stage</option>
               {PROGRAM_STAGES.map((s) => (
@@ -329,7 +453,7 @@ export default async function BillingPage({
             </select>
           </label>
           <button className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
-            Add rate
+            Add
           </button>
         </form>
       </section>

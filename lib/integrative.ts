@@ -3,11 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
 import {
-  SYSTEM_PROMPT,
+  buildSystemPrompt,
   OUTPUT_SCHEMA,
   INTEGRATIVE_VERSION,
   buildUserMessage,
   type IntegrativeOutput,
+  type PractitionerLocale,
 } from "@/ai/integrativePrompt";
 
 // C12.5 — the synthesis pipeline, following C5's non-negotiables:
@@ -30,6 +31,8 @@ export async function getMethodText(): Promise<string | null> {
 export async function runIntegrativeSynthesis(
   clientId: string,
   practitionerId: string,
+  // AMD-05 — synthesis is HER-facing; her working language governs (English today).
+  opts: { practitionerLocale?: PractitionerLocale } = {},
 ): Promise<SynthesisResult> {
   const client = await prisma.user.findFirst({
     where: { id: clientId, role: "CLIENT" },
@@ -73,7 +76,7 @@ export async function runIntegrativeSynthesis(
       model,
       max_tokens: 4096,
       thinking: { type: "adaptive" },
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(opts.practitionerLocale),
       output_config: {
         format: {
           type: "json_schema",

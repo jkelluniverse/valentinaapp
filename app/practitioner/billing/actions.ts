@@ -88,19 +88,32 @@ export async function billAppointment(appointmentId: string, formData: FormData)
   redirect(`${back}?billing=billed`);
 }
 
-// Price book — her rates. Kept simple: add and retire.
+// Price book — her rates and package SKUs. Kept simple: add and retire.
+// C13-PKG — kind="PACKAGE" carries sessionsIncluded (3/6/9 or her own number);
+// the SESSION path is unchanged.
 export async function addRate(formData: FormData) {
   await requirePractitioner();
   const name = String(formData.get("name") ?? "").trim();
   const amount = Number(formData.get("amount"));
   const stage = String(formData.get("stage") ?? "");
+  const kind = String(formData.get("kind") ?? "SESSION") === "PACKAGE" ? "PACKAGE" : "SESSION";
   if (!name || !Number.isFinite(amount) || amount <= 0) redirect(`${LEDGER}?billing=badrate`);
+
+  let sessionsIncluded: number | null = null;
+  if (kind === "PACKAGE") {
+    const sessions = Number(formData.get("sessions"));
+    if (!Number.isInteger(sessions) || sessions < 1) redirect(`${LEDGER}?billing=badpackage`);
+    sessionsIncluded = sessions;
+  }
+
   await prisma.priceBook.create({
     data: {
       name,
       amountCents: Math.round(amount * 100),
-      stage: PROGRAM_STAGES.some((s) => s.key === stage) ? stage : null,
-      kind: "SESSION",
+      // Stage-matching only applies to session rates; packages are for anyone.
+      stage: kind === "SESSION" && PROGRAM_STAGES.some((s) => s.key === stage) ? stage : null,
+      kind,
+      sessionsIncluded,
     },
   });
   revalidatePath(LEDGER);

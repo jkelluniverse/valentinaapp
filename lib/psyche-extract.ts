@@ -5,11 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { hasConsent } from "@/lib/consent";
 import { massFromEvidence, RELATIONS } from "@/lib/psyche";
 import {
-  SYSTEM_PROMPT,
+  buildSystemPrompt,
   OUTPUT_SCHEMA,
   EXTRACT_VERSION,
   buildUserMessage,
   type ExtractOutput,
+  type PractitionerLocale,
 } from "@/ai/psycheExtractPrompt";
 
 // C16.2 / C16.7 — the extraction pipeline. C5 non-negotiables hold: server-side
@@ -50,7 +51,8 @@ function strip(text: string | null | undefined, identifiers: string[]): string {
 export async function runPsycheExtraction(
   clientId: string,
   practitionerId: string,
-  opts: { deep?: boolean } = {},
+  // AMD-05 — practitionerLocale: extraction labels are HER-facing (English today).
+  opts: { deep?: boolean; practitionerLocale?: PractitionerLocale } = {},
 ): Promise<ExtractResult> {
   const client = await prisma.user.findFirst({
     where: { id: clientId, role: "CLIENT" },
@@ -161,7 +163,7 @@ export async function runPsycheExtraction(
       model,
       max_tokens: 8000,
       thinking: { type: "adaptive" },
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(opts.practitionerLocale),
       output_config: {
         format: {
           type: "json_schema",

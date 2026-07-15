@@ -3,7 +3,12 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { IntegrativeReading } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SpherePosition } from "@/lib/gene-keys";
-import { buildSystemPrompt, buildUserMessage, READING_VERSION } from "@/ai/integrativeReadingPrompt";
+import {
+  buildSystemPrompt,
+  buildUserMessage,
+  READING_VERSION,
+  type ReadingLocale,
+} from "@/ai/integrativeReadingPrompt";
 
 // C12 reading pipeline. THE BRIGHT LINE (spec §2, §9): the reading is generated
 // from the three CHARTS ONLY. This module reads exclusively from chart tables
@@ -66,7 +71,10 @@ export async function assembleCharts(
   return { payload, complete, hasSpiral };
 }
 
-export function chartInputHash(payload: ChartPayload): string {
+// AMD-05 A5.2 — the reader's locale is part of the input: switching language
+// regenerates the reading cleanly. "en" adds no suffix so every reading hashed
+// before locales existed stays valid (no surprise mass regeneration).
+export function chartInputHash(payload: ChartPayload, locale: ReadingLocale = "en"): string {
   const shape = {
     hd: {
       type: payload.humanDesign.type,
@@ -80,7 +88,8 @@ export function chartInputHash(payload: ChartPayload): string {
     spiral: payload.valuesSpiral?.practitionerCenter ?? payload.valuesSpiral?.centerOfGravity ?? null,
     spiralWeights: payload.valuesSpiral?.weights?.map((w) => `${w.stage}:${w.weight}`) ?? null,
   };
-  return createHash("sha256").update(JSON.stringify(shape)).digest("hex");
+  const input = JSON.stringify(shape) + (locale === "en" ? "" : `|locale:${locale}`);
+  return createHash("sha256").update(input).digest("hex");
 }
 
 async function holdForReview(): Promise<boolean> {
@@ -101,7 +110,12 @@ export async function ensureReading(
   if (!charts) return { ok: false, error: "no-charts" };
   if (!charts.complete) return { ok: false, error: "incomplete" };
 
-  const hash = chartInputHash(charts.payload);
+  // AMD-05 A5.2 — the reading is written in the READER's language. Evidence-free
+  // by construction (charts only), so the whole text renders in their locale.
+  const reader = await prisma.user.findUnique({ where: { id: userId }, select: { locale: true } });
+  const locale: ReadingLocale = reader?.locale === "es" ? "es" : "en";
+
+  const hash = chartInputHash(charts.payload, locale);
   const existing = await prisma.integrativeReading.findUnique({ where: { userId } });
   if (!opts.force && existing && existing.inputHash === hash) {
     return { ok: true, reading: existing };
@@ -119,7 +133,7 @@ export async function ensureReading(
       model,
       max_tokens: 6000,
       thinking: { type: "adaptive" },
-      system: buildSystemPrompt(),
+      system: buildSystemPrompt(locale),
       messages: [{ role: "user", content: buildUserMessage(JSON.stringify(charts.payload)) }],
     };
     const response = await anthropic.messages.create(params);
@@ -153,6 +167,8 @@ export async function ensureReading(
     update: data,
   });
 
-  console.log(`[reading] generated user=${userId} model=${model} status=${status} chars=${content.length}`);
+  console.log(
+    `[reading] generated user=${userId} model=${model} status=${status} locale=${locale} chars=${content.length}`,
+  );
   return { ok: true, reading };
 }

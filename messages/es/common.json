@@ -1,1 +1,12 @@
-{}
+{
+  "_comment": "BORRADOR (es-419, tú) — pendiente del pase de voz de Valentina.",
+  "worksheet": {
+    "eyebrow": "Una hoja de trabajo de Valentina",
+    "due": "Cuando quieras — idealmente antes del {date}.",
+    "done": "Enviada a Valentina — gracias por tomarte el tiempo.",
+    "requiredError": "Algunas preguntas marcadas con estrella todavía necesitan una respuesta.",
+    "sent": "Enviada el {date}",
+    "setAside": "Decidiste dejar esta a un lado.",
+    "back": "Volver a tu espacio"
+  }
+}

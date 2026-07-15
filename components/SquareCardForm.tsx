@@ -25,12 +25,14 @@ export function SquareCardForm({
   scriptUrl,
   amountLabel,
   payAction,
+  successPath = "/space/schedule?paid=1",
 }: {
   applicationId: string;
   locationId: string;
   scriptUrl: string;
   amountLabel: string;
   payAction: (token: string) => Promise<{ ok: boolean; error?: string }>;
+  successPath?: string; // where to land after a successful payment
 }) {
   const cardRef = useRef<Awaited<ReturnType<SquarePayments["card"]>> | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "paying" | "failed">("loading");
@@ -92,7 +94,7 @@ export function SquareCardForm({
         return;
       }
       setMessage("Paid — thank you.");
-      window.location.assign("/space/schedule?paid=1");
+      window.location.assign(successPath);
     } catch {
       setState("ready");
       setMessage("Something interrupted the payment — please try again.");

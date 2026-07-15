@@ -12,6 +12,8 @@ import {
   toggleFieldRequired,
   moveField,
   deleteField,
+  createSpanishVersion,
+  toggleWorksheetActiveInBuilder,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +28,7 @@ export default async function WorksheetBuilderPage({
   searchParams,
 }: {
   params: { worksheetId: string };
-  searchParams: { drafted?: string };
+  searchParams: { drafted?: string; error?: string };
 }) {
   await requirePractitioner();
 
@@ -34,11 +36,31 @@ export default async function WorksheetBuilderPage({
   if (!worksheet) notFound();
   const fields = parseFields(worksheet.schema);
 
+  // AMD-05 A5.5 — the locale sibling (either direction of the link).
+  const sibling = await prisma.worksheet.findFirst({
+    where: {
+      id: { not: worksheet.id },
+      OR: [
+        { translationOfId: worksheet.id },
+        ...(worksheet.translationOfId
+          ? [{ id: worksheet.translationOfId }, { translationOfId: worksheet.translationOfId }]
+          : []),
+      ],
+    },
+    select: { id: true, locale: true, active: true },
+  });
+  const spanishSibling = sibling?.locale === "es" ? sibling : null;
+
   return (
     <div className="flex flex-col gap-8">
       {searchParams.drafted && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
           Here&apos;s the draft — everything below is yours to reshape. It saves as you go.
+        </p>
+      )}
+      {searchParams.error && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          The Spanish draft didn&apos;t come through — give it another try in a moment.
         </p>
       )}
 
@@ -67,6 +89,48 @@ export default async function WorksheetBuilderPage({
           >
             Preview as a client
           </Link>
+
+          {/* AMD-05 A5.5 — language versions: quiet chips, she stays in charge. */}
+          {worksheet.locale === "es" && (
+            <>
+              <form action={toggleWorksheetActiveInBuilder.bind(null, worksheet.id)}>
+                <button
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                    worksheet.active
+                      ? "bg-wine text-white"
+                      : "border border-mocha text-mocha hover:bg-blush"
+                  }`}
+                  title={worksheet.active ? "Deactivate this Spanish version" : "Activate — clients with Spanish preference will see this version"}
+                >
+                  {worksheet.active ? "Español · active" : "Español · draft — activate"}
+                </button>
+              </form>
+              {sibling && (
+                <Link
+                  href={`/practitioner/worksheets/${sibling.id}`}
+                  className="text-xs text-slate underline-offset-4 hover:text-wine hover:underline"
+                >
+                  English original
+                </Link>
+              )}
+            </>
+          )}
+          {worksheet.locale === "en" && spanishSibling && (
+            <Link
+              href={`/practitioner/worksheets/${spanishSibling.id}`}
+              className="rounded-full border border-mocha px-2.5 py-0.5 text-xs font-medium text-mocha transition-colors hover:bg-blush"
+            >
+              Español · {spanishSibling.active ? "active" : "draft"}
+            </Link>
+          )}
+          {worksheet.locale === "en" && !spanishSibling && !worksheet.isSpiral && (
+            <form action={createSpanishVersion.bind(null, worksheet.id)}>
+              <button className="text-xs text-slate underline-offset-4 hover:text-wine hover:underline">
+                Create a Spanish version
+              </button>
+            </form>
+          )}
+
           {worksheet.sourceNote && <span className="text-xs text-slate">{worksheet.sourceNote}</span>}
         </div>
       </div>

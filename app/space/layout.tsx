@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { requireClient } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { hasConsent } from "@/lib/consent";
@@ -19,6 +20,9 @@ export const metadata = { robots: { index: false, follow: false } };
 
 export default async function SpaceLayout({ children }: { children: React.ReactNode }) {
   const user = await requireClient();
+  // AMD-05 A5.1 — chrome labels follow the reader's User.locale (server-side;
+  // client components receive translated strings as props).
+  const t = await getTranslations("nav");
   const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();
 
   // AMENDMENT-01 §5 — the one-time consent re-ask (consent route exempt).
@@ -40,18 +44,19 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
     .catch(() => 0);
 
   const tabs: Tab[] = [
-    { key: "home", label: "Home", href: "/space", icon: "home" },
-    { key: "path", label: "Path", href: "/space/courses", icon: "path" },
-    { key: "reflect", label: "Reflect", href: "/space/new", icon: "star", center: true },
-    { key: "messages", label: "Messages", href: "/space/messages", icon: "message", dot: unread > 0 },
+    { key: "home", label: t("tabs.home"), href: "/space", icon: "home" },
+    { key: "path", label: t("tabs.path"), href: "/space/courses", icon: "path" },
+    { key: "reflect", label: t("tabs.reflect"), href: "/space/new", icon: "star", center: true },
+    { key: "messages", label: t("tabs.messages"), href: "/space/messages", icon: "message", dot: unread > 0 },
   ];
   const youLinks: MoreLink[] = [
-    { href: "/space/first-map", label: "Your First Map", hint: "Your sky, in your words" },
-    { href: "/space/journey", label: "Your journey", hint: "The record, over time" },
-    { href: "/space/design", label: "Your design", hint: "Charts & First Map" },
-    { href: "/space/design/reading", label: "Your reading", hint: "What it all means to you" },
-    { href: "/space/schedule", label: "Sessions", hint: "Book & upcoming" },
-    { href: "/space/profile", label: "Profile", hint: "Your details" },
+    { href: "/space/first-map", label: t("menu.firstMap"), hint: t("menu.firstMapHint") },
+    { href: "/space/journey", label: t("menu.journey"), hint: t("menu.journeyHint") },
+    { href: "/space/design", label: t("menu.design"), hint: t("menu.designHint") },
+    { href: "/space/design/reading", label: t("menu.reading"), hint: t("menu.readingHint") },
+    { href: "/space/schedule", label: t("menu.sessions"), hint: t("menu.sessionsHint") },
+    { href: "/space/settings", label: t("menu.settings"), hint: t("menu.settingsHint") },
+    { href: "/space/profile", label: t("menu.profile"), hint: t("menu.profileHint") },
   ];
 
   async function doSignOut() {
@@ -79,23 +84,26 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
           </Link>
           <nav className="ml-auto flex items-center gap-4 text-[13px] text-whisper">
             <Link href="/space/first-map" className="underline-offset-4 hover:text-wine hover:underline">
-              Your map
+              {t("top.map")}
             </Link>
             <Link href="/space/courses" className="underline-offset-4 hover:text-wine hover:underline">
-              Your path
+              {t("top.path")}
             </Link>
             <Link href="/space/journey" className="underline-offset-4 hover:text-wine hover:underline">
-              Your journey
+              {t("top.journey")}
             </Link>
             <Link href="/space/schedule" className="underline-offset-4 hover:text-wine hover:underline">
-              Sessions
+              {t("top.sessions")}
             </Link>
             <Link href="/space/design" className="underline-offset-4 hover:text-wine hover:underline">
-              Your design
+              {t("top.design")}
+            </Link>
+            <Link href="/space/settings" className="underline-offset-4 hover:text-wine hover:underline">
+              {t("top.settings")}
             </Link>
             <Link href="/space/messages" className="inline-flex items-center gap-1 underline-offset-4 hover:text-wine hover:underline">
-              Messages
-              {unread > 0 && <span className="h-1.5 w-1.5 rounded-full bg-wine" aria-label="new message" />}
+              {t("top.messages")}
+              {unread > 0 && <span className="h-1.5 w-1.5 rounded-full bg-wine" aria-label={t("top.newMessage")} />}
             </Link>
           </nav>
           <span className="ml-2">
@@ -103,7 +111,7 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
           </span>
           <Link
             href="/space/profile"
-            aria-label="Your profile"
+            aria-label={t("top.profile")}
             className="flex h-9 w-9 items-center justify-center rounded-pill bg-blush text-sm font-semibold text-wine ring-1 ring-line transition-colors hover:bg-blush-deep"
           >
             {initial}
@@ -114,7 +122,7 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
 
       <main className="mx-auto max-w-[720px] px-4 py-6 pb-tabbar md:px-6 md:py-10">{children}</main>
 
-      <BottomTabBar tabs={tabs} moreLabel="You" moreIcon="person" moreLinks={youLinks} />
+      <BottomTabBar tabs={tabs} moreLabel={t("you")} moreIcon="person" moreLinks={youLinks} />
     </div>
   );
 }

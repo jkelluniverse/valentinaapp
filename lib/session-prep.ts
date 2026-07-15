@@ -3,11 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
 import {
-  SYSTEM_PROMPT,
+  buildSystemPrompt,
   OUTPUT_SCHEMA,
   PROMPT_VERSION,
   buildUserMessage,
   type PrepOutput,
+  type PractitionerLocale,
 } from "@/ai/sessionPrepPrompt";
 
 // C5 pipeline (spec §4). Non-negotiables enforced here as code:
@@ -35,7 +36,12 @@ function stripIdentifiers(text: string | null, identifiers: string[]) {
   return out;
 }
 
-export async function runSessionPrep(clientId: string, practitionerId: string): Promise<PrepResult> {
+export async function runSessionPrep(
+  clientId: string,
+  practitionerId: string,
+  // AMD-05 — prep is HER-facing; her working language governs (English today).
+  opts: { practitionerLocale?: PractitionerLocale } = {},
+): Promise<PrepResult> {
   const client = await prisma.user.findFirst({
     where: { id: clientId, role: "CLIENT" },
     select: { id: true, name: true, email: true },
@@ -93,7 +99,7 @@ export async function runSessionPrep(clientId: string, practitionerId: string): 
       model,
       max_tokens: 4096,
       thinking: { type: "adaptive" },
-      system: SYSTEM_PROMPT,
+      system: buildSystemPrompt(opts.practitionerLocale),
       output_config: {
         format: {
           type: "json_schema",

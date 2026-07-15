@@ -1,1 +1,37 @@
-{}
+{
+  "_comment": "BORRADOR (es-419, tú) — pendiente del pase de voz de Valentina.",
+  "tabs": {
+    "home": "Inicio",
+    "path": "Camino",
+    "reflect": "Reflexionar",
+    "messages": "Mensajes"
+  },
+  "you": "Tú",
+  "menu": {
+    "firstMap": "Tu Primer Mapa",
+    "firstMapHint": "Tu cielo, en tus palabras",
+    "journey": "Tu recorrido",
+    "journeyHint": "Tu registro, a lo largo del tiempo",
+    "design": "Tu diseño",
+    "designHint": "Cartas y Primer Mapa",
+    "reading": "Tu lectura",
+    "readingHint": "Lo que todo esto significa para ti",
+    "sessions": "Sesiones",
+    "sessionsHint": "Reserva y próximas",
+    "settings": "Configuración",
+    "settingsHint": "Idioma y preferencias",
+    "profile": "Perfil",
+    "profileHint": "Tus datos"
+  },
+  "top": {
+    "map": "Tu mapa",
+    "path": "Tu camino",
+    "journey": "Tu recorrido",
+    "sessions": "Sesiones",
+    "design": "Tu diseño",
+    "settings": "Configuración",
+    "messages": "Mensajes",
+    "profile": "Tu perfil",
+    "newMessage": "mensaje nuevo"
+  }
+}

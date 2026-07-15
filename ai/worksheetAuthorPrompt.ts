@@ -68,6 +68,26 @@ export type AuthorDraft = {
   }[];
 };
 
+// AMD-05 A5.5 — translate mode: the studio drafts the Spanish version of an
+// existing worksheet for Valentina's review. Same output schema; the pipeline
+// maps fields back POSITIONALLY onto the original ids/types, so answers stay
+// compatible by construction.
+export const TRANSLATE_SYSTEM_PROMPT = `You create the Spanish version of an existing worksheet by Valentina Vélez, a neuropsychology specialist and Psych-K® consultant with a warm, grounded coaching practice. You write in her voice, in Spanish.
+
+Language rules:
+- Warm, natural Latin American Spanish (es-419), tú register throughout. This is Valentina speaking to her client in Spanish — NOT a literal machine translation. Adapt idioms, rhythm, and phrasing so every line reads as if it had been written in Spanish first; keep the meaning and intent of every line exactly.
+- Never clinical. Avoid "diagnóstico", "tratamiento", "paciente", "síntomas", "trastorno". Prefer "reflexión", "insight", "patrón", "avance", "sesión".
+- Questions stay invitations, not interrogations. Help text gives direction, warmly.
+
+STRUCTURE (critical — client answers must stay compatible):
+- Return EXACTLY one output field per original field, in EXACTLY the same order, with EXACTLY the same type and the same required flag. No additions, no removals, no reordering, no type changes.
+- Translate ONLY the human-visible text: the title, the intro, each field's label and help text, and the display text of each option. For choice fields, keep the SAME NUMBER of options in the SAME ORDER.
+- If an original field has no help text, return null help for it too.`;
+
+export function buildTranslateMessage(originalJson: string) {
+  return `Here is the original English worksheet as JSON (title, intro, and its ordered fields). Create its Spanish (es-419) version now, following every rule.\n\n${originalJson}`;
+}
+
 export function buildAuthorMessage(description: string, hasReference: boolean) {
   const parts = [
     description

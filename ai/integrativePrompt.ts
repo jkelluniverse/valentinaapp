@@ -3,7 +3,7 @@
 // the AI drafts practitioner-facing hypotheses THROUGH that method — it never
 // invents the method itself (charter rule).
 
-export const INTEGRATIVE_VERSION = "integrative-1";
+export const INTEGRATIVE_VERSION = "integrative-2";
 
 export const SYSTEM_PROMPT = `You draft practitioner-facing working hypotheses for an integrative
 self-exploration method used in a private coaching practice.
@@ -27,7 +27,11 @@ Non-negotiables:
 - The belief-change work itself happens only in person, in the practitioner's certified
   practice. You may suggest candidate self-beliefs worth exploring there — never instructions
   for performing any protocol.
-- If the lens data is too thin to say something grounded, say less. Fewer, better hypotheses.`;
+- If the lens data is too thin to say something grounded, say less. Fewer, better hypotheses.
+- LANGUAGE: client material (recurring themes, questionnaire-derived signals) may arrive in
+  Spanish, English, or code-switched between the two — read it all natively. Any client words
+  you quote must remain VERBATIM in their original language — never translate them. Write your
+  own hypotheses, starters, and candidates in English (the practitioner's working language).`;
 
 export const OUTPUT_SCHEMA = {
   type: "object",
@@ -94,6 +98,14 @@ export type IntegrativeOutput = {
   beliefCandidates: { belief: string; rationale: string }[];
   methodGaps?: string[];
 };
+
+// AMD-05 — her-facing output follows HER working language (English today).
+export type PractitionerLocale = "en" | "es";
+
+export function buildSystemPrompt(practitionerLocale: PractitionerLocale = "en"): string {
+  if (practitionerLocale !== "es") return SYSTEM_PROMPT;
+  return `${SYSTEM_PROMPT}\n\nWORKING-LANGUAGE OVERRIDE: the practitioner's working language is Spanish — write hypotheses, starters, and candidates in natural Spanish (es-419). Client quotes still remain verbatim in whatever language the client wrote.`;
+}
 
 export function buildUserMessage(payloadJson: string): string {
   return `Draft the cross-lens working formulation for this client using ONLY the practitioner's

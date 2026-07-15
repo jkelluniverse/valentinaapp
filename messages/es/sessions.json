@@ -1,1 +1,82 @@
-{}
+{
+  "schedule": {
+    "eyebrow": "Sesiones",
+    "title": "Reserva una sesión",
+    "notSetUp": "La agenda aún no está lista.",
+    "noConsent": "Tu consentimiento aún no está registrado, así que las reservas no están abiertas. Escríbele a Valentina.",
+    "banner": {
+      "booked": "Quedó reservada — la confirmación va en camino, y ya aparece en el calendario de abajo.",
+      "cancelled": "Esa sesión quedó cancelada.",
+      "cancelledFee": "Esa sesión quedó cancelada. El cargo por cambio tardío está abajo, para cuando puedas.",
+      "rescheduled": "Tu sesión tiene un nuevo horario — la confirmación va en camino.",
+      "rescheduledFee": "Tu sesión tiene un nuevo horario — la confirmación va en camino. El cargo por cambio tardío está abajo, para cuando puedas.",
+      "paid": "Pagado — gracias. El recibo queda con tu estado de cuenta.",
+      "package": "Gracias — tu paquete ya está activo. Las sesiones que reserves ahora salen de él.",
+      "taken": "Ese horario se acaba de ocupar — elige otro, por favor."
+    },
+    "upcoming": "Tus próximas sesiones",
+    "join": "Entrar",
+    "reschedule": "Cambiar horario",
+    "cancel": "Cancelar",
+    "topic": "Tema: {note}",
+    "covered": "Cubierta por tu paquete",
+    "paid": "Pagada",
+    "pending": "El pago va en camino",
+    "due": "Cuando puedas, antes de la sesión",
+    "settle": "Pagar esta sesión",
+    "openTimes": "Horarios disponibles",
+    "back": "Volver a tu espacio"
+  },
+  "package": {
+    "title": "Tu paquete",
+    "remaining": "{count, plural, =0 {No te quedan sesiones} =1 {Te queda una sesión} =2 {Te quedan dos sesiones} =3 {Te quedan tres sesiones} =4 {Te quedan cuatro sesiones} =5 {Te quedan cinco sesiones} =6 {Te quedan seis sesiones} =7 {Te quedan siete sesiones} =8 {Te quedan ocho sesiones} =9 {Te quedan nueve sesiones} other {Te quedan # sesiones}}",
+    "pipsLabel": "{used} usadas, {reserved} reservadas, {available} libres",
+    "detail": "{used} de {total} usadas · {reserved, plural, =0 {ninguna reservada aún} =1 {una reservada} other {# reservadas}}",
+    "through": "tuyo hasta {date}",
+    "allComplete": "Tu paquete está completo — ya viviste todas sus sesiones.",
+    "history": "Historial de paquetes",
+    "historyItem": "Paquete de {total} sesiones · comenzó en {date}"
+  },
+  "continue": {
+    "title": "Sigamos nuestro trabajo",
+    "lede": "Paquetes de sesiones, para cuando estés lista para el siguiente tramo del camino.",
+    "sessions": "{count, plural, =1 {una sesión} other {# sesiones}}"
+  },
+  "purchase": {
+    "note": "En cuanto quede pagado, tu paquete se activa de inmediato — las sesiones que reserves salen de él, una a una.",
+    "offline": "El pago en línea aún no está disponible aquí — coordina esto directamente con Valentina y aparecerá en esta página cuando esté listo.",
+    "back": "Volver a tus sesiones"
+  },
+  "fees": {
+    "title": "Algo por saldar",
+    "reason": {
+      "LATE_RESCHEDULE": "Cambio tardío",
+      "LATE_CANCEL": "Cancelación tardía",
+      "NO_SHOW": "Sesión perdida"
+    },
+    "settle": "Pagar"
+  },
+  "cancel": {
+    "title": "Cancelar esta sesión",
+    "goneTitle": "Esa sesión no está aquí",
+    "goneBody": "Puede que ya se haya cancelado o movido. Tu página de sesiones tiene el panorama actual.",
+    "freeBody": "La vida pasa — si este horario ya no te sirve, puedes soltarlo aquí y elegir otro cuando estés lista.",
+    "confirm": "Cancelar esta sesión",
+    "keep": "Conservar mi sesión",
+    "lateBody": "Esta sesión es en menos de {hours} horas, así que aplica un cargo de {amount} por cambio tardío. Si surgió algo urgente, también puedes escribirle a Valentina.",
+    "anyway": "Cancelar de todos modos ({amount})",
+    "message": "Escribirle a Valentina"
+  },
+  "reschedule": {
+    "title": "Mueve tu sesión",
+    "current": "Actualmente {when}.",
+    "lateNotice": "Como esta sesión es en menos de {hours} horas, moverla lleva un cargo de {amount} por cambio tardío. Si surgió algo urgente, también puedes escribirle a Valentina.",
+    "pick": "Elige un nuevo horario",
+    "from": "De {when}",
+    "to": "A {when}",
+    "confirm": "Mover mi sesión",
+    "confirmFee": "Mover de todos modos ({amount})",
+    "another": "Elegir otro horario",
+    "taken": "Ese horario se acaba de ocupar — elige otro, por favor."
+  }
+}

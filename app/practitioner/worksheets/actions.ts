@@ -81,6 +81,68 @@ export async function setWorksheetActive(worksheetId: string, active: boolean) {
   redirect(WORKSHEETS);
 }
 
+// AMD-05 A5.5 — C9 studio: AI drafts the Spanish version, she approves.
+// Creates an INACTIVE es sibling (translationOfId → original) with identical
+// field ids/types — translated display text only — then drops her into the
+// builder to review. Activating it (the toggle below, or the library toggle)
+// is the approval.
+export async function createSpanishVersion(worksheetId: string) {
+  const practitioner = await requirePractitioner();
+  const src = await prisma.worksheet.findUnique({ where: { id: worksheetId } });
+  if (!src) redirect(WORKSHEETS);
+  if (src.locale !== "en") redirect(builderPath(src.id));
+
+  // Already has a Spanish sibling (either direction of the link)? Go there.
+  const existing = await prisma.worksheet.findFirst({
+    where: {
+      locale: "es",
+      OR: [
+        { translationOfId: src.id },
+        ...(src.translationOfId ? [{ id: src.translationOfId }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+  if (existing) redirect(builderPath(existing.id));
+
+  const fields = parseFields(src.schema);
+  const result = await draftWorksheet("", [], {
+    translateFrom: { title: src.title, intro: src.intro, schema: fields },
+    targetLocale: "es",
+  });
+  if (!result.ok) redirect(`${builderPath(src.id)}?error=${result.error}`);
+
+  const spanish = await prisma.worksheet.create({
+    data: {
+      title: result.title,
+      intro: result.intro || null,
+      schema: result.fields as object[],
+      locale: "es",
+      translationOfId: src.id,
+      active: false, // a draft until she approves by activating
+      createdById: practitioner.id,
+      sourceNote: "AI-drafted Spanish version — review, then activate to serve it",
+    },
+  });
+
+  revalidatePath(WORKSHEETS);
+  redirect(`${builderPath(spanish.id)}?drafted=1`);
+}
+
+// Activate/deactivate from inside the builder (the library toggle redirects
+// away; approving a Spanish draft should keep her where she's reviewing).
+export async function toggleWorksheetActiveInBuilder(worksheetId: string) {
+  await requirePractitioner();
+  const ws = await prisma.worksheet.findUnique({
+    where: { id: worksheetId },
+    select: { active: true },
+  });
+  if (!ws) redirect(WORKSHEETS);
+  await prisma.worksheet.update({ where: { id: worksheetId }, data: { active: !ws.active } });
+  revalidatePath(builderPath(worksheetId));
+  redirect(builderPath(worksheetId));
+}
+
 // Builder autosave targets.
 export async function saveWorksheetField(worksheetId: string, formData: FormData) {
   await requirePractitioner();

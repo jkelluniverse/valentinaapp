@@ -6,6 +6,7 @@ import { getPracticeOverview } from "@/lib/attention";
 import { Greeting } from "@/components/Greeting";
 import { getPractitioner, getOrCreateConfig, formatInZone, zonedParts, zonedWallToUtc, DAY_MS } from "@/lib/schedule";
 import { partyLabel } from "@/lib/appointments";
+import { packageCounters } from "@/lib/packages";
 import { firstNameOf } from "@/lib/name";
 
 export const dynamic = "force-dynamic";
@@ -82,6 +83,23 @@ export default async function TheStudy() {
   const config = p ? await getOrCreateConfig(p.id) : null;
   let todays: Awaited<ReturnType<typeof loadToday>> = [];
   if (p && config) todays = await loadToday(p.id, config.timezone);
+
+  // C13-PKG §5 — the renewal moment, quietly: clients whose ACTIVE package has
+  // no room left (used + reserved = total) are on their last covered session.
+  const todayClientIds = [
+    ...new Set(todays.filter((a) => a.kind !== "DISCOVERY" && a.clientId).map((a) => a.clientId!)),
+  ];
+  const lastOfPackage = new Set<string>();
+  if (todayClientIds.length > 0) {
+    const activePkgs = await prisma.package.findMany({
+      where: { clientId: { in: todayClientIds }, status: "ACTIVE" },
+      include: { credits: { select: { state: true } } },
+    });
+    for (const pkg of activePkgs) {
+      const c = packageCounters(pkg);
+      if (c.used + c.reserved >= pkg.sessionsTotal) lastOfPackage.add(pkg.clientId);
+    }
+  }
 
   // Worth a look — at most three, worded, in priority order. A client who
   // reached out in distress leads everything else.
@@ -194,6 +212,11 @@ export default async function TheStudy() {
                   <span className="text-[13px] text-whisper">
                     {a.location === "VIRTUAL" ? "virtual" : "in person"}
                   </span>
+                  {!discovery && a.clientId && lastOfPackage.has(a.clientId) && (
+                    <span className="text-[13px] italic text-whisper">
+                      last session of their package
+                    </span>
+                  )}
                   <span className="ml-auto flex items-center gap-4 text-sm">
                     {a.location === "VIRTUAL" && a.videoUrl && (
                       <a

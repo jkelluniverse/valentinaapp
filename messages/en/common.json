@@ -1,1 +1,11 @@
-{}
+{
+  "worksheet": {
+    "eyebrow": "A worksheet from Valentina",
+    "due": "Whenever you're ready — ideally by {date}.",
+    "done": "Sent to Valentina — thank you for taking the time.",
+    "requiredError": "A few starred questions still need an answer.",
+    "sent": "Sent {date}",
+    "setAside": "You set this one aside.",
+    "back": "Back to your space"
+  }
+}
