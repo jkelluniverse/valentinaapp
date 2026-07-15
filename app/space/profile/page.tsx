@@ -61,16 +61,6 @@ export default async function ProfilePage({
               />
             </label>
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-ink-strong">Pronouns</span>
-              <input
-                type="text"
-                name="pronouns"
-                defaultValue={profile?.pronouns ?? ""}
-                placeholder="e.g. she/her"
-                className="rounded-md border border-line px-3 py-2 text-ink"
-              />
-            </label>
-            <label className="flex flex-col gap-1.5">
               <span className="text-sm font-medium text-ink-strong">Phone</span>
               <input
                 type="tel"

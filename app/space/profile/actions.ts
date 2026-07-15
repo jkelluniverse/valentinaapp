@@ -18,7 +18,6 @@ export async function saveProfile(formData: FormData) {
   if (!(await hasConsent(user.id))) redirect("/space/consent");
 
   const preferredName = String(formData.get("preferredName") ?? "").trim() || null;
-  const pronouns = String(formData.get("pronouns") ?? "").trim() || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
 
   // Birth fields
@@ -58,7 +57,6 @@ export async function saveProfile(formData: FormData) {
 
   const data = {
     preferredName,
-    pronouns,
     phone,
     birthDate,
     birthTime: birthTimeUnknown ? null : birthTime,
