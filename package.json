@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:staging": "tsx prisma/staging-seed.ts",
+    "fixtures:verify:kfloor": "tsx prisma/fixtures/kfloor-verify.ts",
     "db:backfill": "tsx prisma/backfill-record.ts",
     "e2e:walk": "node e2e/walk.mjs",
     "lint:wall": "node scripts/check-public-wall.mjs",

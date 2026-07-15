@@ -12,6 +12,25 @@ const DAY = 86_400_000;
 const hash = (p: string) => bcrypt.hashSync(p, 10);
 const ago = (d: number) => new Date(Date.now() - d * DAY);
 
+// Deterministic 0..1 placement from a string, so First-Map star positions are
+// stable across re-seeds (no Math.random — see FIXTURES-SPEC §9 "deterministic").
+function placement(seed: string): number {
+  const h = createHash("sha256").update(seed).digest();
+  return h.readUInt32BE(0) / 0xffffffff;
+}
+
+// Idempotency (fixes the non-idempotency the last audit flagged): before
+// re-seeding a fixture client's content, wipe the rows the seed creates with no
+// natural key. RecordItem is upsert-keyed but its sourceId is the (new) LogEntry
+// id, so stale LogEntry-sourced RecordItems must go too. Scoped to one client.
+async function resetClientContent(clientId: string) {
+  await prisma.psycheNode.deleteMany({ where: { clientId, source: "SELF_REPORTED" } });
+  await prisma.message.deleteMany({ where: { conversation: { clientId } } });
+  await prisma.appointment.deleteMany({ where: { clientId } });
+  await prisma.recordItem.deleteMany({ where: { clientId, sourceType: "LogEntry" } });
+  await prisma.logEntry.deleteMany({ where: { clientId } });
+}
+
 async function record(clientId: string, kind: string, occurredAt: Date, title: string, summary: string, tags: string[], sourceType: string, sourceId: string) {
   await prisma.recordItem.upsert({
     where: { sourceType_sourceId: { sourceType, sourceId } },
@@ -119,6 +138,10 @@ async function main() {
       create: { userId: u.id, stage: c.stage, firstMapCompletedAt: c.stars.length ? ago(20) : null, intakeCompletedAt: ago(25), birthDate: new Date("1990-05-14"), birthPlace: "Austin, TX" },
     });
 
+    // Clean slate for this client's no-natural-key content, so re-seeding never
+    // duplicates reflections / messages / appointments / stars.
+    await resetClientContent(u.id);
+
     for (let i = 0; i < c.reflections.length; i++) {
       const r = c.reflections[i];
       const e = await prisma.logEntry.create({ data: { clientId: u.id, body: r.body, mood: r.mood, occurredAt: ago(r.when), tags: r.tags, type: "REFLECTION" } });
@@ -144,10 +167,15 @@ async function main() {
       }
     }
 
-    // psyche stars (SELF_REPORTED — their First Map)
+    // psyche stars (SELF_REPORTED — their First Map). Deterministic placement;
+    // the reset above cleared any prior stars, so a plain create is idempotent.
     for (const s of c.stars) {
-      const existing = await prisma.psycheNode.findFirst({ where: { clientId: u.id, label: s.label } });
-      if (!existing) await prisma.psycheNode.create({ data: { clientId: u.id, kind: s.kind as never, label: s.label, source: "SELF_REPORTED", selfX: Math.random(), selfY: Math.random(), weight: 1.5 } });
+      await prisma.psycheNode.create({
+        data: {
+          clientId: u.id, kind: s.kind as never, label: s.label, source: "SELF_REPORTED",
+          selfX: placement(`${c.email}:${s.label}:x`), selfY: placement(`${c.email}:${s.label}:y`), weight: 1.5,
+        },
+      });
     }
 
     // appointment
