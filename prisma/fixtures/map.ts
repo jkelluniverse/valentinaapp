@@ -26,9 +26,10 @@ async function main() {
 
   console.log(`=== running real C16 extraction over ${clients.length} active fixture clients ===\n`);
   for (const c of clients) {
+    const name = (c.name ?? c.id).padEnd(20);
     const items = await prisma.recordItem.count({ where: { clientId: c.id } });
-    if (items === 0) { console.log(`- ${c.name.padEnd(20)} skip (no record items)`); continue; }
-    process.stdout.write(`~ ${c.name.padEnd(20)} items=${String(items).padStart(3)} … `);
+    if (items === 0) { console.log(`- ${name} skip (no record items)`); continue; }
+    process.stdout.write(`~ ${name} items=${String(items).padStart(3)} … `);
     try {
       const r = await runPsycheExtraction(c.id, pract.id, { deep: true });
       if (r.ok) console.log(`created=${r.created} updated=${r.updated} edges=${r.edges} referral=${r.referral}`);
