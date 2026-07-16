@@ -7,6 +7,8 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
+    // instrumentation.ts — process-level crash logging (502 forensics).
+    instrumentationHook: true,
     serverActions: {
       // Reference uploads (PDFs/images) for the AI studios.
       bodySizeLimit: "10mb",
