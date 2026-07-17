@@ -10,7 +10,8 @@ import {
   minutesToTimeValue,
   minutesToLabel,
 } from "@/lib/schedule-meta";
-import { saveConfig, saveWeekdayHours, addException, deleteException } from "./actions";
+import { saveConfig, saveAllWeekdayHours, addException, deleteException } from "./actions";
+import { SaveButton } from "./SaveButton";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export default async function AvailabilityPage({
         </p>
       </div>
 
-      {searchParams.saved && (
+      {(searchParams.saved === "exception" || searchParams.saved === "hours") && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">Saved.</p>
       )}
       {searchParams.error === "date" && (
@@ -77,26 +78,26 @@ export default async function AvailabilityPage({
         </p>
       )}
 
-      {/* Weekly hours */}
+      {/* Weekly hours — ONE form, one save. Every day's inputs post together. */}
       <section className="rounded-lg border border-line bg-white p-6 shadow-soft">
         <h2 className="mb-1 text-xl font-semibold">Weekly hours</h2>
         <p className="mb-5 text-sm text-slate">
-          Times are in {tzLabel(config.timezone)}. Turn a day on and set your window.
+          Times are in {tzLabel(config.timezone)}. Turn a day on, set its window, then save the week
+          with one button below.
         </p>
-        <div className="flex flex-col gap-3">
+        <form action={saveAllWeekdayHours.bind(null, "SESSION")} className="flex flex-col gap-3">
           {WEEKDAYS.map((day) => {
             const rule = byWeekday.get(day.value);
             const enabled = Boolean(rule);
             return (
-              <form
+              <div
                 key={day.value}
-                action={saveWeekdayHours.bind(null, day.value, "SESSION")}
                 className="flex flex-wrap items-center gap-3 rounded-md border border-line/70 px-4 py-3"
               >
                 <label className="flex w-32 items-center gap-2">
                   <input
                     type="checkbox"
-                    name="enabled"
+                    name={`enabled-${day.value}`}
                     defaultChecked={enabled}
                     className="h-4 w-4 accent-wine"
                   />
@@ -105,70 +106,80 @@ export default async function AvailabilityPage({
                 <div className="flex items-center gap-2 text-sm text-ink">
                   <input
                     type="time"
-                    name="start"
+                    name={`start-${day.value}`}
                     defaultValue={rule ? minutesToTimeValue(rule.startMinute) : "09:00"}
                     className="rounded-md border border-line px-2 py-1"
                   />
                   <span className="text-slate">to</span>
                   <input
                     type="time"
-                    name="end"
+                    name={`end-${day.value}`}
                     defaultValue={rule ? minutesToTimeValue(rule.endMinute) : "17:00"}
                     className="rounded-md border border-line px-2 py-1"
                   />
                 </div>
-                <button className="ml-auto rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
-                  Save {day.short}
-                </button>
-              </form>
+              </div>
             );
           })}
-        </div>
+          <div className="mt-2 flex items-center gap-3">
+            <SaveButton>Save all weekly hours</SaveButton>
+            {searchParams.saved === "session" && (
+              <span className="text-sm font-medium text-wine">Saved ✓</span>
+            )}
+          </div>
+        </form>
       </section>
 
-      {/* Discovery hours (C18) — kept apart from session hours. */}
+      {/* Discovery hours (C18) — kept apart from session hours. Same one-form shape. */}
       <section className="rounded-lg border border-line bg-white p-6 shadow-soft">
         <h2 className="mb-1 text-xl font-semibold">Discovery-call hours</h2>
         <p className="mb-5 text-sm text-slate">
           When strangers can book a free discovery call from your site. Separate from your session
-          hours — set only the windows you want to offer for first conversations.
+          hours — set only the windows you want to offer for first conversations, then save below.
         </p>
-        <div className="flex flex-col gap-3">
+        <form action={saveAllWeekdayHours.bind(null, "DISCOVERY")} className="flex flex-col gap-3">
           {WEEKDAYS.map((day) => {
             const rule = byWeekdayDiscovery.get(day.value);
             const enabled = Boolean(rule);
             return (
-              <form
+              <div
                 key={day.value}
-                action={saveWeekdayHours.bind(null, day.value, "DISCOVERY")}
                 className="flex flex-wrap items-center gap-3 rounded-md border border-line/70 px-4 py-3"
               >
                 <label className="flex w-32 items-center gap-2">
-                  <input type="checkbox" name="enabled" defaultChecked={enabled} className="h-4 w-4 accent-wine" />
+                  <input
+                    type="checkbox"
+                    name={`enabled-${day.value}`}
+                    defaultChecked={enabled}
+                    className="h-4 w-4 accent-wine"
+                  />
                   <span className="font-medium text-ink-strong">{day.long}</span>
                 </label>
                 <div className="flex items-center gap-2 text-sm text-ink">
                   <input
                     type="time"
-                    name="start"
+                    name={`start-${day.value}`}
                     defaultValue={rule ? minutesToTimeValue(rule.startMinute) : "12:00"}
                     className="rounded-md border border-line px-2 py-1"
                   />
                   <span className="text-slate">to</span>
                   <input
                     type="time"
-                    name="end"
+                    name={`end-${day.value}`}
                     defaultValue={rule ? minutesToTimeValue(rule.endMinute) : "14:00"}
                     className="rounded-md border border-line px-2 py-1"
                   />
                 </div>
-                <button className="ml-auto rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
-                  Save {day.short}
-                </button>
-              </form>
+              </div>
             );
           })}
-        </div>
+          <div className="mt-2 flex items-center gap-3">
+            <SaveButton>Save all discovery hours</SaveButton>
+            {searchParams.saved === "discovery" && (
+              <span className="text-sm font-medium text-wine">Saved ✓</span>
+            )}
+          </div>
+        </form>
       </section>
 
       {/* Session settings */}
@@ -248,9 +259,12 @@ export default async function AvailabilityPage({
             </label>
           </div>
 
-          <button className="self-start rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
-            Save settings
-          </button>
+          <div className="flex items-center gap-3">
+            <SaveButton variant="solid">Save settings</SaveButton>
+            {searchParams.saved === "config" && (
+              <span className="text-sm font-medium text-wine">Saved ✓</span>
+            )}
+          </div>
         </form>
       </section>
 

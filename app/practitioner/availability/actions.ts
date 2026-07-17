@@ -86,6 +86,33 @@ export async function saveWeekdayHours(
   redirect(`${PATH}?saved=hours`);
 }
 
+// The whole week in one tap — reads enabled-<w>/start-<w>/end-<w> for every
+// weekday and replaces that kind's grid atomically. A day with a bad window
+// (end before start) simply saves as off rather than failing the rest.
+export async function saveAllWeekdayHours(kind: "SESSION" | "DISCOVERY", formData: FormData) {
+  const pid = await practitionerId();
+  const ruleKind = kind === "DISCOVERY" ? "DISCOVERY" : "SESSION";
+
+  await prisma.$transaction(async (tx) => {
+    for (let weekday = 0; weekday < 7; weekday++) {
+      const enabled = formData.get(`enabled-${weekday}`) === "on";
+      const start = timeValueToMinutes(String(formData.get(`start-${weekday}`) ?? ""));
+      const end = timeValueToMinutes(String(formData.get(`end-${weekday}`) ?? ""));
+      await tx.availabilityRule.deleteMany({
+        where: { practitionerId: pid, weekday, kind: ruleKind },
+      });
+      if (enabled && start != null && end != null && end > start) {
+        await tx.availabilityRule.create({
+          data: { practitionerId: pid, kind: ruleKind, weekday, startMinute: start, endMinute: end, active: true },
+        });
+      }
+    }
+  });
+  revalidatePath(PATH);
+  revalidatePath("/book");
+  redirect(`${PATH}?saved=${ruleKind === "DISCOVERY" ? "discovery" : "session"}`);
+}
+
 export async function addException(formData: FormData) {
   const pid = await practitionerId();
   const dateStr = String(formData.get("date") ?? "").trim();
