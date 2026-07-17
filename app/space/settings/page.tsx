@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { PushToggle } from "@/components/PushToggle";
 import { changePassword, requestEmailChange, signOutEverywhere } from "@/app/account/actions";
 import { saveLocale, saveNotifications, requestDeletion } from "./actions";
 
@@ -222,6 +223,25 @@ export default async function SettingsPage({
 
       {/* Notifications */}
       <Section title={t("notifications.heading")}>
+        {process.env.VAPID_PUBLIC_KEY && (
+          <div className="flex items-center justify-between gap-4 border-b border-line py-4">
+            <div>
+              <p className="font-medium text-ink-strong">{t("notifications.push")}</p>
+              <p className="text-sm text-slate">{t("notifications.pushHint")}</p>
+            </div>
+            <PushToggle
+              vapidPublicKey={process.env.VAPID_PUBLIC_KEY}
+              labels={{
+                enable: t("notifications.pushEnable"),
+                disable: t("notifications.pushDisable"),
+                on: t("notifications.pushOn"),
+                unsupported: t("notifications.pushUnsupported"),
+                blocked: t("notifications.pushBlocked"),
+                iosHint: t("notifications.pushIosHint"),
+              }}
+            />
+          </div>
+        )}
         <form action={saveNotifications} className="flex flex-col divide-y divide-line">
           <p className="py-4 text-sm text-slate">{t("notifications.hint")}</p>
           <label className="flex items-start gap-3 py-4">

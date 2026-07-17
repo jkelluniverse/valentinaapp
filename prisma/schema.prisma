@@ -27,6 +27,7 @@ model User {
   consentGrants ConsentGrant[]
   emailChanges EmailChangeRequest[]
   deletionRequests DeletionRequest[]
+  pushSubscriptions PushSubscription[]
   entries      LogEntry[]
   assignments  Assignment[]  @relation("ClientAssignments")
   record       RecordItem[]  @relation("ClientRecord")
@@ -59,6 +60,21 @@ model ConsentGrant {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, version])
+}
+
+// Web Push (per device). One row per browser/device subscription; dead
+// endpoints are pruned when a push bounces. Payloads never carry message
+// content — only "you have something waiting" plus a destination.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // AMD-05 B2 — verified email change. The address switches ONLY when the link

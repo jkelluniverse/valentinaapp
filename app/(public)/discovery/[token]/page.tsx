@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { SignatureRule, Eyebrow } from "@/components/brand";
-import { getDiscoveryManage } from "@/lib/discovery";
+import { AddToCalendar } from "@/components/AddToCalendar";
+import { getDiscoveryManage, getDiscoveryInvite } from "@/lib/discovery";
 import { ManageFlow } from "./ManageFlow";
 import { rescheduleAction, cancelAction } from "./actions";
 
@@ -22,6 +23,7 @@ export default async function ManagePage({
   searchParams: { moved?: string; cancelled?: string; error?: string };
 }) {
   const view = await getDiscoveryManage(params.token);
+  const invite = view ? await getDiscoveryInvite(params.token) : null;
 
   if (!view) {
     return (
@@ -67,10 +69,23 @@ export default async function ManagePage({
         </div>
       ) : (
         <>
-          <p className="mb-8 mt-4 text-lg text-ink">
+          <p className="mb-3 mt-4 text-lg text-ink">
             Your free discovery call is set for{" "}
             <span className="font-medium text-ink-strong">{view.whenLabel}</span>.
           </p>
+          {invite && !invite.cancelled && (
+            <AddToCalendar
+              event={{
+                title: "Discovery call · Valentina Vélez",
+                start: invite.startAt,
+                end: invite.endAt,
+                description: invite.videoUrl ? `Join here at the time: ${invite.videoUrl}` : null,
+                location: invite.videoUrl ?? "Virtual",
+              }}
+              icsHref={`/discovery/${params.token}/invite.ics`}
+              className="mb-8"
+            />
+          )}
           <ManageFlow
             days={view.days}
             timezone={view.timezone}

@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
+import { AddToCalendar } from "@/components/AddToCalendar";
 import { SlotGrid } from "@/components/SlotGrid";
 import {
   getPractitioner,
@@ -246,6 +247,20 @@ export default async function ClientSchedulePage({
                     </Link>
                   </span>
                 </div>
+                <AddToCalendar
+                  event={{
+                    title: "Session · Valentina Vélez",
+                    start: a.startAt,
+                    end: a.endAt,
+                    description:
+                      a.location === "VIRTUAL" && a.videoUrl
+                        ? `Join here at the time: ${a.videoUrl}`
+                        : null,
+                    location: a.location === "VIRTUAL" ? a.videoUrl ?? "Virtual" : "In person",
+                  }}
+                  icsHref={`/api/appointment-invite/${a.id}`}
+                  label={t("schedule.addToCalendar")}
+                />
                 {a.clientNote && (
                   <p className="text-sm text-slate">{t("schedule.topic", { note: a.clientNote })}</p>
                 )}

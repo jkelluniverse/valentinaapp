@@ -25,7 +25,8 @@
     "due": "When you're ready before the session",
     "settle": "Settle this session",
     "openTimes": "Open times",
-    "back": "Back to your space"
+    "back": "Back to your space",
+    "addToCalendar": "Add to calendar:"
   },
   "package": {
     "title": "Your package",

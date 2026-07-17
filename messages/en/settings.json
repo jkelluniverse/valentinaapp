@@ -67,7 +67,15 @@
     "paymentHint": "A gentle note when a payment is waiting.",
     "renewal": "Package renewal notes",
     "renewalHint": "A message when your package completes, with ways to continue.",
-    "save": "Save preferences"
+    "save": "Save preferences",
+    "push": "Push notifications",
+    "pushHint": "A gentle tap on this device when something is waiting — never message content.",
+    "pushEnable": "Turn on for this device",
+    "pushDisable": "Turn off",
+    "pushOn": "On",
+    "pushUnsupported": "This browser does not support notifications.",
+    "pushBlocked": "Notifications are blocked in your browser settings for this site.",
+    "pushIosHint": "On iPhone, add the app to your Home Screen first (Share → Add to Home Screen)."
   },
   "record": {
     "heading": "Your record",

@@ -7,6 +7,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { bookDiscoveryCall } from "@/lib/discovery";
+import { signToken } from "@/lib/sign";
 import { getBaseUrl } from "@/lib/base-url";
 
 // Simple per-IP sliding-window rate limit. In-memory (per instance) — enough for
@@ -62,5 +63,7 @@ export async function submitBooking(formData: FormData): Promise<void> {
   if (!result.ok) {
     redirect(`/book?error=${result.error === "no_practitioner" ? "unavailable" : result.error}`);
   }
-  redirect("/book/confirmed?ok=1");
+  // The confirmed page gets the signed manage token so it can offer
+  // add-to-calendar right there (same token the email carries).
+  redirect(`/book/confirmed?t=${encodeURIComponent(signToken(result.appointmentId))}`);
 }

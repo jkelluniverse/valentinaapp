@@ -67,7 +67,15 @@
     "paymentHint": "Una nota amable cuando hay un pago pendiente.",
     "renewal": "Notas de renovación de paquete",
     "renewalHint": "Un mensaje cuando tu paquete se completa, con opciones para continuar.",
-    "save": "Guardar preferencias"
+    "save": "Guardar preferencias",
+    "push": "Notificaciones push",
+    "pushHint": "Un toque suave en este dispositivo cuando algo te espera — nunca el contenido del mensaje.",
+    "pushEnable": "Activar en este dispositivo",
+    "pushDisable": "Desactivar",
+    "pushOn": "Activadas",
+    "pushUnsupported": "Este navegador no admite notificaciones.",
+    "pushBlocked": "Las notificaciones están bloqueadas en la configuración de tu navegador para este sitio.",
+    "pushIosHint": "En iPhone, primero agrega la app a tu pantalla de inicio (Compartir → Agregar a inicio)."
   },
   "record": {
     "heading": "Tu registro",

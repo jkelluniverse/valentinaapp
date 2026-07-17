@@ -25,7 +25,8 @@
     "due": "Cuando puedas, antes de la sesión",
     "settle": "Pagar esta sesión",
     "openTimes": "Horarios disponibles",
-    "back": "Volver a tu espacio"
+    "back": "Volver a tu espacio",
+    "addToCalendar": "Agregar al calendario:"
   },
   "package": {
     "title": "Tu paquete",

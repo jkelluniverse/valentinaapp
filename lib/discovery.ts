@@ -219,6 +219,30 @@ export function appointmentIdFromToken(token: string): string | null {
   return verifyToken(token);
 }
 
+// The raw times for "add to calendar" links and the downloadable invite —
+// token-gated exactly like the manage view; exposes only this one call.
+export type DiscoveryInvite = {
+  appointmentId: string;
+  startAt: Date;
+  endAt: Date;
+  videoUrl: string | null;
+  cancelled: boolean;
+};
+
+export async function getDiscoveryInvite(token: string): Promise<DiscoveryInvite | null> {
+  const appointmentId = verifyToken(token);
+  if (!appointmentId) return null;
+  const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
+  if (!appt || appt.kind !== "DISCOVERY") return null;
+  return {
+    appointmentId: appt.id,
+    startAt: appt.startAt,
+    endAt: appt.endAt,
+    videoUrl: appt.videoUrl,
+    cancelled: appt.status === "CANCELLED",
+  };
+}
+
 // C18 — the ONLY data the public /book page reads: open discovery slots, grouped
 // by civil day in the practitioner's timezone. Exposes free/busy times, never
 // client data. Returns [] gracefully if discovery hours aren't set up yet.

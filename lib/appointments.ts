@@ -15,6 +15,7 @@ import {
   unconsumeCreditForAppointment,
 } from "@/lib/packages";
 import { pickLocale, sessionEmail, lateFeeEmail } from "@/lib/email-copy";
+import { sendPushToUser } from "@/lib/push";
 
 // The service layer for appointments: booking with a server-side double-book
 // guard, reschedule, cancel, the completion lifecycle (C13-PKG §5), the
@@ -385,6 +386,21 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
         videoUrl: kind !== "cancelled" && appt.location === "VIRTUAL" ? appt.videoUrl : null,
       });
       await sendEmail({ to: appt.client.email, subject: mail.subject, text: mail.text, attachments });
+    }
+
+    // …and the same word on their phone (push carries no details beyond the time).
+    if (appt.clientId) {
+      const es = locale === "es";
+      const titles: Record<NotifyKind, [string, string]> = {
+        booked: ["Session confirmed", "Sesión confirmada"],
+        rescheduled: ["Session updated", "Sesión actualizada"],
+        cancelled: ["Session cancelled", "Sesión cancelada"],
+      };
+      await sendPushToUser(appt.clientId, {
+        title: titles[kind][es ? 1 : 0],
+        body: when,
+        url: "/space/schedule",
+      });
     }
   } catch (err) {
     console.error("[appointments] notify failed", err instanceof Error ? err.message : "unknown");

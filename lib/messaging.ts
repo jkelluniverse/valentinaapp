@@ -2,6 +2,7 @@ import type { SenderRole, ConvoStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { record, snapshot } from "@/lib/record";
 import { sendEmail } from "@/lib/notify";
+import { sendPushToUser } from "@/lib/push";
 import { isCrisisSignal } from "@/lib/message-safety";
 import { parseRefs, resolveRefs, type MessageRef, type ResolvedRef } from "@/lib/message-refs";
 
@@ -148,7 +149,7 @@ export async function sendMessage(args: {
 // Gentle notification — never any message content (privacy §9).
 async function notifyRecipient(clientId: string, senderRole: SenderRole) {
   const [client, practitioner] = await Promise.all([
-    prisma.user.findUnique({ where: { id: clientId }, select: { name: true, email: true } }),
+    prisma.user.findUnique({ where: { id: clientId }, select: { id: true, name: true, email: true, locale: true } }),
     prisma.user.findFirst({ where: { role: "PRACTITIONER" }, select: { email: true } }),
   ]);
   if (senderRole === "CLIENT") {
@@ -159,11 +160,22 @@ async function notifyRecipient(clientId: string, senderRole: SenderRole) {
         text: "You have a new message waiting in their space. Open Veritas to read and reply.",
       });
     }
-  } else if (client?.email) {
-    await sendEmail({
-      to: client.email,
-      subject: "A note from Valentina",
-      text: "Valentina left you a message in your space. Open Veritas whenever you're ready.",
+  } else if (client) {
+    if (client.email) {
+      await sendEmail({
+        to: client.email,
+        subject: "A note from Valentina",
+        text: "Valentina left you a message in your space. Open Veritas whenever you're ready.",
+      });
+    }
+    // Same tap on the shoulder, on their phone — content never leaves the app.
+    const es = client.locale === "es";
+    await sendPushToUser(client.id, {
+      title: es ? "Una nota de Valentina" : "A note from Valentina",
+      body: es
+        ? "Tienes un mensaje esperándote en tu espacio."
+        : "There's a message waiting for you in your space.",
+      url: "/space/messages",
     });
   }
 }
