@@ -9,16 +9,28 @@ const { auth } = NextAuth(authConfig);
 // role/active checks live server-side in each protected layout (auth-guards.ts).
 // The public marketing home (`/`) stays static for strangers; a signed-in
 // visitor who lands there is bounced to their portal so they never see the ad.
+// The origin the VISITOR sees. Behind the proxy chain (Cloudflare → Railway)
+// the Host header the app receives can be the internal railway.app domain;
+// building absolute redirects from it strands users off the custom domain.
+// x-forwarded-host carries the real public host — always prefer it.
+function publicOrigin(req: { headers: Headers; nextUrl: URL }): string {
+  const host = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim() || req.nextUrl.host;
+  const proto =
+    req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ||
+    req.nextUrl.protocol.replace(":", "");
+  return `${proto}://${host}`;
+}
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isProtected = pathname.startsWith("/practitioner") || pathname.startsWith("/space");
 
   if (isProtected && !req.auth?.user) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
+    return NextResponse.redirect(new URL("/login", publicOrigin(req)));
   }
   if (pathname === "/" && req.auth?.user) {
     return NextResponse.redirect(
-      new URL(roleHome((req.auth.user as { role?: string }).role), req.nextUrl.origin),
+      new URL(roleHome((req.auth.user as { role?: string }).role), publicOrigin(req)),
     );
   }
   // Expose the path to server components (the client space uses it to enforce
