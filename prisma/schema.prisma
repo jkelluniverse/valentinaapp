@@ -910,6 +910,10 @@ model Invite {
   expiresAt      DateTime
   invitedById    String // practitioner User id
   acceptedUserId String? // set on acceptance
+  personalNote   String? // EMAIL-SPEC §4 — her optional line inside the invite email
+  locale         String       @default("en") // the invite email's language; copied to the account on acceptance
+  emailSentAt    DateTime? // last successful auto-send
+  emailError     Boolean      @default(false) // failure is loud, not silent
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -1024,6 +1028,7 @@ model Appointment {
   videoRoomId    String?
   bookedBy       String // "practitioner" | "client"
   clientNote     String? // optional topic
+  reminderSentAt DateTime? // EMAIL-SPEC #10 — the 24h reminder fired (tick dedup)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 

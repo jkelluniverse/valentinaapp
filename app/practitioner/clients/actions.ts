@@ -5,8 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { generateInviteToken, inviteExpiry } from "@/lib/invites";
 import { getBaseUrl } from "@/lib/base-url";
+import { sendEmail, emailConfigured } from "@/lib/notify";
+import { inviteEmail } from "@/emails/invite";
+import { firstNameOf } from "@/lib/name";
 
-type ActionResult = { ok: true; link?: string } | { ok: false; error: string };
+type ActionResult = { ok: true; link?: string; emailed?: boolean } | { ok: false; error: string };
 
 const CLIENTS_PATH = "/practitioner/clients";
 
@@ -18,11 +21,46 @@ function inviteLink(rawToken: string) {
   return `${getBaseUrl()}/invite/${rawToken}`;
 }
 
-// Create a fresh invite and return its one-time copyable link.
-export async function createInvite(input: { name: string; email: string }): Promise<ActionResult> {
+// EMAIL-SPEC §4 — the invite email sends itself; failure is loud, not silent.
+// Copy-link remains the fallback for the spam-folder cases, not the workflow.
+async function sendInviteEmail(inviteId: string, link: string): Promise<boolean> {
+  const invite = await prisma.invite.findUnique({ where: { id: inviteId } });
+  if (!invite) return false;
+  if (!emailConfigured()) {
+    await prisma.invite.update({ where: { id: inviteId }, data: { emailError: true } });
+    return false;
+  }
+  const mail = inviteEmail({
+    locale: invite.locale === "es" ? "es" : "en",
+    firstName: firstNameOf(invite.name || invite.email),
+    link,
+    note: invite.personalNote,
+  });
+  const sent = await sendEmail({
+    to: invite.email,
+    subject: mail.subject,
+    text: "", // envelope carries the copy; the text part renders from it
+    envelope: mail.envelope,
+  });
+  await prisma.invite.update({
+    where: { id: inviteId },
+    data: sent.ok ? { emailSentAt: new Date(), emailError: false } : { emailError: true },
+  });
+  return sent.ok;
+}
+
+// Create a fresh invite: the email goes out on save; the link comes back too.
+export async function createInvite(input: {
+  name: string;
+  email: string;
+  personalNote?: string;
+  locale?: string;
+}): Promise<ActionResult> {
   const practitioner = await requirePractitioner();
   const email = normalizeEmail(input.email);
   const name = String(input.name ?? "").trim();
+  const personalNote = String(input.personalNote ?? "").trim() || null;
+  const locale = input.locale === "es" ? "es" : "en";
 
   if (!email || !email.includes("@")) return { ok: false, error: "Enter a valid email address." };
   if (!name) return { ok: false, error: "Enter a name." };
@@ -36,21 +74,27 @@ export async function createInvite(input: { name: string; email: string }): Prom
   if (pending) return { ok: false, error: "There's already a pending invite for that email. Use Resend." };
 
   const { raw, hash } = generateInviteToken();
-  await prisma.invite.create({
+  const invite = await prisma.invite.create({
     data: {
       email,
       name,
       tokenHash: hash,
       expiresAt: inviteExpiry(),
       invitedById: practitioner.id,
+      personalNote,
+      locale,
     },
   });
 
+  const link = inviteLink(raw);
+  const emailed = await sendInviteEmail(invite.id, link);
+
   revalidatePath(CLIENTS_PATH);
-  return { ok: true, link: inviteLink(raw) };
+  return { ok: true, link, emailed };
 }
 
-// Issue a new token + expiry for a pending invite (old link dies).
+// Issue a new token + expiry for a pending invite (old link dies) — and send
+// the fresh email.
 export async function resendInvite(inviteId: string): Promise<ActionResult> {
   await requirePractitioner();
 
@@ -64,8 +108,11 @@ export async function resendInvite(inviteId: string): Promise<ActionResult> {
     data: { tokenHash: hash, expiresAt: inviteExpiry(), status: "PENDING" },
   });
 
+  const link = inviteLink(raw);
+  const emailed = await sendInviteEmail(inviteId, link);
+
   revalidatePath(CLIENTS_PATH);
-  return { ok: true, link: inviteLink(raw) };
+  return { ok: true, link, emailed };
 }
 
 // Revoke a pending invite — its link stops working immediately.

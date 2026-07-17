@@ -38,6 +38,9 @@ export async function acceptInvite(token: string, formData: FormData) {
         role: "CLIENT",
         active: true,
         passwordHash,
+        // The language she invited them in becomes their starting portal
+        // language (they can change it any time in Settings).
+        locale: invite.locale === "es" ? "es" : "en",
       },
     });
     // AMENDMENT-01: one versioned global consent covers the whole portal

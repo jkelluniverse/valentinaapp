@@ -5,7 +5,9 @@ import { completeAppointment, clientLabel } from "@/lib/appointments";
 import { packageCounters } from "@/lib/packages";
 import { formatMoney } from "@/lib/billing";
 import { sendEmail } from "@/lib/notify";
-import { pickLocale, paymentReminderEmail, packageCompletedEmail } from "@/lib/email-copy";
+import { pickLocale, paymentReminderEmail, packageCompletedEmail, sessionReminderEmail } from "@/lib/email-copy";
+import { sendPushToUser } from "@/lib/push";
+import { getOrCreateConfig, getPractitioner, formatInZone, zoneAbbrev } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -166,12 +168,67 @@ async function handle(req: NextRequest) {
     report.expired = "error";
   }
 
+  // 5b. EMAIL-SPEC #10 — the 24h session reminder (once per appointment).
+  //     Time + join link + the "free up to 24 hours" line, in their language.
+  try {
+    const practitionerUser = await getPractitioner();
+    const config = practitionerUser ? await getOrCreateConfig(practitionerUser.id) : null;
+    let sent = 0;
+    if (config) {
+      const soon = await prisma.appointment.findMany({
+        where: {
+          status: "SCHEDULED",
+          kind: "SESSION",
+          clientId: { not: null },
+          reminderSentAt: null,
+          startAt: { gt: now, lt: new Date(now.getTime() + 24 * 3_600_000) },
+        },
+        include: { client: { select: { id: true, email: true, locale: true } } },
+        take: 50,
+      });
+      for (const a of soon) {
+        if (!a.client) continue;
+        const locale = pickLocale(a.client.locale);
+        const when = `${formatInZone(a.startAt, config.timezone, {
+          weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit",
+          locale: locale === "es" ? "es-419" : "en-US",
+        })} ${zoneAbbrev(a.startAt, config.timezone)}`;
+        if (a.client.email) {
+          const mail = sessionReminderEmail(locale, {
+            when,
+            videoUrl: a.location === "VIRTUAL" ? a.videoUrl : null,
+          });
+          await sendEmail({ to: a.client.email, subject: mail.subject, text: mail.text });
+        }
+        await sendPushToUser(a.client.id, {
+          title: locale === "es" ? "Tu sesión es mañana" : "Your session is tomorrow",
+          body: when,
+          url: "/space/schedule",
+        });
+        await prisma.appointment.update({
+          where: { id: a.id },
+          data: { reminderSentAt: now },
+        });
+        sent++;
+      }
+    }
+    report.sessionReminders = sent;
+  } catch (e) {
+    report.sessionReminders = "error";
+    console.error("[tick] session reminders failed", e instanceof Error ? e.message : "");
+  }
+
   // 5. Auto payment reminders (§9): opt-in, her tone, never a cascade —
   //    at dueAt, once more +7 days, then stop. Per-client mute respected.
+  //    EMAIL-SPEC §5 quiet hours: money nudges only 9:00–19:00 her time.
   try {
     const setting = await prisma.practiceSetting.findUnique({ where: { key: "autoPayReminders" } });
+    const practitionerUser = await getPractitioner();
+    const config = practitionerUser ? await getOrCreateConfig(practitionerUser.id) : null;
+    const hour = config ? Number(formatInZone(now, config.timezone, { hour: "numeric", hour12: false })) : 12;
+    const inQuietHours = hour < 9 || hour >= 19;
     let sent = 0;
-    if (setting?.value === "on") {
+    if (setting?.value === "on" && !inQuietHours) {
       const candidates = await prisma.charge.findMany({
         where: {
           status: "DUE",

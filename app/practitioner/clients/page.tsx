@@ -44,7 +44,7 @@ export default async function ClientsPage({
     getPracticeOverview(),
     prisma.invite.findMany({
       where: { status: { in: ["PENDING", "REVOKED"] } },
-      select: { id: true, name: true, email: true, status: true, createdAt: true },
+      select: { id: true, name: true, email: true, status: true, createdAt: true, emailSentAt: true, emailError: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.clientProfile.findMany({ select: { userId: true, stage: true } }),
@@ -157,7 +157,13 @@ export default async function ClientsPage({
                   <p className="truncate font-medium text-ink-strong">{row.name || "Unnamed"}</p>
                   <p className="truncate text-sm text-slate">
                     {row.email} · invited {formatDay(row.createdAt)}
+                    {row.emailSentAt && ` · email sent ${formatDay(row.emailSentAt)}`}
                   </p>
+                  {row.emailError && row.status === "PENDING" && (
+                    <p className="truncate text-sm font-medium text-rose">
+                      Email didn&apos;t arrive — resend, or copy the link instead.
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-4">
                   <StatusPill status={row.status === "PENDING" ? "Invited" : "Revoked"} />

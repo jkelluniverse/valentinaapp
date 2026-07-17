@@ -60,6 +60,30 @@ export function sessionEmail(
   };
 }
 
+// EMAIL-SPEC #10 — the 24h session reminder: time, join link, and the policy
+// line (it prevents most late fees).
+export function sessionReminderEmail(
+  locale: Locale,
+  v: { when: string; videoUrl?: string | null },
+): Mail {
+  if (locale === "es") {
+    return {
+      subject: `Tu sesión es mañana — ${v.when}`,
+      text:
+        `Un recordatorio suave: tu sesión con Valentina es el ${v.when}.` +
+        (v.videoUrl ? `\n\nÚnete aquí a la hora acordada: ${v.videoUrl}` : "") +
+        `\n\n${RESCHEDULE_LINE.es}`,
+    };
+  }
+  return {
+    subject: `Your session is tomorrow — ${v.when}`,
+    text:
+      `A gentle reminder: your session with Valentina is ${v.when}.` +
+      (v.videoUrl ? `\n\nJoin here at the time: ${v.videoUrl}` : "") +
+      `\n\n${RESCHEDULE_LINE.en}`,
+  };
+}
+
 // C13 §9 — the payment reminder, warm and never a dunning notice.
 export function paymentReminderEmail(
   locale: Locale,
