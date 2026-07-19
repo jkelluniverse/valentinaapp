@@ -83,6 +83,7 @@ export default async function Portrait({
     staged?: string;
     noteTag?: string;
     invoice?: string;
+    billing?: string;
   };
 }) {
   await requirePractitioner();
@@ -213,6 +214,27 @@ export default async function Portrait({
       {searchParams.sent && <Banner>Sent — it&apos;s waiting in their space.</Banner>}
       {searchParams.booked === "1" && <Banner>Session booked — a note is on its way.</Banner>}
       {searchParams.booked === "cancelled" && <Banner>Session cancelled.</Banner>}
+      {searchParams.billing === "reminded" && <Banner>Reminder sent.</Banner>}
+      {searchParams.billing === "nothingdue" && (
+        <Banner>Nothing due on that one — no reminder needed.</Banner>
+      )}
+      {searchParams.billing === "paid" && <Banner>Marked paid.</Banner>}
+      {searchParams.billing === "waived" && <Banner>Waived — noted with your name.</Banner>}
+      {searchParams.billing === "charged" && <Banner>Charged to the card on file.</Banner>}
+      {searchParams.billing === "chargefail" && (
+        <Banner>The card charge didn&apos;t go through — nothing was charged.</Banner>
+      )}
+      {searchParams.billing === "cardsaved" && <Banner>Card saved on file.</Banner>}
+      {searchParams.billing === "squaresaved" && <Banner>Billing details saved to Square.</Banner>}
+      {searchParams.billing === "squarefail" && (
+        <Banner>Square didn&apos;t accept that change — try again.</Banner>
+      )}
+      {searchParams.invoice === "sent" && (
+        <Banner>Invoice sent — your branded email carries it.</Banner>
+      )}
+      {searchParams.invoice === "failed" && (
+        <Banner>The invoice couldn&apos;t be created — nothing was sent.</Banner>
+      )}
       {searchParams.staged && <Banner>Stage updated — it&apos;s on their journey too.</Banner>}
       {searchParams.error === "prompt" && <Banner>That library item isn&apos;t available.</Banner>}
       {searchParams.invoice === "sent" && (
@@ -265,22 +287,30 @@ export default async function Portrait({
         )}
       </div>
 
-      {/* Tabs — a scrollable segmented row on mobile (no wrap), settling into a
-          plain row on desktop. */}
-      <div className="gentle-rise -mx-6 flex gap-1 overflow-x-auto border-b border-line px-6 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden" style={{ animationDelay: "340ms" }}>
+      {/* Tabs — a wrapping chip grid: every section visible at once, one tap,
+          no sideways dragging. The active chip is filled; the rest stay quiet. */}
+      <div
+        className="gentle-rise flex flex-wrap gap-1.5 border-b border-line pb-3"
+        style={{ animationDelay: "340ms" }}
+      >
         {TABS.map((t) => (
           <Link
             key={t.key}
             href={tabHref(t.key)}
-            className={`-mb-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+            aria-current={tab === t.key ? "page" : undefined}
+            className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border px-3.5 py-1.5 text-sm font-medium transition-colors ${
               tab === t.key
-                ? "border-wine text-wine"
-                : "border-transparent text-slate hover:text-wine"
+                ? "border-wine bg-wine text-white"
+                : "border-line text-slate hover:border-mocha hover:text-wine"
             }`}
           >
             {t.label}
             {t.key === "messages" && unreadMessages > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-pill bg-wine px-1.5 text-[11px] font-semibold text-white">
+              <span
+                className={`inline-flex h-5 min-w-5 items-center justify-center rounded-pill px-1.5 text-[11px] font-semibold ${
+                  tab === t.key ? "bg-white text-wine" : "bg-wine text-white"
+                }`}
+              >
                 {unreadMessages}
               </span>
             )}
@@ -895,6 +925,7 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
                       applicationId={sq.applicationId}
                       locationId={sq.locationId}
                       scriptUrl={sq.scriptUrl}
+              sandbox={sq.sandbox}
                       amountLabel=""
                       buttonLabel="Save card on file"
                       successMessage="Card saved."

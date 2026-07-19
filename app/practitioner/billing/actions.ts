@@ -16,6 +16,12 @@ function backPath(formData?: FormData): string {
   return back.startsWith("/practitioner") ? back : LEDGER;
 }
 
+// `back` may already carry a query (?tab=billing) — join correctly, or the
+// tab param silently corrupts and the Portrait lands on the wrong tab.
+function withQuery(back: string, query: string): string {
+  return `${back}${back.includes("?") ? "&" : "?"}${query}`;
+}
+
 // Manual money actions — every one attributable (lastActionById).
 
 export async function markChargePaid(chargeId: string, formData: FormData) {
@@ -26,7 +32,7 @@ export async function markChargePaid(chargeId: string, formData: FormData) {
   }
   const back = backPath(formData);
   revalidatePath(back);
-  redirect(`${back}?billing=paid`);
+  redirect(withQuery(back, `billing=paid`));
 }
 
 export async function waiveCharge(chargeId: string, formData: FormData) {
@@ -37,7 +43,7 @@ export async function waiveCharge(chargeId: string, formData: FormData) {
   }
   const back = backPath(formData);
   revalidatePath(back);
-  redirect(`${back}?billing=waived`);
+  redirect(withQuery(back, `billing=waived`));
 }
 
 // A warm nudge by email — rides the C10 notification path; quietly skipped
@@ -45,31 +51,35 @@ export async function waiveCharge(chargeId: string, formData: FormData) {
 export async function remindCharge(chargeId: string, formData: FormData) {
   await requirePractitioner();
   const back = backPath(formData);
-  if (!emailConfigured()) redirect(`${back}?billing=noemail`);
+  if (!emailConfigured()) redirect(withQuery(back, `billing=noemail`));
 
   const charge = await prisma.charge.findUnique({ where: { id: chargeId } });
-  if (charge && charge.status === "DUE") {
-    const client = await prisma.user.findUnique({
-      where: { id: charge.clientId },
-      select: { email: true, name: true, locale: true },
+  // Honesty over reassurance: a paid/settled charge sends nothing — say so
+  // instead of flashing "reminded" for an email that never went out.
+  if (!charge || charge.status !== "DUE") {
+    revalidatePath(back);
+    redirect(withQuery(back, `billing=nothingdue`));
+  }
+  const client = await prisma.user.findUnique({
+    where: { id: charge.clientId },
+    select: { email: true, name: true, locale: true },
+  });
+  if (client?.email) {
+    // AMD-05 — the reminder renders in the client's language; C13-PKG §9 —
+    // lastRemindedAt recorded so nothing double-nudges.
+    const mail = paymentReminderEmail(pickLocale(client.locale), {
+      description: charge.description,
+      amount: formatMoney(charge.amountCents, charge.currency),
     });
-    if (client?.email) {
-      // AMD-05 — the reminder renders in the client's language; C13-PKG §9 —
-      // lastRemindedAt recorded so nothing double-nudges.
-      const mail = paymentReminderEmail(pickLocale(client.locale), {
-        description: charge.description,
-        amount: formatMoney(charge.amountCents, charge.currency),
-      });
-      await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
-      await prisma.charge.update({
-        where: { id: charge.id },
-        data: { lastRemindedAt: new Date() },
-      });
-      console.log(`[billing] reminder charge=${charge.id}`);
-    }
+    await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
+    await prisma.charge.update({
+      where: { id: charge.id },
+      data: { lastRemindedAt: new Date() },
+    });
+    console.log(`[billing] reminder charge=${charge.id}`);
   }
   revalidatePath(back);
-  redirect(`${back}?billing=reminded`);
+  redirect(withQuery(back, `billing=reminded`));
 }
 
 // Bill a session that has no charge yet (e.g. booked before rates existed).
@@ -82,10 +92,10 @@ export async function billAppointment(appointmentId: string, formData: FormData)
     const created = await prisma.charge.findUnique({
       where: { appointmentId_kind: { appointmentId, kind: "SESSION" } },
     });
-    if (!created) redirect(`${back}?billing=norate`);
+    if (!created) redirect(withQuery(back, `billing=norate`));
   }
   revalidatePath(back);
-  redirect(`${back}?billing=billed`);
+  redirect(withQuery(back, `billing=billed`));
 }
 
 // Price book — her rates and package SKUs. Kept simple: add and retire.

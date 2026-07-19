@@ -105,6 +105,9 @@ export async function squarePublicConfig() {
     scriptUrl: isProduction()
       ? "https://web.squarecdn.com/v1/square.js"
       : "https://sandbox.web.squarecdn.com/v1/square.js",
+    // Sandbox rejects real card numbers — the form says so instead of
+    // leaving a mysterious "invalid card" (test card: 4111 1111 1111 1111).
+    sandbox: !isProduction(),
   };
 }
 

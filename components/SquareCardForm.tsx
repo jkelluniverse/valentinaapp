@@ -28,6 +28,7 @@ export function SquareCardForm({
   successPath = "/space/schedule?paid=1",
   buttonLabel,
   successMessage = "Paid — thank you.",
+  sandbox = false,
 }: {
   applicationId: string;
   locationId: string;
@@ -37,6 +38,7 @@ export function SquareCardForm({
   successPath?: string; // where to land after a successful payment
   buttonLabel?: string; // overrides "Pay {amountLabel}" (e.g. "Save card on file")
   successMessage?: string;
+  sandbox?: boolean; // test mode — real cards are rejected by design
 }) {
   const cardRef = useRef<Awaited<ReturnType<SquarePayments["card"]>> | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "paying" | "failed">("loading");
@@ -121,6 +123,13 @@ export function SquareCardForm({
             ? "Preparing…"
             : buttonLabel ?? `Pay ${amountLabel}`}
       </button>
+      {sandbox && (
+        <p className="rounded-md border border-mocha bg-blush/40 px-3 py-2 text-xs text-wine">
+          Test mode — real cards are rejected here on purpose. Use card{" "}
+          <span className="font-semibold">4111 1111 1111 1111</span>, any future date, CVV 111,
+          ZIP 94103.
+        </p>
+      )}
       <p className="text-xs text-slate">
         Card details go straight to Square&apos;s secure form — they never touch this app.
       </p>

@@ -78,6 +78,7 @@ export default async function PayChargePage({
               applicationId={sq.applicationId}
               locationId={sq.locationId}
               scriptUrl={sq.scriptUrl}
+              sandbox={sq.sandbox}
               amountLabel={amountLabel}
               payAction={boundPay}
             />
