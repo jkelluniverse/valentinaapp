@@ -13,7 +13,8 @@ import { listEnrolledCourses } from "@/lib/courses";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { formatMoney } from "@/lib/billing";
 import { clientPackageSummary } from "@/lib/packages";
-import { squareConfigured } from "@/lib/square";
+import { squareConfigured, squarePublicConfig, getSquareCustomer, listCardsOnFile } from "@/lib/square";
+import { SquareCardForm } from "@/components/SquareCardForm";
 import { markChargePaid, waiveCharge, remindCharge } from "../../billing/actions";
 import { clientNotes } from "@/lib/notes";
 import { loadGraph } from "@/lib/psyche";
@@ -23,7 +24,17 @@ import { JotBox } from "@/components/JotBox";
 import { NoteRow } from "@/components/NoteRow";
 import { createJot } from "../../notes/actions";
 import { AssignForm } from "./AssignForm";
-import { assignPrompt, assignWorksheet, cancelForClient, setClientStage, sendInvoice } from "./actions";
+import {
+  assignPrompt,
+  assignWorksheet,
+  cancelForClient,
+  setClientStage,
+  sendInvoice,
+  updateSquareProfile,
+  linkSquareCustomer,
+  saveCardOnFile,
+  chargeCardOnFile,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -741,7 +752,7 @@ const CHARGE_FEE_LABEL: Record<string, string> = {
 };
 
 async function BillingTab({ clientId, back }: { clientId: string; back: string }) {
-  const [charges, packages, priceBook] = await Promise.all([
+  const [charges, packages, priceBook, link] = await Promise.all([
     prisma.charge.findMany({
       where: { clientId },
       orderBy: { createdAt: "desc" },
@@ -752,7 +763,17 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
       where: { active: true },
       orderBy: [{ kind: "desc" }, { createdAt: "desc" }], // packages first
     }),
+    prisma.squareCustomerLink.findUnique({ where: { clientId } }),
   ]);
+  // Live from Square — their processor profile and stored cards.
+  const [squareProfile, cards, sq] = link
+    ? await Promise.all([
+        getSquareCustomer(link.squareCustomerId),
+        listCardsOnFile(link.squareCustomerId),
+        squarePublicConfig(),
+      ])
+    : [null, [] as Awaited<ReturnType<typeof listCardsOnFile>>, await squarePublicConfig()];
+  const defaultCard = cards[0] ?? null;
 
   const monthYear = (d: Date) =>
     new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(d);
@@ -780,6 +801,111 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
               </p>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Square billing profile & cards on file */}
+      {squareConfigured() && (
+        <div className="rounded-card border border-line bg-surface p-6 shadow-soft">
+          <p className="text-eyebrow font-semibold uppercase text-mocha">Billing profile (Square)</p>
+          {!link ? (
+            <form action={linkSquareCustomer.bind(null, clientId)} className="mt-3">
+              <input type="hidden" name="back" value={back} />
+              <p className="mb-3 max-w-prose text-sm text-ink">
+                Not yet linked to Square — link them to manage billing details and cards.
+              </p>
+              <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                Link to Square
+              </button>
+            </form>
+          ) : (
+            <div className="mt-3 flex flex-col gap-4">
+              {squareProfile && (
+                <p className="text-sm text-ink">
+                  <span className="font-medium text-ink-strong">
+                    {[squareProfile.givenName, squareProfile.familyName].filter(Boolean).join(" ") || "—"}
+                  </span>
+                  {squareProfile.email ? ` · ${squareProfile.email}` : ""}
+                  {squareProfile.phone ? ` · ${squareProfile.phone}` : ""}
+                  {squareProfile.addressLine1
+                    ? ` · ${[squareProfile.addressLine1, squareProfile.city, squareProfile.state, squareProfile.postalCode].filter(Boolean).join(", ")}`
+                    : " · no address on file"}
+                </p>
+              )}
+              <details className="rounded-md border border-line/70 px-4 py-3">
+                <summary className="cursor-pointer text-sm font-medium text-wine">
+                  Edit billing details
+                </summary>
+                <form
+                  action={updateSquareProfile.bind(null, clientId)}
+                  className="mt-4 grid gap-3 sm:grid-cols-2"
+                >
+                  <input type="hidden" name="back" value={back} />
+                  {(
+                    [
+                      ["givenName", "First name", squareProfile?.givenName],
+                      ["familyName", "Last name", squareProfile?.familyName],
+                      ["email", "Email", squareProfile?.email],
+                      ["phone", "Phone", squareProfile?.phone],
+                      ["addressLine1", "Address", squareProfile?.addressLine1],
+                      ["addressLine2", "Address line 2", squareProfile?.addressLine2],
+                      ["city", "City", squareProfile?.city],
+                      ["state", "State", squareProfile?.state],
+                      ["postalCode", "ZIP", squareProfile?.postalCode],
+                    ] as const
+                  ).map(([name, label, value]) => (
+                    <label key={name} className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-ink-strong">{label}</span>
+                      <input
+                        name={name}
+                        defaultValue={value ?? ""}
+                        className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+                      />
+                    </label>
+                  ))}
+                  <button className="self-end justify-self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+                    Save to Square
+                  </button>
+                </form>
+              </details>
+
+              <div>
+                <p className="text-sm font-medium text-ink-strong">Cards on file</p>
+                {cards.length === 0 ? (
+                  <p className="mt-1 text-sm text-slate">None yet.</p>
+                ) : (
+                  <ul className="mt-1 flex flex-col gap-1 text-sm text-ink">
+                    {cards.map((c) => (
+                      <li key={c.id}>
+                        {c.brand} ····{c.last4} · exp {c.expMonth}/{c.expYear}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {sq && (
+                  <details className="mt-3 rounded-md border border-line/70 px-4 py-3">
+                    <summary className="cursor-pointer text-sm font-medium text-wine">
+                      Add a card on file
+                    </summary>
+                    <p className="mb-3 mt-2 max-w-prose text-xs text-slate">
+                      With the client&apos;s consent. The card number goes straight into
+                      Square&apos;s secure form — it never touches this app.
+                    </p>
+                    <SquareCardForm
+                      applicationId={sq.applicationId}
+                      locationId={sq.locationId}
+                      scriptUrl={sq.scriptUrl}
+                      amountLabel=""
+                      buttonLabel="Save card on file"
+                      successMessage="Card saved."
+                      payAction={saveCardOnFile.bind(null, clientId)}
+                      successPath={`${back}&billing=cardsaved`}
+                    />
+                  </details>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -856,7 +982,8 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
               Send invoice
             </button>
             <p className="text-xs text-slate">
-              Square emails it with a hosted payment page; it shows as paid here on its own.
+              Your branded email carries it; Square hosts the payment page. It shows as paid here
+              on its own.
             </p>
           </form>
         ) : (
@@ -896,6 +1023,15 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
               </span>
               {(c.status === "DUE" || c.status === "PENDING") && (
                 <span className="ml-auto flex items-center gap-3">
+                  {defaultCard && c.status === "DUE" && (
+                    <form action={chargeCardOnFile.bind(null, c.id)}>
+                      <input type="hidden" name="back" value={back} />
+                      <input type="hidden" name="cardId" value={defaultCard.id} />
+                      <button className="font-medium text-wine underline-offset-4 hover:underline">
+                        Charge ····{defaultCard.last4}
+                      </button>
+                    </form>
+                  )}
                   <form action={remindCharge.bind(null, c.id)}>
                     <input type="hidden" name="back" value={back} />
                     <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Remind</button>

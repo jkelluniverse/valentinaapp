@@ -7,7 +7,19 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { getPractitioner, getOrCreateConfig, isSlotOpen } from "@/lib/schedule";
 import { createAppointment, rescheduleAppointment, cancelAppointment } from "@/lib/appointments";
-import { ensureSquareCustomer, sendSquareInvoice, squareConfigured } from "@/lib/square";
+import {
+  ensureSquareCustomer,
+  sendSquareInvoice,
+  squareConfigured,
+  getSquareCustomer,
+  updateSquareCustomer,
+  listCardsOnFile,
+  createCardOnFile,
+  createSquarePayment,
+} from "@/lib/square";
+import { sendEmail } from "@/lib/notify";
+import { pickLocale, invoiceEmail } from "@/lib/email-copy";
+import { formatMoney, setChargeStatus } from "@/lib/billing";
 import { timeValueToMinutes } from "@/lib/schedule-meta";
 import { zonedWallToUtc } from "@/lib/schedule";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
@@ -284,8 +296,39 @@ export async function sendInvoice(clientId: string, formData: FormData) {
   }
   await prisma.charge.update({
     where: { id: charge.id },
-    data: { squareInvoiceId: sent.invoiceId, lastActionById: practitioner.id },
+    data: {
+      squareInvoiceId: sent.invoiceId,
+      squareInvoiceUrl: sent.publicUrl,
+      lastActionById: practitioner.id,
+    },
   });
+  // The email that carries the invoice is OURS (branded Envelope); Square
+  // hosts only the payment page behind the button.
+  if (sent.publicUrl) {
+    const recipient = await prisma.user.findUnique({
+      where: { id: clientId },
+      select: { email: true, locale: true },
+    });
+    if (recipient?.email) {
+      const mail = invoiceEmail(pickLocale(recipient.locale), {
+        description,
+        amount: formatMoney(amountCents, currency),
+        note,
+      });
+      await sendEmail({
+        to: recipient.email,
+        subject: mail.subject,
+        text: "",
+        envelope: {
+          locale: pickLocale(recipient.locale),
+          heading: mail.heading,
+          paragraphs: mail.paragraphs,
+          note: note || null,
+          button: { label: mail.buttonLabel, url: sent.publicUrl },
+        },
+      });
+    }
+  }
   console.log(`[billing] invoice sent charge=${charge.id} by=${practitioner.id}`);
 
   revalidatePath(`/practitioner/clients/${clientId}`);
@@ -321,4 +364,103 @@ export async function rescheduleForClient(clientId: string, appointmentId: strin
 
   revalidatePath(`/practitioner/clients/${clientId}`);
   redirect(`/practitioner/clients/${clientId}?booked=moved`);
+}
+
+// ---------------------------------------------------------------------------
+// Square billing profile & cards on file. She manages a client's billing
+// details without leaving the Portrait: view/update the Square customer
+// (incl. mailing address), keep cards on file, and settle due charges with a
+// stored card. Card data is tokenized in the browser — never touches us.
+
+export async function updateSquareProfile(clientId: string, formData: FormData) {
+  const practitioner = await requirePractitioner();
+  const back = String(formData.get("back") ?? `/practitioner/clients/${clientId}?tab=billing`);
+  const link = await prisma.squareCustomerLink.findUnique({ where: { clientId } });
+  if (!link) redirect(`${back}&billing=squarefail`);
+
+  const ok = await updateSquareCustomer(link.squareCustomerId, {
+    givenName: String(formData.get("givenName") ?? "").trim() || undefined,
+    familyName: String(formData.get("familyName") ?? "").trim() || undefined,
+    email: String(formData.get("email") ?? "").trim() || undefined,
+    phone: String(formData.get("phone") ?? "").trim(),
+    addressLine1: String(formData.get("addressLine1") ?? "").trim(),
+    addressLine2: String(formData.get("addressLine2") ?? "").trim(),
+    city: String(formData.get("city") ?? "").trim(),
+    state: String(formData.get("state") ?? "").trim(),
+    postalCode: String(formData.get("postalCode") ?? "").trim(),
+  });
+  console.log(`[billing] square profile ${ok ? "updated" : "update FAILED"} client=${clientId} by=${practitioner.id}`);
+  revalidatePath(`/practitioner/clients/${clientId}`);
+  redirect(`${back}&billing=${ok ? "squaresaved" : "squarefail"}`);
+}
+
+// Ensure the Square customer exists (first card for a brand-new profile).
+export async function linkSquareCustomer(clientId: string, formData: FormData) {
+  await requirePractitioner();
+  const back = String(formData.get("back") ?? `/practitioner/clients/${clientId}?tab=billing`);
+  const client = await prisma.user.findFirst({
+    where: { id: clientId, role: "CLIENT" },
+    select: { id: true, name: true, email: true },
+  });
+  if (client) await ensureSquareCustomer(client);
+  revalidatePath(`/practitioner/clients/${clientId}`);
+  redirect(back);
+}
+
+export async function saveCardOnFile(
+  clientId: string,
+  token: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const practitioner = await requirePractitioner();
+  const client = await prisma.user.findFirst({
+    where: { id: clientId, role: "CLIENT" },
+    select: { id: true, name: true, email: true },
+  });
+  if (!client) return { ok: false, error: "not-found" };
+  const squareCustomerId = await ensureSquareCustomer(client);
+  if (!squareCustomerId) return { ok: false, error: "config" };
+  const saved = await createCardOnFile({
+    customerId: squareCustomerId,
+    token,
+    cardholderName: client.name,
+  });
+  if (!saved.ok) return { ok: false, error: "declined" };
+  await prisma.squareCustomerLink.update({
+    where: { clientId },
+    data: { cardOnFile: true },
+  });
+  console.log(`[billing] card on file saved client=${clientId} by=${practitioner.id}`);
+  return { ok: true };
+}
+
+// Settle a due charge with the stored card (merchant-initiated, card on file).
+export async function chargeCardOnFile(chargeId: string, formData: FormData) {
+  const practitioner = await requirePractitioner();
+  const back = String(formData.get("back") ?? "/practitioner/billing");
+  const cardId = String(formData.get("cardId") ?? "");
+  const charge = await prisma.charge.findUnique({ where: { id: chargeId } });
+  if (!charge || !cardId || !(charge.status === "DUE" || charge.status === "PENDING")) {
+    redirect(`${back}&billing=chargefail`);
+  }
+  const link = await prisma.squareCustomerLink.findUnique({
+    where: { clientId: charge.clientId },
+  });
+  if (!link) redirect(`${back}&billing=chargefail`);
+
+  const paid = await createSquarePayment({
+    token: cardId, // a stored card id is a valid source_id with customer_id
+    amountCents: charge.amountCents,
+    currency: charge.currency,
+    chargeId: charge.id,
+    squareCustomerId: link.squareCustomerId,
+  });
+  if (!paid.ok || (paid.status !== "COMPLETED" && paid.status !== "APPROVED")) {
+    redirect(`${back}&billing=chargefail`);
+  }
+  await setChargeStatus(chargeId, "PAID", practitioner.id, {
+    paidVia: "card-on-file",
+    squarePaymentId: paid.paymentId,
+  });
+  revalidatePath(back.split("?")[0]);
+  redirect(`${back}&billing=charged`);
 }

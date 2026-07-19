@@ -9,6 +9,7 @@ import { CopyField } from "@/components/CopyField";
 // the email sends itself. Copy-link remains as the fallback, not the workflow.
 export function InviteClientForm() {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
@@ -38,6 +39,21 @@ export function InviteClientForm() {
   const fieldClass =
     "rounded-md border border-line bg-white px-3 py-2 text-base text-ink outline-none placeholder:text-slate focus:border-wine focus:ring-2 focus:ring-wine/20";
 
+  // Collapsed by default — inviting is occasional; the roster is the page.
+  if (!open && !result) {
+    return (
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+        >
+          + Invite a client
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
       {result ? (
@@ -53,17 +69,39 @@ export function InviteClientForm() {
             </p>
           </div>
           <CopyField value={result.link} label="Invite link (fallback)" />
-          <button
-            type="button"
-            onClick={() => setResult(null)}
-            className="self-start text-sm text-slate underline-offset-4 hover:text-wine hover:underline"
-          >
-            Invite another client
-          </button>
+          <span className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setResult(null)}
+              className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline"
+            >
+              Invite another client
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setResult(null);
+                setOpen(false);
+              }}
+              className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline"
+            >
+              Done
+            </button>
+          </span>
         </div>
       ) : (
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <h2 className="text-xl font-semibold">Invite a client</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Invite a client</h2>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Close"
+              className="rounded-pill px-2 py-1 text-slate hover:text-wine"
+            >
+              ✕
+            </button>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5 text-label font-semibold uppercase tracking-wide text-mocha">
               Name

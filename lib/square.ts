@@ -241,6 +241,187 @@ export async function ensureSquareCustomerForLead(lead: {
 }
 
 // ---------------------------------------------------------------------------
+// Customer profile & cards on file — she manages billing details without
+// leaving the portal: view/update the Square customer (incl. address), keep
+// cards on file (tokenized in the browser; PANs never exist here), and charge
+// a stored card for due amounts. Card-on-file stays a separate in-context
+// consent (AMENDMENT-01) — the UI states it plainly before saving.
+
+export type SquareCustomerProfile = {
+  id: string;
+  givenName: string | null;
+  familyName: string | null;
+  email: string | null;
+  phone: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+};
+
+export type CardOnFile = {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+};
+
+export async function getSquareCustomer(customerId: string): Promise<SquareCustomerProfile | null> {
+  if (!squareConfigured()) return null;
+  try {
+    const res = await squareFetch(`/v2/customers/${customerId}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      customer?: {
+        id: string;
+        given_name?: string;
+        family_name?: string;
+        email_address?: string;
+        phone_number?: string;
+        address?: {
+          address_line_1?: string;
+          address_line_2?: string;
+          locality?: string;
+          administrative_district_level_1?: string;
+          postal_code?: string;
+        };
+      };
+    };
+    const c = data.customer;
+    if (!c) return null;
+    return {
+      id: c.id,
+      givenName: c.given_name ?? null,
+      familyName: c.family_name ?? null,
+      email: c.email_address ?? null,
+      phone: c.phone_number ?? null,
+      addressLine1: c.address?.address_line_1 ?? null,
+      addressLine2: c.address?.address_line_2 ?? null,
+      city: c.address?.locality ?? null,
+      state: c.address?.administrative_district_level_1 ?? null,
+      postalCode: c.address?.postal_code ?? null,
+    };
+  } catch {
+    console.error(`[square] customer fetch error id=${customerId}`);
+    return null;
+  }
+}
+
+export async function updateSquareCustomer(
+  customerId: string,
+  fields: {
+    givenName?: string;
+    familyName?: string;
+    email?: string;
+    phone?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+  },
+): Promise<boolean> {
+  if (!squareConfigured()) return false;
+  try {
+    const res = await squareFetch(`/v2/customers/${customerId}`, {
+      given_name: fields.givenName,
+      family_name: fields.familyName,
+      email_address: fields.email,
+      phone_number: fields.phone || undefined,
+      address: {
+        address_line_1: fields.addressLine1 || undefined,
+        address_line_2: fields.addressLine2 || undefined,
+        locality: fields.city || undefined,
+        administrative_district_level_1: fields.state || undefined,
+        postal_code: fields.postalCode || undefined,
+        country: "US",
+      },
+    }, "PUT");
+    if (!res.ok) console.error(`[square] customer update failed id=${customerId} status=${res.status}`);
+    return res.ok;
+  } catch {
+    console.error(`[square] customer update error id=${customerId}`);
+    return false;
+  }
+}
+
+export async function listCardsOnFile(customerId: string): Promise<CardOnFile[]> {
+  if (!squareConfigured()) return [];
+  try {
+    const res = await fetch(
+      `${baseUrl()}/v2/cards?customer_id=${encodeURIComponent(customerId)}&include_disabled=false`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken()}`,
+          "Square-Version": "2024-06-04",
+        },
+        signal: AbortSignal.timeout(15_000),
+      },
+    );
+    if (!res.ok) return [];
+    const data = (await res.json()) as {
+      cards?: { id: string; card_brand?: string; last_4?: string; exp_month?: number; exp_year?: number; enabled?: boolean }[];
+    };
+    return (data.cards ?? [])
+      .filter((c) => c.enabled !== false)
+      .map((c) => ({
+        id: c.id,
+        brand: c.card_brand ?? "CARD",
+        last4: c.last_4 ?? "····",
+        expMonth: c.exp_month ?? 0,
+        expYear: c.exp_year ?? 0,
+      }));
+  } catch {
+    console.error(`[square] cards list error customer=${customerId}`);
+    return [];
+  }
+}
+
+// Save a card on file from a single-use token (Web Payments SDK tokenized in
+// the browser — the card number never touches this server).
+export async function createCardOnFile(args: {
+  customerId: string;
+  token: string;
+  cardholderName?: string | null;
+}): Promise<{ ok: true; card: CardOnFile } | { ok: false }> {
+  if (!squareConfigured()) return { ok: false };
+  try {
+    const res = await squareFetch("/v2/cards", {
+      idempotency_key: randomUUID(),
+      source_id: args.token,
+      card: {
+        customer_id: args.customerId,
+        ...(args.cardholderName ? { cardholder_name: args.cardholderName } : {}),
+      },
+    });
+    if (!res.ok) {
+      console.error(`[square] card save failed customer=${args.customerId} status=${res.status}`);
+      return { ok: false };
+    }
+    const data = (await res.json()) as {
+      card?: { id: string; card_brand?: string; last_4?: string; exp_month?: number; exp_year?: number };
+    };
+    if (!data.card) return { ok: false };
+    console.log(`[square] card saved customer=${args.customerId}`);
+    return {
+      ok: true,
+      card: {
+        id: data.card.id,
+        brand: data.card.card_brand ?? "CARD",
+        last4: data.card.last_4 ?? "····",
+        expMonth: data.card.exp_month ?? 0,
+        expYear: data.card.exp_year ?? 0,
+      },
+    };
+  } catch {
+    console.error(`[square] card save error customer=${args.customerId}`);
+    return { ok: false };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Payments
 
 export type PaymentResult =
@@ -326,14 +507,16 @@ export async function sendSquareInvoice(args: {
     const orderData = (await orderRes.json()) as { order?: { id: string } };
     if (!orderData.order?.id) return { ok: false, error: "order" };
 
-    // 2. The invoice, delivered by Square via email, card payment on.
+    // 2. The invoice. Delivery is SHARE_MANUALLY: Square hosts the invoice +
+    //    payment page, but the EMAIL that carries it is OURS (branded Envelope)
+    //    — sent by the caller with the public_url returned below.
     const invoiceRes = await squareFetch("/v2/invoices", {
       idempotency_key: `veritas-inv-${args.chargeId}`,
       invoice: {
         location_id: locationId,
         order_id: orderData.order.id,
         primary_recipient: { customer_id: args.squareCustomerId },
-        delivery_method: "EMAIL",
+        delivery_method: "SHARE_MANUALLY",
         title: args.title,
         ...(args.note ? { description: args.note } : {}),
         payment_requests: [

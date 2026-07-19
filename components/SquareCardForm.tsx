@@ -26,6 +26,8 @@ export function SquareCardForm({
   amountLabel,
   payAction,
   successPath = "/space/schedule?paid=1",
+  buttonLabel,
+  successMessage = "Paid — thank you.",
 }: {
   applicationId: string;
   locationId: string;
@@ -33,6 +35,8 @@ export function SquareCardForm({
   amountLabel: string;
   payAction: (token: string) => Promise<{ ok: boolean; error?: string }>;
   successPath?: string; // where to land after a successful payment
+  buttonLabel?: string; // overrides "Pay {amountLabel}" (e.g. "Save card on file")
+  successMessage?: string;
 }) {
   const cardRef = useRef<Awaited<ReturnType<SquarePayments["card"]>> | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "paying" | "failed">("loading");
@@ -93,7 +97,7 @@ export function SquareCardForm({
         );
         return;
       }
-      setMessage("Paid — thank you.");
+      setMessage(successMessage);
       window.location.assign(successPath);
     } catch {
       setState("ready");
@@ -111,7 +115,11 @@ export function SquareCardForm({
         disabled={state !== "ready"}
         className="self-start rounded-md bg-wine px-6 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90 disabled:opacity-50"
       >
-        {state === "paying" ? "Paying…" : state === "loading" ? "Preparing…" : `Pay ${amountLabel}`}
+        {state === "paying"
+          ? "Working…"
+          : state === "loading"
+            ? "Preparing…"
+            : buttonLabel ?? `Pay ${amountLabel}`}
       </button>
       <p className="text-xs text-slate">
         Card details go straight to Square&apos;s secure form — they never touch this app.

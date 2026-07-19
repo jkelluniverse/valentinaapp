@@ -3,6 +3,34 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifySquareSignature } from "@/lib/square";
 import { activatePackageForCharge } from "@/lib/packages";
+import { sendEmail } from "@/lib/notify";
+import { pickLocale, receiptEmail } from "@/lib/email-copy";
+import { formatMoney } from "@/lib/billing";
+
+// EMAIL-SPEC #12 — our warm receipt when a payment lands (in-portal or
+// invoice). Lead-keyed charges skip it (no account; Square's page confirms).
+async function sendReceipt(charge: {
+  clientId: string;
+  description: string;
+  amountCents: number;
+  currency: string;
+}): Promise<void> {
+  try {
+    if (charge.clientId.startsWith("lead:")) return;
+    const client = await prisma.user.findUnique({
+      where: { id: charge.clientId },
+      select: { email: true, locale: true },
+    });
+    if (!client?.email) return;
+    const mail = receiptEmail(pickLocale(client.locale), {
+      description: charge.description,
+      amount: formatMoney(charge.amountCents, charge.currency),
+    });
+    await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
+  } catch {
+    console.error("[square-webhook] receipt email failed");
+  }
+}
 
 // Square webhook (C13.5/6 + C13-PKG §7/§8). Signature-verified; idempotent;
 // metadata-only logging (event type + ids — never amounts). Three jobs:
@@ -72,6 +100,7 @@ export async function POST(req: Request) {
         });
         // A paid package invoice activates its package (idempotent).
         await activatePackageForCharge(paid);
+        await sendReceipt(paid);
       }
     }
     if (event.type === "invoice.canceled" || invoice.status === "CANCELED") {
@@ -109,6 +138,7 @@ export async function POST(req: Request) {
       });
       // C13-PKG §7 — a paid package purchase activates its package.
       await activatePackageForCharge(paid);
+      await sendReceipt(paid);
     }
     if (charge) return NextResponse.json({ ok: true });
   }

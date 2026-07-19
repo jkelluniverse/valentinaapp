@@ -164,6 +164,54 @@ export function lateFeeEmail(
   };
 }
 
+// EMAIL-SPEC #12 — the warm receipt (ours; covers in-portal and invoice payments).
+export function receiptEmail(
+  locale: Locale,
+  v: { description: string; amount: string },
+): Mail {
+  if (locale === "es") {
+    return {
+      subject: "Recibido, con gracias",
+      text:
+        `Tu pago de ${v.amount} (${v.description}) llegó bien.\n\n` +
+        `No necesitas hacer nada más — esto es solo tu constancia, para tus registros.`,
+    };
+  }
+  return {
+    subject: "Received, with thanks",
+    text:
+      `Your payment of ${v.amount} (${v.description}) came through.\n\n` +
+      `Nothing more to do — this is simply your record of it.`,
+  };
+}
+
+// EMAIL-SPEC — the invoice email is OURS (Square hosts only the payment page).
+export function invoiceEmail(
+  locale: Locale,
+  v: { description: string; amount: string; note?: string | null },
+): { subject: string; heading: string; paragraphs: string[]; buttonLabel: string } {
+  if (locale === "es") {
+    return {
+      subject: `Una factura de Valentina — ${v.amount}`,
+      heading: "Tu factura está lista.",
+      paragraphs: [
+        `Valentina te envió una factura por ${v.amount} — ${v.description}.`,
+        "Puedes pagarla en línea con el botón de abajo, cuando te venga bien.",
+      ],
+      buttonLabel: "Ver y pagar la factura",
+    };
+  }
+  return {
+    subject: `An invoice from Valentina — ${v.amount}`,
+    heading: "Your invoice is ready.",
+    paragraphs: [
+      `Valentina sent you an invoice for ${v.amount} — ${v.description}.`,
+      "You can view and pay it online with the button below, whenever suits you.",
+    ],
+    buttonLabel: "View & pay the invoice",
+  };
+}
+
 // AMD-05 B2 — verified email change: link to the NEW address…
 export function emailChangeVerifyEmail(locale: Locale, v: { link: string }): Mail {
   if (locale === "es") {

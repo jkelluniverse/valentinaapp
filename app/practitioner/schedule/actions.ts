@@ -44,3 +44,21 @@ export async function revertSessionStatus(appointmentId: string) {
   revalidatePath(PATH);
   redirect(`${PATH}?marked=reverted`);
 }
+
+// The "Sync to your iPhone" card is setup, not furniture — once she's verified
+// the subscription works, she marks it done and the card folds to one line.
+export async function setCalendarSyncDone(done: boolean) {
+  await requirePractitioner();
+  const { prisma } = await import("@/lib/prisma");
+  if (done) {
+    await prisma.practiceSetting.upsert({
+      where: { key: "calendarSyncDone" },
+      update: { value: "on" },
+      create: { key: "calendarSyncDone", value: "on" },
+    });
+  } else {
+    await prisma.practiceSetting.deleteMany({ where: { key: "calendarSyncDone" } });
+  }
+  revalidatePath(PATH);
+  redirect(PATH);
+}

@@ -605,6 +605,7 @@ model Charge {
   remindCount     Int          @default(0) // auto-reminders: dueAt, +7d, stop
   squarePaymentId String?      @unique
   squareInvoiceId String?      @unique
+  squareInvoiceUrl String? // the hosted pay page — OUR branded email carries it
   lastActionById  String? // who moved the status (audit)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt

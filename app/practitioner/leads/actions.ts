@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { ensureSquareCustomerForLead, sendSquareInvoice, squareConfigured } from "@/lib/square";
 import { createInvite } from "@/app/practitioner/clients/actions";
+import { sendEmail } from "@/lib/notify";
+import { invoiceEmail } from "@/lib/email-copy";
+import { formatMoney } from "@/lib/billing";
 
 // C18 §5 — the conversion bridge. Pre-fills the C1 invite with the lead's name +
 // email and returns the one-time link. Acceptance (matched by email) flips the
@@ -89,8 +92,28 @@ export async function sendLeadPackageInvoice(leadId: string, formData: FormData)
   }
   await prisma.charge.update({
     where: { id: charge.id },
-    data: { squareInvoiceId: sent.invoiceId, lastActionById: practitioner.id },
+    data: { squareInvoiceId: sent.invoiceId, squareInvoiceUrl: sent.publicUrl, lastActionById: practitioner.id },
   });
+  // Our branded envelope carries the invoice; Square hosts the pay page.
+  if (sent.publicUrl) {
+    const mail = invoiceEmail("en", {
+      description: charge.description,
+      amount: formatMoney(charge.amountCents, charge.currency),
+      note,
+    });
+    await sendEmail({
+      to: lead.email,
+      subject: mail.subject,
+      text: "",
+      envelope: {
+        locale: "en",
+        heading: mail.heading,
+        paragraphs: mail.paragraphs,
+        note: note || null,
+        button: { label: mail.buttonLabel, url: sent.publicUrl },
+      },
+    });
+  }
   console.log(`[billing] lead invoice sent charge=${charge.id} lead=${lead.id} by=${practitioner.id}`);
 
   revalidatePath(PATH);

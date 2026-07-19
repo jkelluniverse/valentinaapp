@@ -15,6 +15,7 @@ import {
   markSessionNoShow,
   markSessionDidntHappen,
   revertSessionStatus,
+  setCalendarSyncDone,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -86,6 +87,9 @@ export default async function PractitionerSchedulePage({
   const base = getBaseUrl();
   const httpsFeed = `${base}/api/calendar/${config.calendarFeedSecret}.ics`;
   const webcalFeed = httpsFeed.replace(/^https?:/, "webcal:");
+  const calendarSyncDone =
+    (await prisma.practiceSetting.findUnique({ where: { key: "calendarSyncDone" } }))?.value ===
+    "on";
 
   return (
     <div className="flex flex-col gap-8">
@@ -123,34 +127,56 @@ export default async function PractitionerSchedulePage({
         </p>
       )}
 
-      {/* Calendar sync */}
-      <section className="rounded-lg border border-line bg-white p-6 shadow-soft">
-        <h2 className="mb-1 text-xl font-semibold">Sync to your iPhone</h2>
-        <p className="mb-4 max-w-prose text-sm text-slate">
-          Subscribe once and your bookings appear in Apple Calendar with your normal alerts. On
-          iPhone: tap the link below, or Settings → Calendar → Accounts → Add Account → Other → Add
-          Subscribed Calendar, and paste the address. It&apos;s one-way and refreshes on iOS&apos;s
-          own schedule (minutes up to an hour) — each booking email also carries a one-tap invite.
-        </p>
-        <div className="flex flex-col gap-4">
-          <a
-            href={webcalFeed}
-            className="self-start rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90"
-          >
-            Add to Apple Calendar
-          </a>
-          <CopyField label="Or copy the feed address" value={httpsFeed} />
-          <p className="text-xs text-slate">
-            Keep this address private — anyone with it can see your sessions. Rotating it revokes the
-            old link.
-          </p>
-          <form action={rotateFeedSecret}>
-            <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
-              Rotate feed link
+      {/* Calendar sync — full card until she marks it verified, then one line. */}
+      {calendarSyncDone ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white px-5 py-3 text-sm shadow-soft">
+          <span className="text-ink">
+            <span className="font-medium text-ink-strong">Calendar synced ✓</span> — your bookings
+            flow to Apple Calendar.
+          </span>
+          <form action={setCalendarSyncDone.bind(null, false)} className="ml-auto">
+            <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+              Show setup
             </button>
           </form>
         </div>
-      </section>
+      ) : (
+        <section className="rounded-lg border border-line bg-white p-6 shadow-soft">
+          <h2 className="mb-1 text-xl font-semibold">Sync to your iPhone</h2>
+          <p className="mb-4 max-w-prose text-sm text-slate">
+            Subscribe once and your bookings appear in Apple Calendar with your normal alerts. On
+            iPhone: tap the link below, or Settings → Calendar → Accounts → Add Account → Other →
+            Add Subscribed Calendar, and paste the address. It&apos;s one-way and refreshes on
+            iOS&apos;s own schedule (minutes up to an hour) — each booking email also carries a
+            one-tap invite.
+          </p>
+          <div className="flex flex-col gap-4">
+            <a
+              href={webcalFeed}
+              className="self-start rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90"
+            >
+              Add to Apple Calendar
+            </a>
+            <CopyField label="Or copy the feed address" value={httpsFeed} />
+            <p className="text-xs text-slate">
+              Keep this address private — anyone with it can see your sessions. Rotating it revokes
+              the old link.
+            </p>
+            <div className="flex flex-wrap items-center gap-4">
+              <form action={setCalendarSyncDone.bind(null, true)}>
+                <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                  It&apos;s syncing — mark as done
+                </button>
+              </form>
+              <form action={rotateFeedSecret}>
+                <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                  Rotate feed link
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+      )}
 
       {!emailConfigured() && (
         <p className="rounded-md border border-mocha bg-white px-4 py-3 text-sm text-wine">
