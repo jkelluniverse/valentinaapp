@@ -140,10 +140,38 @@ async function findCustomerByReference(referenceId: string): Promise<string | nu
   return data.customers?.[0]?.id ?? null;
 }
 
+// Adopt-don't-twin, part two: many of her clients already exist in Square
+// from years of invoicing outside the app. If the reference lookup misses,
+// find them by exact email — but only when the match is unambiguous — and
+// claim the record by stamping our reference_id, so their saved address and
+// cards on file surface in the portal automatically.
+async function adoptCustomerByEmail(email: string, referenceId: string): Promise<string | null> {
+  const res = await squareFetch("/v2/customers/search", {
+    query: { filter: { email_address: { exact: email } } },
+    limit: 2,
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { customers?: { id: string; reference_id?: string }[] };
+  const matches = (data.customers ?? []).filter(
+    (c) => !c.reference_id || c.reference_id === referenceId,
+  );
+  if (matches.length !== 1) return null; // ambiguous or already someone else's — create fresh
+  const found = matches[0];
+  if (found.reference_id !== referenceId) {
+    await squareFetch(`/v2/customers/${found.id}`, { reference_id: referenceId }, "PUT").catch(
+      () => undefined,
+    );
+  }
+  console.log(`[square] adopted existing customer by email ref=${referenceId}`);
+  return found.id;
+}
+
 async function upsertSquareCustomer(bits: CustomerBits): Promise<string | null> {
   if (!squareConfigured()) return null;
   const { given, family } = splitName(bits.name);
-  const existing = await findCustomerByReference(bits.referenceId);
+  const existing =
+    (await findCustomerByReference(bits.referenceId)) ??
+    (await adoptCustomerByEmail(bits.email, bits.referenceId));
   if (existing) {
     // Keep it current — one PUT, tolerated to fail quietly.
     await squareFetch(`/v2/customers/${existing}`, {
@@ -562,6 +590,30 @@ export async function sendSquareInvoice(args: {
   } catch {
     console.error(`[square] invoice error charge=${args.chargeId}`);
     return { ok: false, error: "network" };
+  }
+}
+
+// When a charge with an open Square invoice gets settled some other way
+// (card on file, in person, waived), cancel the invoice so it doesn't linger
+// as unpaid in Square. Terminal states count as already-done. Best-effort:
+// the money is settled either way; this is bookkeeping hygiene.
+export async function cancelSquareInvoice(invoiceId: string): Promise<boolean> {
+  if (!squareConfigured()) return false;
+  try {
+    const get = await squareFetch(`/v2/invoices/${invoiceId}`);
+    if (!get.ok) return false;
+    const data = (await get.json()) as { invoice?: { version?: number; status?: string } };
+    const inv = data.invoice;
+    if (!inv) return false;
+    if (["PAID", "CANCELED", "REFUNDED", "FAILED"].includes(inv.status ?? "")) return true;
+    const res = await squareFetch(`/v2/invoices/${invoiceId}/cancel`, {
+      version: inv.version ?? 0,
+    });
+    if (res.ok) console.log(`[square] invoice canceled id=${invoiceId}`);
+    return res.ok;
+  } catch {
+    console.error(`[square] invoice cancel error id=${invoiceId}`);
+    return false;
   }
 }
 

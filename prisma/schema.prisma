@@ -304,6 +304,11 @@ model ClientProfile {
   birthTimePrecision String? // AMD-05 B5.3 — EXACT | APPROXIMATE | UNKNOWN (null = legacy, derive from birthTimeUnknown)
   paymentRemindersMuted Boolean @default(false) // C13-PKG §9 — per-client auto-reminder mute
   renewalMessagesMuted  Boolean @default(false) // C13-PKG §6 — suppress the automatic client renewal message
+  // Payee — a different person who covers this client's bills (a parent, a
+  // partner, an employer). When set, invoice emails and payment reminders are
+  // also sent to them, with the PDF invoice attached.
+  payeeName        String?
+  payeeEmail       String?
   birthPlace       String? // as entered by the client
   birthLat         Float? // geocoded
   birthLng         Float?

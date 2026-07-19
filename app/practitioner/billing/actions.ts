@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
-import { setChargeStatus, createChargeForAppointment, formatMoney } from "@/lib/billing";
+import { setChargeStatus, createChargeForAppointment } from "@/lib/billing";
 import { sendEmail, emailConfigured } from "@/lib/notify";
-import { pickLocale, paymentReminderEmail } from "@/lib/email-copy";
+import { paymentReminderEmail, payeeInvoiceEmail } from "@/lib/email-copy";
+import { chargeEmailContext } from "@/lib/invoice-context";
+import { getBaseUrlSafe } from "@/lib/base-url";
 import { PROGRAM_STAGES } from "@/lib/program-config";
 
 const LEDGER = "/practitioner/billing";
@@ -60,23 +62,58 @@ export async function remindCharge(chargeId: string, formData: FormData) {
     revalidatePath(back);
     redirect(withQuery(back, `billing=nothingdue`));
   }
-  const client = await prisma.user.findUnique({
-    where: { id: charge.clientId },
-    select: { email: true, name: true, locale: true },
-  });
-  if (client?.email) {
+  // The reminder carries the invoice itself: details in the body, the PDF
+  // attached, and one button straight to the payment page.
+  const ctx = await chargeEmailContext(charge, getBaseUrlSafe());
+  if (ctx.client?.email) {
     // AMD-05 — the reminder renders in the client's language; C13-PKG §9 —
     // lastRemindedAt recorded so nothing double-nudges.
-    const mail = paymentReminderEmail(pickLocale(client.locale), {
+    const mail = paymentReminderEmail(ctx.client.locale, {
       description: charge.description,
-      amount: formatMoney(charge.amountCents, charge.currency),
+      amount: ctx.amount,
+      due: ctx.dueDateText,
     });
-    await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
+    await sendEmail({
+      to: ctx.client.email,
+      subject: mail.subject,
+      text: mail.text,
+      attachments: [ctx.attachment],
+      envelope: {
+        locale: ctx.client.locale,
+        heading: mail.heading,
+        paragraphs: mail.paragraphs,
+        ...(ctx.payUrl ? { button: { label: mail.buttonLabel, url: ctx.payUrl } } : {}),
+      },
+    });
+    // The payee — when someone else covers this client's bills, the reminder
+    // reaches them too, same PDF attached.
+    if (ctx.payee) {
+      const payeeMail = payeeInvoiceEmail(ctx.client.locale, {
+        kind: "reminder",
+        payeeName: ctx.payee.name,
+        clientName: ctx.client.name ?? "your client",
+        description: charge.description,
+        amount: ctx.amount,
+        due: ctx.dueDateText,
+      });
+      await sendEmail({
+        to: ctx.payee.email,
+        subject: payeeMail.subject,
+        text: payeeMail.paragraphs.join("\n\n"),
+        attachments: [ctx.attachment],
+        envelope: {
+          locale: ctx.client.locale,
+          heading: payeeMail.heading,
+          paragraphs: payeeMail.paragraphs,
+          ...(ctx.payUrl ? { button: { label: payeeMail.buttonLabel, url: ctx.payUrl } } : {}),
+        },
+      });
+    }
     await prisma.charge.update({
       where: { id: charge.id },
       data: { lastRemindedAt: new Date() },
     });
-    console.log(`[billing] reminder charge=${charge.id}`);
+    console.log(`[billing] reminder charge=${charge.id}${ctx.payee ? " +payee" : ""}`);
   }
   revalidatePath(back);
   redirect(withQuery(back, `billing=reminded`));

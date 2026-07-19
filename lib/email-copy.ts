@@ -84,26 +84,85 @@ export function sessionReminderEmail(
   };
 }
 
-// C13 §9 — the payment reminder, warm and never a dunning notice.
+// C13 §9 — the payment reminder, warm and never a dunning notice. The invoice
+// itself rides along: details in the body, the PDF attached, and ONE button
+// straight to the payment page (the most important part).
 export function paymentReminderEmail(
   locale: Locale,
-  v: { description: string; amount: string },
-): Mail {
+  v: { description: string; amount: string; due?: string | null },
+): Mail & { heading: string; paragraphs: string[]; buttonLabel: string } {
   if (locale === "es") {
+    const paragraphs = [
+      `Hola — una nota breve: hay un pago pendiente de ${v.amount} por ${v.description}.` +
+        (v.due ? ` Vence el ${v.due}.` : ""),
+      `La factura va adjunta en PDF, y puedes verla y pagarla en línea con el botón de abajo.`,
+      `Si ya lo arreglaste con Valentina, ignora este mensaje con confianza.`,
+    ];
     return {
       subject: "Una nota amable sobre tu sesión",
-      text:
-        `Hola — una nota breve: hay un pago pendiente de ${v.amount} (${v.description}).\n\n` +
-        `Puedes resolverlo cuando quieras desde tu espacio, en Sesiones.\n\n` +
-        `Si ya lo arreglaste con Valentina, ignora este mensaje con confianza.`,
+      heading: "Una nota amable.",
+      paragraphs,
+      buttonLabel: "Ver y pagar la factura",
+      text: paragraphs.join("\n\n"),
+    };
+  }
+  const paragraphs = [
+    `Hi — a quick note: there's a payment of ${v.amount} waiting for ${v.description}.` +
+      (v.due ? ` It's due ${v.due}.` : ""),
+    `The invoice is attached as a PDF, and you can view and pay it online with the button below.`,
+    `If you've already arranged this with Valentina, feel free to ignore this.`,
+  ];
+  return {
+    subject: "A gentle note about your session",
+    heading: "A gentle note.",
+    paragraphs,
+    buttonLabel: "View & pay the invoice",
+    text: paragraphs.join("\n\n"),
+  };
+}
+
+// The payee copy — a different person covers this client's bills (a parent, a
+// partner, an employer). Plain, professional, still in the practice's voice.
+export function payeeInvoiceEmail(
+  locale: Locale,
+  v: {
+    kind: "invoice" | "reminder";
+    payeeName: string;
+    clientName: string;
+    description: string;
+    amount: string;
+    due?: string | null;
+  },
+): { subject: string; heading: string; paragraphs: string[]; buttonLabel: string } {
+  if (locale === "es") {
+    return {
+      subject:
+        v.kind === "invoice"
+          ? `Una factura por las sesiones de ${v.clientName} — ${v.amount}`
+          : `Recordatorio de pago — sesiones de ${v.clientName}`,
+      heading: v.kind === "invoice" ? "Una factura para ti." : "Un recordatorio amable.",
+      paragraphs: [
+        `Hola ${v.payeeName} — recibes este mensaje como contacto de facturación de ${v.clientName}.`,
+        `${v.kind === "invoice" ? "Hay una factura" : "Hay una factura pendiente"} de ${v.amount} por ${v.description}.` +
+          (v.due ? ` Vence el ${v.due}.` : ""),
+        `La factura va adjunta en PDF, y puede pagarse en línea con el botón de abajo.`,
+      ],
+      buttonLabel: "Ver y pagar la factura",
     };
   }
   return {
-    subject: "A gentle note about your session",
-    text:
-      `Hi — a quick note: there's a payment of ${v.amount} waiting (${v.description}).\n\n` +
-      `You can settle it any time from your space, under Sessions.\n\n` +
-      `If you've already arranged this with Valentina, feel free to ignore this.`,
+    subject:
+      v.kind === "invoice"
+        ? `An invoice for ${v.clientName}'s sessions — ${v.amount}`
+        : `Payment reminder — ${v.clientName}'s sessions`,
+    heading: v.kind === "invoice" ? "An invoice for you." : "A gentle reminder.",
+    paragraphs: [
+      `Hello ${v.payeeName} — you're receiving this as the billing contact for ${v.clientName}.`,
+      `${v.kind === "invoice" ? "There's an invoice" : "There's an open invoice"} of ${v.amount} for ${v.description}.` +
+        (v.due ? ` It's due ${v.due}.` : ""),
+      `The invoice is attached as a PDF, and it can be paid online with the button below.`,
+    ],
+    buttonLabel: "View & pay the invoice",
   };
 }
 
@@ -135,7 +194,7 @@ export function packageCompletedEmail(
 export function lateFeeEmail(
   locale: Locale,
   v: { amount: string; reason: "LATE_RESCHEDULE" | "LATE_CANCEL" | "NO_SHOW" },
-): Mail {
+): Mail & { buttonLabel: string } {
   const reasonEn =
     v.reason === "NO_SHOW"
       ? "a missed session"
@@ -153,14 +212,16 @@ export function lateFeeEmail(
       subject: "Sobre el cambio de tu sesión",
       text:
         `Como la política de la práctica indica, se aplicó un cargo de ${v.amount} por ${reasonEs}.\n\n` +
-        `Puedes resolverlo desde tu espacio, en Sesiones. Si algo urgente ocurrió, escríbele a Valentina — siempre hay espacio para conversar.`,
+        `Puedes resolverlo con el botón de abajo, o desde tu espacio en Sesiones. Si algo urgente ocurrió, escríbele a Valentina — siempre hay espacio para conversar.`,
+      buttonLabel: "Resolverlo en línea",
     };
   }
   return {
     subject: "About your session change",
     text:
       `Per the practice policy, a ${v.amount} fee was applied for ${reasonEn}.\n\n` +
-      `You can settle it from your space under Sessions. If something urgent came up, message Valentina — there's always room for a conversation.`,
+      `You can settle it with the button below, or from your space under Sessions. If something urgent came up, message Valentina — there's always room for a conversation.`,
+    buttonLabel: "Settle it online",
   };
 }
 

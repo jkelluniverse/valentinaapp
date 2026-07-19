@@ -8,3 +8,16 @@ export function getBaseUrl() {
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return `${proto}://${host}`;
 }
+
+// For contexts where request headers may be absent or wrong (cron-triggered
+// jobs): prefer an explicit env var, fall back to the request, then to the
+// production domain — a payment email must never carry a broken link.
+export function getBaseUrlSafe() {
+  const fromEnv = process.env.PUBLIC_APP_URL;
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  try {
+    return getBaseUrl();
+  } catch {
+    return "https://valentinavelez.com";
+  }
+}

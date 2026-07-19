@@ -13,7 +13,7 @@ import { listEnrolledCourses } from "@/lib/courses";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { formatMoney } from "@/lib/billing";
 import { clientPackageSummary } from "@/lib/packages";
-import { squareConfigured, squarePublicConfig, getSquareCustomer, listCardsOnFile } from "@/lib/square";
+import { squareConfigured, squarePublicConfig, getSquareCustomer, listCardsOnFile, ensureSquareCustomer } from "@/lib/square";
 import { SquareCardForm } from "@/components/SquareCardForm";
 import { markChargePaid, waiveCharge, remindCharge } from "../../billing/actions";
 import { clientNotes } from "@/lib/notes";
@@ -34,6 +34,7 @@ import {
   linkSquareCustomer,
   saveCardOnFile,
   chargeCardOnFile,
+  savePayee,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -235,14 +236,15 @@ export default async function Portrait({
       {searchParams.invoice === "failed" && (
         <Banner>The invoice couldn&apos;t be created — nothing was sent.</Banner>
       )}
+      {searchParams.billing === "payeesaved" && (
+        <Banner>Payee saved — they&apos;ll receive invoices and reminders too, PDF attached.</Banner>
+      )}
+      {searchParams.billing === "payeecleared" && <Banner>Payee removed.</Banner>}
+      {searchParams.billing === "payeebad" && (
+        <Banner>A payee needs both a name and a valid email.</Banner>
+      )}
       {searchParams.staged && <Banner>Stage updated — it&apos;s on their journey too.</Banner>}
       {searchParams.error === "prompt" && <Banner>That library item isn&apos;t available.</Banner>}
-      {searchParams.invoice === "sent" && (
-        <Banner>Sent — Square emailed the invoice; it&apos;ll show as paid here once settled.</Banner>
-      )}
-      {searchParams.invoice === "failed" && (
-        <Banner>The invoice couldn&apos;t be sent just now — nothing was recorded; try again in a moment.</Banner>
-      )}
       {searchParams.invoice === "bad" && (
         <Banner>A custom invoice needs a description and an amount above zero.</Banner>
       )}
@@ -782,7 +784,7 @@ const CHARGE_FEE_LABEL: Record<string, string> = {
 };
 
 async function BillingTab({ clientId, back }: { clientId: string; back: string }) {
-  const [charges, packages, priceBook, link] = await Promise.all([
+  const [charges, packages, priceBook, clientUser] = await Promise.all([
     prisma.charge.findMany({
       where: { clientId },
       orderBy: { createdAt: "desc" },
@@ -793,8 +795,24 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
       where: { active: true },
       orderBy: [{ kind: "desc" }, { createdAt: "desc" }], // packages first
     }),
-    prisma.squareCustomerLink.findUnique({ where: { clientId } }),
+    prisma.user.findUnique({
+      where: { id: clientId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profile: { select: { payeeName: true, payeeEmail: true } },
+      },
+    }),
   ]);
+  // Link to Square automatically — everything they already have there
+  // (billing address, cards on file, even a pre-app customer record found by
+  // email) should simply appear, no button to press first.
+  let link = await prisma.squareCustomerLink.findUnique({ where: { clientId } });
+  if (!link && squareConfigured() && clientUser) {
+    await ensureSquareCustomer(clientUser).catch(() => undefined);
+    link = await prisma.squareCustomerLink.findUnique({ where: { clientId } });
+  }
   // Live from Square — their processor profile and stored cards.
   const [squareProfile, cards, sq] = link
     ? await Promise.all([
@@ -803,7 +821,10 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
         squarePublicConfig(),
       ])
     : [null, [] as Awaited<ReturnType<typeof listCardsOnFile>>, await squarePublicConfig()];
-  const defaultCard = cards[0] ?? null;
+  const payee =
+    clientUser?.profile?.payeeName && clientUser.profile.payeeEmail
+      ? { name: clientUser.profile.payeeName, email: clientUser.profile.payeeEmail }
+      : null;
 
   const monthYear = (d: Date) =>
     new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric" }).format(d);
@@ -842,7 +863,7 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
             <form action={linkSquareCustomer.bind(null, clientId)} className="mt-3">
               <input type="hidden" name="back" value={back} />
               <p className="mb-3 max-w-prose text-sm text-ink">
-                Not yet linked to Square — link them to manage billing details and cards.
+                Square couldn&apos;t place this client just now — try the link again in a moment.
               </p>
               <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                 Link to Square
@@ -851,16 +872,29 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
           ) : (
             <div className="mt-3 flex flex-col gap-4">
               {squareProfile && (
-                <p className="text-sm text-ink">
-                  <span className="font-medium text-ink-strong">
-                    {[squareProfile.givenName, squareProfile.familyName].filter(Boolean).join(" ") || "—"}
-                  </span>
-                  {squareProfile.email ? ` · ${squareProfile.email}` : ""}
-                  {squareProfile.phone ? ` · ${squareProfile.phone}` : ""}
-                  {squareProfile.addressLine1
-                    ? ` · ${[squareProfile.addressLine1, squareProfile.city, squareProfile.state, squareProfile.postalCode].filter(Boolean).join(", ")}`
-                    : " · no address on file"}
-                </p>
+                <div className="grid gap-x-6 gap-y-1 text-sm text-ink sm:grid-cols-2">
+                  <p>
+                    <span className="font-medium text-ink-strong">
+                      {[squareProfile.givenName, squareProfile.familyName].filter(Boolean).join(" ") || "—"}
+                    </span>
+                  </p>
+                  <p>{squareProfile.email ?? <span className="text-slate">no email on file</span>}</p>
+                  <p>{squareProfile.phone ?? <span className="text-slate">no phone on file</span>}</p>
+                  <p>
+                    {squareProfile.addressLine1 ? (
+                      [
+                        [squareProfile.addressLine1, squareProfile.addressLine2].filter(Boolean).join(", "),
+                        [squareProfile.city, squareProfile.state, squareProfile.postalCode]
+                          .filter(Boolean)
+                          .join(", "),
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")
+                    ) : (
+                      <span className="text-slate">no billing address on file</span>
+                    )}
+                  </p>
+                </div>
               )}
               <details className="rounded-md border border-line/70 px-4 py-3">
                 <summary className="cursor-pointer text-sm font-medium text-wine">
@@ -939,6 +973,54 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
           )}
         </div>
       )}
+
+      {/* Payee — someone else covers the bill */}
+      <div className="rounded-card border border-line bg-surface p-6 shadow-soft">
+        <p className="text-eyebrow font-semibold uppercase text-mocha">Payee</p>
+        <p className="mt-2 max-w-prose text-sm text-slate">
+          When someone else covers this client&apos;s bills — a parent, a partner, an employer —
+          add them here. They&apos;ll receive every invoice and payment reminder by email, with
+          the PDF invoice attached.
+        </p>
+        {payee && (
+          <p className="mt-3 text-sm text-ink">
+            <span className="font-medium text-ink-strong">{payee.name}</span> · {payee.email}
+          </p>
+        )}
+        <form
+          action={savePayee.bind(null, clientId)}
+          className="mt-3 flex flex-wrap items-end gap-3"
+        >
+          <input type="hidden" name="back" value={back} />
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-ink-strong">Name</span>
+            <input
+              name="payeeName"
+              defaultValue={payee?.name ?? ""}
+              placeholder="Who pays"
+              className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium text-ink-strong">Email</span>
+            <input
+              name="payeeEmail"
+              type="email"
+              defaultValue={payee?.email ?? ""}
+              placeholder="where invoices go"
+              className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+            />
+          </label>
+          <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+            {payee ? "Update payee" : "Save payee"}
+          </button>
+        </form>
+        {payee && (
+          <p className="mt-2 text-xs text-slate">
+            To remove the payee, clear both fields and save.
+          </p>
+        )}
+      </div>
 
       {/* New invoice */}
       <div className="rounded-card border border-line bg-surface p-6 shadow-soft">
@@ -1054,12 +1136,28 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
               </span>
               {(c.status === "DUE" || c.status === "PENDING") && (
                 <span className="ml-auto flex items-center gap-3">
-                  {defaultCard && c.status === "DUE" && (
-                    <form action={chargeCardOnFile.bind(null, c.id)}>
+                  {cards.length > 0 && c.status === "DUE" && (
+                    <form
+                      action={chargeCardOnFile.bind(null, c.id)}
+                      className="flex items-center gap-2"
+                    >
                       <input type="hidden" name="back" value={back} />
-                      <input type="hidden" name="cardId" value={defaultCard.id} />
+                      {cards.length === 1 ? (
+                        <input type="hidden" name="cardId" value={cards[0].id} />
+                      ) : (
+                        <select
+                          name="cardId"
+                          className="rounded-md border border-line bg-surface px-2 py-1 text-xs text-ink"
+                        >
+                          {cards.map((cd) => (
+                            <option key={cd.id} value={cd.id}>
+                              {cd.brand} ····{cd.last4}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <button className="font-medium text-wine underline-offset-4 hover:underline">
-                        Charge ····{defaultCard.last4}
+                        {cards.length === 1 ? `Charge ····${cards[0].last4}` : "Charge card"}
                       </button>
                     </form>
                   )}

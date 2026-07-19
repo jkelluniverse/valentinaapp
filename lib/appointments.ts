@@ -15,6 +15,7 @@ import {
   unconsumeCreditForAppointment,
 } from "@/lib/packages";
 import { pickLocale, sessionEmail, lateFeeEmail } from "@/lib/email-copy";
+import { getBaseUrlSafe } from "@/lib/base-url";
 import { sendPushToUser } from "@/lib/push";
 
 // The service layer for appointments: booking with a server-side double-book
@@ -424,7 +425,29 @@ async function notifyLateFee(
     const amount = formatMoney(feeCents);
     if (client.email) {
       const mail = lateFeeEmail(pickLocale(client.locale), { amount, reason });
-      await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
+      // One button straight to the payment sheet for the fee itself.
+      const feeCharge = await prisma.charge.findUnique({
+        where: { appointmentId_kind: { appointmentId, kind: "LATE_FEE" } },
+        select: { id: true },
+      });
+      await sendEmail({
+        to: client.email,
+        subject: mail.subject,
+        text: mail.text,
+        ...(feeCharge
+          ? {
+              envelope: {
+                locale: pickLocale(client.locale),
+                heading: mail.subject,
+                paragraphs: mail.text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean),
+                button: {
+                  label: mail.buttonLabel,
+                  url: `${getBaseUrlSafe()}/space/schedule/pay/${feeCharge.id}`,
+                },
+              },
+            }
+          : {}),
+      });
     }
     const practitioner = await prisma.user.findFirst({
       where: { role: "PRACTITIONER" },

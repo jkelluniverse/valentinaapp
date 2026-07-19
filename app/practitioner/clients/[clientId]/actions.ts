@@ -18,8 +18,10 @@ import {
   createSquarePayment,
 } from "@/lib/square";
 import { sendEmail } from "@/lib/notify";
-import { pickLocale, invoiceEmail } from "@/lib/email-copy";
-import { formatMoney, setChargeStatus } from "@/lib/billing";
+import { invoiceEmail, payeeInvoiceEmail } from "@/lib/email-copy";
+import { chargeEmailContext } from "@/lib/invoice-context";
+import { getBaseUrlSafe } from "@/lib/base-url";
+import { setChargeStatus } from "@/lib/billing";
 import { timeValueToMinutes } from "@/lib/schedule-meta";
 import { zonedWallToUtc } from "@/lib/schedule";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
@@ -294,7 +296,7 @@ export async function sendInvoice(clientId: string, formData: FormData) {
     await prisma.charge.delete({ where: { id: charge.id } }).catch(() => undefined);
     redirect(backWith("invoice=failed"));
   }
-  await prisma.charge.update({
+  const updated = await prisma.charge.update({
     where: { id: charge.id },
     data: {
       squareInvoiceId: sent.invoiceId,
@@ -303,28 +305,51 @@ export async function sendInvoice(clientId: string, formData: FormData) {
     },
   });
   // The email that carries the invoice is OURS (branded Envelope); Square
-  // hosts only the payment page behind the button.
+  // hosts only the payment page behind the button. The PDF invoice rides
+  // along as an attachment, and the payee — when one is set — gets their own
+  // copy of both.
   if (sent.publicUrl) {
-    const recipient = await prisma.user.findUnique({
-      where: { id: clientId },
-      select: { email: true, locale: true },
-    });
-    if (recipient?.email) {
-      const mail = invoiceEmail(pickLocale(recipient.locale), {
+    const ctx = await chargeEmailContext(updated, getBaseUrlSafe(), { note });
+    if (ctx.client?.email) {
+      const mail = invoiceEmail(ctx.client.locale, {
         description,
-        amount: formatMoney(amountCents, currency),
+        amount: ctx.amount,
         note,
       });
       await sendEmail({
-        to: recipient.email,
+        to: ctx.client.email,
         subject: mail.subject,
         text: "",
+        attachments: [ctx.attachment],
         envelope: {
-          locale: pickLocale(recipient.locale),
+          locale: ctx.client.locale,
           heading: mail.heading,
           paragraphs: mail.paragraphs,
           note: note || null,
           button: { label: mail.buttonLabel, url: sent.publicUrl },
+        },
+      });
+    }
+    if (ctx.payee) {
+      const payeeMail = payeeInvoiceEmail(ctx.client?.locale ?? "en", {
+        kind: "invoice",
+        payeeName: ctx.payee.name,
+        clientName: ctx.client?.name ?? client.name ?? "your client",
+        description,
+        amount: ctx.amount,
+        due: ctx.dueDateText,
+      });
+      await sendEmail({
+        to: ctx.payee.email,
+        subject: payeeMail.subject,
+        text: payeeMail.paragraphs.join("\n\n"),
+        attachments: [ctx.attachment],
+        envelope: {
+          locale: ctx.client?.locale ?? "en",
+          heading: payeeMail.heading,
+          paragraphs: payeeMail.paragraphs,
+          note: note || null,
+          button: { label: payeeMail.buttonLabel, url: sent.publicUrl },
         },
       });
     }
@@ -431,6 +456,28 @@ export async function saveCardOnFile(
   });
   console.log(`[billing] card on file saved client=${clientId} by=${practitioner.id}`);
   return { ok: true };
+}
+
+// Payee — a different person who covers this client's bills (a parent, a
+// partner, an employer). When set, invoice emails and payment reminders are
+// also sent to them, with the PDF invoice attached. Clearing both fields
+// removes the payee.
+export async function savePayee(clientId: string, formData: FormData) {
+  const practitioner = await requirePractitioner();
+  const back = String(formData.get("back") ?? `/practitioner/clients/${clientId}?tab=billing`);
+  const name = String(formData.get("payeeName") ?? "").trim();
+  const email = String(formData.get("payeeEmail") ?? "").trim().toLowerCase();
+  if ((name && !email) || (email && !name) || (email && !/^\S+@\S+\.\S+$/.test(email))) {
+    redirect(`${back}&billing=payeebad`);
+  }
+  await prisma.clientProfile.upsert({
+    where: { userId: clientId },
+    create: { userId: clientId, payeeName: name || null, payeeEmail: email || null },
+    update: { payeeName: name || null, payeeEmail: email || null },
+  });
+  console.log(`[billing] payee ${name ? "set" : "cleared"} client=${clientId} by=${practitioner.id}`);
+  revalidatePath(`/practitioner/clients/${clientId}`);
+  redirect(`${back}&billing=${name ? "payeesaved" : "payeecleared"}`);
 }
 
 // Settle a due charge with the stored card (merchant-initiated, card on file).

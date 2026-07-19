@@ -3,9 +3,10 @@ import { timingSafeEqual, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { completeAppointment, clientLabel } from "@/lib/appointments";
 import { packageCounters } from "@/lib/packages";
-import { formatMoney } from "@/lib/billing";
 import { sendEmail } from "@/lib/notify";
-import { pickLocale, paymentReminderEmail, packageCompletedEmail, sessionReminderEmail } from "@/lib/email-copy";
+import { pickLocale, paymentReminderEmail, payeeInvoiceEmail, packageCompletedEmail, sessionReminderEmail } from "@/lib/email-copy";
+import { chargeEmailContext } from "@/lib/invoice-context";
+import { getBaseUrlSafe } from "@/lib/base-url";
 import { sendPushToUser } from "@/lib/push";
 import { getOrCreateConfig, getPractitioner, formatInZone, zoneAbbrev } from "@/lib/schedule";
 
@@ -237,19 +238,57 @@ async function handle(req: NextRequest) {
         },
         take: 100,
       });
+      const emailBase = getBaseUrlSafe();
       for (const charge of candidates) {
         if (charge.remindCount === 1 && charge.lastRemindedAt &&
             now.getTime() - charge.lastRemindedAt.getTime() < REMIND_GAP_MS) continue;
-        const client = await prisma.user.findUnique({
-          where: { id: charge.clientId },
-          select: { email: true, locale: true, profile: { select: { paymentRemindersMuted: true } } },
+        const muted = await prisma.clientProfile.findUnique({
+          where: { userId: charge.clientId },
+          select: { paymentRemindersMuted: true },
         });
-        if (!client?.email || client.profile?.paymentRemindersMuted) continue;
-        const mail = paymentReminderEmail(pickLocale(client.locale), {
+        if (muted?.paymentRemindersMuted) continue;
+        // The reminder carries the invoice: details, PDF, and the pay button.
+        const ctx = await chargeEmailContext(charge, emailBase);
+        if (!ctx.client?.email) continue;
+        const mail = paymentReminderEmail(ctx.client.locale, {
           description: charge.description,
-          amount: formatMoney(charge.amountCents, charge.currency),
+          amount: ctx.amount,
+          due: ctx.dueDateText,
         });
-        await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
+        await sendEmail({
+          to: ctx.client.email,
+          subject: mail.subject,
+          text: mail.text,
+          attachments: [ctx.attachment],
+          envelope: {
+            locale: ctx.client.locale,
+            heading: mail.heading,
+            paragraphs: mail.paragraphs,
+            ...(ctx.payUrl ? { button: { label: mail.buttonLabel, url: ctx.payUrl } } : {}),
+          },
+        });
+        if (ctx.payee) {
+          const payeeMail = payeeInvoiceEmail(ctx.client.locale, {
+            kind: "reminder",
+            payeeName: ctx.payee.name,
+            clientName: ctx.client.name ?? "your client",
+            description: charge.description,
+            amount: ctx.amount,
+            due: ctx.dueDateText,
+          });
+          await sendEmail({
+            to: ctx.payee.email,
+            subject: payeeMail.subject,
+            text: payeeMail.paragraphs.join("\n\n"),
+            attachments: [ctx.attachment],
+            envelope: {
+              locale: ctx.client.locale,
+              heading: payeeMail.heading,
+              paragraphs: payeeMail.paragraphs,
+              ...(ctx.payUrl ? { button: { label: payeeMail.buttonLabel, url: ctx.payUrl } } : {}),
+            },
+          });
+        }
         await prisma.charge.update({
           where: { id: charge.id },
           data: { lastRemindedAt: now, remindCount: { increment: 1 } },

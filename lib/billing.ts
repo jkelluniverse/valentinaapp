@@ -1,6 +1,7 @@
 import type { ChargeStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { reserveCreditForAppointment, activatePackageForCharge } from "@/lib/packages";
+import { cancelSquareInvoice } from "@/lib/square";
 
 // The billing ledger (C13). The app owns this record of what's due and paid;
 // Square owns the actual money movement. Amounts live in integer cents; money
@@ -119,6 +120,12 @@ export async function setChargeStatus(
   // C13-PKG §7/§8 — a paid package purchase activates its package (idempotent).
   if (status === "PAID" && charge.kind === "PACKAGE") {
     await activatePackageForCharge(charge);
+  }
+  // Settled outside its Square invoice (card on file, in person, waived)?
+  // Cancel the open invoice so Square's books match ours. No-op when the
+  // invoice itself was the payment path — it's already terminal there.
+  if ((status === "PAID" || status === "WAIVED") && charge.squareInvoiceId) {
+    await cancelSquareInvoice(charge.squareInvoiceId).catch(() => undefined);
   }
   return charge;
 }

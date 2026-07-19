@@ -10,7 +10,14 @@
 
 import { renderEnvelope, type EnvelopeInput } from "@/emails/envelope";
 
-type Attachment = { filename: string; content: string; contentType?: string };
+type Attachment = {
+  filename: string;
+  /** UTF-8 text content (ICS invites, plain files)… */
+  content?: string;
+  /** …or pre-encoded base64 for binary payloads (PDF invoices). */
+  contentBase64?: string;
+  contentType?: string;
+};
 
 type SendArgs = {
   to: string;
@@ -86,7 +93,7 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; skipped?
         attachments: args.attachments?.map((a) => ({
           filename: a.filename,
           // Resend expects base64 content for attachments.
-          content: Buffer.from(a.content, "utf8").toString("base64"),
+          content: a.contentBase64 ?? Buffer.from(a.content ?? "", "utf8").toString("base64"),
           contentType: a.contentType,
         })),
       }),
