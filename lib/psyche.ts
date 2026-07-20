@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { NodeKind, NodeSource, NodeState } from "@prisma/client";
+import { nodeConfidence, type ConfidenceLevel } from "@/lib/confidence";
 
 // C16 — the psyche graph service. PRACTITIONER-ONLY surface (route-guarded by
 // callers). Weight = evidential mass that only grows (early evidence never
@@ -55,6 +56,10 @@ export type GraphNode = {
   suggestedState: NodeState | null;
   suggestedReason: string | null;
   chartRefs: unknown;
+  chartBasis: string | null; // C12X §4 — which chart feature proposed it
+  speculative: boolean; // CHART_DERIVED with no lived evidence — outline, no gravity
+  confidence: ConfidenceLevel; // C12X §6 — the one vocabulary
+  latestResonance: string | null; // the client's (or her) latest mark on this node
   selfX: number | null;
   selfY: number | null;
   evidence: EvidenceRef[];
@@ -93,6 +98,15 @@ export async function loadGraph(clientId: string): Promise<PsycheGraph> {
   });
   const itemMap = new Map(items.map((i) => [i.id, i]));
 
+  // C12X — latest resonance mark per node feeds the confidence vocabulary.
+  const resonanceRows = await prisma.resonanceMark.findMany({
+    where: { clientId, subjectType: "NODE" },
+    orderBy: { createdAt: "asc" },
+    select: { subjectKey: true, value: true },
+  });
+  const resonanceByNode = new Map<string, string>();
+  for (const r of resonanceRows) resonanceByNode.set(r.subjectKey, r.value);
+
   const liveIds = new Set(nodes.map((n) => n.id));
   return {
     nodes: nodes.map((n) => {
@@ -120,6 +134,15 @@ export async function loadGraph(clientId: string): Promise<PsycheGraph> {
         suggestedState: n.suggestedState,
         suggestedReason: n.suggestedReason,
         chartRefs: n.chartRefs,
+        chartBasis: n.chartBasis,
+        speculative: n.source === "CHART_DERIVED" && n.evidenceRecordItemIds.length === 0,
+        confidence: nodeConfidence({
+          source: n.source,
+          state: n.state,
+          evidenceCount: n.evidenceRecordItemIds.length,
+          latestResonance: resonanceByNode.get(n.id) ?? null,
+        }),
+        latestResonance: resonanceByNode.get(n.id) ?? null,
         selfX: n.selfX,
         selfY: n.selfY,
         evidence,

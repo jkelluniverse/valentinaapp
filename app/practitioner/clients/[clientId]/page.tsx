@@ -735,7 +735,8 @@ async function MapTab({ clientId }: { clientId: string }) {
       />
       <p className="max-w-prose text-[13px] text-whisper">
         A working model of patterns — hypotheses with evidence, never a diagnosis. Larger bodies
-        carry more evidence; warmth is recency; a gold ring means they named it themselves.
+        carry more evidence; warmth is recency; a gold ring means they named it themselves. A
+        dashed outline is a chart hypothesis — the chart proposes; the record confirms.
       </p>
     </div>
   );

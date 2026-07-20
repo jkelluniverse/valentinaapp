@@ -25,7 +25,13 @@ export async function aggregatePatterns(): Promise<AggregateResult> {
 
   // ---- Archetypes: label × kind → how many DISTINCT clients carry it ----
   const nodes = await prisma.psycheNode.findMany({
-    where: { state: { not: "ARCHIVED" } },
+    // C12X §4 — CHART_DERIVED hypotheses are NOT lived patterns: they never
+    // enter the cross-client library, corroborated or not. CONTRADICTED
+    // (client said "doesn't fit") stays out too.
+    where: {
+      state: { notIn: ["ARCHIVED", "CONTRADICTED"] },
+      source: { not: "CHART_DERIVED" },
+    },
     select: { id: true, clientId: true, kind: true, label: true },
   });
   const byKey = new Map<string, { kind: (typeof nodes)[number]["kind"]; label: string; clients: Set<string>; ids: Map<string, string> }>();

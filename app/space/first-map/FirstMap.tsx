@@ -158,6 +158,7 @@ export function FirstMap({
         weight: 1.6,
         glow: 0.72,
         hasSuggestion: false,
+        speculative: false,
         selfX: s.x,
         selfY: s.y,
         createdAt: Date.now(),

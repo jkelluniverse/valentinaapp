@@ -163,6 +163,10 @@ export async function ensureChart(profile: ClientProfile): Promise<boolean> {
         accuracyNote: profile.birthTimeUnknown ? UNKNOWN_TIME_NOTE : null,
       },
     });
+    // C12X §4 — the chart proposes: seed outline hypotheses on the map.
+    // Best-effort; the chart itself is the deliverable.
+    const { seedChartHypotheses } = await import("@/lib/chart-seeds");
+    await seedChartHypotheses(profile.userId).catch(() => undefined);
     return true;
   } catch {
     // Metadata-only logging: which user's chart failed, never the birth data.

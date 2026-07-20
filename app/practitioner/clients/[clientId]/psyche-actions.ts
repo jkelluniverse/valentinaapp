@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { runPsycheExtraction } from "@/lib/psyche-extract";
 import { massFromEvidence, RELATIONS } from "@/lib/psyche";
+import { markResonance, isResonanceValue } from "@/lib/resonance";
 
 // C16.4 — Valentina's hand on the constellation. The AI builds; she curates
 // truth into it. Every action is audited (PsycheAudit). All scoped: a node id
@@ -93,6 +94,31 @@ export async function editNode(
 
 // State transitions — declaring liberation is Valentina's clinical-judgment
 // moment (§5). INTEGRATED takes a gift name; the label transmutes at read time.
+// C12X §5 — her resonance mark on a node's interpretation. Append-only event;
+// side effects (evidence on FEELS_TRUE, retirement on DOESNT_FIT/NO_LONGER)
+// live in lib/resonance.
+export async function markNodeResonance(
+  clientId: string,
+  nodeId: string,
+  value: string,
+): Promise<Res> {
+  const me = await requirePractitioner();
+  const node = await ownNode(nodeId, clientId);
+  if (!node) return { ok: false, error: "not-found" };
+  if (!isResonanceValue(value)) return { ok: false, error: "invalid" };
+  await markResonance({
+    clientId,
+    subjectType: "NODE",
+    subjectKey: nodeId,
+    value,
+    markedById: me.id,
+    markedByRole: "PRACTITIONER",
+  });
+  await audit(clientId, me.id, "SET_STATE", `node=${nodeId} resonance=${value}`);
+  revalidate(clientId);
+  return { ok: true };
+}
+
 export async function setNodeState(
   clientId: string,
   nodeId: string,

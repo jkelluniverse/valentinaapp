@@ -16,6 +16,7 @@ import {
   deleteEdge,
   nodeToNote,
   setNotesSource,
+  markNodeResonance,
 } from "@/app/practitioner/clients/[clientId]/psyche-actions";
 
 // C16.3/4/6 — the constellation workbench: lenses, search, the time scrub, and
@@ -33,12 +34,33 @@ export type PanelNode = {
   giftLabel: string | null;
   suggestedState: string | null;
   suggestedReason: string | null;
+  chartBasis: string | null; // C12X — which chart feature proposed it
+  speculative: boolean; // chart hypothesis with no lived evidence
+  confidence: string; // C12X §6 vocabulary level
+  latestResonance: string | null; // latest resonance mark on this node
   selfX: number | null;
   selfY: number | null;
   createdAt: string;
   evidence: { id: string; kind: string; title: string | null; snippet: string; occurredAt: string }[];
 };
 export type PanelEdge = { id: string; from: string; to: string; relation: string; weight: number };
+
+// C12X §5/§6 — resonance wording + confidence tooltips (practitioner-side).
+const RESONANCE_WORDS: Record<string, string> = {
+  FEELS_TRUE: "Feels true",
+  PARTLY: "Partly",
+  DOESNT_FIT: "Doesn't fit",
+  NOT_YET: "Not yet",
+  NO_LONGER: "No longer relevant",
+};
+const CONFIDENCE_HINT: Record<string, string> = {
+  CONFIRMED: "Stated or marked by the client directly, or repeatedly demonstrated.",
+  SUPPORTED: "Multiple independent pieces of evidence point here.",
+  EMERGING: "Crossed the proposal threshold — evidence still thin.",
+  SPECULATIVE: "A chart hypothesis with no lived corroboration yet.",
+  CONTRADICTED: "The client's own 'doesn't fit' — retired from surfacing.",
+  RESOLVED: "Worked through — no longer active, kept with honor.",
+};
 
 const KIND_LABEL: Record<string, string> = {
   WOUND: "Wound",
@@ -116,6 +138,7 @@ export function MapWorkbench({
         weight: n.weight,
         glow: n.glow,
         hasSuggestion: !!n.suggestedState,
+        speculative: n.speculative,
         selfX: n.selfX,
         selfY: n.selfY,
         createdAt: new Date(n.createdAt).getTime(),
@@ -227,7 +250,47 @@ export function MapWorkbench({
             they see this themselves
           </span>
         )}
+        {/* C12X §6 — source + level render together, always. */}
+        <span
+          title={CONFIDENCE_HINT[selected.confidence] ?? ""}
+          className={`rounded-pill px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+            selected.confidence === "CONFIRMED"
+              ? "bg-[#D4A860]/25 text-[#E8C687]"
+              : selected.confidence === "CONTRADICTED"
+                ? "border border-white/20 text-white/40 line-through"
+                : selected.confidence === "SPECULATIVE"
+                  ? "border border-dashed border-white/35 text-white/60"
+                  : "border border-white/25 text-white/70"
+          }`}
+        >
+          {selected.confidence.toLowerCase()}
+        </span>
         <span className="ml-auto text-[11px] text-white/40">since {fmtDay(selected.createdAt)}</span>
+      </div>
+
+      {selected.chartBasis && (
+        <p className="text-[12.5px] text-white/55">
+          Proposed by their chart ({selected.chartBasis}) — the chart proposes; the record
+          confirms. It gains body only as lived evidence arrives.
+        </p>
+      )}
+
+      {/* C12X §5 — resonance: her marks on this interpretation. */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-[11px] uppercase tracking-wide text-white/45">Resonance</span>
+        {(["FEELS_TRUE", "PARTLY", "DOESNT_FIT", "NOT_YET", "NO_LONGER"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => run("resonance", () => markNodeResonance(clientId, selected.id, v))}
+            className={`rounded-pill px-2.5 py-1 text-[11.5px] transition-colors ${
+              selected.latestResonance === v
+                ? "bg-[#D4A860] font-semibold text-[#191114]"
+                : "border border-white/20 text-white/65 hover:border-white/45 hover:text-white/90"
+            }`}
+          >
+            {RESONANCE_WORDS[v]}
+          </button>
+        ))}
       </div>
 
       {/* AI suggestion — hers to confirm (§5). */}

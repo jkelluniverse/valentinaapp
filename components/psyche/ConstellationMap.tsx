@@ -11,11 +11,12 @@ export type RenderNode = {
   id: string;
   kind: string;
   label: string;
-  state: string; // ACTIVE | LOOSENING | INTEGRATED
-  source: string; // AI_EXTRACTED | PRACTITIONER | SELF_REPORTED
+  state: string; // ACTIVE | LOOSENING | INTEGRATED | CONTRADICTED
+  source: string; // AI_EXTRACTED | PRACTITIONER | SELF_REPORTED | CHART_DERIVED
   weight: number;
   glow: number; // 0..1
   hasSuggestion: boolean;
+  speculative: boolean; // C12X §4 — chart hypothesis, no lived evidence: outline only
   selfX: number | null;
   selfY: number | null;
   createdAt: number; // epoch ms — drives the time scrub
@@ -219,8 +220,10 @@ export function ConstellationMap({
         b.vy -= fy;
       }
       // Gravity: heavier bodies settle toward center — wounds as gravity wells.
+      // C12X §4 — speculative chart hypotheses have NO gravity: they drift at
+      // the edges until lived evidence gives them mass.
       for (const { n, s } of arr) {
-        const pull = 0.0015 * (0.6 + n.weight * 0.35);
+        const pull = n.speculative ? 0.0003 : 0.0015 * (0.6 + n.weight * 0.35);
         s.vx += (W() / 2 - s.x) * pull;
         s.vy += (H() / 2 - s.y) * pull;
         // Ambient drift, alive but never frantic.
@@ -296,25 +299,40 @@ export function ConstellationMap({
           hue = LOOSE_GOLD;
           r = Math.min(r, 10); // a warm, small, steady light
           glow = 0.5;
+        } else if (n.state === "CONTRADICTED") {
+          // Retired by the client's own "doesn't fit" — kept in history, dim.
+          dim *= 0.35;
+          glow = 0;
         }
 
-        // Halo (recency glow — light, not mass).
-        const halo = ctx!.createRadialGradient(s.x, s.y, r * 0.4, s.x, s.y, r * (2.2 + glow * 1.6));
-        halo.addColorStop(0, rgba(hue, 0.5 * glow * dim));
-        halo.addColorStop(1, rgba(hue, 0));
-        ctx!.fillStyle = halo;
-        ctx!.beginPath();
-        ctx!.arc(s.x, s.y, r * (2.2 + glow * 1.6), 0, Math.PI * 2);
-        ctx!.fill();
+        if (n.speculative || n.state === "CONTRADICTED") {
+          // C12X §4 — proposed, not established: stroke only, no fill, no halo.
+          ctx!.strokeStyle = rgba(hue, (n.speculative ? 0.75 : 0.5) * dim);
+          ctx!.lineWidth = 1.3;
+          if (n.speculative) ctx!.setLineDash([4, 4]);
+          ctx!.beginPath();
+          ctx!.arc(s.x, s.y, r, 0, Math.PI * 2);
+          ctx!.stroke();
+          ctx!.setLineDash([]);
+        } else {
+          // Halo (recency glow — light, not mass).
+          const halo = ctx!.createRadialGradient(s.x, s.y, r * 0.4, s.x, s.y, r * (2.2 + glow * 1.6));
+          halo.addColorStop(0, rgba(hue, 0.5 * glow * dim));
+          halo.addColorStop(1, rgba(hue, 0));
+          ctx!.fillStyle = halo;
+          ctx!.beginPath();
+          ctx!.arc(s.x, s.y, r * (2.2 + glow * 1.6), 0, Math.PI * 2);
+          ctx!.fill();
 
-        // Body.
-        const body = ctx!.createRadialGradient(s.x - r * 0.3, s.y - r * 0.3, r * 0.1, s.x, s.y, r);
-        body.addColorStop(0, rgba(blend(hue, [254, 244, 234], 0.28), 0.95 * dim));
-        body.addColorStop(1, rgba(hue, 0.9 * dim));
-        ctx!.fillStyle = body;
-        ctx!.beginPath();
-        ctx!.arc(s.x, s.y, r, 0, Math.PI * 2);
-        ctx!.fill();
+          // Body.
+          const body = ctx!.createRadialGradient(s.x - r * 0.3, s.y - r * 0.3, r * 0.1, s.x, s.y, r);
+          body.addColorStop(0, rgba(blend(hue, [254, 244, 234], 0.28), 0.95 * dim));
+          body.addColorStop(1, rgba(hue, 0.9 * dim));
+          ctx!.fillStyle = body;
+          ctx!.beginPath();
+          ctx!.arc(s.x, s.y, r, 0, Math.PI * 2);
+          ctx!.fill();
+        }
 
         // Self-reported: the client's own awareness — a gold ring.
         if (n.source === "SELF_REPORTED") {

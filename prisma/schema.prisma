@@ -153,6 +153,7 @@ enum NodeSource {
   AI_EXTRACTED
   PRACTITIONER
   SELF_REPORTED
+  CHART_DERIVED // C12X §4 — the chart proposes; the record confirms
 }
 
 enum NodeState {
@@ -160,6 +161,7 @@ enum NodeState {
   LOOSENING
   INTEGRATED
   ARCHIVED
+  CONTRADICTED // C12X §5/§6 — retired from surfacing, kept in history
 }
 
 model PsycheNode {
@@ -179,6 +181,8 @@ model PsycheNode {
   selfX                 Float? // the client's own star placement (Your First Map)
   selfY                 Float?
   promptKey             String? // which First Map prompt birthed a self-reported node
+  chartBasis            String? // C12X §4 — which chart feature proposed this (CHART_DERIVED only)
+  blockKey              String? // C12X — reading placement key this hypothesis mirrors ("center:head")
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
@@ -398,8 +402,119 @@ model IntegrativeReading {
   inputHash            String // hash of the 3 charts → detect change → regenerate
   status               String   @default("PUBLISHED") // PUBLISHED | PENDING_REVIEW
   editedByPractitioner Boolean  @default(false)
+  structured           Json? // C12X §2 — the structured reading (sections + expandable placement blocks)
   generatedAt          DateTime @default(now())
   updatedAt            DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// C12X — The Client Intelligence Layer. One enrichment, three consumers, and
+// the client-correction system that keeps every interpretation honest.
+
+// §5 — resonance marks. Append-only, first-class evidence events: who marked
+// which interpretation, when, and what it said before. The latest mark per
+// subject is its current resonance; history is never rewritten.
+model ResonanceMark {
+  id           String   @id @default(cuid())
+  clientId     String
+  subjectType  String // READING_BLOCK | GUIDE_CLAIM | NODE
+  subjectKey   String // placement blockKey · guide claim key · node id
+  value        String // FEELS_TRUE | PARTLY | DOESNT_FIT | NOT_YET | NO_LONGER
+  priorValue   String? // what the previous mark said (state transition audit)
+  markedById   String
+  markedByRole String // CLIENT | PRACTITIONER
+  createdAt    DateTime @default(now())
+
+  @@index([clientId, subjectType, subjectKey, createdAt])
+}
+
+// §3 — the Practitioner Integration Guide: chart × the full record, HER eyes
+// only. Regenerated on demand; the heaviest AI call in the app by design.
+model IntegrationGuide {
+  id          String   @id @default(cuid())
+  clientId    String   @unique
+  model       String // model + prompt version (audit)
+  inputHash   String
+  output      Json // components[] — 15-point blocks, cross-refs, cautions, confidence
+  generatedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// §7 domain B — Goals: the client's goal in their ORIGINAL wording (sacred,
+// never paraphrased away). statement is immutable after creation by design —
+// there is no update path for it in the actions.
+model ClientGoal {
+  id                    String   @id @default(cuid())
+  clientId              String
+  statement             String // their words, verbatim — never edited
+  whyItMatters          String?
+  obstacles             String?
+  relatedNodeIds        String[] // linked Constellation beliefs/patterns
+  progressRecordItemIds String[] // evidence of movement
+  status                String   @default("ACTIVE") // ACTIVE | PROGRESSING | ACHIEVED | RETIRED
+  createdById           String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([clientId, status])
+}
+
+// §7 domain K — Belief Work: each limiting belief with its evidence on both
+// sides, generated statement OPTIONS (never pre-approved), and the client-
+// approved final wording. A statement is unusable until approvedAt is set.
+model BeliefWork {
+  id                       String    @id @default(cuid())
+  clientId                 String
+  belief                   String // the client's wording, verbatim first
+  nodeId                   String? // linked CORE_BELIEF node on the map
+  supportingRecordItemIds  String[]
+  contradictingRecordItemIds String[]
+  statementOptions         Json? // [{ text, criteria: {...} }] — options only
+  approvedStatement        String? // the client-approved final wording
+  approvedAt               DateTime?
+  balanceUsed              String? // which balance/process was used
+  subjectiveResponse       String? // how it felt, in their words
+  followUpRecordItemIds    String[] // behavioral evidence after the work
+  status                   String    @default("ACTIVE") // ACTIVE | REVISED | RETIRED
+  createdById              String
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@index([clientId, status])
+}
+
+// §7 domain L — Intervention outcomes: what each assignment was FOR and what
+// it actually produced, feeding "which interventions helped?".
+model InterventionOutcome {
+  id                    String   @id @default(cuid())
+  clientId              String
+  assignmentId          String?  @unique // prompt assignment
+  worksheetAssignmentId String?  @unique // worksheet assignment
+  purpose               String?
+  linkedNodeId          String? // the theme it addressed
+  clientResponse        String? // how they experienced it
+  insights              String?
+  difficulties          String?
+  decision              String? // REPEAT | ADAPT | DISCONTINUE
+  createdById           String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+// §8 — Ask the Record: longitudinal queries with cite-or-decline answers.
+// Kept (practitioner-only) because yesterday's answer is session gold.
+model AskRecordAnswer {
+  id        String   @id @default(cuid())
+  clientId  String
+  question  String
+  model     String
+  output    Json // { findings: [{statement, evidenceIds, confidence}], notEstablished: [] }
+  askedById String
+  createdAt DateTime @default(now())
+
+  @@index([clientId, createdAt])
 }
 
 // Small practice-wide key/value settings (e.g. her synthesis-method text).
