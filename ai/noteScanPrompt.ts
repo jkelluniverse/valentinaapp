@@ -16,6 +16,8 @@ Rules:
 - Prefer few, well-evidenced connections over many thin ones. If the record doesn't echo the note, say so with an empty connections list.
 - LANGUAGE. Client material may arrive in Spanish, English, or code-switched between the two — read it all natively; an echo counts even when her note is in English and the client wrote in Spanish. Any client words you quote must remain VERBATIM in their original language — never translate them. Write your own areas, links, and suggestions in English (her working language).
 - REFERRAL SAFETY (mandatory): if the note or record surfaces crisis or clinical signals — self-harm, suicide, harm to others, abuse, severe or clearly worsening distress — set referral.flag true, put a short plain reason in referral.reason, and return no connections. She must see a referral notice, not analysis.
+- SENSITIVE AREAS (require direct evidence; flag rather than infer; never speculate): trauma history · abuse · diagnoses · sexuality · religion · family allegations · medical · legal · risk · non-consenting third parties.
+- THE CENTRAL PRINCIPLE: the client is not the chart, the diagnosis, the belief, the pattern, or the map. Every connection is a hypothesis in service of a human being who exceeds all of them.
 
 The client is referred to only as "the client".`;
 

@@ -24,6 +24,7 @@ import { JotBox } from "@/components/JotBox";
 import { NoteRow } from "@/components/NoteRow";
 import { createJot } from "../../notes/actions";
 import { AssignForm } from "./AssignForm";
+import { GuideTab, GoalsTab, BeliefsTab, OutcomesTab, AskTab } from "./intelligence-tabs";
 import {
   assignPrompt,
   assignWorksheet,
@@ -48,10 +49,15 @@ const STATUS_LABEL: Record<string, string> = {
 const TABS = [
   { key: "record", label: "Record" },
   { key: "map", label: "Map" },
+  { key: "guide", label: "Guide" }, // C12X §3 — the Integration Guide
   { key: "margins", label: "Margins" },
   { key: "messages", label: "Messages" },
   { key: "prep", label: "Prep" },
   { key: "between", label: "Between" },
+  { key: "goals", label: "Goals" }, // C12X §7 — the three quiet ledgers
+  { key: "beliefs", label: "Beliefs" },
+  { key: "outcomes", label: "Outcomes" },
+  { key: "ask", label: "Ask" }, // C12X §8 — Ask the Record
   { key: "courses", label: "Courses" },
   { key: "profile", label: "Profile" },
   { key: "billing", label: "Billing" },
@@ -85,6 +91,11 @@ export default async function Portrait({
     noteTag?: string;
     invoice?: string;
     billing?: string;
+    guide?: string;
+    goal?: string;
+    belief?: string;
+    outcome?: string;
+    ask?: string;
   };
 }) {
   await requirePractitioner();
@@ -454,6 +465,13 @@ export default async function Portrait({
         )}
 
         {tab === "map" && <MapTab clientId={client.id} />}
+
+        {/* C12X — the intelligence surfaces. */}
+        {tab === "guide" && <GuideTab clientId={client.id} banner={searchParams.guide} />}
+        {tab === "goals" && <GoalsTab clientId={client.id} banner={searchParams.goal} />}
+        {tab === "beliefs" && <BeliefsTab clientId={client.id} banner={searchParams.belief} />}
+        {tab === "outcomes" && <OutcomesTab clientId={client.id} banner={searchParams.outcome} />}
+        {tab === "ask" && <AskTab clientId={client.id} banner={searchParams.ask} />}
 
         {tab === "margins" && (
           <MarginsTab clientId={client.id} clientName={client.name || client.email} tag={searchParams.noteTag} />

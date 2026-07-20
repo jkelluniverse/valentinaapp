@@ -10,6 +10,7 @@ import {
   type PrepOutput,
   type PractitionerLocale,
 } from "@/ai/sessionPrepPrompt";
+import { nodeConfidence } from "@/lib/confidence";
 
 // C5 pipeline (spec §4). Non-negotiables enforced here as code:
 // - runs server-side only; the API key never leaves this module
@@ -65,6 +66,62 @@ export async function runSessionPrep(
   // just dated content under a neutral client reference. Direct identifiers
   // we hold are also stripped out of free text.
   const identifiers = [client.email, client.name ?? ""].filter(Boolean) as string[];
+
+  // C12X §8 — the map (with §6 confidence levels), goals in their own words,
+  // open belief work, chart context, and resonance marks all inform the brief.
+  // CONTRADICTED never surfaces as live guidance ("retired from prep").
+  const [mapNodes, goals, beliefWork, chart, readingMarks] = await Promise.all([
+    prisma.psycheNode.findMany({
+      where: { clientId: client.id, state: { notIn: ["ARCHIVED"] } },
+      select: {
+        id: true,
+        kind: true,
+        label: true,
+        state: true,
+        source: true,
+        chartBasis: true,
+        evidenceRecordItemIds: true,
+      },
+    }),
+    prisma.clientGoal.findMany({
+      where: { clientId: client.id, status: { in: ["ACTIVE", "PROGRESSING"] } },
+      select: { statement: true, whyItMatters: true, obstacles: true, status: true },
+    }),
+    prisma.beliefWork.findMany({
+      where: { clientId: client.id, status: "ACTIVE" },
+      select: {
+        belief: true,
+        statementOptions: true,
+        approvedStatement: true,
+      },
+    }),
+    prisma.humanDesignChart.findUnique({
+      where: { userId: client.id },
+      select: { type: true, strategy: true, authority: true, profile: true, accuracyNote: true },
+    }),
+    prisma.resonanceMark.findMany({
+      where: { clientId: client.id },
+      orderBy: { createdAt: "asc" },
+      select: { subjectType: true, subjectKey: true, value: true },
+    }),
+  ]);
+  const latestResonance = new Map<string, string>();
+  for (const m of readingMarks) latestResonance.set(`${m.subjectType}:${m.subjectKey}`, m.value);
+
+  const mapSummary = mapNodes.map((n) => ({
+    kind: n.kind,
+    label: n.label,
+    state: n.state,
+    source: n.source,
+    chartBasis: n.chartBasis,
+    confidence: nodeConfidence({
+      source: n.source,
+      state: n.state,
+      evidenceCount: n.evidenceRecordItemIds.length,
+      latestResonance: latestResonance.get(`NODE:${n.id}`) ?? null,
+    }),
+  }));
+
   const payload = {
     clientRef: "the client",
     windowDays: SCOPE_DAYS,
@@ -86,6 +143,22 @@ export async function runSessionPrep(
       },
       counts: rec.counts,
     },
+    map: mapSummary,
+    goals,
+    beliefWork: beliefWork.map((b) => ({
+      belief: b.belief,
+      options: (b.statementOptions as { text?: string }[] | string[] | null) ?? [],
+      approvedStatement: b.approvedStatement,
+    })),
+    chartContext: chart
+      ? {
+          type: chart.type,
+          strategy: chart.strategy,
+          authority: chart.authority,
+          profile: chart.profile,
+          accuracyNote: chart.accuracyNote,
+        }
+      : null,
   };
 
   // Call (spec §4.5): one server-side request; structured output enforces the

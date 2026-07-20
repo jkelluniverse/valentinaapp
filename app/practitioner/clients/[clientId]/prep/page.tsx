@@ -7,6 +7,17 @@ import { formatDay, formatTime } from "@/components/entries";
 import type { PrepOutput } from "@/ai/sessionPrepPrompt";
 import { RunPrepButton } from "./RunPrepButton";
 import { savePrepNotes } from "./actions";
+import { ConfidencePill } from "../intelligence-tabs";
+
+// C12X §8 — the document's brief order, worded plainly.
+const WORK_POINT_LABEL: Record<string, string> = {
+  IMMEDIATE: "now",
+  PATTERN: "pattern",
+  BELIEF: "belief",
+  SOMATIC_RELATIONAL: "body/relational",
+  CHART_THEME: "chart",
+  STRENGTH: "strength",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -176,6 +187,69 @@ export default async function PrepRoom({
                 <section className="flex flex-col gap-2">
                   <p className="text-eyebrow font-semibold uppercase text-mocha">Notes</p>
                   <p className="max-w-prose leading-relaxed text-ink">{output.formulation.notes}</p>
+                </section>
+              )}
+
+              {/* C12X §8 — the prioritized work points (strength always last & present). */}
+              {(output.workPoints?.length ?? 0) > 0 && (
+                <section className="flex flex-col gap-2">
+                  <p className="text-eyebrow font-semibold uppercase text-mocha">
+                    Prioritized work points
+                  </p>
+                  <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-ink">
+                    {output.workPoints!.map((w, i) => (
+                      <li key={i} className="leading-relaxed">
+                        <span className="mr-1.5 text-[11px] font-semibold uppercase tracking-wide text-mocha">
+                          {WORK_POINT_LABEL[w.kind] ?? w.kind.toLowerCase()}
+                        </span>
+                        {w.point}
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              )}
+
+              {/* C12X — 3–7 connections, each labeled with the one vocabulary. */}
+              {(output.connections?.length ?? 0) > 0 && (
+                <section className="flex flex-col gap-2.5">
+                  <p className="text-eyebrow font-semibold uppercase text-mocha">
+                    Connections worth checking
+                  </p>
+                  {output.connections!.map((c, i) => (
+                    <div key={i} className="rounded-card border border-line bg-surface px-5 py-3.5 shadow-soft">
+                      <p className="text-sm leading-relaxed text-ink">
+                        {c.connection} <ConfidencePill level={c.confidence} />
+                      </p>
+                      <p className="mt-1 text-[13px] italic text-slate">“{c.validationQuestion}”</p>
+                    </div>
+                  ))}
+                </section>
+              )}
+
+              {(output.beliefStatementOptions?.length ?? 0) > 0 && (
+                <section className="flex flex-col gap-2">
+                  <p className="text-eyebrow font-semibold uppercase text-mocha">
+                    Belief statement options{" "}
+                    <span className="normal-case text-whisper">
+                      — options only; the client approves wording in session
+                    </span>
+                  </p>
+                  <ul className="flex list-disc flex-col gap-1 pl-5 text-ink">
+                    {output.beliefStatementOptions!.map((s, i) => (
+                      <li key={i} className="leading-relaxed">{s}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              {(output.cautions?.length ?? 0) > 0 && (
+                <section className="rounded-card border border-mocha/50 bg-cream p-5">
+                  <p className="text-eyebrow font-semibold uppercase text-mocha">Cautions</p>
+                  <ul className="mt-1 flex list-disc flex-col gap-1 pl-5 text-sm text-ink">
+                    {output.cautions!.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
                 </section>
               )}
             </>
