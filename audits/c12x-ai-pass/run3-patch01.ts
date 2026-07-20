@@ -41,7 +41,8 @@ async function guideStale(clientId: string) {
   );
 }
 async function formulationStale(clientId: string) {
-  const f = (await prisma.integrativeProfile.findUnique({ where: { userId: clientId } }))!;
+  const f = await prisma.integrativeProfile.findUnique({ where: { userId: clientId } });
+  if (!f) return { stale: false, reasons: ["no formulation exists"] };
   return artifactStaleness(
     clientId,
     (f.fingerprint as unknown as InputsFingerprint | null) ?? null,
@@ -61,7 +62,18 @@ async function main() {
   log(`# C12X-PATCH-01 verify — ${new Date().toISOString()}`);
   const maria = (await prisma.user.findUnique({ where: { email: "maria@fixture.test" } }))!;
   const practitioner = (await prisma.user.findFirst({ where: { role: "PRACTITIONER" } }))!;
-  const stageWords = STAGES.map((s) => s.label.toLowerCase());
+  // Speculation = referencing the values MACHINERY it doesn't have — not
+  // ordinary words that happen to be stage names ("flow", "order").
+  const speculationMarkers = [
+    "values snapshot",
+    "values blend",
+    "center of gravity",
+    "value stage",
+    "values stage",
+    "values assessment",
+    "developmental values",
+    "spiral",
+  ];
 
   await prisma.practiceSetting.upsert({
     where: { key: METHOD_SETTING_KEY },
@@ -78,7 +90,7 @@ async function main() {
   const s1 = r1.ok ? (r1.reading.structured as StructuredReading) : null;
   if (s1) {
     const text = JSON.stringify(s1).toLowerCase();
-    const speculation = stageWords.filter((w) => text.includes(w));
+    const speculation = speculationMarkers.filter((w) => text.includes(w));
     check("no values-stage speculation in the reading", speculation.length === 0, speculation.join(","));
     check("language lint holds", lintReadingLanguage(s1).length === 0);
     writeFileSync(

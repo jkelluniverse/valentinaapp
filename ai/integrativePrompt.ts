@@ -40,7 +40,6 @@ export const OUTPUT_SCHEMA = {
   properties: {
     throughlines: {
       type: "array",
-      maxItems: 4,
       items: {
         type: "object",
         additionalProperties: false,
@@ -54,7 +53,6 @@ export const OUTPUT_SCHEMA = {
     },
     tensions: {
       type: "array",
-      maxItems: 3,
       items: {
         type: "object",
         additionalProperties: false,
@@ -67,12 +65,10 @@ export const OUTPUT_SCHEMA = {
     },
     sessionStarters: {
       type: "array",
-      maxItems: 4,
       items: { type: "string", description: "A gentle opening question for the next session" },
     },
     beliefCandidates: {
       type: "array",
-      maxItems: 4,
       items: {
         type: "object",
         additionalProperties: false,
@@ -85,7 +81,6 @@ export const OUTPUT_SCHEMA = {
     },
     methodGaps: {
       type: "array",
-      maxItems: 3,
       items: { type: "string", description: "Where her method text didn't cover a combination that arose" },
     },
   },
