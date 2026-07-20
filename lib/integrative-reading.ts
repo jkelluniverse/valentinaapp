@@ -147,7 +147,9 @@ export async function ensureReading(
   try {
     const params = {
       model,
-      max_tokens: 9000,
+      // Generous: adaptive thinking + the narrative + ~14 placement blocks all
+      // draw from this budget; a truncated response is unparseable JSON.
+      max_tokens: 24_000,
       thinking: { type: "adaptive" },
       system: buildSystemPrompt(locale),
       output_config: { format: { type: "json_schema", schema: READING_OUTPUT_SCHEMA } },
@@ -160,16 +162,26 @@ export async function ensureReading(
       console.log(`[reading] refusal user=${userId} model=${model}`);
       return { ok: false, error: "api" };
     }
+    if (response.stop_reason === "max_tokens") {
+      console.log(`[reading] truncated (max_tokens) user=${userId} model=${model}`);
+      return { ok: false, error: "api" };
+    }
     const textBlock = response.content.find(
       (b): b is Extract<(typeof response.content)[number], { type: "text" }> => b.type === "text",
     );
     if (!textBlock) return { ok: false, error: "api" };
-    structured = JSON.parse(textBlock.text) as StructuredReading;
+    try {
+      structured = JSON.parse(textBlock.text) as StructuredReading;
+    } catch {
+      console.log(`[reading] unparseable output user=${userId} model=${model} stop=${response.stop_reason}`);
+      return { ok: false, error: "api" };
+    }
     if (!structured?.sections?.essence || !Array.isArray(structured.placements)) {
       return { ok: false, error: "api" };
     }
   } catch (e) {
-    const status = e instanceof Anthropic.APIError ? e.status : "network";
+    const status =
+      e instanceof Anthropic.APIError ? e.status : e instanceof Error ? e.name : "unknown";
     console.log(`[reading] error user=${userId} model=${model} status=${status}`);
     return { ok: false, error: "api" };
   }

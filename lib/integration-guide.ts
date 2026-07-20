@@ -117,7 +117,7 @@ export async function runIntegrationGuide(
   try {
     const params = {
       model,
-      max_tokens: 12_000,
+      max_tokens: 28_000,
       thinking: { type: "adaptive" },
       system: buildGuideSystemPrompt(opts.practitionerLocale ?? "en"),
       output_config: { format: { type: "json_schema", schema: GUIDE_OUTPUT_SCHEMA } },

@@ -102,7 +102,7 @@ export async function askRecord(
   try {
     const params = {
       model,
-      max_tokens: 4096,
+      max_tokens: 12_000,
       thinking: { type: "adaptive" },
       system: buildAskSystemPrompt(opts.practitionerLocale ?? "en"),
       output_config: { format: { type: "json_schema", schema: ASK_OUTPUT_SCHEMA } },
