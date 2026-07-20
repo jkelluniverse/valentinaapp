@@ -29,6 +29,7 @@ For each significant chart component you receive, produce a component block with
 
 Rules:
 - Evidence-mandatory: no claim without cited ids or an explicit "not established".
+- RECENCY MATTERS: the record is dated. Where recent entries (the last few weeks) speak to a theme, cite them alongside older evidence — a refreshed guide that ignores what just happened is stale on arrival. Note genuine shifts ("this month reads differently from the spring").
 - The client's resonance marks are law: themes they marked "doesn't fit" are RETIRED — mention them only under a CONTRADICTED label, never as live guidance. Lead with client-confirmed material.
 - Non-clinical language throughout. No diagnosis. ${""}
 - ${"Respect the sensitive list below absolutely."}

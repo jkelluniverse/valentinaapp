@@ -48,16 +48,24 @@ export type ChartPayload = {
 // missing entirely. `complete` tells whether all three maps are present.
 export async function assembleCharts(
   userId: string,
-): Promise<{ payload: ChartPayload; complete: boolean; hasSpiral: boolean } | null> {
-  const [hd, lenses, core] = await Promise.all([
+): Promise<{ payload: ChartPayload; complete: boolean; hasSpiral: boolean; timeUnknown: boolean } | null> {
+  const [hd, lenses, core, profile] = await Promise.all([
     prisma.humanDesignChart.findUnique({ where: { userId } }),
     prisma.lensResult.findMany({ where: { userId, lens: { in: ["GENE_KEYS", "SPIRAL"] } } }),
     prisma.birthChartCore.findUnique({
       where: { userId },
       select: { incarnationCross: true },
     }),
+    prisma.clientProfile.findUnique({
+      where: { userId },
+      select: { birthTimeUnknown: true },
+    }),
   ]);
   if (!hd) return null;
+  // C12X §2 missing-data branch, enforced STRUCTURALLY: with an unknown birth
+  // time the noon-estimated Authority/Profile/Cross never enter the payload at
+  // all — the model cannot write blocks for layers it never sees.
+  const timeUnknown = Boolean(profile?.birthTimeUnknown);
 
   const gk = lenses.find((l) => l.lens === "GENE_KEYS")?.result as { spheres?: SpherePosition[] } | undefined;
   const spiral = lenses.find((l) => l.lens === "SPIRAL")?.result as ChartPayload["valuesSpiral"] | undefined;
@@ -66,13 +74,13 @@ export async function assembleCharts(
     humanDesign: {
       type: hd.type,
       strategy: hd.strategy,
-      authority: hd.authority,
-      profile: hd.profile,
+      authority: timeUnknown ? null : hd.authority,
+      profile: timeUnknown ? null : hd.profile,
       definition: hd.definition,
       centers: hd.centers,
       channels: hd.channels,
       accuracyNote: hd.accuracyNote,
-      incarnationCross: core?.incarnationCross ?? null,
+      incarnationCross: timeUnknown ? null : core?.incarnationCross ?? null,
     },
     geneKeys: gk?.spheres ? { spheres: gk.spheres } : null,
     valuesSpiral: spiral ?? null,
@@ -80,7 +88,7 @@ export async function assembleCharts(
 
   const hasSpiral = Boolean(spiral);
   const complete = Boolean(payload.geneKeys) && hasSpiral;
-  return { payload, complete, hasSpiral };
+  return { payload, complete, hasSpiral, timeUnknown };
 }
 
 // AMD-05 A5.2 — the reader's locale is part of the input: switching language
@@ -178,6 +186,13 @@ export async function ensureReading(
     }
     if (!structured?.sections?.essence || !Array.isArray(structured.placements)) {
       return { ok: false, error: "api" };
+    }
+    // Belt and suspenders on the missing-data branch: even if the model
+    // improvises, time-dependent blocks never survive an unknown birth time.
+    if (charts.timeUnknown) {
+      structured.placements = structured.placements.filter(
+        (p) => !["authority", "profile", "cross"].includes(p.key),
+      );
     }
   } catch (e) {
     const status =
