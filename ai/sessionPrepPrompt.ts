@@ -84,7 +84,6 @@ export const OUTPUT_SCHEMA = {
     },
     workPoints: {
       type: "array",
-      maxItems: 6,
       items: {
         type: "object",
         additionalProperties: false,
@@ -100,7 +99,6 @@ export const OUTPUT_SCHEMA = {
     },
     connections: {
       type: "array",
-      maxItems: 7,
       items: {
         type: "object",
         additionalProperties: false,
@@ -115,8 +113,8 @@ export const OUTPUT_SCHEMA = {
         },
       },
     },
-    beliefStatementOptions: { type: "array", items: { type: "string" }, maxItems: 4 },
-    cautions: { type: "array", items: { type: "string" }, maxItems: 7 },
+    beliefStatementOptions: { type: "array", items: { type: "string" } },
+    cautions: { type: "array", items: { type: "string" } },
     uncertainty: { type: "string" },
   },
 } as const;

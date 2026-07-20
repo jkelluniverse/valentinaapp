@@ -88,7 +88,7 @@ export const GUIDE_OUTPUT_SCHEMA = {
       type: "object",
       properties: {
         flag: { type: "boolean" },
-        reason: { type: ["string", "null"] },
+        reason: { anyOf: [{ type: "string" }, { type: "null" }] },
       },
       required: ["flag", "reason"],
       additionalProperties: false,
@@ -96,7 +96,6 @@ export const GUIDE_OUTPUT_SCHEMA = {
     overview: { type: "string" },
     components: {
       type: "array",
-      maxItems: 16,
       items: {
         type: "object",
         properties: {
@@ -105,7 +104,6 @@ export const GUIDE_OUTPUT_SCHEMA = {
           traditional: { type: "string" },
           crossRefs: {
             type: "array",
-            maxItems: 6,
             items: {
               type: "object",
               properties: {
@@ -129,7 +127,6 @@ export const GUIDE_OUTPUT_SCHEMA = {
           },
           beliefs: {
             type: "array",
-            maxItems: 4,
             items: {
               type: "object",
               properties: {
@@ -140,10 +137,10 @@ export const GUIDE_OUTPUT_SCHEMA = {
               additionalProperties: false,
             },
           },
-          statementOptions: { type: "array", items: { type: "string" }, maxItems: 3 },
-          homeworkIdeas: { type: "array", items: { type: "string" }, maxItems: 2 },
+          statementOptions: { type: "array", items: { type: "string" } },
+          homeworkIdeas: { type: "array", items: { type: "string" } },
           confidence: { type: "string", enum: CONFIDENCE_ENUM },
-          cautions: { type: "array", items: { type: "string" }, maxItems: 7 },
+          cautions: { type: "array", items: { type: "string" } },
         },
         required: [
           "key",

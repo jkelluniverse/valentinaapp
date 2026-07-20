@@ -76,7 +76,7 @@ export async function generateStatementOptions(
           schema: {
             type: "object",
             properties: {
-              options: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 3 },
+              options: { type: "array", items: { type: "string" } },
             },
             required: ["options"],
             additionalProperties: false,

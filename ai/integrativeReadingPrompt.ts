@@ -144,7 +144,6 @@ export const READING_OUTPUT_SCHEMA = {
     },
     placements: {
       type: "array",
-      maxItems: 18,
       items: {
         type: "object",
         properties: {
@@ -154,7 +153,7 @@ export const READING_OUTPUT_SCHEMA = {
           flowing: { type: "string" },
           underPressure: { type: "string" },
           mayShowUp: SIX_ARENAS,
-          questions: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 3 },
+          questions: { type: "array", items: { type: "string" } },
           experiment: { type: "string" },
         },
         required: [

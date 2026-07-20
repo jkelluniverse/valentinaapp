@@ -129,6 +129,7 @@ async function main() {
         birthDate,
         birthTime: unknownTime ? null : b.birth?.time ?? null,
         birthTimeUnknown: unknownTime,
+        birthTimePrecision: b.birth?.precision ?? null, // C12X — APPROXIMATE is held lightly
         birthPlace: b.birth?.place ?? null,
         birthTz: ianaFrom(b.birth?.tz_expect),
       },

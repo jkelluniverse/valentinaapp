@@ -18,6 +18,17 @@ const ESTIMATED_TIME = "12:00"; // noon estimate when the birth time is unknown
 export const UNKNOWN_TIME_NOTE =
   "Birth time estimated (noon). Type and Strategy usually hold; Authority, Profile, and finer layers can shift with the exact time. A birth certificate or hospital record often has it — update it here and the chart regenerates.";
 
+// C12X §2 carry-over — an APPROXIMATE time ("around 2pm, my mother says") is
+// not an unknown one, but its fine placements deserve to be held lightly.
+export const APPROX_TIME_NOTE =
+  "Birth time approximate. Type and Strategy usually hold; Authority, Profile, and finer layers could shift if the exact minute differs — read them as likely, not fixed.";
+
+function accuracyNoteFor(p: ClientProfile): string | null {
+  if (p.birthTimeUnknown) return UNKNOWN_TIME_NOTE;
+  if ((p.birthTimePrecision ?? "").toUpperCase() === "APPROXIMATE") return APPROX_TIME_NOTE;
+  return null;
+}
+
 export function birthDataComplete(p: ClientProfile): boolean {
   return Boolean(
     p.birthDate && (p.birthTime || p.birthTimeUnknown) && p.birthLat != null && p.birthTz,
@@ -145,7 +156,7 @@ export async function ensureChart(profile: ClientProfile): Promise<boolean> {
         raw: chart as object,
         inputHash: hash,
         generatedAt: new Date(),
-        accuracyNote: profile.birthTimeUnknown ? UNKNOWN_TIME_NOTE : null,
+        accuracyNote: accuracyNoteFor(profile),
       },
       update: {
         provider: HD_PROVIDER,
@@ -160,7 +171,7 @@ export async function ensureChart(profile: ClientProfile): Promise<boolean> {
         raw: chart as object,
         inputHash: hash,
         generatedAt: new Date(),
-        accuracyNote: profile.birthTimeUnknown ? UNKNOWN_TIME_NOTE : null,
+        accuracyNote: accuracyNoteFor(profile),
       },
     });
     // C12X §4 — the chart proposes: seed outline hypotheses on the map.

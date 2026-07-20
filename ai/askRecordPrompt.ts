@@ -33,7 +33,6 @@ export const ASK_OUTPUT_SCHEMA = {
   properties: {
     findings: {
       type: "array",
-      maxItems: 12,
       items: {
         type: "object",
         properties: {
@@ -48,7 +47,7 @@ export const ASK_OUTPUT_SCHEMA = {
         additionalProperties: false,
       },
     },
-    notEstablished: { type: "array", items: { type: "string" }, maxItems: 6 },
+    notEstablished: { type: "array", items: { type: "string" } },
   },
   required: ["findings", "notEstablished"],
   additionalProperties: false,
