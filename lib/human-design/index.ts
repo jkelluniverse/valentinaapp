@@ -3,6 +3,7 @@ import type { ClientProfile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { zonedWallToUtc } from "@/lib/schedule";
 import { computeSpheres, GENE_KEYS_CONTENT_REF } from "@/lib/gene-keys";
+import { geocodePlace } from "@/lib/geocode";
 import { computeChart } from "./engine";
 
 // The generation service: birth data on a ClientProfile → stored
@@ -51,6 +52,30 @@ function inputHash(p: ClientProfile): string {
 // must not block a profile save.
 export async function ensureChart(profile: ClientProfile): Promise<boolean> {
   try {
+    // Self-heal: a birthplace saved without coordinates (a geocode hiccup at
+    // intake, or seeded data) backfills here — only the place name leaves the
+    // server, never a date or identity. An existing timezone is kept: it may
+    // carry historical nuance the geocoder's current-tz answer doesn't.
+    if (
+      profile.birthDate &&
+      (profile.birthTime || profile.birthTimeUnknown) &&
+      profile.birthPlace &&
+      (profile.birthLat == null || !profile.birthTz)
+    ) {
+      const geo = await geocodePlace(profile.birthPlace);
+      if (geo) {
+        profile = await prisma.clientProfile.update({
+          where: { userId: profile.userId },
+          data: {
+            birthLat: profile.birthLat ?? geo.lat,
+            birthLng: profile.birthLng ?? geo.lng,
+            birthTz: profile.birthTz ?? geo.tz,
+          },
+        });
+        console.log(`[human-design] geocode backfilled for user ${profile.userId}`);
+      }
+    }
+
     if (!birthDataComplete(profile)) return false;
 
     const hash = inputHash(profile);
