@@ -640,6 +640,7 @@ model ExternalPayment {
   status           String // Square status, e.g. COMPLETED
   receivedAt       DateTime  @default(now())
   matchedChargeId  String? // set when matched to a Charge
+  dismissedAt      DateTime? // she reviewed it — not a session payment
 }
 
 // C9 — Worksheet Studio. The field schema lives as JSON (ordered typed

@@ -16,6 +16,7 @@ import {
   addRate,
   retireRate,
   matchExternalPayment,
+  dismissExternalPayment,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +34,7 @@ const BANNERS: Record<string, string> = {
   badrate: "A name and an amount above zero are both needed.",
   badpackage: "A package needs how many sessions it includes (a whole number).",
   matched: "Matched — the session shows as paid.",
+  dismissed: "Dismissed — it won't appear here again.",
 };
 
 // C10-POLICY — the fee's reason, said plainly on the row.
@@ -65,7 +67,7 @@ export default async function BillingPage({
     }),
     prisma.priceBook.findMany({ where: { active: true }, orderBy: { createdAt: "desc" } }),
     prisma.externalPayment.findMany({
-      where: { matchedChargeId: null },
+      where: { matchedChargeId: null, dismissedAt: null },
       orderBy: { receivedAt: "desc" },
     }),
     prisma.user.findMany({
@@ -248,20 +250,31 @@ export default async function BillingPage({
                 A Square payment of {formatMoney(e.amountCents, e.currency)} from{" "}
                 {fmtWhen(e.receivedAt)} isn&apos;t linked to a session yet.
               </p>
-              {awaiting.length > 0 && (
-                <form action={matchExternalPayment.bind(null, e.id)} className="mt-2 flex flex-wrap items-center gap-2">
-                  <select name="chargeId" className="rounded-md border border-line px-2.5 py-1.5 text-sm text-ink">
-                    {awaiting.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {nameOf(c.clientId)} · {formatMoney(c.amountCents, c.currency)} · {fmtWhen(c.dueAt)}
-                      </option>
-                    ))}
-                  </select>
-                  <button className="rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
-                    Match
+              <p className="mt-1 text-xs text-slate">
+                Invoice payments link themselves within a few minutes. If this one belongs to an
+                awaiting charge, match it — otherwise dismiss it.
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {awaiting.length > 0 && (
+                  <form action={matchExternalPayment.bind(null, e.id)} className="flex flex-wrap items-center gap-2">
+                    <select name="chargeId" className="rounded-md border border-line px-2.5 py-1.5 text-sm text-ink">
+                      {awaiting.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {nameOf(c.clientId)} · {formatMoney(c.amountCents, c.currency)} · {fmtWhen(c.dueAt)}
+                        </option>
+                      ))}
+                    </select>
+                    <button className="rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                      Match
+                    </button>
+                  </form>
+                )}
+                <form action={dismissExternalPayment.bind(null, e.id)}>
+                  <button className="rounded-md px-3 py-1.5 text-sm font-medium text-slate transition-colors hover:bg-blush hover:text-wine">
+                    Dismiss
                   </button>
                 </form>
-              )}
+              </div>
             </div>
           ))}
         </section>

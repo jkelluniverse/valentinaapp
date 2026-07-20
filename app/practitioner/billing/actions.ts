@@ -174,6 +174,19 @@ export async function retireRate(rateId: string) {
   redirect(LEDGER);
 }
 
+// A reviewed external payment that isn't a session payment (a retail sale,
+// a tip, a test) — dismiss it so "Worth a look" stays a real to-do list.
+export async function dismissExternalPayment(externalId: string) {
+  const practitioner = await requirePractitioner();
+  await prisma.externalPayment.updateMany({
+    where: { id: externalId, matchedChargeId: null },
+    data: { dismissedAt: new Date() },
+  });
+  console.log(`[billing] external dismissed id=${externalId} by=${practitioner.id}`);
+  revalidatePath(LEDGER);
+  redirect(`${LEDGER}?billing=dismissed`);
+}
+
 // One-tap match: an outside-the-app Square payment settles an awaiting charge.
 export async function matchExternalPayment(externalId: string, formData: FormData) {
   const practitioner = await requirePractitioner();

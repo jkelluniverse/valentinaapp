@@ -310,7 +310,7 @@ async function handle(req: NextRequest) {
   //    webhook events were missed, and heals historical ones.
   try {
     const unmatched = await prisma.externalPayment.findMany({
-      where: { matchedChargeId: null },
+      where: { matchedChargeId: null, dismissedAt: null },
       take: 20,
     });
     let matched = 0;
