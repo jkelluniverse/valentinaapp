@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { METHOD_SETTING_KEY, runIntegrativeSynthesis } from "@/lib/integrative";
@@ -74,7 +75,9 @@ export async function saveReadingEdit(clientId: string, formData: FormData) {
   if (!content) redirect(`${page(clientId)}?error=empty`);
   await prisma.integrativeReading.updateMany({
     where: { userId: clientId },
-    data: { content, editedByPractitioner: true, status: "PUBLISHED" },
+    // Her essay edit becomes the reading; the structured blocks are cleared so
+    // the client never sees generated blocks that diverge from her words.
+    data: { content, structured: Prisma.DbNull, editedByPractitioner: true, status: "PUBLISHED" },
   });
   revalidatePath(page(clientId));
   redirect(`${page(clientId)}?saved=reading`);

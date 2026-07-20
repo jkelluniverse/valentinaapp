@@ -7,7 +7,11 @@ import {
   buildSystemPrompt,
   buildUserMessage,
   READING_VERSION,
+  READING_OUTPUT_SCHEMA,
+  lintReadingLanguage,
+  structuredToMarkdown,
   type ReadingLocale,
+  type StructuredReading,
 } from "@/ai/integrativeReadingPrompt";
 
 // C12 reading pipeline. THE BRIGHT LINE (spec §2, §9): the reading is generated
@@ -28,6 +32,9 @@ export type ChartPayload = {
     centers: unknown;
     channels: unknown;
     accuracyNote: string | null;
+    // C12X §2 carry-over — the cross AS THE CHART STATES IT (gate numbers);
+    // the prompt forbids improvising a title for it.
+    incarnationCross: string | null;
   };
   geneKeys: { spheres: SpherePosition[] } | null;
   valuesSpiral: {
@@ -42,9 +49,13 @@ export type ChartPayload = {
 export async function assembleCharts(
   userId: string,
 ): Promise<{ payload: ChartPayload; complete: boolean; hasSpiral: boolean } | null> {
-  const [hd, lenses] = await Promise.all([
+  const [hd, lenses, core] = await Promise.all([
     prisma.humanDesignChart.findUnique({ where: { userId } }),
     prisma.lensResult.findMany({ where: { userId, lens: { in: ["GENE_KEYS", "SPIRAL"] } } }),
+    prisma.birthChartCore.findUnique({
+      where: { userId },
+      select: { incarnationCross: true },
+    }),
   ]);
   if (!hd) return null;
 
@@ -61,6 +72,7 @@ export async function assembleCharts(
       centers: hd.centers,
       channels: hd.channels,
       accuracyNote: hd.accuracyNote,
+      incarnationCross: core?.incarnationCross ?? null,
     },
     geneKeys: gk?.spheres ? { spheres: gk.spheres } : null,
     valuesSpiral: spiral ?? null,
@@ -87,8 +99,12 @@ export function chartInputHash(payload: ChartPayload, locale: ReadingLocale = "e
     gk: payload.geneKeys?.spheres.map((s) => `${s.key}:${s.geneKey}.${s.line}`) ?? null,
     spiral: payload.valuesSpiral?.practitionerCenter ?? payload.valuesSpiral?.centerOfGravity ?? null,
     spiralWeights: payload.valuesSpiral?.weights?.map((w) => `${w.stage}:${w.weight}`) ?? null,
+    cross: payload.humanDesign.incarnationCross,
   };
-  const input = JSON.stringify(shape) + (locale === "en" ? "" : `|locale:${locale}`);
+  // READING_VERSION in the hash: a prompt-structure upgrade marks every stored
+  // reading stale, so each client's next visit regenerates into the new shape.
+  const input =
+    JSON.stringify(shape) + (locale === "en" ? "" : `|locale:${locale}`) + `|v:${READING_VERSION}`;
   return createHash("sha256").update(input).digest("hex");
 }
 
@@ -127,15 +143,18 @@ export async function ensureReading(
   const model = process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
   const anthropic = new Anthropic({ apiKey, timeout: 180_000, maxRetries: 2 });
 
-  let content: string;
+  let structured: StructuredReading;
   try {
-    const params: Anthropic.MessageCreateParamsNonStreaming = {
+    const params = {
       model,
-      max_tokens: 6000,
+      max_tokens: 9000,
       thinking: { type: "adaptive" },
       system: buildSystemPrompt(locale),
-      messages: [{ role: "user", content: buildUserMessage(JSON.stringify(charts.payload)) }],
-    };
+      output_config: { format: { type: "json_schema", schema: READING_OUTPUT_SCHEMA } },
+      messages: [
+        { role: "user" as const, content: buildUserMessage(JSON.stringify(charts.payload)) },
+      ],
+    } as unknown as Anthropic.MessageCreateParamsNonStreaming;
     const response = await anthropic.messages.create(params);
     if (response.stop_reason === "refusal") {
       console.log(`[reading] refusal user=${userId} model=${model}`);
@@ -144,17 +163,31 @@ export async function ensureReading(
     const textBlock = response.content.find(
       (b): b is Extract<(typeof response.content)[number], { type: "text" }> => b.type === "text",
     );
-    if (!textBlock || textBlock.text.trim().length < 200) return { ok: false, error: "api" };
-    content = textBlock.text.trim();
+    if (!textBlock) return { ok: false, error: "api" };
+    structured = JSON.parse(textBlock.text) as StructuredReading;
+    if (!structured?.sections?.essence || !Array.isArray(structured.placements)) {
+      return { ok: false, error: "api" };
+    }
   } catch (e) {
     const status = e instanceof Anthropic.APIError ? e.status : "network";
     console.log(`[reading] error user=${userId} model=${model} status=${status}`);
     return { ok: false, error: "api" };
   }
 
-  const status = (await holdForReview()) ? "PENDING_REVIEW" : "PUBLISHED";
+  // C12X §2 — the language law is linted, not trusted: any banned phrasing
+  // forces the reading into PENDING_REVIEW so it never reaches the client
+  // without her eyes. Metadata-only logging (rule hits, never content).
+  const lintHits = lintReadingLanguage(structured);
+  if (lintHits.length > 0) {
+    console.warn(`[reading] language lint user=${userId} hits=${lintHits.length}`);
+  }
+
+  const content = structuredToMarkdown(structured, locale);
+  const status =
+    lintHits.length > 0 || (await holdForReview()) ? "PENDING_REVIEW" : "PUBLISHED";
   const data = {
     content,
+    structured: structured as unknown as object,
     model: `${model} · ${READING_VERSION}`,
     inputHash: hash,
     status,

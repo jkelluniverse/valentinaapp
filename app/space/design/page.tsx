@@ -7,7 +7,12 @@ import { GeneKeysView, SpiralView } from "@/components/LensViews";
 import { ensureChart } from "@/lib/human-design";
 import { assembleCharts, chartInputHash } from "@/lib/integrative-reading";
 import { ReadingSection } from "@/components/ReadingSection";
-import { generateMyReading } from "./reading-actions";
+import { generateMyReading, markReadingBlock } from "./reading-actions";
+import { latestMarks } from "@/lib/resonance";
+import {
+  narrativeMarkdown,
+  type StructuredReading,
+} from "@/ai/integrativeReadingPrompt";
 import type { SpherePosition } from "@/lib/gene-keys";
 import type { SpiralScore } from "@/lib/spiral";
 
@@ -43,9 +48,21 @@ export default async function DesignPage({
     assembleCharts(user.id),
   ]);
   const readingComplete = assembled?.complete ?? false;
-  const currentHash = assembled ? chartInputHash(assembled.payload) : null;
+  const readingLocale: "en" | "es" = user.locale === "es" ? "es" : "en";
+  const currentHash = assembled ? chartInputHash(assembled.payload, readingLocale) : null;
   const fresh = Boolean(readingRow && currentHash && readingRow.inputHash === currentHash);
-  const readingInitial = fresh && readingRow?.status === "PUBLISHED" ? readingRow!.content : null;
+  const structured =
+    fresh && readingRow?.status === "PUBLISHED"
+      ? ((readingRow.structured as StructuredReading | null) ?? null)
+      : null;
+  const readingInitial =
+    fresh && readingRow?.status === "PUBLISHED"
+      ? structured
+        ? narrativeMarkdown(structured, readingLocale)
+        : readingRow!.content
+      : null;
+  const readingBlocks = structured?.placements ?? [];
+  const readingMarks = Object.fromEntries(await latestMarks(user.id, "READING_BLOCK"));
   const readingPending = readingRow?.status === "PENDING_REVIEW";
 
   return (
@@ -116,9 +133,13 @@ export default async function DesignPage({
             </div>
             <ReadingSection
               initialContent={readingInitial}
+              initialBlocks={readingBlocks}
+              initialMarks={readingMarks}
+              locale={readingLocale}
               pendingReviewForClient={readingPending}
               chartsComplete={readingComplete}
               generate={generateMyReading}
+              mark={markReadingBlock}
             />
           </section>
 
