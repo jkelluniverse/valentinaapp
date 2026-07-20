@@ -25,7 +25,7 @@ export default async function PrepRoom({
   searchParams,
 }: {
   params: { clientId: string };
-  searchParams: { done?: string; error?: string; prep?: string; saved?: string };
+  searchParams: { done?: string; error?: string; prep?: string; saved?: string; renewal?: string };
 }) {
   await requirePractitioner();
 
@@ -55,6 +55,18 @@ export default async function PrepRoom({
       <Link href={`${base}?tab=prep`} className="text-[13px] text-whisper underline-offset-4 hover:text-wine hover:underline">
         ← {name}
       </Link>
+
+      {/* BILLING-DASH — "Prep with renewal in mind": the pinned note. */}
+      {searchParams.renewal === "1" && (
+        <p className="rounded-md border border-mocha bg-blush/40 px-4 py-2.5 text-sm text-wine">
+          This is the last session of their package — a natural moment for the continuing
+          conversation, in the room. Their options live on the{" "}
+          <Link href={`${base}?tab=billing`} className="font-medium underline underline-offset-4">
+            Billing tab
+          </Link>
+          .
+        </p>
+      )}
 
       <div className="flex flex-col gap-1">
         <p className="text-eyebrow font-semibold uppercase text-mocha">Preparing for {name}</p>

@@ -6,12 +6,22 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { setChargeStatus, createChargeForAppointment } from "@/lib/billing";
 import { sendEmail, emailConfigured } from "@/lib/notify";
-import { paymentReminderEmail, payeeInvoiceEmail } from "@/lib/email-copy";
+import {
+  paymentReminderEmail,
+  payeeInvoiceEmail,
+  invoiceEmail,
+  renewalEmail,
+  pickLocale,
+} from "@/lib/email-copy";
 import { chargeEmailContext } from "@/lib/invoice-context";
 import { getBaseUrlSafe } from "@/lib/base-url";
+import { formatMoney, resolveSessionRate } from "@/lib/billing";
+import { ensureSquareCustomer, sendSquareInvoice, squareConfigured } from "@/lib/square";
+import { sendReceiptForCharge } from "@/lib/receipts";
 import { PROGRAM_STAGES } from "@/lib/program-config";
 
 const LEDGER = "/practitioner/billing";
+const RATES = "/practitioner/billing/rates"; // configuration lives off the daily view
 
 function backPath(formData?: FormData): string {
   const back = formData ? String(formData.get("back") ?? "") : "";
@@ -119,6 +129,209 @@ export async function remindCharge(chargeId: string, formData: FormData) {
   redirect(withQuery(back, `billing=reminded`));
 }
 
+// BILLING-DASH — Square-invoice an EXISTING due charge (the Portrait's
+// sendInvoice creates a new charge; this one payables what's already owed).
+// Idempotent: the order/invoice idempotency keys derive from the charge id.
+export async function sendChargeInvoice(chargeId: string, formData: FormData) {
+  await requirePractitioner();
+  const back = backPath(formData);
+  if (!squareConfigured()) redirect(withQuery(back, "billing=invoiceconfig"));
+  const charge = await prisma.charge.findUnique({ where: { id: chargeId } });
+  if (!charge || charge.status !== "DUE") redirect(withQuery(back, "billing=nothingdue"));
+  if (charge.squareInvoiceId) redirect(withQuery(back, "billing=invoicealready"));
+
+  const client = await prisma.user.findFirst({
+    where: { id: charge.clientId, role: "CLIENT" },
+    select: { id: true, name: true, email: true },
+  });
+  if (!client) redirect(withQuery(back, "billing=invoicefail"));
+  const squareCustomerId = await ensureSquareCustomer(client);
+  if (!squareCustomerId) redirect(withQuery(back, "billing=invoicefail"));
+
+  const sent = await sendSquareInvoice({
+    chargeId: charge.id,
+    squareCustomerId,
+    title: charge.description,
+    amountCents: charge.amountCents,
+    currency: charge.currency,
+    dueDate: charge.dueAt ? charge.dueAt.toISOString().slice(0, 10) : null,
+  });
+  if (!sent.ok) redirect(withQuery(back, "billing=invoicefail"));
+  const updated = await prisma.charge.update({
+    where: { id: charge.id },
+    data: { squareInvoiceId: sent.invoiceId, squareInvoiceUrl: sent.publicUrl },
+  });
+  if (sent.publicUrl) {
+    const ctx = await chargeEmailContext(updated, getBaseUrlSafe());
+    if (ctx.client?.email) {
+      const mail = invoiceEmail(ctx.client.locale, {
+        description: charge.description,
+        amount: ctx.amount,
+      });
+      await sendEmail({
+        to: ctx.client.email,
+        subject: mail.subject,
+        text: "",
+        attachments: [ctx.attachment],
+        envelope: {
+          locale: ctx.client.locale,
+          heading: mail.heading,
+          paragraphs: mail.paragraphs,
+          button: { label: mail.buttonLabel, url: sent.publicUrl },
+        },
+      });
+      if (ctx.payee) {
+        const payeeMail = payeeInvoiceEmail(ctx.client.locale, {
+          kind: "invoice",
+          payeeName: ctx.payee.name,
+          clientName: ctx.client.name ?? "your client",
+          description: charge.description,
+          amount: ctx.amount,
+          due: ctx.dueDateText,
+        });
+        await sendEmail({
+          to: ctx.payee.email,
+          subject: payeeMail.subject,
+          text: payeeMail.paragraphs.join("\n\n"),
+          attachments: [ctx.attachment],
+          envelope: {
+            locale: ctx.client.locale,
+            heading: payeeMail.heading,
+            paragraphs: payeeMail.paragraphs,
+            button: { label: payeeMail.buttonLabel, url: sent.publicUrl },
+          },
+        });
+      }
+    }
+  }
+  console.log(`[billing] charge invoiced charge=${charge.id}`);
+  revalidatePath(back);
+  redirect(withQuery(back, "billing=invoicesent"));
+}
+
+// BILLING-DASH — the one-tap renewal email: her packages, her words, one
+// button to the portal. Respects the per-client renewal suppression; records
+// the send on the client's latest completed package.
+export async function sendRenewalEmail(clientId: string, formData: FormData) {
+  const practitioner = await requirePractitioner();
+  const back = backPath(formData);
+  if (!emailConfigured()) redirect(withQuery(back, "billing=noemail"));
+
+  const client = await prisma.user.findFirst({
+    where: { id: clientId, role: "CLIENT" },
+    select: {
+      email: true,
+      locale: true,
+      profile: { select: { renewalMessagesMuted: true } },
+    },
+  });
+  if (!client?.email) redirect(withQuery(back, "billing=renewalfail"));
+  if (client.profile?.renewalMessagesMuted) redirect(withQuery(back, "billing=renewalmuted"));
+
+  const skus = await prisma.priceBook.findMany({
+    where: { active: true, kind: "PACKAGE" },
+    orderBy: { createdAt: "desc" },
+  });
+  const mail = renewalEmail(pickLocale(client.locale), {
+    packages: skus.map((s) => ({
+      name: s.name,
+      amount: formatMoney(s.amountCents, s.currency),
+      sessions: s.sessionsIncluded,
+    })),
+  });
+  await sendEmail({
+    to: client.email,
+    subject: mail.subject,
+    text: mail.paragraphs.join("\n\n"),
+    envelope: {
+      locale: pickLocale(client.locale),
+      heading: mail.heading,
+      paragraphs: mail.paragraphs,
+      button: { label: mail.buttonLabel, url: `${getBaseUrlSafe()}/space/schedule` },
+    },
+  });
+  // Record on the latest completed package so the dashboard can word its state.
+  const latest = await prisma.package.findFirst({
+    where: { clientId, status: "COMPLETED" },
+    orderBy: { purchasedAt: "desc" },
+  });
+  if (latest) {
+    await prisma.package.update({
+      where: { id: latest.id },
+      data: { renewalEmailSentAt: new Date() },
+    });
+  }
+  console.log(`[billing] renewal email client=${clientId} by=${practitioner.id}`);
+  revalidatePath(back);
+  redirect(withQuery(back, "billing=renewalsent"));
+}
+
+// BILLING-DASH — an unbilled session that was settled in person: create the
+// charge at the effective rate and mark it paid in one motion.
+export async function markSessionPaidInPerson(appointmentId: string, formData: FormData) {
+  const practitioner = await requirePractitioner();
+  const back = backPath(formData);
+  const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
+  if (!appt || !appt.clientId) redirect(withQuery(back, "billing=norate"));
+  await createChargeForAppointment(appt);
+  const charge = await prisma.charge.findUnique({
+    where: { appointmentId_kind: { appointmentId, kind: "SESSION" } },
+  });
+  if (!charge) redirect(withQuery(back, "billing=norate"));
+  if (charge.status === "DUE" || charge.status === "PENDING") {
+    await setChargeStatus(charge.id, "PAID", practitioner.id, { paidVia: "in-person" });
+  }
+  revalidatePath(back);
+  redirect(withQuery(back, "billing=paid"));
+}
+
+// BILLING-DASH — "No charge": the session happened and she chooses to let it
+// go. A $0-or-rate WAIVED charge records the decision with her name, and the
+// session stops counting as unbilled. Idempotent via the composite unique.
+export async function noChargeSession(appointmentId: string, formData: FormData) {
+  const practitioner = await requirePractitioner();
+  const back = backPath(formData);
+  const appt = await prisma.appointment.findUnique({ where: { id: appointmentId } });
+  if (!appt || !appt.clientId) redirect(withQuery(back, "billing=waived"));
+  const existing = await prisma.charge.findUnique({
+    where: { appointmentId_kind: { appointmentId, kind: "SESSION" } },
+  });
+  if (!existing) {
+    const rate = await resolveSessionRate(appt.clientId);
+    await prisma.charge
+      .create({
+        data: {
+          clientId: appt.clientId,
+          appointmentId: appt.id,
+          kind: "SESSION",
+          priceBookId: rate?.id ?? null,
+          description: rate?.name ?? "Session — no charge",
+          amountCents: rate?.amountCents ?? 0,
+          currency: rate?.currency ?? "USD",
+          status: "WAIVED",
+          paidVia: "waived",
+          lastActionById: practitioner.id,
+        },
+      })
+      .catch(() => undefined); // raced with another writer — the unique guard held
+  } else if (existing.status === "DUE" || existing.status === "PENDING") {
+    await setChargeStatus(existing.id, "WAIVED", practitioner.id, { paidVia: "waived" });
+  }
+  console.log(`[billing] no-charge appt=${appointmentId} by=${practitioner.id}`);
+  revalidatePath(back);
+  redirect(withQuery(back, "billing=waived"));
+}
+
+// BILLING-DASH — resend the warm receipt for a collected payment.
+export async function resendReceipt(chargeId: string, formData: FormData) {
+  await requirePractitioner();
+  const back = backPath(formData);
+  const charge = await prisma.charge.findUnique({ where: { id: chargeId } });
+  if (charge?.status === "PAID") await sendReceiptForCharge(charge);
+  revalidatePath(back);
+  redirect(withQuery(back, "billing=receiptsent"));
+}
+
 // Bill a session that has no charge yet (e.g. booked before rates existed).
 export async function billAppointment(appointmentId: string, formData: FormData) {
   await requirePractitioner();
@@ -144,12 +357,12 @@ export async function addRate(formData: FormData) {
   const amount = Number(formData.get("amount"));
   const stage = String(formData.get("stage") ?? "");
   const kind = String(formData.get("kind") ?? "SESSION") === "PACKAGE" ? "PACKAGE" : "SESSION";
-  if (!name || !Number.isFinite(amount) || amount <= 0) redirect(`${LEDGER}?billing=badrate`);
+  if (!name || !Number.isFinite(amount) || amount <= 0) redirect(`${RATES}?billing=badrate`);
 
   let sessionsIncluded: number | null = null;
   if (kind === "PACKAGE") {
     const sessions = Number(formData.get("sessions"));
-    if (!Number.isInteger(sessions) || sessions < 1) redirect(`${LEDGER}?billing=badpackage`);
+    if (!Number.isInteger(sessions) || sessions < 1) redirect(`${RATES}?billing=badpackage`);
     sessionsIncluded = sessions;
   }
 
@@ -163,15 +376,15 @@ export async function addRate(formData: FormData) {
       sessionsIncluded,
     },
   });
-  revalidatePath(LEDGER);
-  redirect(`${LEDGER}?billing=rate`);
+  revalidatePath(RATES);
+  redirect(`${RATES}?billing=rate`);
 }
 
 export async function retireRate(rateId: string) {
   await requirePractitioner();
   await prisma.priceBook.update({ where: { id: rateId }, data: { active: false } });
-  revalidatePath(LEDGER);
-  redirect(LEDGER);
+  revalidatePath(RATES);
+  redirect(RATES);
 }
 
 // A reviewed external payment that isn't a session payment (a retail sale,

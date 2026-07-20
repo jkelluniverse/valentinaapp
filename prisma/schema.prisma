@@ -557,6 +557,7 @@ model Package {
   expiresAt           DateTime? // policy — hers (C13-PKG §12)
   lastSessionNoticeAt DateTime? // "next session is her last" notice sent (dedup)
   completedNoticeAt   DateTime? // completion notices sent (dedup)
+  renewalEmailSentAt  DateTime? // BILLING-DASH — her one-tap renewal email
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   credits             SessionCredit[]

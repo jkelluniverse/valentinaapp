@@ -190,6 +190,44 @@ export function packageCompletedEmail(
   };
 }
 
+// BILLING-DASH — her one-tap renewal email: warm, her package options listed,
+// one button to the portal. A relationship note, never a subscription lapse.
+export function renewalEmail(
+  locale: Locale,
+  v: { packages: { name: string; amount: string; sessions: number | null }[] },
+): { subject: string; heading: string; paragraphs: string[]; buttonLabel: string } {
+  const listEn = v.packages
+    .map((p) => `${p.name} — ${p.amount}${p.sessions ? ` (${p.sessions} sessions)` : ""}`)
+    .join(" · ");
+  const listEs = listEn;
+  if (locale === "es") {
+    return {
+      subject: "Cuando quieras continuar",
+      heading: "Cuando quieras continuar.",
+      paragraphs: [
+        "Completaste las sesiones de tu paquete — un recorrido que vale la pena reconocer.",
+        ...(v.packages.length
+          ? [`Si te llama seguir, estas son las opciones: ${listEs}.`]
+          : []),
+        "Las encuentras en tu espacio, en Sesiones → «Continuar nuestro trabajo». Sin prisa — este trabajo va a tu ritmo.",
+      ],
+      buttonLabel: "Ver mis opciones",
+    };
+  }
+  return {
+    subject: "Whenever you're ready to continue",
+    heading: "Whenever you're ready.",
+    paragraphs: [
+      "You've completed the sessions in your package — a journey worth pausing to honor.",
+      ...(v.packages.length
+        ? [`If continuing calls to you, here are the options: ${listEn}.`]
+        : []),
+      'You\'ll find them in your space under Sessions → "Continue our work". No rush — this work moves at your pace.',
+    ],
+    buttonLabel: "See my options",
+  };
+}
+
 // C10-POLICY §6 — the fee, stated plainly once, with its reason.
 export function lateFeeEmail(
   locale: Locale,
