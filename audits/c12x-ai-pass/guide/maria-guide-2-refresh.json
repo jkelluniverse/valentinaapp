@@ -1,121 +1,82 @@
 {
-  "overview": "Chart and record rhyme most loudly around the open Heart / 'proving worth' theme: the client's own words — proof, report cards, invoices attached to love, a phone at 4% — map almost one-to-one onto that placement, and the record shows a live, dated trajectory of that belief loosening. Emotional authority and the 2/4 hermit-plus-network reading are quietly corroborated by the guilt-then-light, dread-for-nothing rhythm and the garden/alone-time entries. Where things diverge or stay thin: the chart's more determined patterns (open Spleen 'holding on', open Throat 'pushing to be heard') have only glancing support, and no resonance marks are recorded yet, so every chart-derived line here is a hypothesis to test with her, not a verdict.",
+  "overview": "Chart and record rhyme most strongly around the open-Heart 'proving worth' theme and the open-Sacral 'when is enough enough' theme — the record's father-dinners, redone decks, and 'phone at 4%' language map onto these almost line for line. The clearest divergence is hopeful: where the chart's open centers predict ongoing over-giving, the last two months (roughly late May through July) read markedly differently from the winter/spring entries, with repeated boundaries held and the world failing to end. The garden also complicates any 'all direction comes from others' reading — it's a place she reports sourcing herself.",
   "referral": {
     "flag": false,
     "reason": null
   },
   "components": [
     {
-      "key": "open-heart",
-      "title": "Open Heart Center — 'Proving Worth'",
+      "key": "center:heart",
+      "title": "Open Heart — Proving Worth",
       "beliefs": [
         {
           "wording": "Proof I've done something. Proof I'm worth the drive.",
-          "evidenceIds": []
+          "evidenceIds": [
+            "cmrtsq2rd00tmjwjpdtiucru0"
+          ]
         },
         {
-          "wording": "I still shape my… (report card)",
-          "evidenceIds": []
-        },
-        {
-          "wording": "I just feel like a phone at 4%.",
-          "evidenceIds": []
-        },
-        {
-          "wording": "you don't have to be plugged in to something to deserve to be on",
-          "evidenceIds": []
+          "wording": "When did love start needing an invoice attached?",
+          "evidenceIds": [
+            "cmrtsq2rd00tmjwjpdtiucru0"
+          ]
         }
       ],
       "cautions": [
         "consent-required topic",
-        "third parties who have not consented"
+        "needs human review"
       ],
       "crossRefs": [
         {
-          "theme": "Worth must be earned through proof/achievement",
+          "theme": "Earning love/worth through visible achievement",
           "direction": "CONSISTENT",
           "confidence": "CONFIRMED",
-          "connection": "The client repeatedly narrates arriving to relationships and work with 'proof' and equates love with performance",
-          "evidenceIds": [],
-          "validationQuestion": "When you picture showing up somewhere with no 'proof' in hand, what do you notice in your body?"
+          "connection": "Her father visits where she 'arrives with proof' and shows a deck 'like a report card' read as a lived version of proving-worth",
+          "evidenceIds": [
+            "cmrtsq2r800tijwjpy24t0530",
+            "cmrtsq2rd00tmjwjpdtiucru0",
+            "cmrtsq2s100u6jwjps9c49ew9"
+          ],
+          "validationQuestion": "When you picture arriving somewhere with 'nothing to show,' what do you notice in your body?"
         },
         {
-          "theme": "Worth-as-earned is loosening",
+          "theme": "Worth without performance",
           "direction": "COMPLICATES",
           "confidence": "SUPPORTED",
-          "connection": "Later entries show her testing arriving without proof and finding she is still received",
-          "evidenceIds": [],
-          "validationQuestion": "The dinner where you brought only yourself and a flan — what felt different afterward compared to the report-card visits?"
+          "connection": "The June dinner where she 'didn't bring proof… just brought myself and a flan' suggests the pattern is loosening, complicating a fixed proving-worth reading",
+          "evidenceIds": [
+            "cmrtsq2sg00uijwjpexgyrmo2"
+          ],
+          "validationQuestion": "What was different inside you at that dinner compared with the one where you brought the deck?"
         }
       ],
       "confidence": "CONFIRMED",
-      "traditional": "An open (undefined) Heart center is classically described as someone who can feel a pull to prove their worth, to make promises and over-deliver, and to tie value to achievement — with the invitation being to notice worth is not something that must be earned.",
+      "traditional": "An open (undefined) Heart center is classically described as a place where a person can feel they must continually prove their worth or earn their value, rather than resting in it. Willpower and self-promises can feel inconsistent, and there's often sensitivity to whether one is 'worth it' in others' eyes.",
       "homeworkIdeas": [
-        "For one week, arrive to one interaction (a call, a visit) deliberately 'empty-handed' — no update, no accomplishment — and jot one line on what happened.",
-        "Notice and log each time the 'not-enough voice' speaks this week, plus how loud it was (1–10), building on her own 'smaller / I'm bigger' observation."
+        "Between now and next session, arrive at one ordinary gathering with 'no proof' and note afterward what actually happened.",
+        "Keep a short running list of moments you were valued for presence rather than output."
       ],
       "statementOptions": [
-        "I am worthy exactly as I am, with nothing to show.",
-        "My worth is already true before I do anything.",
-        "I deserve to be here without earning it."
+        "I am worth showing up as I am, with nothing to prove.",
+        "My presence is enough to deserve love.",
+        "I let myself be met without earning it first."
       ]
     },
     {
-      "key": "open-g",
-      "title": "Open G Center — 'Unsafe To Be Seen' / identity through others",
+      "key": "center:sacral",
+      "title": "Open Sacral — Enough Is Enough",
       "beliefs": [
         {
-          "wording": "The garden is the only place I don't feel like I'm auditioning.",
-          "evidenceIds": []
+          "wording": "I just feel like a phone at 4%.",
+          "evidenceIds": [
+            "cmrtsq2qe00sujwjph2d8gk3v"
+          ]
         },
         {
-          "wording": "She's the only one I don't perform for.",
-          "evidenceIds": []
-        }
-      ],
-      "cautions": [
-        "deterministic phrasing risk",
-        "needs human review"
-      ],
-      "crossRefs": [
-        {
-          "theme": "Identity felt as performance for others' eyes",
-          "direction": "CONSISTENT",
-          "confidence": "SUPPORTED",
-          "connection": "She describes 'auditioning', shrinking under a frown, and only feeling herself with the one person she doesn't perform for",
-          "evidenceIds": [],
-          "validationQuestion": "With Ana you say you don't perform — what is present in that relationship that lets you stop?"
-        },
-        {
-          "theme": "Direction/life-path sourced from others",
-          "direction": "COMPLICATES",
-          "confidence": "EMERGING",
-          "connection": "The record shows approval-seeking clearly but says little about life-direction being outsourced specifically",
-          "evidenceIds": [],
-          "validationQuestion": "When you make a decision that's just yours, like the long walk home, how do you know it's the right direction for you?"
-        }
-      ],
-      "confidence": "EMERGING",
-      "traditional": "An open G center is often described as sensing identity and direction through environment and other people, and can carry a felt sense of not being sure who one is unless reflected back — the growth edge being discernment about whose reflection to trust.",
-      "homeworkIdeas": [
-        "Name three settings on a scale of 'auditioning' to 'just me', and pick one small way to bring a garden-like ease into one of them."
-      ],
-      "statementOptions": [
-        "I am safe to be seen as myself.",
-        "I know who I am whether or not anyone reflects it back."
-      ]
-    },
-    {
-      "key": "open-sacral",
-      "title": "Open Sacral Center — 'When is enough enough'",
-      "beliefs": [
-        {
-          "wording": "I keep thinking if it's perfect enough then — then what? I don't finish that sentence",
-          "evidenceIds": []
-        },
-        {
-          "wording": "I am very good at finding urgent things when I don't want to feel.",
-          "evidenceIds": []
+          "wording": "the not-enough voice barely whispered… It's still there. But it's smaller, or I'm bigger",
+          "evidenceIds": [
+            "cmrtsq2sk00umjwjpvvo6oj87"
+          ]
         }
       ],
       "cautions": [
@@ -123,270 +84,246 @@
       ],
       "crossRefs": [
         {
-          "theme": "Overworking past the point of enough",
+          "theme": "Not sensing when to stop",
           "direction": "CONSISTENT",
-          "confidence": "SUPPORTED",
-          "connection": "Repeated entries of staying late, redoing unrequested work, and saying yes reflexively",
-          "evidenceIds": [],
-          "validationQuestion": "What tells you a piece of work is 'done' — and whose voice sets that bar?"
+          "confidence": "CONFIRMED",
+          "connection": "Staying until 9pm on a deck 'nobody asked me to redo' and feeling 'like a phone at 4%' directly mirrors the open-Sacral overwork description",
+          "evidenceIds": [
+            "cmrtsq2qe00sujwjph2d8gk3v",
+            "cmrtsq2r400tejwjpnwd4uuu6"
+          ],
+          "validationQuestion": "What tells you, if anything, that a piece of work is finished — and whose voice sets that bar?"
         },
         {
-          "theme": "Learning to stop",
+          "theme": "Learning her own 'enough'",
           "direction": "COMPLICATES",
           "confidence": "SUPPORTED",
-          "connection": "Recent entries show her stopping at 'good enough' and leaving on time with the not-enough voice quieter",
-          "evidenceIds": [],
-          "validationQuestion": "Sending the third version and closing the laptop — what let you stop there?"
+          "connection": "Leaving at 5:30 twice with the 'not-enough voice' barely whispering, and sending the third email draft then closing the laptop, suggest an emerging felt sense of enough — recent and trending",
+          "evidenceIds": [
+            "cmrtsq2sk00umjwjpvvo6oj87",
+            "cmrttdwno001zx3fjz0dcz3dt"
+          ],
+          "validationQuestion": "When you closed the laptop on the third draft, how did you know that was the moment to stop?"
         }
       ],
-      "confidence": "SUPPORTED",
-      "traditional": "An open Sacral is classically described as not having consistent life-force for sustained work and being prone to overdoing, pushing past healthy limits, and not knowing when enough is enough — often leading to burnout when the borrowed energy runs out.",
+      "confidence": "CONFIRMED",
+      "traditional": "An open (undefined) Sacral center is often described as difficulty knowing when to stop — taking on more work and energy than is sustainable, and not sensing the natural 'enough' point. It can show up as overwork and pushing past limits.",
       "homeworkIdeas": [
-        "Set a 'first-version ships' experiment: choose one low-stakes task, send version one, and note what the not-enough voice says."
+        "Pick one task this week and stop at 'good enough' on purpose; note the urge to continue and what it costs to resist stopping.",
+        "Set a soft end-of-day time and record on a 1–10 scale how full your 'battery' feels when you leave."
       ],
       "statementOptions": [
-        "I recognize when I have done enough and I let myself stop.",
-        "Good enough is genuinely enough for me."
+        "I recognize when I have done enough, and I stop.",
+        "It is safe for me to rest before I am empty.",
+        "I trust my own sense of 'complete.'"
       ]
     },
     {
-      "key": "emotional-authority",
-      "title": "Emotional Authority — deciding through the wave",
+      "key": "center:throat",
+      "title": "Open Throat — Over-Explaining to Be Heard",
       "beliefs": [
         {
-          "wording": "All that dread for nothing.",
-          "evidenceIds": []
-        }
-      ],
-      "cautions": [
-        "scope-of-practice"
-      ],
-      "crossRefs": [
-        {
-          "theme": "Clarity/relief arrives after the emotional wave passes",
-          "direction": "CONSISTENT",
-          "confidence": "SUPPORTED",
-          "connection": "Decisions are followed by dread-then-fine, guilt-then-light, or shaking-then-relief",
-          "evidenceIds": [],
-          "validationQuestion": "When you told Andrés about Saturdays, how long before the dread turned into 'all that dread for nothing'?"
+          "wording": "my voice shook and I over-explained for a full minute, sorry Valentina",
+          "evidenceIds": [
+            "cmrtsq2s700uajwjpntmhi736"
+          ]
         },
         {
-          "theme": "Deciding in the moment (against the wave)",
+          "wording": "I said yes before he finished the sentence. Literally before.",
+          "evidenceIds": [
+            "cmrtsq2qj00syjwjppguuyhc6"
+          ]
+        }
+      ],
+      "cautions": [],
+      "crossRefs": [
+        {
+          "theme": "Speaking to justify rather than to express",
+          "direction": "CONSISTENT",
+          "confidence": "SUPPORTED",
+          "connection": "Saying 'yes' before her boss finished the sentence, and over-explaining 'for a full minute' after her first no, fit the over-Throat picture",
+          "evidenceIds": [
+            "cmrtsq2qj00syjwjppguuyhc6",
+            "cmrtsq2s700uajwjpntmhi736"
+          ],
+          "validationQuestion": "After you say a clear no, what happens in the silence before you feel the urge to explain?"
+        },
+        {
+          "theme": "Speaking without over-justifying",
           "direction": "COMPLICATES",
-          "confidence": "EMERGING",
-          "connection": "Saying yes before the sentence finished suggests in-the-moment agreement she later regrets",
-          "evidenceIds": [],
-          "validationQuestion": "What would change if 'let me sleep on it' were your default answer to any request?"
+          "confidence": "SUPPORTED",
+          "connection": "Telling Andrés plainly that she needs Saturday mornings and getting a simple 'okay' shows a cleaner, shorter communication — 'all that dread for nothing'",
+          "evidenceIds": [
+            "cmrttdwni001vx3fjgaym6qxm"
+          ],
+          "validationQuestion": "What let you keep it short with Andrés — and could that travel into work conversations?"
         }
       ],
       "confidence": "SUPPORTED",
-      "traditional": "Emotional authority is described as needing to ride an emotional wave over time before clarity arrives, rather than deciding in the moment — sleeping on things and noticing feelings settle before commitment.",
+      "traditional": "An open (undefined) Throat center is often associated with pressure to speak or act to gain attention, sometimes leading to over-talking, over-explaining, or jumping in before invited.",
       "homeworkIdeas": [
-        "Practice one 'I'll get back to you tomorrow' response to a request this week and log the decision that emerged after the wait."
-      ],
-      "statementOptions": [
-        "I give myself time to feel my way to clarity before I answer.",
-        "I trust the answer that arrives after I've slept on it."
-      ]
-    },
-    {
-      "key": "projector-type",
-      "title": "Projector — waiting for the invitation & recognition",
-      "beliefs": [
-        {
-          "wording": "it felt good to be seen and not have to explain it away",
-          "evidenceIds": []
-        }
-      ],
-      "cautions": [
-        "deterministic phrasing risk",
-        "needs human review"
-      ],
-      "crossRefs": [
-        {
-          "theme": "Exhaustion from unrecognized over-effort",
-          "direction": "CONSISTENT",
-          "confidence": "SUPPORTED",
-          "connection": "She describes chronic depletion and doing work nobody asked for",
-          "evidenceIds": [],
-          "validationQuestion": "Which of your efforts lately were actually invited, and which did you take on uninvited?"
-        },
-        {
-          "theme": "Thriving on genuine recognition",
-          "direction": "CONSISTENT",
-          "confidence": "SUPPORTED",
-          "connection": "Being truly seen by Ana and received by her father without performance felt nourishing",
-          "evidenceIds": [],
-          "validationQuestion": "What's the difference between being recognized and being praised for producing?"
-        }
-      ],
-      "confidence": "EMERGING",
-      "traditional": "A Projector is described as gifted at seeing and guiding others but needing genuine recognition and invitation to thrive; without it, the classic signature is exhaustion and bitterness from over-giving in unrecognized effort.",
-      "homeworkIdeas": [
-        "Track energy for a week: note when you felt seen/invited versus when you pushed uninvited, and how each left you feeling."
-      ],
-      "statementOptions": [
-        "I let myself be recognized before I offer my energy.",
-        "My rest and my waiting are productive.",
-        "I thrive when I respond to genuine invitations."
-      ]
-    },
-    {
-      "key": "profile-2-4",
-      "title": "2/4 Profile — natural hermit within a network",
-      "beliefs": [
-        {
-          "wording": "Best hour of the week.",
-          "evidenceIds": []
-        }
-      ],
-      "cautions": [
-        "third parties who have not consented"
-      ],
-      "crossRefs": [
-        {
-          "theme": "Restoration through solitude",
-          "direction": "CONSISTENT",
-          "confidence": "SUPPORTED",
-          "connection": "Her clearest ease appears in solitary spaces — the garden, the headphone-free walk, Saturday mornings for herself",
-          "evidenceIds": [],
-          "validationQuestion": "How does the version of you in the garden differ from the version in the meeting room?"
-        },
-        {
-          "theme": "Growth through close relationships",
-          "direction": "CONSISTENT",
-          "confidence": "SUPPORTED",
-          "connection": "Movement is catalyzed by named people — Ana, Valentina, testing 'no' out loud with others",
-          "evidenceIds": [],
-          "validationQuestion": "Who are the few people whose 'that's obvious' helps you see yourself more clearly?"
-        }
-      ],
-      "confidence": "SUPPORTED",
-      "traditional": "A 2/4 profile blends a line-2 'hermit' who needs alone time to recharge and be called out for natural gifts, with a line-4 'opportunist' whose opportunities come through relationships and networks.",
-      "homeworkIdeas": [
-        "Protect one recurring solitude window (like the Saturday mornings she already claimed) and note its effect on the week."
-      ],
-      "statementOptions": [
-        "My time alone is where I come back to myself.",
-        "I honor my need for solitude without guilt."
-      ]
-    },
-    {
-      "key": "open-throat",
-      "title": "Open Throat Center — 'Pushing to be heard'",
-      "beliefs": [
-        {
-          "wording": "My voice shook and I over-explained for a full minute",
-          "evidenceIds": []
-        },
-        {
-          "wording": "sorry, this is probably not what I'm supposed to write about",
-          "evidenceIds": []
-        }
-      ],
-      "cautions": [
-        "deterministic phrasing risk"
-      ],
-      "crossRefs": [
-        {
-          "theme": "Over-explaining / apologizing to justify presence",
-          "direction": "CONSISTENT",
-          "confidence": "SUPPORTED",
-          "connection": "She over-explains for a full minute, tags entries 'overexplaining', and peppers reflections with 'sorry'",
-          "evidenceIds": [],
-          "validationQuestion": "When you notice yourself over-explaining, what are you afraid will happen if you stop at the plain sentence?"
-        }
-      ],
-      "confidence": "SUPPORTED",
-      "traditional": "An open Throat is often described as feeling pressure to speak or act to be noticed, sometimes talking too much or over-explaining to earn attention, with the invitation to speak when genuinely invited.",
-      "homeworkIdeas": [
-        "Practice one 'no, thank you' with no reason attached, and record the urge to explain and what you did with it."
+        "Practice a one-sentence no this week and consciously not add a reason; note the discomfort and how long it lasts."
       ],
       "statementOptions": [
         "My 'no' is complete without explanation.",
-        "I am heard when I speak simply."
+        "I speak once and let my words stand.",
+        "I am heard without over-justifying myself."
       ]
     },
     {
-      "key": "gk36-lifeswork",
-      "title": "Gene Key 36 (Life's Work, Line 2) — turbulence to compassion",
+      "key": "center:g",
+      "title": "Open G — Direction and Belonging",
       "beliefs": [
         {
-          "wording": "It's disorienting how much of my life I built to avoid a thing",
-          "evidenceIds": []
+          "wording": "The garden is the only place I don't feel like I'm auditioning.",
+          "evidenceIds": [
+            "cmrtsq2qo00t2jwjps6ka5xeu"
+          ]
+        }
+      ],
+      "cautions": [],
+      "crossRefs": [
+        {
+          "theme": "Sourcing identity from others' approval",
+          "direction": "CONSISTENT",
+          "confidence": "SUPPORTED",
+          "connection": "'I still shape myself around' her father's approval, and feeling she's 'auditioning' everywhere but the garden, fit the open-G search for direction/belonging",
+          "evidenceIds": [
+            "cmrtsq2r800tijwjpy24t0530",
+            "cmrtsq2qo00t2jwjps6ka5xeu"
+          ],
+          "validationQuestion": "Where, besides the garden, do you notice you're not 'auditioning'?"
+        },
+        {
+          "theme": "A self-sourced place of belonging",
+          "direction": "COMPLICATES",
+          "confidence": "SUPPORTED",
+          "connection": "The garden as somewhere she doesn't perform ('it doesn't need me to earn anything') complicates a purely other-directed reading — she has an internal reference point",
+          "evidenceIds": [
+            "cmrtsq2qo00t2jwjps6ka5xeu",
+            "cmrtsq2rx00u2jwjp3s5aj8y2"
+          ],
+          "validationQuestion": "What does the garden know about you that you'd like the rest of your life to know?"
+        }
+      ],
+      "confidence": "EMERGING",
+      "traditional": "An open (undefined) G center is classically linked to a search for identity, direction, and love through environment and the people around you — a sensitivity to feeling one belongs, and a tendency to look outward for a sense of who and where to be.",
+      "homeworkIdeas": [
+        "Name one quality the garden brings out in you and deliberately bring it into one work or family moment this week."
+      ],
+      "statementOptions": [
+        "I belong wherever I am, without auditioning.",
+        "I carry my own sense of home with me.",
+        "I know who I am even when no one is watching."
+      ]
+    },
+    {
+      "key": "type:projector",
+      "title": "Projector + Emotional Authority — Invitation and the Wave",
+      "beliefs": [
+        {
+          "wording": "felt guilty for an hour, then strangely light",
+          "evidenceIds": [
+            "cmrttdwn0001jx3fjhpqar2u5"
+          ]
+        }
+      ],
+      "cautions": [
+        "deterministic phrasing risk"
+      ],
+      "crossRefs": [
+        {
+          "theme": "Over-giving without invitation, then depletion",
+          "direction": "CONSISTENT",
+          "confidence": "SUPPORTED",
+          "connection": "Reflexive yeses and redoing work 'nobody asked me to redo' followed by exhaustion echo the Projector-without-invitation depletion picture",
+          "evidenceIds": [
+            "cmrtsq2qj00syjwjppguuyhc6",
+            "cmrtsq2qe00sujwjph2d8gk3v",
+            "cmrtsq2r400tejwjpnwd4uuu6"
+          ],
+          "validationQuestion": "Which of your commitments came from being genuinely asked, versus jumping in before being asked?"
+        },
+        {
+          "theme": "Clarity arriving over time",
+          "direction": "CONSISTENT",
+          "confidence": "EMERGING",
+          "connection": "Saying no to her sister and feeling 'guilty for an hour, then strangely light,' and dread over Andrés dissolving, fit decisions that settle across an emotional wave",
+          "evidenceIds": [
+            "cmrttdwn0001jx3fjhpqar2u5",
+            "cmrttdwni001vx3fjgaym6qxm"
+          ],
+          "validationQuestion": "When you look back, does a night's sleep usually make a decision clearer for you?"
+        }
+      ],
+      "confidence": "SUPPORTED",
+      "traditional": "The Projector strategy is described as waiting for genuine invitation and recognition rather than pushing or self-initiating into effort, and can involve exhaustion when energy is given without being truly invited. Emotional authority suggests clarity in decisions comes over time, across a wave, rather than in the moment.",
+      "homeworkIdeas": [
+        "When a request comes, try 'let me sleep on it' once this week and notice whether overnight changes your answer.",
+        "Track one 'guilt-then-light' cycle from start to finish to see your own timing."
+      ],
+      "statementOptions": [
+        "I give my yes only after I feel clear.",
+        "I let my decisions ripen before I answer.",
+        "My energy is welcome where I am genuinely invited."
+      ]
+    },
+    {
+      "key": "geneKey:36-24",
+      "title": "Gene Keys 36 & 24 / 2/4 Profile — The Fear Beneath the No",
+      "beliefs": [
+        {
+          "wording": "My hand wrote 'they leave.'",
+          "evidenceIds": [
+            "cmrtsq2rj00tqjwjpj12ftfut"
+          ]
+        },
+        {
+          "wording": "the ones who would — maybe that was never love I could earn anyway",
+          "evidenceIds": [
+            "cmrtsq2sq00uqjwjpb8yyuvgj"
+          ]
         }
       ],
       "cautions": [
         "sensitive material",
-        "needs human review",
-        "scope-of-practice"
+        "needs human review"
       ],
       "crossRefs": [
         {
-          "theme": "Anticipatory dread / crisis-bracing",
-          "direction": "CONSISTENT",
-          "confidence": "EMERGING",
-          "connection": "She narrates dread before events and a lifelong bracing for the world where 'saying no ends everything'",
-          "evidenceIds": [],
-          "validationQuestion": "That world you keep checking for and not finding — what would it free up if you stopped bracing for it?"
-        },
-        {
-          "theme": "Turning toward feeling instead of away",
-          "direction": "COMPLICATES",
-          "confidence": "EMERGING",
-          "connection": "She experiments with sitting in the not-enough feeling rather than working it away",
-          "evidenceIds": [],
-          "validationQuestion": "When you managed four minutes with the feeling, what happened right before you reached for the 'urgent' email?"
-        }
-      ],
-      "confidence": "EMERGING",
-      "traditional": "Gene Key 36 moves from a Shadow of Turbulence (dread and crisis-anticipation around new emotional experience) through the Gift of Humanity to the Siddhi of Compassion — often centering on how one meets emotional intensity rather than avoiding it.",
-      "homeworkIdeas": [
-        "Extend the 'sit with the feeling' experiment by one minute at a time and log what shows up, without needing to fix it."
-      ],
-      "statementOptions": [
-        "I can stay with a strong feeling and remain safe.",
-        "I meet my emotions with curiosity instead of avoidance."
-      ]
-    },
-    {
-      "key": "values-drive",
-      "title": "Values Spiral — center of gravity in Drive",
-      "beliefs": [
-        {
-          "wording": "It doesn't need me to earn anything. It just grows or it doesn't and that's not a performance review.",
-          "evidenceIds": []
-        }
-      ],
-      "cautions": [
-        "deterministic phrasing risk"
-      ],
-      "crossRefs": [
-        {
-          "theme": "Achievement as primary orientation",
+          "theme": "A recurring fear-thought that resolves through experience",
           "direction": "CONSISTENT",
           "confidence": "SUPPORTED",
-          "connection": "Work, deadlines, decks, promotions and productivity dominate the earlier record",
-          "evidenceIds": [],
-          "validationQuestion": "What would 'success' feel like if it weren't measured by output?"
+          "connection": "Writing 'they leave' by hand, then repeatedly checking and finding 'nobody left,' reads like a core fear-belief being metabolized through lived counter-evidence",
+          "evidenceIds": [
+            "cmrtsq2rj00tqjwjpj12ftfut",
+            "cmrtsq2sb00uejwjp36dw9zen",
+            "cmrtsq2sq00uqjwjpb8yyuvgj"
+          ],
+          "validationQuestion": "Now that you've checked many times, how true does 'they leave' feel today on a 0–10 scale?"
         },
         {
-          "theme": "Movement toward flow/enough",
-          "direction": "COMPLICATES",
-          "confidence": "SUPPORTED",
-          "connection": "The garden, the walk, and 'best hour of the week' point toward a quieter, flow-based value gaining weight",
-          "evidenceIds": [],
-          "validationQuestion": "Where in your week do you already feel 'flow' rather than 'drive', and how could there be a little more of it?"
+          "theme": "Being drawn out by a trusted person (2/4 network)",
+          "direction": "CONSISTENT",
+          "confidence": "EMERGING",
+          "connection": "Ana naming the truth and being 'the only one I don't perform for' fits the 2/4 pattern of a close bond calling the private self forward",
+          "evidenceIds": [
+            "cmrtsq2r000tajwjp9oxdtkr7",
+            "cmrtsq2rr00tyjwjp4b5vo3p5"
+          ],
+          "validationQuestion": "What does Ana see in you that you'd like to be able to see on your own?"
         }
       ],
       "confidence": "SUPPORTED",
-      "traditional": "A center of gravity in 'Drive' describes a person oriented toward achievement, results, and forward momentum — energized by goals and outcomes, with an emerging pull noted toward Achievement and Flow.",
+      "traditional": "Gene Key 36 (Life's Work here, line 2) works with the theme of emotional turbulence and the fear of experience, opening toward compassion and humanity. Gene Key 24 (SQ) touches the mind's return to the same thought until it can rest in silence. A 2/4 profile blends a natural, private 'hermit' gift with a relational, network-based way of being drawn out by trusted others.",
       "homeworkIdeas": [
-        "Once this week, choose an activity purely because it feels good (not because it produces anything) and note how it lands."
+        "Write the old sentence 'if I say no, they leave' beside three recent times you said no and what actually happened.",
+        "Notice one moment this week you're tempted to 'perform' for someone and try letting Ana-level honesty in instead."
       ],
       "statementOptions": [
-        "I value my presence as much as my productivity.",
-        "I let ease count as a worthy way to spend my time."
+        "When I say no, the right people stay.",
+        "I am safe to disappoint someone and still be loved.",
+        "My honest no makes room for real connection."
       ]
     }
   ]

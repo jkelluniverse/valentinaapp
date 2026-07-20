@@ -107,10 +107,25 @@ export async function runIntegrativeSynthesis(
     ...output.tensions.map((t) => `Tension (${t.between}): ${t.hypothesis}`),
   ].join("\n\n");
 
+  // PATCH-01 §2 — fingerprint for staleness; the prior formulation appends to
+  // history before the overwrite.
+  const { currentFingerprint, keepPriorVersion } = await import("@/lib/staleness");
+  const fingerprint = await currentFingerprint(clientId);
+  const prior = await prisma.integrativeProfile.findUnique({ where: { userId: clientId } });
+  if (prior) {
+    await keepPriorVersion({
+      clientId,
+      artifactType: "FORMULATION",
+      content: { synthesis: prior.synthesis, narrative: prior.narrative },
+      model: prior.version,
+      generatedAt: prior.generatedAt,
+    }).catch(() => undefined);
+  }
   const data = {
     synthesis: output as unknown as object,
     narrative,
     version: `${model} · ${INTEGRATIVE_VERSION}`,
+    fingerprint: fingerprint as unknown as object,
     generatedAt: new Date(),
   };
   await prisma.integrativeProfile.upsert({

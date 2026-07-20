@@ -36,6 +36,7 @@ type Props = {
   locale: "en" | "es";
   pendingReviewForClient: boolean;
   chartsComplete: boolean;
+  valuesJoined: boolean; // PATCH-01 §1 — the values lens deepens; it never gates
   generate: () => Promise<{
     ok: boolean;
     content?: string;
@@ -71,6 +72,10 @@ const T = {
       NOT_YET: "Not yet explored",
     },
     marked: "Noted — thank you for saying so.",
+    lensLater:
+      "There's one more lens we can add later, whenever you take the values reflection — this reading is complete without it and will deepen with it.",
+    emptyState:
+      "Your reading opens once your birth details are in — the woven picture draws itself from your chart. Add them under Profile, and it appears here.",
   },
   es: {
     explore: "Para explorar más de cerca",
@@ -96,6 +101,10 @@ const T = {
       NOT_YET: "Aún por explorar",
     },
     marked: "Anotado — gracias por decirlo.",
+    lensLater:
+      "Hay un lente más que podremos sumar después, cuando hagas la reflexión de valores — esta lectura está completa sin él y se profundizará con él.",
+    emptyState:
+      "Tu lectura se abre cuando estén tus datos de nacimiento — el retrato tejido se dibuja desde tu carta. Agrégalos en Perfil y aparecerá aquí.",
   },
 } as const;
 
@@ -224,6 +233,7 @@ export function ReadingSection({
   locale,
   pendingReviewForClient,
   chartsComplete,
+  valuesJoined,
   generate,
   mark,
 }: Props) {
@@ -264,11 +274,7 @@ export function ReadingSection({
   if (!chartsComplete && phase === "idle") {
     return (
       <div className="rounded-card border border-line bg-surface p-7 shadow-soft">
-        <p className="max-w-prose text-ink">
-          Your reading opens once your values snapshot is complete — the woven picture deserves all
-          three maps. Fill in the values assessment Valentina sends, and it&apos;ll draw itself
-          together here.
-        </p>
+        <p className="max-w-prose text-ink">{t.emptyState}</p>
       </div>
     );
   }
@@ -328,6 +334,10 @@ export function ReadingSection({
             />
           ))}
         </div>
+      )}
+
+      {!valuesJoined && (
+        <p className="rounded-md bg-blush/40 px-4 py-2.5 text-[13px] text-ink">{t.lensLater}</p>
       )}
 
       <div className="flex flex-wrap items-center gap-4">

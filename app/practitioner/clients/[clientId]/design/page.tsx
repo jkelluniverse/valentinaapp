@@ -7,7 +7,8 @@ import { HdChartView } from "@/components/HdChartView";
 import { GeneKeysView, SpiralView } from "@/components/LensViews";
 import { ensureChart } from "@/lib/human-design";
 import { getMethodText } from "@/lib/integrative";
-import { READING_HOLD_KEY } from "@/lib/integrative-reading";
+import { READING_HOLD_KEY, assembleCharts, chartInputHash } from "@/lib/integrative-reading";
+import { artifactStaleness, type InputsFingerprint } from "@/lib/staleness";
 import { ReadingProse } from "@/components/ReadingProse";
 import { STAGES, stageLabel, type SpiralScore } from "@/lib/spiral";
 import type { SpherePosition } from "@/lib/gene-keys";
@@ -30,7 +31,7 @@ const ERRORS: Record<string, string> = {
   method: "Add your integration method first — the draft works through your method, never its own.",
   lenses: "The birth-data lenses aren't in yet — the chart generates from their profile.",
   api: "The draft couldn't be completed just now — try again in a moment.",
-  incomplete: "The reading needs all three charts — their values assessment isn't in yet.",
+  incomplete: "The reading needs the birth-data lenses — it generates once their birth details are in.",
   "no-charts": "No chart yet — it generates once their birth details are in.",
   empty: "The reading can't be saved empty.",
 };
@@ -77,11 +78,35 @@ export default async function ClientDesignPage({
   const synthesis = client.integrativeProfile?.synthesis as IntegrativeOutput | null;
 
   // C12r — the client-facing reading and its controls.
-  const [reading, holdRow] = await Promise.all([
+  const [reading, holdRow, readerRow] = await Promise.all([
     prisma.integrativeReading.findUnique({ where: { userId: client.id } }),
     prisma.practiceSetting.findUnique({ where: { key: READING_HOLD_KEY } }),
+    prisma.user.findUnique({ where: { id: client.id }, select: { locale: true } }),
   ]);
   const holdForReview = holdRow?.value === "1";
+
+  // PATCH-01 §2 — staleness chips: reading by input hash, formulation by
+  // fingerprint. Quiet chips, her tap; nothing regenerates on its own here.
+  const assembledNow = await assembleCharts(client.id);
+  const readingStale = Boolean(
+    reading &&
+      assembledNow &&
+      reading.inputHash !==
+        chartInputHash(assembledNow.payload, readerRow?.locale === "es" ? "es" : "en"),
+  );
+  const formulationStaleness = client.integrativeProfile
+    ? await artifactStaleness(
+        client.id,
+        (client.integrativeProfile.fingerprint as unknown as InputsFingerprint | null) ?? null,
+        client.integrativeProfile.generatedAt,
+        { watchRecord: true, watchMethod: true },
+      )
+    : null;
+  const formulationVersions = await prisma.artifactVersion.findMany({
+    where: { clientId: client.id, artifactType: "FORMULATION" },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -228,6 +253,26 @@ export default async function ClientDesignPage({
           </div>
         </div>
 
+        {synthesis && !spiralLens?.practitionerReviewed && (
+          <p className="rounded-md bg-cream px-4 py-2.5 text-[13px] text-ink">
+            The values lens will join this picture once the assessment is taken — the formulation
+            below works from the chart lenses and the record.
+          </p>
+        )}
+
+        {formulationStaleness?.stale && (
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-mocha/60 bg-blush/40 px-4 py-2.5">
+            <p className="text-[13px] text-wine">
+              New since this was written — {formulationStaleness.reasons.join("; ")}.
+            </p>
+            <form action={draftSynthesis.bind(null, client.id)}>
+              <button className="text-[13px] font-semibold text-wine underline-offset-4 hover:underline">
+                Refresh?
+              </button>
+            </form>
+          </div>
+        )}
+
         {synthesis && (
           <div className="flex flex-col gap-4 rounded-lg border border-line bg-white p-6 shadow-soft">
             <p className="text-xs text-slate">
@@ -300,6 +345,29 @@ export default async function ClientDesignPage({
             )}
           </div>
         )}
+        {/* PATCH-01 §2 — history, not amnesia. */}
+        {formulationVersions.length > 0 && (
+          <details className="rounded-md border border-line/70 px-4 py-3">
+            <summary className="cursor-pointer text-[13px] font-medium text-slate">
+              Prior formulations · {formulationVersions.length}
+            </summary>
+            <div className="mt-2 flex flex-col gap-2">
+              {formulationVersions.map((v) => {
+                const old = v.content as { narrative?: string | null };
+                return (
+                  <details key={v.id} className="rounded-md border border-line/60 px-3 py-2">
+                    <summary className="cursor-pointer text-[12.5px] text-ink">
+                      {v.generatedAt.toISOString().slice(0, 10)} · {v.model}
+                    </summary>
+                    <p className="mt-1.5 whitespace-pre-wrap text-[12.5px] leading-relaxed text-slate">
+                      {old?.narrative ?? "—"}
+                    </p>
+                  </details>
+                );
+              })}
+            </div>
+          </details>
+        )}
       </section>
 
       {/* C12r — the client-facing reading (chart-only; the one AI output they see). */}
@@ -316,6 +384,20 @@ export default async function ClientDesignPage({
           Woven from their three charts only — never their private record. It appears on their own
           design page {holdForReview ? "once you approve it." : "automatically."}
         </p>
+
+        {readingStale && (
+          <div className="flex flex-wrap items-center gap-3 rounded-md border border-mocha/60 bg-blush/40 px-4 py-2.5">
+            <p className="text-[13px] text-wine">
+              New since this was written — their chart inputs changed. It refreshes on their next
+              visit, or now:
+            </p>
+            <form action={regenerateReading.bind(null, client.id)}>
+              <button className="text-[13px] font-semibold text-wine underline-offset-4 hover:underline">
+                Regenerate?
+              </button>
+            </form>
+          </div>
+        )}
 
         <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
           {reading ? (

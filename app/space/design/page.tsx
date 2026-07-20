@@ -47,7 +47,10 @@ export default async function DesignPage({
     prisma.integrativeReading.findUnique({ where: { userId: user.id } }),
     assembleCharts(user.id),
   ]);
-  const readingComplete = assembled?.complete ?? false;
+  // PATCH-01 §1 — minimum viable input is birth data alone (both chart
+  // lenses); the values snapshot deepens the reading when it joins.
+  const readingComplete = Boolean(assembled?.payload.geneKeys);
+  const valuesJoined = assembled?.hasSpiral ?? false;
   const readingLocale: "en" | "es" = user.locale === "es" ? "es" : "en";
   const currentHash = assembled ? chartInputHash(assembled.payload, readingLocale) : null;
   const fresh = Boolean(readingRow && currentHash && readingRow.inputHash === currentHash);
@@ -138,6 +141,7 @@ export default async function DesignPage({
               locale={readingLocale}
               pendingReviewForClient={readingPending}
               chartsComplete={readingComplete}
+              valuesJoined={valuesJoined}
               generate={generateMyReading}
               mark={markReadingBlock}
             />

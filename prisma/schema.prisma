@@ -386,7 +386,22 @@ model IntegrativeProfile {
   synthesis   Json // cross-lens map (structured, per her method)
   narrative   String? // AI-drafted integrative summary — practitioner-facing
   version     String // method + prompt version (audit)
+  fingerprint Json? // C12X-PATCH-01 §2 — inputs fingerprint (staleness, not schedules)
   generatedAt DateTime @default(now())
+}
+
+// C12X-PATCH-01 §2 — prior versions of generated artifacts append here on
+// regeneration; her artifacts are part of the record's history.
+model ArtifactVersion {
+  id           String   @id @default(cuid())
+  clientId     String
+  artifactType String // READING | FORMULATION | GUIDE
+  content      Json // the superseded artifact, whole
+  model        String
+  generatedAt  DateTime // when the superseded version was originally generated
+  createdAt    DateTime @default(now())
+
+  @@index([clientId, artifactType, createdAt])
 }
 
 // C12 reading addendum — "What It All Means to You". The ONE client-facing AI
@@ -436,6 +451,7 @@ model IntegrationGuide {
   model       String // model + prompt version (audit)
   inputHash   String
   output      Json // components[] — 15-point blocks, cross-refs, cautions, confidence
+  fingerprint Json? // C12X-PATCH-01 §2 — inputs fingerprint (staleness, not schedules)
   generatedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

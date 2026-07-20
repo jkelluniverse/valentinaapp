@@ -132,7 +132,10 @@ export async function ensureReading(
 ): Promise<ReadingResult> {
   const charts = await assembleCharts(userId);
   if (!charts) return { ok: false, error: "no-charts" };
-  if (!charts.complete) return { ok: false, error: "incomplete" };
+  // C12X-PATCH-01 §1 — a missing input narrows the output, never vetoes it.
+  // Minimum viable input is birth data alone (both chart lenses); the values
+  // spiral deepens the reading when it joins and is simply absent until then.
+  if (!charts.payload.geneKeys) return { ok: false, error: "incomplete" };
 
   // AMD-05 A5.2 — the reading is written in the READER's language. Evidence-free
   // by construction (charts only), so the whole text renders in their locale.
@@ -221,6 +224,17 @@ export async function ensureReading(
     editedByPractitioner: false,
     generatedAt: new Date(),
   };
+  // PATCH-01 §2 — prior versions append, never vanish.
+  if (existing) {
+    const { keepPriorVersion } = await import("@/lib/staleness");
+    await keepPriorVersion({
+      clientId: userId,
+      artifactType: "READING",
+      content: { content: existing.content, structured: existing.structured, status: existing.status },
+      model: existing.model,
+      generatedAt: existing.generatedAt,
+    }).catch(() => undefined);
+  }
   const reading = await prisma.integrativeReading.upsert({
     where: { userId },
     create: { userId, ...data },

@@ -5,6 +5,7 @@
 import { prisma } from "@/lib/prisma";
 import { CONFIDENCE_MEANING, isConfidenceLevel } from "@/lib/confidence";
 import { latestMarks } from "@/lib/resonance";
+import { artifactStaleness, type InputsFingerprint } from "@/lib/staleness";
 import { SUGGESTED_QUERIES } from "@/ai/askRecordPrompt";
 import { STATEMENT_CRITERIA, type StatementLint } from "@/lib/belief-statements";
 import type { GuideOutput } from "@/ai/integrationGuidePrompt";
@@ -99,6 +100,27 @@ export async function GuideTab({
   const output = guide ? (guide.output as unknown as GuideOutput) : null;
   const marks = await latestMarks(clientId, "GUIDE_CLAIM");
 
+  // PATCH-01 §2 — staleness, not schedules: the quiet chip, her tap.
+  const staleness = guide
+    ? await artifactStaleness(
+        clientId,
+        (guide.fingerprint as unknown as InputsFingerprint | null) ?? null,
+        guide.generatedAt,
+        { watchRecord: true, watchMethod: true },
+      )
+    : null;
+  const priorVersions = await prisma.artifactVersion.findMany({
+    where: { clientId, artifactType: "GUIDE" },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+  // PATCH-01 §1 — the values lens is absent until scored AND approved.
+  const spiralLens = await prisma.lensResult.findFirst({
+    where: { userId: clientId, lens: "SPIRAL" },
+    select: { practitionerReviewed: true },
+  });
+  const valuesJoined = Boolean(spiralLens?.practitionerReviewed);
+
   const allIds = output
     ? output.components.flatMap((c) => [
         ...c.crossRefs.flatMap((r) => r.evidenceIds),
@@ -140,6 +162,26 @@ export async function GuideTab({
         <p className="text-[12px] text-whisper">
           Last drawn {fmtDay(guide.generatedAt)} · {guide.model}
         </p>
+      )}
+
+      {!valuesJoined && (
+        <p className="rounded-md bg-cream px-4 py-2.5 text-[13px] text-ink">
+          The values lens will join this picture once the assessment is taken — the guide below
+          works from the chart lenses and the record.
+        </p>
+      )}
+
+      {staleness?.stale && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border border-mocha/60 bg-blush/40 px-4 py-2.5">
+          <p className="text-[13px] text-wine">
+            New since this was written — {staleness.reasons.join("; ")}.
+          </p>
+          <form action={refreshGuide.bind(null, clientId)}>
+            <button className="text-[13px] font-semibold text-wine underline-offset-4 hover:underline">
+              Refresh?
+            </button>
+          </form>
+        </div>
       )}
 
       {output?.referral.flag && (
@@ -285,6 +327,30 @@ export async function GuideTab({
           No Guide yet — draw it once the record has some life in it. It cross-references every
           chart theme with what they&apos;ve actually written.
         </p>
+      )}
+
+      {/* PATCH-01 §2 — history, not amnesia. */}
+      {priorVersions.length > 0 && (
+        <details className="rounded-md border border-line/70 px-4 py-3">
+          <summary className="cursor-pointer text-[13px] font-medium text-slate">
+            Prior versions · {priorVersions.length}
+          </summary>
+          <div className="mt-2 flex flex-col gap-2">
+            {priorVersions.map((v) => {
+              const old = v.content as unknown as GuideOutput;
+              return (
+                <details key={v.id} className="rounded-md border border-line/60 px-3 py-2">
+                  <summary className="cursor-pointer text-[12.5px] text-ink">
+                    {fmtDay(v.generatedAt)} · {v.model}
+                  </summary>
+                  <p className="mt-1.5 text-[12.5px] leading-relaxed text-slate">
+                    {old?.overview ?? "—"}
+                  </p>
+                </details>
+              );
+            })}
+          </div>
+        </details>
       )}
     </div>
   );

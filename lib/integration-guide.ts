@@ -10,6 +10,7 @@ import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
 import { assembleCharts } from "@/lib/integrative-reading";
 import { latestMarks } from "@/lib/resonance";
+import { currentFingerprint, keepPriorVersion } from "@/lib/staleness";
 import {
   buildGuideSystemPrompt,
   GUIDE_OUTPUT_SCHEMA,
@@ -160,6 +161,19 @@ export async function runIntegrationGuide(
     )
     .digest("hex");
 
+  // PATCH-01 §2 — inputs fingerprint for the staleness chip, and the prior
+  // version appends to history before the overwrite.
+  const fingerprint = await currentFingerprint(clientId);
+  const prior = await prisma.integrationGuide.findUnique({ where: { clientId } });
+  if (prior) {
+    await keepPriorVersion({
+      clientId,
+      artifactType: "GUIDE",
+      content: prior.output,
+      model: prior.model,
+      generatedAt: prior.generatedAt,
+    }).catch(() => undefined);
+  }
   const guide = await prisma.integrationGuide.upsert({
     where: { clientId },
     create: {
@@ -167,11 +181,13 @@ export async function runIntegrationGuide(
       model: `${model} · ${GUIDE_VERSION}`,
       inputHash,
       output: output as unknown as object,
+      fingerprint: fingerprint as unknown as object,
     },
     update: {
       model: `${model} · ${GUIDE_VERSION}`,
       inputHash,
       output: output as unknown as object,
+      fingerprint: fingerprint as unknown as object,
       generatedAt: new Date(),
     },
   });
