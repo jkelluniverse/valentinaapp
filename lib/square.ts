@@ -593,6 +593,34 @@ export async function sendSquareInvoice(args: {
   }
 }
 
+// Trace a Square payment back to our charge without any stored linkage:
+// payment → order_id → order.reference_id (which we set to the charge id at
+// invoice creation). This is what lets an invoice payment settle its own
+// charge even when invoice.* webhook events never arrive.
+export async function getPaymentOrderId(paymentId: string): Promise<string | null> {
+  if (!squareConfigured()) return null;
+  try {
+    const res = await squareFetch(`/v2/payments/${paymentId}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { payment?: { order_id?: string } };
+    return data.payment?.order_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getOrderReferenceId(orderId: string): Promise<string | null> {
+  if (!squareConfigured()) return null;
+  try {
+    const res = await squareFetch(`/v2/orders/${orderId}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { order?: { reference_id?: string } };
+    return data.order?.reference_id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // When a charge with an open Square invoice gets settled some other way
 // (card on file, in person, waived), cancel the invoice so it doesn't linger
 // as unpaid in Square. Terminal states count as already-done. Best-effort:

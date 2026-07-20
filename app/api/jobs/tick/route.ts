@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { completeAppointment, clientLabel } from "@/lib/appointments";
-import { packageCounters } from "@/lib/packages";
+import { packageCounters, activatePackageForCharge } from "@/lib/packages";
+import { getPaymentOrderId, getOrderReferenceId } from "@/lib/square";
+import { sendReceiptForCharge } from "@/lib/receipts";
 import { sendEmail } from "@/lib/notify";
 import { pickLocale, paymentReminderEmail, payeeInvoiceEmail, packageCompletedEmail, sessionReminderEmail } from "@/lib/email-copy";
 import { chargeEmailContext } from "@/lib/invoice-context";
@@ -300,6 +302,54 @@ async function handle(req: NextRequest) {
   } catch (e) {
     report.remindersSent = "error";
     console.error("[tick] reminders failed", e instanceof Error ? e.message : "");
+  }
+
+  // 6. Self-healing reconciliation: an unmatched Square payment that traces
+  //    back to one of our charges (payment → order → reference_id) settles it
+  //    without waiting for her to press Match. Catches invoice payments whose
+  //    webhook events were missed, and heals historical ones.
+  try {
+    const unmatched = await prisma.externalPayment.findMany({
+      where: { matchedChargeId: null },
+      take: 20,
+    });
+    let matched = 0;
+    for (const ext of unmatched) {
+      const orderId = await getPaymentOrderId(ext.squarePaymentId);
+      if (!orderId) continue;
+      const refId = await getOrderReferenceId(orderId);
+      const charge = refId
+        ? await prisma.charge.findUnique({ where: { id: refId } })
+        : null;
+      if (!charge) continue;
+      if (charge.status === "DUE" || charge.status === "PENDING") {
+        const paid = await prisma.charge.update({
+          where: { id: charge.id },
+          data: {
+            status: "PAID",
+            paidAt: ext.receivedAt,
+            paidVia: "square-invoice",
+            squarePaymentId: ext.squarePaymentId,
+            lastActionById: "system-reconcile",
+          },
+        });
+        await activatePackageForCharge(paid);
+        await sendReceiptForCharge(paid);
+      } else if (charge.squarePaymentId && charge.squarePaymentId !== ext.squarePaymentId) {
+        // Settled by a different payment — leave this one to her judgment.
+        continue;
+      }
+      await prisma.externalPayment.update({
+        where: { id: ext.id },
+        data: { matchedChargeId: charge.id },
+      });
+      matched++;
+      console.log(`[tick] reconciled payment=${ext.squarePaymentId} charge=${charge.id}`);
+    }
+    report.reconciled = matched;
+  } catch (e) {
+    report.reconciled = "error";
+    console.error("[tick] reconcile failed", e instanceof Error ? e.message : "");
   }
 
   console.log(`[tick] ${JSON.stringify(report)}`);

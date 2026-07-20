@@ -1,36 +1,9 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { verifySquareSignature } from "@/lib/square";
+import { verifySquareSignature, getOrderReferenceId } from "@/lib/square";
 import { activatePackageForCharge } from "@/lib/packages";
-import { sendEmail } from "@/lib/notify";
-import { pickLocale, receiptEmail } from "@/lib/email-copy";
-import { formatMoney } from "@/lib/billing";
-
-// EMAIL-SPEC #12 — our warm receipt when a payment lands (in-portal or
-// invoice). Lead-keyed charges skip it (no account; Square's page confirms).
-async function sendReceipt(charge: {
-  clientId: string;
-  description: string;
-  amountCents: number;
-  currency: string;
-}): Promise<void> {
-  try {
-    if (charge.clientId.startsWith("lead:")) return;
-    const client = await prisma.user.findUnique({
-      where: { id: charge.clientId },
-      select: { email: true, locale: true },
-    });
-    if (!client?.email) return;
-    const mail = receiptEmail(pickLocale(client.locale), {
-      description: charge.description,
-      amount: formatMoney(charge.amountCents, charge.currency),
-    });
-    await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });
-  } catch {
-    console.error("[square-webhook] receipt email failed");
-  }
-}
+import { sendReceiptForCharge as sendReceipt } from "@/lib/receipts";
 
 // Square webhook (C13.5/6 + C13-PKG §7/§8). Signature-verified; idempotent;
 // metadata-only logging (event type + ids — never amounts). Three jobs:
@@ -49,6 +22,7 @@ type SquareEvent = {
         id?: string;
         status?: string;
         reference_id?: string;
+        order_id?: string;
         customer_id?: string;
         amount_money?: { amount?: number; currency?: string };
       };
@@ -141,6 +115,35 @@ export async function POST(req: Request) {
       await sendReceipt(paid);
     }
     if (charge) return NextResponse.json({ ok: true });
+  }
+
+  // 1b. An invoice payment? It carries no reference_id, but it points at the
+  // order we created — and that order's reference_id IS the charge id. Trace
+  // it and settle, so a paid invoice always completes itself even when the
+  // invoice.* events aren't subscribed or arrive late.
+  if (payment.order_id) {
+    const refId = await getOrderReferenceId(payment.order_id);
+    const charge = refId
+      ? await prisma.charge.findUnique({ where: { id: refId } })
+      : null;
+    if (charge) {
+      if (charge.status !== "PAID") {
+        const paid = await prisma.charge.update({
+          where: { id: charge.id },
+          data: {
+            status: "PAID",
+            paidAt: new Date(),
+            paidVia: "square-invoice",
+            squarePaymentId: payment.id,
+            lastActionById: "square-webhook",
+          },
+        });
+        await activatePackageForCharge(paid);
+        await sendReceipt(paid);
+        console.log(`[square-webhook] invoice payment traced via order charge=${charge.id}`);
+      }
+      return NextResponse.json({ ok: true });
+    }
   }
 
   // Already linked to a charge some other way? Done.
