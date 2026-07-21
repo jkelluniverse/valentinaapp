@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SignatureRule, Eyebrow } from "@/components/brand";
@@ -17,6 +18,7 @@ function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const inactive = params.get("error") === "inactive";
+  const reset = params.get("reset") === "1";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,6 +55,11 @@ function LoginForm() {
         <SignatureRule />
       </div>
 
+      {reset && (
+        <p className="rounded-md bg-blush-deep px-3 py-2 text-sm text-wine">
+          Password updated — sign in with your new one.
+        </p>
+      )}
       {inactive && (
         <p className="rounded-md bg-blush-deep px-3 py-2 text-sm text-wine">
           Your account isn&apos;t active right now. Please reach out to Valentina.
@@ -90,6 +97,12 @@ function LoginForm() {
         >
           {loading ? "Signing in…" : "Sign in"}
         </button>
+        <Link
+          href="/forgot"
+          className="self-start text-sm text-slate underline-offset-4 hover:text-wine hover:underline"
+        >
+          Forgot your password?
+        </Link>
       </form>
     </main>
   );

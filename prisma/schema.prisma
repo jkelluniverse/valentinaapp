@@ -26,6 +26,7 @@ model User {
   aiConsentAt  DateTime? // legacy AI-review opt-in — folded into unified consent (AMENDMENT-01)
   consentGrants ConsentGrant[]
   emailChanges EmailChangeRequest[]
+  passwordResets PasswordResetToken[]
   deletionRequests DeletionRequest[]
   pushSubscriptions PushSubscription[]
   entries      LogEntry[]
@@ -85,6 +86,20 @@ model EmailChangeRequest {
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   newEmail   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Password reset — the self-serve way back in. Single-use hashed token, short
+// expiry; consuming it bumps sessionVersion so every open session dies.
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   tokenHash  String    @unique
   expiresAt  DateTime
   consumedAt DateTime?

@@ -312,6 +312,47 @@ export function invoiceEmail(
 }
 
 // AMD-05 B2 — verified email change: link to the NEW address…
+// Password reset — the way back in. The link is the whole message; the note
+// keeps the not-you case calm (nothing changes unless the link is used).
+export function passwordResetEmail(locale: Locale, v: { link: string }): Mail {
+  if (locale === "es") {
+    return {
+      subject: "Restablece tu contraseña",
+      text:
+        `Pediste restablecer la contraseña de tu espacio.\n\n` +
+        `Crea una nueva aquí (el enlace vence en 60 minutos y solo funciona una vez):\n${v.link}\n\n` +
+        `Si no fuiste tú, ignora este mensaje — tu contraseña no cambia sin este enlace.`,
+    };
+  }
+  return {
+    subject: "Reset your password",
+    text:
+      `You asked to reset the password for your space.\n\n` +
+      `Create a new one here (the link expires in 60 minutes and works only once):\n${v.link}\n\n` +
+      `If this wasn't you, ignore this message — your password doesn't change without this link.`,
+  };
+}
+
+// …and the tripwire notice once a reset actually happens.
+export function passwordChangedEmail(locale: Locale): Mail {
+  if (locale === "es") {
+    return {
+      subject: "Tu contraseña fue cambiada",
+      text:
+        `La contraseña de tu cuenta acaba de cambiarse y todas las sesiones abiertas se cerraron.\n\n` +
+        `Si fuiste tú, no necesitas hacer nada.\n\n` +
+        `Si NO fuiste tú, usa "¿Olvidaste tu contraseña?" en la página de inicio de sesión ahora mismo y avísale a Valentina.`,
+    };
+  }
+  return {
+    subject: "Your password was changed",
+    text:
+      `Your account password was just changed and every open session was signed out.\n\n` +
+      `If this was you, there's nothing to do.\n\n` +
+      `If this was NOT you, use "Forgot your password?" on the sign-in page right away and let Valentina know.`,
+  };
+}
+
 export function emailChangeVerifyEmail(locale: Locale, v: { link: string }): Mail {
   if (locale === "es") {
     return {
