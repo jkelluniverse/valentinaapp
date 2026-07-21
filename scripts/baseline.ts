@@ -23,7 +23,7 @@ const DIFF_OUT = join(process.cwd(), "docs/baseline/.current");
 
 // The screens that define "her portal": practitioner daily drivers + the
 // client space + public door. Mobile variants for the two shells.
-const SHOTS: { name: string; path: string; as: "her" | "client" | null; mobile?: boolean; simulated?: boolean }[] = [
+const SHOTS: { name: string; path: string; as: "her" | "client" | null; mobile?: boolean; simulated?: boolean; dark?: boolean }[] = [
   { name: "login", path: "/login", as: null },
   { name: "practitioner-home", path: "/practitioner", as: "her" },
   { name: "practitioner-clients", path: "/practitioner/clients", as: "her" },
@@ -36,6 +36,8 @@ const SHOTS: { name: string; path: string; as: "her" | "client" | null; mobile?:
   { name: "space-journey", path: "/space/journey", as: "client" },
   { name: "space-design", path: "/space/design", as: "client" },
   { name: "space-settings", path: "/space/settings", as: "client" },
+  { name: "space-home-dusk", path: "/space", as: "client", dark: true },
+  { name: "practitioner-home-dusk", path: "/practitioner", as: "her", dark: true },
   { name: "space-home-mobile", path: "/space", as: "client", mobile: true },
   { name: "practitioner-home-mobile", path: "/practitioner", as: "her", mobile: true },
 ];
@@ -65,6 +67,13 @@ async function main() {
   }
   const maria = (await prisma.user.findUnique({ where: { email: "maria@fixture.test" } }))!;
 
+  try {
+    await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(2000) });
+    throw new Error(`port ${PORT} already serving — kill the stale server first (pkill -f next-server)`);
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("already serving")) throw e;
+    /* connection refused = port free, good */
+  }
   console.log(`~ starting built app on :${PORT}`);
   const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(PORT)], {
     env: { ...process.env, AUTH_SECRET: process.env.AUTH_SECRET || "baseline-secret", PORT: String(PORT) },
@@ -111,6 +120,10 @@ async function main() {
     // domcontentloaded + settle: "networkidle" hangs on pages that poll or make
     // slow third-party calls (billing → Square) — determinism comes from the
     // fixed settle window, not network silence.
+    if (shot.dark) {
+      // Dusk: the toggle writes data-theme on <html>; simulate the saved choice.
+      await page.addInitScript(() => localStorage.setItem("veritas-theme", "dark"));
+    }
     await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded", timeout: 60_000 });
     await page.waitForTimeout(2_000);
     const png = await page.screenshot({ fullPage: false });
@@ -148,4 +161,8 @@ async function main() {
 
 main()
   .catch((e) => { console.error(e); process.exit(1); })
-  .finally(() => prisma.$disconnect());
+  .finally(() => {
+    void prisma.$disconnect();
+    // Belt-and-braces: a crashed run must never leave a stale server behind.
+    try { execSync(`pkill -f "next start -p ${PORT}"`); } catch { /* none left */ }
+  });

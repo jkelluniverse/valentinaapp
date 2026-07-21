@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Crimson_Pro, Inter } from "next/font/google";
 import "./globals.css";
+// PLATFORM Layer 2 — all skin files are statically imported; data-skin on
+// <html> selects which one's tokens apply. Only warm-clay exists today.
+import "../styles/skins/warm-clay.css";
 import { RegisterSW } from "@/components/mobile/RegisterSW";
 import { PwaHint } from "@/components/mobile/PwaHint";
 
@@ -55,7 +58,7 @@ const THEME_INIT = `(function(){try{var t=localStorage.getItem('veritas-theme');
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${crimson.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html lang="en" data-skin="warm-clay" className={`${crimson.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
