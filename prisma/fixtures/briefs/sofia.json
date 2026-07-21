@@ -21,26 +21,67 @@
     "in_her_words": "I hold everyone at work all day and then I get home and there's nobody who can hold me, so I just… turn it off."
   },
   "psyche": {
-    "wounds": ["unsafe-to-be-seen", "I-am-too-much"],
-    "beliefs": ["the world isn't safe", "my feelings are dangerous to other people", "if they see how much I feel, they'll leave"],
-    "protections": ["hypervigilance", "emotional shutdown", "caretaking others to stay useful and unseen"],
-    "patterns": ["over-functions in crisis then crashes alone", "apologizes for crying", "goes quiet exactly when overwhelmed"],
-    "resources": ["fierce competence under pressure", "a younger sister who thinks she hung the moon", "the drive home with the windows down"],
+    "wounds": [
+      "unsafe-to-be-seen",
+      "I-am-too-much"
+    ],
+    "beliefs": [
+      "the world isn't safe",
+      "my feelings are dangerous to other people",
+      "if they see how much I feel, they'll leave"
+    ],
+    "protections": [
+      "hypervigilance",
+      "emotional shutdown",
+      "caretaking others to stay useful and unseen"
+    ],
+    "patterns": [
+      "over-functions in crisis then crashes alone",
+      "apologizes for crying",
+      "goes quiet exactly when overwhelmed"
+    ],
+    "resources": [
+      "fierce competence under pressure",
+      "a younger sister who thinks she hung the moon",
+      "the drive home with the windows down"
+    ],
     "origin": "grew up translating adult panic in a household where big feeling meant danger arriving"
   },
   "first_map": {
-    "self_named": ["hypervigilance", "the world isn't safe", "I-am-too-much"],
-    "unaware_of": ["unsafe-to-be-seen", "caretaking others to stay useful and unseen"]
+    "self_named": [
+      "hypervigilance",
+      "the world isn't safe",
+      "I-am-too-much"
+    ],
+    "unaware_of": [
+      "unsafe-to-be-seen",
+      "caretaking others to stay useful and unseen"
+    ]
   },
   "arc": {
     "months": 8,
     "stage": 2,
     "beats": [
-      { "m": 1, "note": "arrives heavy and articulate; journals nightly, often about patients rather than herself" },
-      { "m": 3, "note": "names the shutdown for what it is — 'I don't go calm, I go gone'" },
-      { "m": 5, "note": "a bad code at work; writes the most honest entry yet about feeling too much" },
-      { "m": 6, "note": "GOES SILENT — no reflections, no messages for 3 weeks (INACTIVITY SIGNAL; triggers a gentle re-engagement nudge, not alarm)" },
-      { "m": 7, "note": "returns quietly: 'I disappeared. That's the pattern, isn't it.'" }
+      {
+        "m": 1,
+        "note": "arrives heavy and articulate; journals nightly, often about patients rather than herself"
+      },
+      {
+        "m": 3,
+        "note": "names the shutdown for what it is — 'I don't go calm, I go gone'"
+      },
+      {
+        "m": 5,
+        "note": "a bad code at work; writes the most honest entry yet about feeling too much"
+      },
+      {
+        "m": 6,
+        "note": "GOES SILENT — no reflections, no messages for 3 weeks (INACTIVITY SIGNAL; triggers a gentle re-engagement nudge, not alarm)"
+      },
+      {
+        "m": 7,
+        "note": "returns quietly: 'I disappeared. That's the pattern, isn't it.'"
+      }
     ]
   },
   "engagement": {
@@ -50,5 +91,28 @@
     "course": "Nervous System First Aid (45%)",
     "inactivity_signal": "heavy engagement through month 5, then a 3-week silence in month 6 — the fixture that verifies the dormancy/re-engagement path"
   },
-  "voice": "warm and vivid, then abruptly flat when it gets close; downplays her own weather; slips into Spanish for tenderness and for grief"
+  "voice": "warm and vivid, then abruptly flat when it gets close; downplays her own weather; slips into Spanish for tenderness and for grief",
+  "values_answers": {
+    "spiral:grounding:1": 4,
+    "spiral:grounding:2": 4,
+    "spiral:grounding:3": 4,
+    "spiral:belonging:1": 4,
+    "spiral:belonging:2": 4,
+    "spiral:belonging:3": 5,
+    "spiral:drive:1": 1,
+    "spiral:drive:2": 2,
+    "spiral:drive:3": 1,
+    "spiral:order:1": 3,
+    "spiral:order:2": 3,
+    "spiral:order:3": 3,
+    "spiral:achievement:1": 2,
+    "spiral:achievement:2": 3,
+    "spiral:achievement:3": 2,
+    "spiral:harmony:1": 4,
+    "spiral:harmony:2": 3,
+    "spiral:harmony:3": 3,
+    "spiral:flow:1": 2,
+    "spiral:flow:2": 2,
+    "spiral:flow:3": 2
+  }
 }

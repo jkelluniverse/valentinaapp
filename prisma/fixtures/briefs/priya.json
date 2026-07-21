@@ -21,7 +21,9 @@
     "in_her_words": "When someone takes a day to text back, I have already written the goodbye."
   },
   "psyche": {
-    "wounds": ["abandonment"],
+    "wounds": [
+      "abandonment"
+    ],
     "beliefs": [
       "if I'm not vigilant, people will slip away",
       "closeness is the setup for the loss",
@@ -45,7 +47,11 @@
     "origin": "a parent whose presence came and went unpredictably in childhood — not cruel, just never something she could count on, so she learned to count on nothing"
   },
   "first_map": {
-    "self_named": ["abandonment", "over-monitoring", "the group chat"],
+    "self_named": [
+      "abandonment",
+      "over-monitoring",
+      "the group chat"
+    ],
     "unaware_of": [
       "that she leaves first and calls it protecting herself",
       "that 'low-maintenance' is a disappearing act, not a virtue"
@@ -55,9 +61,18 @@
     "months": 3,
     "stage": 1,
     "beats": [
-      { "m": 1, "note": "arrives mid-spiral about a delayed text; presents it as a logistics problem, laughs at herself" },
-      { "m": 2, "note": "notices the pattern is loudest when things are going well; names the fear of the good thing for the first time" },
-      { "m": 3, "note": "catches herself about to 'leave first' and doesn't; sits in the discomfort; early, tender, unfinished — the wound is now visible but not yet loosening" }
+      {
+        "m": 1,
+        "note": "arrives mid-spiral about a delayed text; presents it as a logistics problem, laughs at herself"
+      },
+      {
+        "m": 2,
+        "note": "notices the pattern is loudest when things are going well; names the fear of the good thing for the first time"
+      },
+      {
+        "m": 3,
+        "note": "catches herself about to 'leave first' and doesn't; sits in the discomfort; early, tender, unfinished — the wound is now visible but not yet loosening"
+      }
     ]
   },
   "engagement": {
@@ -66,5 +81,28 @@
     "worksheets": 3,
     "course": "Attachment & the Fear of Loss (35%)"
   },
-  "voice": "quick, wry, engineer's precision; debugs her own feelings like code, then a Tamil word slips in when the feeling outruns the English; catches her own deflections a beat after making them"
+  "voice": "quick, wry, engineer's precision; debugs her own feelings like code, then a Tamil word slips in when the feeling outruns the English; catches her own deflections a beat after making them",
+  "values_answers": {
+    "spiral:grounding:1": 4,
+    "spiral:grounding:2": 4,
+    "spiral:grounding:3": 3,
+    "spiral:belonging:1": 4,
+    "spiral:belonging:2": 4,
+    "spiral:belonging:3": 5,
+    "spiral:drive:1": 1,
+    "spiral:drive:2": 2,
+    "spiral:drive:3": 1,
+    "spiral:order:1": 3,
+    "spiral:order:2": 3,
+    "spiral:order:3": 3,
+    "spiral:achievement:1": 3,
+    "spiral:achievement:2": 4,
+    "spiral:achievement:3": 3,
+    "spiral:harmony:1": 2,
+    "spiral:harmony:2": 3,
+    "spiral:harmony:3": 2,
+    "spiral:flow:1": 3,
+    "spiral:flow:2": 2,
+    "spiral:flow:3": 2
+  }
 }

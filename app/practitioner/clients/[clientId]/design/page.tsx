@@ -108,6 +108,14 @@ export default async function ClientDesignPage({
     orderBy: { createdAt: "desc" },
     take: 10,
   });
+  // The three quiet states below the spiral: absent · sent-awaiting · pending
+  // approval (the last renders as the un-reviewed blend with her sign-off form).
+  const spiralSent = spiralScore
+    ? null
+    : await prisma.worksheetAssignment.findFirst({
+        where: { clientId: client.id, status: "PENDING", worksheet: { isSpiral: true } },
+        select: { createdAt: true },
+      });
 
   return (
     <div className="flex flex-col gap-8">
@@ -212,6 +220,11 @@ export default async function ClientDesignPage({
               </p>
             </form>
           </div>
+        ) : spiralSent ? (
+          <p className="rounded-lg border border-line bg-white p-6 text-ink shadow-soft">
+            Sent {spiralSent.createdAt.toISOString().slice(0, 10)} — awaiting their answers. The
+            blend appears here for your review once they finish.
+          </p>
         ) : (
           <p className="rounded-lg border border-line bg-white p-6 text-ink shadow-soft">
             Not taken yet — send the values assessment from the library, and their answers score

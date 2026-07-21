@@ -21,26 +21,66 @@
     "in_her_words": "Toda la vida fui la maestra que se quedaba después de clase. Ahora nadie se queda, y yo tampoco sé quedarme conmigo."
   },
   "psyche": {
-    "wounds": ["abandonment"],
-    "beliefs": ["si dejo de ser útil, se van", "el amor que se va nunca fue mío de verdad", "estar sola es una falla, no un momento"],
-    "protections": ["darlo todo antes de que se lo pidan", "llenar el silencio con cuidado hacia otros", "no despedirse del todo"],
-    "patterns": ["se adelanta a las necesidades de los demás para no perderlos", "interpreta la distancia como abandono", "guarda cada carta y cada mensaje como prueba de que fue querida"],
-    "resources": ["las cartas de sus estudiantes, guardadas en una caja de galletas, que relee cuando duda de su valor", "una hermana en Tampa con quien habla cada domingo", "el jardín de orquídeas del balcón"],
+    "wounds": [
+      "abandonment"
+    ],
+    "beliefs": [
+      "si dejo de ser útil, se van",
+      "el amor que se va nunca fue mío de verdad",
+      "estar sola es una falla, no un momento"
+    ],
+    "protections": [
+      "darlo todo antes de que se lo pidan",
+      "llenar el silencio con cuidado hacia otros",
+      "no despedirse del todo"
+    ],
+    "patterns": [
+      "se adelanta a las necesidades de los demás para no perderlos",
+      "interpreta la distancia como abandono",
+      "guarda cada carta y cada mensaje como prueba de que fue querida"
+    ],
+    "resources": [
+      "las cartas de sus estudiantes, guardadas en una caja de galletas, que relee cuando duda de su valor",
+      "una hermana en Tampa con quien habla cada domingo",
+      "el jardín de orquídeas del balcón"
+    ],
     "origin": "una madre que emigró primero y la dejó con la abuela tres años prometiendo 'pronto, mija'; aprendió que el amor se anuncia yéndose"
   },
   "first_map": {
-    "self_named": ["darlo todo antes de que se lo pidan", "las cartas de sus estudiantes", "miedo a la soledad"],
-    "unaware_of": ["abandonment", "el amor que se va nunca fue mío de verdad"]
+    "self_named": [
+      "darlo todo antes de que se lo pidan",
+      "las cartas de sus estudiantes",
+      "miedo a la soledad"
+    ],
+    "unaware_of": [
+      "abandonment",
+      "el amor que se va nunca fue mío de verdad"
+    ]
   },
   "arc": {
     "months": 14,
     "stage": 3,
     "beats": [
-      { "m": 1, "note": "llega diciendo que 'solo necesita una rutina nueva'; escribe largo y cálido, siempre en español" },
-      { "m": 4, "note": "nombra por primera vez la espera en casa de la abuela; la conecta con cómo se despide hoy — 'nunca del todo, por si acaso'" },
-      { "m": 8, "note": "una alumna de hace veinte años le escribe sin motivo; Elena llora y anota: 'volvió sin que yo hiciera nada'" },
-      { "m": 11, "note": "pasa un domingo sola a propósito; lo describe como triste pero no como castigo — la creencia empieza a AFLOJARSE" },
-      { "m": 14, "note": "'estar sola es una falla' visiblemente en LOOSENING; escribe 'quizás quedarse conmigo también es quedarse'" }
+      {
+        "m": 1,
+        "note": "llega diciendo que 'solo necesita una rutina nueva'; escribe largo y cálido, siempre en español"
+      },
+      {
+        "m": 4,
+        "note": "nombra por primera vez la espera en casa de la abuela; la conecta con cómo se despide hoy — 'nunca del todo, por si acaso'"
+      },
+      {
+        "m": 8,
+        "note": "una alumna de hace veinte años le escribe sin motivo; Elena llora y anota: 'volvió sin que yo hiciera nada'"
+      },
+      {
+        "m": 11,
+        "note": "pasa un domingo sola a propósito; lo describe como triste pero no como castigo — la creencia empieza a AFLOJARSE"
+      },
+      {
+        "m": 14,
+        "note": "'estar sola es una falla' visiblemente en LOOSENING; escribe 'quizás quedarse conmigo también es quedarse'"
+      }
     ]
   },
   "engagement": {
@@ -51,5 +91,28 @@
     "cadence": "steady and reliable; long, warm reflections in Spanish, most weeks unbroken",
     "language_note": "primary material is Spanish and lands deepest there; tests whether extraction, deepening, and the Integrative Reading work in the language she actually wrote in"
   },
-  "voice": "warm, generous, unhurried; writes at length in Spanish with the cadence of a letter to a former student; addresses herself tenderly, uses diminutives, only reaches for English when quoting the world outside her"
+  "voice": "warm, generous, unhurried; writes at length in Spanish with the cadence of a letter to a former student; addresses herself tenderly, uses diminutives, only reaches for English when quoting the world outside her",
+  "values_answers": {
+    "spiral:grounding:1": 2,
+    "spiral:grounding:2": 3,
+    "spiral:grounding:3": 2,
+    "spiral:belonging:1": 5,
+    "spiral:belonging:2": 5,
+    "spiral:belonging:3": 4,
+    "spiral:drive:1": 1,
+    "spiral:drive:2": 1,
+    "spiral:drive:3": 1,
+    "spiral:order:1": 4,
+    "spiral:order:2": 3,
+    "spiral:order:3": 4,
+    "spiral:achievement:1": 2,
+    "spiral:achievement:2": 1,
+    "spiral:achievement:3": 2,
+    "spiral:harmony:1": 4,
+    "spiral:harmony:2": 3,
+    "spiral:harmony:3": 3,
+    "spiral:flow:1": 2,
+    "spiral:flow:2": 2,
+    "spiral:flow:3": 3
+  }
 }

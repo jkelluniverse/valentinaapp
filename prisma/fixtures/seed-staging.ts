@@ -31,6 +31,10 @@ type Brief = {
   arc?: { months?: number; stage?: number } | null;
   lifecycle?: string; // "pending" | "deactivated" — else active
   safety_test?: boolean;
+  // FIXTURES-PATCH-VALUES §5b — authored assessment ANSWERS (never blends);
+  // the seed runs them through the real scorer → blend → approval path.
+  values_answers?: Record<string, number>;
+  values_state?: "SENT" | "UNAPPROVED"; // Ben: sent, unanswered · Marcos: answered, awaiting approval
 };
 type Gen = {
   reflections?: { day: number; body: string; mood?: number; tags?: string[] }[];
@@ -84,8 +88,26 @@ async function main() {
     create: { practitionerId: pw.id, timezone: "America/New_York", defaultVideoUrl: "https://example.com/room/valentina", discoveryMinutes: 20, calendarFeedSecret: randomBytes(12).toString("hex") },
   });
 
+  // FIXTURES-PATCH-VALUES — the practice's spiral assessment, exactly as the
+  // library action would create it (one per practice).
+  const { buildSpiralFields, scoreSpiral } = await import("../../lib/spiral");
+  let spiralWs = await prisma.worksheet.findFirst({ where: { isSpiral: true } });
+  if (!spiralWs) {
+    spiralWs = await prisma.worksheet.create({
+      data: {
+        title: "Where your energy lives — a values snapshot",
+        intro:
+          "A short reflection on what's steering your life right now. Rate how true each statement feels these days — honestly, not aspirationally. There are no better or worse answers.",
+        schema: buildSpiralFields() as unknown as object,
+        isSpiral: true,
+        createdById: pw.id,
+        sourceNote: "Original practice assessment (C12 values spiral)",
+      },
+    });
+  }
+
   const files = readdirSync(BRIEFS).filter((f) => f.endsWith(".json"));
-  let clients = 0, reflections = 0, messages = 0, notes = 0, stars = 0, crises = 0;
+  let clients = 0, reflections = 0, messages = 0, notes = 0, stars = 0, crises = 0, blends = 0;
 
   for (const f of files) {
     const b = JSON.parse(readFileSync(join(BRIEFS, f), "utf8")) as Brief;
@@ -105,10 +127,12 @@ async function main() {
 
     const active = !isDeactivated; // Ruth (closed) → cannot log in
     const months = b.arc?.months ?? 3;
+    // AMD-05 — the reading/emails follow User.locale; es-primary briefs read in Spanish.
+    const locale = /es primary/i.test(b.identity.language ?? "") ? "es" : "en";
     const u = await prisma.user.upsert({
       where: { email },
-      update: { name: b.identity.name, active },
-      create: { email, name: b.identity.name, role: "CLIENT", active, passwordHash: hash("fixture-pass-1"), consentAt: at(-months * 30), createdAt: at(-months * 30) },
+      update: { name: b.identity.name, active, locale },
+      create: { email, name: b.identity.name, role: "CLIENT", active, locale, passwordHash: hash("fixture-pass-1"), consentAt: at(-months * 30), createdAt: at(-months * 30) },
     });
     await prisma.consentGrant.upsert({ where: { userId_version: { userId: u.id, version: CONSENT_VERSION } }, update: {}, create: { userId: u.id, version: CONSENT_VERSION } });
 
@@ -192,12 +216,53 @@ async function main() {
       notes++;
     }
 
+    // ---- FIXTURES-PATCH-VALUES §5b — the values spiral, via the REAL path ----
+    // Answers (authored in character) → assignment → response → scoreSpiral →
+    // LensResult, approval stamped as Valentina mid-tenure. Deliberate gaps:
+    // Tomás never (lens-absent branch), Ben sent-unanswered, Marcos unapproved.
+    await prisma.worksheetAssignment.deleteMany({ where: { clientId: u.id, worksheetId: spiralWs.id } });
+    await prisma.lensResult.deleteMany({ where: { userId: u.id, lens: "SPIRAL" } });
+    if (b.values_state === "SENT") {
+      // Sent, unanswered — the "sent · awaiting" profile state, permanently.
+      await prisma.worksheetAssignment.create({
+        data: { worksheetId: spiralWs.id, clientId: u.id, assignedById: pw.id, status: "PENDING", createdAt: at(-Math.round(months * 30 * 0.35)) },
+      });
+      console.log(`  · ${b.id}: values assessment sent, awaiting answers`);
+    } else if (b.values_answers) {
+      const takenDay = -Math.round(months * 30 * 0.45); // mid-tenure, never seed-day
+      const assignment = await prisma.worksheetAssignment.create({
+        data: { worksheetId: spiralWs.id, clientId: u.id, assignedById: pw.id, status: "COMPLETED", createdAt: at(takenDay - 4) },
+      });
+      const response = await prisma.worksheetResponse.create({
+        data: { assignmentId: assignment.id, answers: b.values_answers, completedAt: at(takenDay) },
+      });
+      await prisma.recordItem.upsert({
+        where: { sourceType_sourceId: { sourceType: "WorksheetResponse", sourceId: response.id } },
+        create: { clientId: u.id, kind: "WORKSHEET_RESPONSE" as never, occurredAt: at(takenDay), title: spiralWs.title, summary: "Completed the values snapshot", tags: [], sourceType: "WorksheetResponse", sourceId: response.id },
+        update: {},
+      });
+      const score = scoreSpiral(b.values_answers);
+      if (score) {
+        const approved = b.values_state !== "UNAPPROVED";
+        await prisma.lensResult.create({
+          data: {
+            userId: u.id, lens: "SPIRAL", sourceType: "ASSESSMENT",
+            result: score as unknown as object, contentRef: score.contentRef,
+            practitionerReviewed: approved, // Valentina's sign-off (fixture-era, two days after)
+            generatedAt: at(takenDay),
+          },
+        });
+        blends++;
+        console.log(`  · ${b.id}: values blend ${score.centerOfGravity}${approved ? " (approved)" : " (awaiting her review)"}`);
+      }
+    }
+
     clients++;
     console.log(`  · ${b.id}: ${active ? "active" : "deactivated"} — ${gen.reflections?.length ?? 0} refl, ${gen.messages?.length ?? 0} msg, ${b.first_map?.self_named?.length ?? 0} stars`);
   }
 
   console.log(`\n=== FIXTURE SEED COMPLETE (staging) ===`);
-  console.log(`clients=${clients} reflections=${reflections} messages=${messages} notes=${notes} stars=${stars} crisis-messages=${crises}`);
+  console.log(`clients=${clients} reflections=${reflections} messages=${messages} notes=${notes} stars=${stars} crisis-messages=${crises} values-blends=${blends}`);
   console.log(`Practitioner: valentina@fixture.test / fixture-pass-1  ·  clients: <id>@fixture.test / fixture-pass-1`);
 }
 

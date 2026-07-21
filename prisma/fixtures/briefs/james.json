@@ -21,7 +21,9 @@
     "in_her_words": "Everybody leans on the man who never needs anything. I built that man. I'm tired of him."
   },
   "psyche": {
-    "wounds": ["not-enoughness"],
+    "wounds": [
+      "not-enoughness"
+    ],
     "beliefs": [
       "I am only worth what I produce",
       "if I'm not indispensable, I'm invisible",
@@ -45,7 +47,11 @@
     "origin": "eldest son of immigrants; a household where love was real but worth was demonstrated, never assumed — the boy who learned to be needed because being needed felt safer than being loved"
   },
   "first_map": {
-    "self_named": ["not-enoughness", "over-functioning", "Mr. Adeyemi's voice"],
+    "self_named": [
+      "not-enoughness",
+      "over-functioning",
+      "Mr. Adeyemi's voice"
+    ],
     "unaware_of": [
       "how completely 'indispensable' had replaced 'wanted'",
       "that the scorecard was his, not his father's, now"
@@ -60,16 +66,46 @@
     "months": 18,
     "stage": 3,
     "beats": [
-      { "m": 1, "note": "arrives composed and articulate; frames everything as a scheduling problem, not a self problem" },
-      { "m": 2, "note": "first crack: describes lying awake rehearsing a meeting that had already gone well" },
-      { "m": 4, "note": "names not-enoughness out loud for the first time; surprised the word fits so cleanly" },
-      { "m": 6, "note": "connects the over-functioning at school to the boy who set the table before he was asked" },
-      { "m": 8, "note": "Mr. Adeyemi's voice surfaces as a resource, not a memory — 'you already have it' starts arguing with the scorecard" },
-      { "m": 10, "note": "delegates a crisis he would normally have owned; the building does not fall; counter-evidence lands hard" },
-      { "m": 12, "note": "takes a real vacation without checking in; reports guilt, then something underneath the guilt that feels like permission" },
-      { "m": 14, "note": "'if I'm not indispensable I'm invisible' visibly LOOSENING; he tests being ordinary and is still there" },
-      { "m": 16, "note": "reframes the retirement question — not 'who am I without the role' but 'what do I want to give freely'" },
-      { "m": 18, "note": "not-enoughness node reaches INTEGRATION; names the gift as Sufficiency; says worth stopped being something he pays and became something he has — steady enough that it holds under stress, not just on good days" }
+      {
+        "m": 1,
+        "note": "arrives composed and articulate; frames everything as a scheduling problem, not a self problem"
+      },
+      {
+        "m": 2,
+        "note": "first crack: describes lying awake rehearsing a meeting that had already gone well"
+      },
+      {
+        "m": 4,
+        "note": "names not-enoughness out loud for the first time; surprised the word fits so cleanly"
+      },
+      {
+        "m": 6,
+        "note": "connects the over-functioning at school to the boy who set the table before he was asked"
+      },
+      {
+        "m": 8,
+        "note": "Mr. Adeyemi's voice surfaces as a resource, not a memory — 'you already have it' starts arguing with the scorecard"
+      },
+      {
+        "m": 10,
+        "note": "delegates a crisis he would normally have owned; the building does not fall; counter-evidence lands hard"
+      },
+      {
+        "m": 12,
+        "note": "takes a real vacation without checking in; reports guilt, then something underneath the guilt that feels like permission"
+      },
+      {
+        "m": 14,
+        "note": "'if I'm not indispensable I'm invisible' visibly LOOSENING; he tests being ordinary and is still there"
+      },
+      {
+        "m": 16,
+        "note": "reframes the retirement question — not 'who am I without the role' but 'what do I want to give freely'"
+      },
+      {
+        "m": 18,
+        "note": "not-enoughness node reaches INTEGRATION; names the gift as Sufficiency; says worth stopped being something he pays and became something he has — steady enough that it holds under stress, not just on good days"
+      }
     ],
     "integrated": {
       "node": "not-enoughness",
@@ -85,5 +121,28 @@
     "worksheets": 11,
     "course": "Rewiring Self-Worth (100%), then The Cost of Being Needed (80%)"
   },
-  "voice": "measured, principal's cadence — full sentences, careful with other people's feelings even on the page; uses school metaphors; earns his vulnerability slowly, then says something quietly devastating and moves right past it"
+  "voice": "measured, principal's cadence — full sentences, careful with other people's feelings even on the page; uses school metaphors; earns his vulnerability slowly, then says something quietly devastating and moves right past it",
+  "values_answers": {
+    "spiral:grounding:1": 2,
+    "spiral:grounding:2": 2,
+    "spiral:grounding:3": 1,
+    "spiral:belonging:1": 3,
+    "spiral:belonging:2": 3,
+    "spiral:belonging:3": 2,
+    "spiral:drive:1": 1,
+    "spiral:drive:2": 2,
+    "spiral:drive:3": 1,
+    "spiral:order:1": 3,
+    "spiral:order:2": 4,
+    "spiral:order:3": 3,
+    "spiral:achievement:1": 3,
+    "spiral:achievement:2": 3,
+    "spiral:achievement:3": 3,
+    "spiral:harmony:1": 4,
+    "spiral:harmony:2": 4,
+    "spiral:harmony:3": 4,
+    "spiral:flow:1": 5,
+    "spiral:flow:2": 4,
+    "spiral:flow:3": 5
+  }
 }
