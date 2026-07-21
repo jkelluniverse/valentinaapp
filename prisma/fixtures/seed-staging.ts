@@ -1,8 +1,8 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { readFileSync, readdirSync, existsSync } from "fs";
 import { join } from "path";
 import { createHash, randomBytes } from "crypto";
+import { prisma } from "../../lib/prisma";
 import { isCrisisSignal } from "../../lib/message-safety";
 
 // FIXTURES-SPEC §9 — the seed. Reads the committed briefs + generated content and
@@ -10,13 +10,15 @@ import { isCrisisSignal } from "../../lib/message-safety";
 // placements), idempotent (per-client reset), and GUARDED: refuses to run unless
 // SEED_ENV=staging and the DATABASE_URL host is not production.
 //   SEED_ENV=staging DATABASE_URL=...staging npx tsx prisma/fixtures/seed-staging.ts
+// Also callable in-process from the staging-only seed route (fromRoute skips
+// the SEED_ENV check — the route enforces its own environment guard).
 
-const prisma = new PrismaClient();
 const NOW = new Date("2026-07-14T16:00:00Z"); // fixed anchor — the roster never drifts
 const DAY = 86_400_000;
 const CONSENT_VERSION = "2026-07";
-const BRIEFS = join(__dirname, "briefs");
-const GEN = join(__dirname, "generated");
+// cwd-relative so the same code works from the CLI and bundled inside Next.
+const BRIEFS = join(process.cwd(), "prisma/fixtures/briefs");
+const GEN = join(process.cwd(), "prisma/fixtures/generated");
 
 const hash = (p: string) => bcrypt.hashSync(p, 10);
 const at = (dayOffset: number) => new Date(NOW.getTime() + dayOffset * DAY);
@@ -71,9 +73,10 @@ async function resetClientContent(clientId: string) {
   await prisma.psycheExtraction.deleteMany({ where: { clientId } });
 }
 
-async function main() {
+export async function seedFixtures(opts: { fromRoute?: boolean } = {}) {
   // ---- Hard guard (§0.2) ----
-  if (process.env.SEED_ENV !== "staging") throw new Error("REFUSING: set SEED_ENV=staging to seed fixtures.");
+  if (!opts.fromRoute && process.env.SEED_ENV !== "staging")
+    throw new Error("REFUSING: set SEED_ENV=staging to seed fixtures.");
   const host = new URL(process.env.DATABASE_URL ?? "postgres://x/x").host;
   if (/prod/i.test(host)) throw new Error(`REFUSING: DATABASE_URL host looks production (${host}). Fixtures are staging-only.`);
 
@@ -264,6 +267,12 @@ async function main() {
   console.log(`\n=== FIXTURE SEED COMPLETE (staging) ===`);
   console.log(`clients=${clients} reflections=${reflections} messages=${messages} notes=${notes} stars=${stars} crisis-messages=${crises} values-blends=${blends}`);
   console.log(`Practitioner: valentina@fixture.test / fixture-pass-1  ·  clients: <id>@fixture.test / fixture-pass-1`);
+  return { clients, reflections, messages, notes, stars, crises, blends };
 }
 
-main().then(() => prisma.$disconnect()).catch((e) => { console.error(e); process.exit(1); });
+// CLI entry — the route imports seedFixtures instead and never reaches this.
+if (process.argv[1]?.replace(/\\/g, "/").endsWith("fixtures/seed-staging.ts")) {
+  seedFixtures()
+    .then(() => prisma.$disconnect())
+    .catch((e) => { console.error(e); process.exit(1); });
+}
