@@ -22,9 +22,9 @@ export default async function PractitionerLayout({ children }: { children: React
     await signOut({ redirectTo: "/login" });
   }
 
-  // Phase 0: the sole tenant lives on journey-v1; the key moves onto the
-  // Tenant row when it lands (P0.4) — the registry lookup is already real.
-  const { PractitionerShell } = getLayout("journey-v1");
+  const { getTenant } = await import("@/lib/tenancy");
+  const tenant = await getTenant();
+  const { PractitionerShell } = getLayout(tenant.layoutKey);
   return (
     <PractitionerShell user={{ name: user.name, email: user.email }} unread={unread} signOutAction={doSignOut}>
       {children}

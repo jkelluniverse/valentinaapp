@@ -34,14 +34,23 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     where: sessionUser.id ? { id: sessionUser.id } : { email: sessionUser.email! },
     select: {
       id: true, name: true, email: true, role: true, active: true,
-      locale: true, consentAt: true, sessionVersion: true,
+      locale: true, consentAt: true, sessionVersion: true, tenantId: true,
     },
   });
   if (!user) return null;
   // AMD-05 B2 — revocation: a password change bumps User.sessionVersion; any
   // JWT carrying an older version is dead on its next request.
   if ((sessionUser.sessionVersion ?? 0) !== user.sessionVersion) return null;
-  const { sessionVersion: _sv, ...rest } = user;
+  // PLATFORM Phase 0 — the cross-tenant door: a user signed into one tenant's
+  // host never resolves on another's. Null tenantId = the default tenant
+  // (legacy rows), which is also what every current host resolves to.
+  const { getTenant } = await import("@/lib/tenancy");
+  const tenant = await getTenant();
+  const { DEFAULT_TENANT_SLUG } = await import("@/lib/tenancy");
+  const userTenantId = (user as { tenantId?: string | null }).tenantId ?? null;
+  if (userTenantId && userTenantId !== tenant.id) return null;
+  if (!userTenantId && tenant.slug !== DEFAULT_TENANT_SLUG) return null;
+  const { sessionVersion: _sv, tenantId: _t, ...rest } = user;
   return rest as SessionUser;
 }
 

@@ -83,7 +83,7 @@ export async function seedFixtures(opts: { fromRoute?: boolean } = {}) {
   const pw = await prisma.user.upsert({
     where: { email: "valentina@fixture.test" },
     update: { passwordHash: hash("fixture-pass-1") },
-    create: { email: "valentina@fixture.test", name: "Valentina Vélez", role: "PRACTITIONER", active: true, passwordHash: hash("fixture-pass-1") },
+    create: { email: "valentina@fixture.test", name: "Valentina Vélez", role: "PRACTITIONER", active: true, tenantId: "tnt_valentina_000000001", passwordHash: hash("fixture-pass-1") },
   });
   await prisma.schedulingConfig.upsert({
     where: { practitionerId: pw.id },
@@ -134,8 +134,8 @@ export async function seedFixtures(opts: { fromRoute?: boolean } = {}) {
     const locale = /es primary/i.test(b.identity.language ?? "") ? "es" : "en";
     const u = await prisma.user.upsert({
       where: { email },
-      update: { name: b.identity.name, active, locale },
-      create: { email, name: b.identity.name, role: "CLIENT", active, locale, passwordHash: hash("fixture-pass-1"), consentAt: at(-months * 30), createdAt: at(-months * 30) },
+      update: { name: b.identity.name, active, locale, tenantId: "tnt_valentina_000000001" },
+      create: { email, name: b.identity.name, role: "CLIENT", active, locale, tenantId: "tnt_valentina_000000001", passwordHash: hash("fixture-pass-1"), consentAt: at(-months * 30), createdAt: at(-months * 30) },
     });
     await prisma.consentGrant.upsert({ where: { userId_version: { userId: u.id, version: CONSENT_VERSION } }, update: {}, create: { userId: u.id, version: CONSENT_VERSION } });
 

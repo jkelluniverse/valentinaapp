@@ -31,12 +31,15 @@ export async function acceptInvite(token: string, formData: FormData) {
 
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.$transaction(async (tx) => {
+    const { getTenant } = await import("@/lib/tenancy");
+    const tenant = await getTenant();
     const user = await tx.user.create({
       data: {
         email: invite.email,
         name: name || invite.name,
         role: "CLIENT",
         active: true,
+        tenantId: tenant.id, // PLATFORM Phase 0 — new rows carry their tenant
         passwordHash,
         // The language she invited them in becomes their starting portal
         // language (they can change it any time in Settings).

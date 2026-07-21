@@ -85,9 +85,9 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
     redirect(`/practitioner/clients/${clientId}`);
   }
 
-  // Phase 0: the sole tenant lives on journey-v1; the key moves onto the
-  // Tenant row when it lands (P0.4) — the registry lookup is already real.
-  const { ClientShell } = getLayout("journey-v1");
+  const { getTenant } = await import("@/lib/tenancy");
+  const tenant = await getTenant();
+  const { ClientShell } = getLayout(tenant.layoutKey);
   return (
     <ClientShell
       user={{ name: user.name, email: user.email }}

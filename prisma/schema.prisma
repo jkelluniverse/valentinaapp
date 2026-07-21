@@ -13,6 +13,7 @@ enum Role {
 }
 
 model User {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id           String     @id @default(cuid())
   email        String     @unique
   name         String?
@@ -254,6 +255,7 @@ model PsycheAudit {
 // C16.8 — the Pattern Library: the practice ontology. NO client references, by
 // design — the schema cannot hold client content, IDs, or text from records.
 model PatternArchetype {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id          String   @id @default(cuid())
   kind        NodeKind
   label       String   @unique // "Not-enoughness"
@@ -263,6 +265,7 @@ model PatternArchetype {
 }
 
 model PatternLink {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id          String @id @default(cuid())
   fromId      String
   toId        String
@@ -554,6 +557,7 @@ model AskRecordAnswer {
 
 // Small practice-wide key/value settings (e.g. her synthesis-method text).
 model PracticeSetting {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
@@ -805,6 +809,7 @@ model SessionCredit {
 }
 
 model PriceBook {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id               String  @id @default(cuid())
   name             String // "Standard session", "Stage-2 rate"
   amountCents      Int
@@ -879,6 +884,7 @@ model ExternalPayment {
 // fields), so any worksheet shape works with no migrations. Parallels C3's
 // Assignment/Response on purpose — C4 unifies them in the record.
 model Worksheet {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id          String                @id @default(cuid())
   title       String
   intro       String?
@@ -935,6 +941,35 @@ model AssistGrant {
   @@index([clientId, createdAt])
 }
 
+// PLATFORM v1.0 §2 — the tenant config: one codebase, many practices. A new
+// practitioner is a row + a config object + a subdomain, never a fork. All
+// customization is data (Rule 0.3); module keys stay generic and trademark-
+// free (Rule 0.4) — branded names live in tenant-entered settings only.
+model Tenant {
+  id           String   @id @default(cuid())
+  slug         String   @unique // subdomain
+  displayName  String
+  status       String   @default("ACTIVE") // ACTIVE | DEMO | PROVISIONING | SUSPENDED
+  layoutKey    String   @default("journey-v1")
+  skinKey      String   @default("warm-clay")
+  branding     Json? // { logoKey?, accentOverride?, portalTitle, welcomeCopy }
+  featureFlags Json? // { sessionPipeline: true, ... }
+  createdAt    DateTime @default(now())
+  modules      TenantModule[]
+}
+
+model TenantModule {
+  id        String  @id @default(cuid())
+  tenantId  String
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  moduleKey String // registry key, e.g. "values-spiral"
+  enabled   Boolean @default(true)
+  position  Int // display order on client maps
+  settings  Json? // module knobs incl. the practitioner's displayLabel
+
+  @@unique([tenantId, moduleKey])
+}
+
 // AMD-06 §3 — the audit spine: append-only, attributable, metadata only
 // (never note bodies, answers, tokens, or card data). actorId is who ACTED;
 // onBehalfOfId is whose account it touched.
@@ -969,6 +1004,7 @@ enum VideoSource {
 }
 
 model Course {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id          String       @id @default(cuid())
   title       String
   description String?
@@ -1103,6 +1139,7 @@ enum AssignmentStatus {
 }
 
 model Prompt {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id          String       @id @default(cuid())
   kind        PromptKind   @default(PROMPT)
   title       String
@@ -1173,6 +1210,7 @@ enum InviteStatus {
 }
 
 model Invite {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id             String       @id @default(cuid())
   email          String
   name           String?
@@ -1237,6 +1275,7 @@ enum ExceptionType {
 }
 
 model SchedulingConfig {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id                String @id @default(cuid())
   practitionerId    String @unique
   timezone          String // IANA, e.g. "America/New_York"
@@ -1311,6 +1350,7 @@ model Appointment {
 // C18 — a prospect from the public site. Becomes a client via the conversion
 // bridge ("Invite as client"), which pre-fills the C1 invite and links back here.
 model Lead {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
   id              String      @id @default(cuid())
   name            String
   email           String

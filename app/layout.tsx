@@ -56,9 +56,13 @@ export const viewport: Viewport = {
 // wrong theme. Runs synchronously; falls back to the system preference.
 const THEME_INIT = `(function(){try{var t=localStorage.getItem('veritas-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // PLATFORM Layer 2 — the tenant's skin selects the token set. Cached 60s;
+  // falls back to warm-clay so her portal can never break on a config read.
+  const { getTenant } = await import("@/lib/tenancy");
+  const tenant = await getTenant();
   return (
-    <html lang="en" data-skin="warm-clay" className={`${crimson.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html lang="en" data-skin={tenant.skinKey} className={`${crimson.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
       </head>
