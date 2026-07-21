@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -6,16 +5,13 @@ import { requireClient } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { hasConsent } from "@/lib/consent";
 import { signOut } from "@/auth";
-import { SignOutForm } from "@/components/SignOutForm";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { AvatarSheet } from "@/components/mobile/AvatarSheet";
-import { BottomTabBar, type Tab, type MoreLink } from "@/components/mobile/BottomTabBar";
+import { getLayout } from "@/components/layouts";
+import type { Tab, MoreLink } from "@/components/mobile/BottomTabBar";
 
-// The client frame (UI-CLIENT-DESIGN + AMENDMENT-02 Mobile-First). Mobile: a
-// 48px top bar (wordmark + avatar sheet) over the notch, and a bottom tab bar
-// with the Reflect flourish at center. Desktop (≥768px): the quiet top-row of
-// links returns, no tab bar. data-portal="client" scopes Dusk to this subtree.
-// C18 §2 — the portal is private; never index it.
+// The client frame — thin data/action wrapper (UI-CLIENT-DESIGN + AMD-02).
+// The chrome lives in the tenant's layout tree (components/layouts/*); this
+// file authenticates, runs the gates, gathers data + translations, and
+// selects the layout. C18 §2 — the portal is private; never index it.
 export const metadata = { robots: { index: false, follow: false } };
 
 export default async function SpaceLayout({ children }: { children: React.ReactNode }) {
@@ -23,7 +19,6 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
   // AMD-05 A5.1 — chrome labels follow the reader's User.locale (server-side;
   // client components receive translated strings as props).
   const t = await getTranslations("nav");
-  const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();
 
   const pathname = headers().get("x-pathname") ?? "";
 
@@ -90,80 +85,32 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
     redirect(`/practitioner/clients/${clientId}`);
   }
 
+  // Phase 0: the sole tenant lives on journey-v1; the key moves onto the
+  // Tenant row when it lands (P0.4) — the registry lookup is already real.
+  const { ClientShell } = getLayout("journey-v1");
   return (
-    <div data-portal="client" className="min-h-dvh bg-canvas text-ink">
-      {/* AMD-06 §2 — the persistent assist banner: never absent, never subtle. */}
-      {user.assistedBy && (
-        <div className="sticky top-0 z-40 flex items-center gap-3 bg-wine px-4 py-2 text-[13px] text-cream">
-          <span aria-hidden>✧</span>
-          <span>
-            Assisting {user.name || user.email}&apos;s account — actions are recorded as yours.
-            Until {user.assistedBy.expiresAt.toISOString().slice(11, 16)} UTC.
-          </span>
-          <form action={doExitAssist} className="ml-auto">
-            <button className="rounded border border-cream/60 px-3 py-1 text-xs font-semibold text-cream hover:bg-cream/10">
-              Exit assist
-            </button>
-          </form>
-        </div>
-      )}
-      <header className="sticky top-0 z-30 border-b border-line bg-surface/60 pt-safe backdrop-blur">
-        {/* Mobile bar: wordmark + avatar only. */}
-        <div className="flex h-12 items-center px-4 md:hidden">
-          <Link href="/space" className="font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
-          </Link>
-          <span className="ml-auto">
-            <AvatarSheet initial={initial} name={user.name} email={user.email} signOutAction={doSignOut} />
-          </span>
-        </div>
-
-        {/* Desktop bar: wordmark + quiet links. */}
-        <div className="mx-auto hidden max-w-[720px] items-center gap-4 px-6 py-4 md:flex">
-          <Link href="/space" className="font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
-          </Link>
-          <nav className="ml-auto flex items-center gap-4 text-[13px] text-whisper">
-            <Link href="/space/first-map" className="underline-offset-4 hover:text-wine hover:underline">
-              {t("top.map")}
-            </Link>
-            <Link href="/space/courses" className="underline-offset-4 hover:text-wine hover:underline">
-              {t("top.path")}
-            </Link>
-            <Link href="/space/journey" className="underline-offset-4 hover:text-wine hover:underline">
-              {t("top.journey")}
-            </Link>
-            <Link href="/space/schedule" className="underline-offset-4 hover:text-wine hover:underline">
-              {t("top.sessions")}
-            </Link>
-            <Link href="/space/design" className="underline-offset-4 hover:text-wine hover:underline">
-              {t("top.design")}
-            </Link>
-            <Link href="/space/settings" className="underline-offset-4 hover:text-wine hover:underline">
-              {t("top.settings")}
-            </Link>
-            <Link href="/space/messages" className="inline-flex items-center gap-1 underline-offset-4 hover:text-wine hover:underline">
-              {t("top.messages")}
-              {unread > 0 && <span className="h-1.5 w-1.5 rounded-full bg-wine" aria-label={t("top.newMessage")} />}
-            </Link>
-          </nav>
-          <span className="ml-2">
-            <ThemeToggle />
-          </span>
-          <Link
-            href="/space/profile"
-            aria-label={t("top.profile")}
-            className="flex h-9 w-9 items-center justify-center rounded-pill bg-blush text-sm font-semibold text-wine ring-1 ring-line transition-colors hover:bg-blush-deep"
-          >
-            {initial}
-          </Link>
-          <SignOutForm />
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-[720px] px-4 py-6 pb-tabbar md:px-6 md:py-10">{children}</main>
-
-      <BottomTabBar tabs={tabs} moreLabel={t("you")} moreIcon="person" moreLinks={youLinks} />
-    </div>
+    <ClientShell
+      user={{ name: user.name, email: user.email }}
+      assist={user.assistedBy ? { expiresAt: user.assistedBy.expiresAt } : null}
+      unread={unread}
+      tabs={tabs}
+      youLinks={youLinks}
+      labels={{
+        topMap: t("top.map"),
+        topPath: t("top.path"),
+        topJourney: t("top.journey"),
+        topSessions: t("top.sessions"),
+        topDesign: t("top.design"),
+        topSettings: t("top.settings"),
+        topMessages: t("top.messages"),
+        topNewMessage: t("top.newMessage"),
+        topProfile: t("top.profile"),
+        you: t("you"),
+      }}
+      signOutAction={doSignOut}
+      exitAssistAction={doExitAssist}
+    >
+      {children}
+    </ClientShell>
   );
 }
