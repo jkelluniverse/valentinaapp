@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { DiscoveryDay } from "@/lib/discovery";
+import { PendingButton } from "@/components/PendingButton";
 
 // C18 §4.5 — reschedule/cancel a discovery call from the signed email link.
 export function ManageFlow({
@@ -33,12 +34,9 @@ export function ManageFlow({
             Reschedule
           </button>
           <form action={cancelAction}>
-            <button
-              type="submit"
-              className="rounded-pill border border-line px-6 py-2.5 text-sm font-medium text-slate transition-colors hover:border-rose hover:text-rose"
-            >
+            <PendingButton className="rounded-pill border border-line px-6 py-2.5 text-sm font-medium text-slate transition-colors hover:border-rose hover:text-rose">
               Cancel my call
-            </button>
+            </PendingButton>
           </form>
         </div>
       ) : (
@@ -86,13 +84,12 @@ export function ManageFlow({
           )}
           <input type="hidden" name="startAt" value={slotIso} />
           <div className="flex flex-wrap gap-3">
-            <button
-              type="submit"
+            <PendingButton
               disabled={!slotIso}
               className="rounded-pill bg-wine px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark disabled:opacity-40"
             >
               Move my call here
-            </button>
+            </PendingButton>
             <button
               type="button"
               onClick={() => setOpen(false)}

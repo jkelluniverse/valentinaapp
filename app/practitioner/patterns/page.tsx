@@ -4,6 +4,7 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { PATTERN_LIBRARY_KEY, K_FLOOR } from "@/lib/pattern-library";
 import { KIND_LABEL } from "@/lib/psyche";
 import { setLibraryEnabled, runAggregation, saveDefinition } from "./actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -56,15 +57,18 @@ export default async function PatternsPage({
         </div>
         <span className="flex items-center gap-3">
           <form action={setLibraryEnabled.bind(null, !on)}>
-            <button className="rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+            <PendingButton className="rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
               {on ? "Turn off" : "Turn on"}
-            </button>
+            </PendingButton>
           </form>
           {on && (
             <form action={runAggregation}>
-              <button className="rounded-lg bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+              <PendingButton
+                pendingLabel="Refreshing…"
+                className="rounded-lg bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark"
+              >
                 Refresh the vocabulary
-              </button>
+              </PendingButton>
             </form>
           )}
         </span>
@@ -102,9 +106,9 @@ export default async function PatternsPage({
                     placeholder="Your definition — this is your clinical vocabulary."
                     className="rounded-md border border-line bg-white px-3 py-2 text-ink outline-none focus:border-wine"
                   />
-                  <button className="self-start rounded-md border border-mocha px-3.5 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                  <PendingButton className="self-start rounded-md border border-mocha px-3.5 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
                     Save
-                  </button>
+                  </PendingButton>
                 </form>
               </details>
             ))}

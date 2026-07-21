@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sheet } from "./Sheet";
+import { PendingButton } from "@/components/PendingButton";
 
 // AMENDMENT-02 §2 — the avatar is the only thing on the right of the mobile top
 // bar. Tapping it opens a small sheet with the person's name, the theme choice,
@@ -70,9 +71,9 @@ export function AvatarSheet({
           </div>
 
           <form action={signOutAction} className="border-t border-line pt-4">
-            <button className="min-h-[44px] w-full rounded-lg border border-line text-sm font-medium text-ink transition-colors hover:border-wine hover:text-wine">
+            <PendingButton className="min-h-[44px] w-full rounded-lg border border-line text-sm font-medium text-ink transition-colors hover:border-wine hover:text-wine">
               Sign out
-            </button>
+            </PendingButton>
           </form>
         </div>
       </Sheet>

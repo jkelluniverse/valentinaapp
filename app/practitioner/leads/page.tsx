@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { PageHeader } from "@/components/PageHeader";
+import { PendingButton } from "@/components/PendingButton";
 import { getOrCreateConfig, getPractitioner, formatInZone } from "@/lib/schedule";
 import { formatMoney } from "@/lib/billing";
 import { squareConfigured } from "@/lib/square";
@@ -121,9 +122,9 @@ export default async function LeadsPage({
                         placeholder="A note, in your voice (optional)"
                         className="w-56 rounded-md border border-line bg-white px-2.5 py-1.5 text-xs text-ink"
                       />
-                      <button className="rounded-pill border border-wine/40 px-3 py-1 text-xs font-medium text-wine transition-colors hover:bg-wine hover:text-white">
+                      <PendingButton className="rounded-pill border border-wine/40 px-3 py-1 text-xs font-medium text-wine transition-colors hover:bg-wine hover:text-white">
                         Send
-                      </button>
+                      </PendingButton>
                     </form>
                   </details>
                 )}

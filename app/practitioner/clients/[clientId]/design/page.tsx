@@ -10,6 +10,7 @@ import { getMethodText } from "@/lib/integrative";
 import { READING_HOLD_KEY, assembleCharts, chartInputHash } from "@/lib/integrative-reading";
 import { artifactStaleness, type InputsFingerprint } from "@/lib/staleness";
 import { ReadingProse } from "@/components/ReadingProse";
+import { PendingButton } from "@/components/PendingButton";
 import { STAGES, stageLabel, type SpiralScore } from "@/lib/spiral";
 import type { SpherePosition } from "@/lib/gene-keys";
 import type { IntegrativeOutput } from "@/ai/integrativePrompt";
@@ -203,9 +204,9 @@ export default async function ClientDesignPage({
                   ))}
                 </select>
               </label>
-              <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+              <PendingButton className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                 {spiralLens?.practitionerReviewed ? "Update review" : "Approve for the synthesis"}
-              </button>
+              </PendingButton>
               <p className="w-full text-xs text-slate">
                 Stage-typing is interpretive — your sign-off is what lets it enter the synthesis.
               </p>
@@ -235,16 +236,22 @@ export default async function ClientDesignPage({
                 className="rounded-md border border-line px-3 py-2 text-sm leading-relaxed text-ink"
               />
             </label>
-            <button className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+            <PendingButton
+              className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+              pendingLabel="Saving…"
+            >
               Save method
-            </button>
+            </PendingButton>
           </form>
 
           <div className="mt-5 flex flex-wrap items-center gap-4 border-t border-line pt-4">
             <form action={draftSynthesis.bind(null, client.id)}>
-              <button className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
+              <PendingButton
+                className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90"
+                pendingLabel="Drafting — a minute or two…"
+              >
                 Draft the cross-lens formulation
-              </button>
+              </PendingButton>
             </form>
             <p className="text-xs text-slate">
               Practitioner-facing hypotheses through your method · needs the client&apos;s consent
@@ -266,9 +273,12 @@ export default async function ClientDesignPage({
               New since this was written — {formulationStaleness.reasons.join("; ")}.
             </p>
             <form action={draftSynthesis.bind(null, client.id)}>
-              <button className="text-[13px] font-semibold text-wine underline-offset-4 hover:underline">
+              <PendingButton
+                className="text-[13px] font-semibold text-wine underline-offset-4 hover:underline"
+                pendingLabel="Refreshing…"
+              >
                 Refresh?
-              </button>
+              </PendingButton>
             </form>
           </div>
         )}
@@ -375,9 +385,9 @@ export default async function ClientDesignPage({
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl font-semibold">Their reading — &ldquo;What it all means to you&rdquo;</h2>
           <form action={setReadingHold.bind(null, client.id, !holdForReview)} className="ml-auto">
-            <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+            <PendingButton className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
               {holdForReview ? "Hold-for-review: on" : "Hold-for-review: off"}
-            </button>
+            </PendingButton>
           </form>
         </div>
         <p className="max-w-prose text-sm text-slate">
@@ -392,9 +402,12 @@ export default async function ClientDesignPage({
               visit, or now:
             </p>
             <form action={regenerateReading.bind(null, client.id)}>
-              <button className="text-[13px] font-semibold text-wine underline-offset-4 hover:underline">
+              <PendingButton
+                className="text-[13px] font-semibold text-wine underline-offset-4 hover:underline"
+                pendingLabel="Regenerating…"
+              >
                 Regenerate?
-              </button>
+              </PendingButton>
             </form>
           </div>
         )}
@@ -408,15 +421,16 @@ export default async function ClientDesignPage({
                 {reading.editedByPractitioner ? " · edited by you" : ""}
               </p>
 
-              <details>
-                <summary className="cursor-pointer list-none text-sm font-medium text-wine underline-offset-4 hover:underline">
-                  Read it
-                </summary>
-                <div className="mt-3 max-h-[28rem] overflow-y-auto rounded-md bg-cream p-4">
-                  <ReadingProse content={reading.content} />
-                </div>
-              </details>
+              <Link
+                href={`/practitioner/clients/${client.id}/design/reading`}
+                className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+              >
+                Read it full page · send to client · PDF →
+              </Link>
 
+              {/* One form, several actions via formAction — nested forms are
+                  invalid HTML and quietly misfire (the inner buttons submit
+                  the outer action). */}
               <form action={saveReadingEdit.bind(null, client.id)} className="flex flex-col gap-2">
                 <label className="text-label font-semibold uppercase tracking-wide text-mocha">
                   Lightly edit (in your voice) — saving publishes it
@@ -428,21 +442,27 @@ export default async function ClientDesignPage({
                   className="rounded-md border border-line bg-white px-3 py-2.5 font-headline text-sm leading-relaxed text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
                 />
                 <div className="flex flex-wrap items-center gap-4">
-                  <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                  <PendingButton
+                    className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+                    pendingLabel="Publishing…"
+                  >
                     Save edits &amp; publish
-                  </button>
+                  </PendingButton>
                   {reading.status === "PENDING_REVIEW" && (
-                    <form action={approveReading.bind(null, client.id)}>
-                      <button className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
-                        Approve as-is
-                      </button>
-                    </form>
+                    <PendingButton
+                      formAction={approveReading.bind(null, client.id)}
+                      className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark"
+                    >
+                      Approve as-is
+                    </PendingButton>
                   )}
-                  <form action={regenerateReading.bind(null, client.id)}>
-                    <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
-                      Regenerate
-                    </button>
-                  </form>
+                  <PendingButton
+                    formAction={regenerateReading.bind(null, client.id)}
+                    className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline"
+                    pendingLabel="Regenerating — a minute or two…"
+                  >
+                    Regenerate
+                  </PendingButton>
                 </div>
               </form>
             </div>
@@ -453,9 +473,12 @@ export default async function ClientDesignPage({
                 data + values assessment).
               </p>
               <form action={regenerateReading.bind(null, client.id)}>
-                <button className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                <PendingButton
+                  className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+                  pendingLabel="Generating — a minute or two…"
+                >
                   Generate now
-                </button>
+                </PendingButton>
               </form>
             </div>
           )}

@@ -94,6 +94,54 @@ export async function approveReading(clientId: string) {
   redirect(`${page(clientId)}?saved=reading`);
 }
 
+// One-tap from the full-page view: publish if needed, then tell the client
+// their reading is ready (locale-aware, linking to their own reading page).
+export async function sendReadingToClient(clientId: string) {
+  await requirePractitioner();
+  const client = await prisma.user.findFirst({
+    where: { id: clientId, role: "CLIENT" },
+    select: { id: true, email: true, name: true, locale: true },
+  });
+  const reading = client
+    ? await prisma.integrativeReading.findUnique({ where: { userId: clientId } })
+    : null;
+  if (!client || !reading) redirect(`${page(clientId)}/reading?error=noreading`);
+
+  // Sending IS approving — one tap means "they can see it now".
+  if (reading.status !== "PUBLISHED") {
+    await prisma.integrativeReading.update({
+      where: { userId: clientId },
+      data: { status: "PUBLISHED" },
+    });
+  }
+
+  const es = client.locale === "es";
+  const { getBaseUrlSafe } = await import("@/lib/base-url");
+  const { sendEmail } = await import("@/lib/notify");
+  const url = `${getBaseUrlSafe()}/space/design/reading`;
+  const sent = await sendEmail({
+    to: client.email,
+    subject: es ? "Tu lectura está lista" : "Your reading is ready",
+    text: es
+      ? "Tu lectura — lo que todo esto significa para ti — ya está en tu espacio. Tómala con calma; es un espejo para explorar, no un veredicto."
+      : "Your reading — what it all means to you — is now in your space. Take it slowly; it's a mirror to explore, not a verdict.",
+    envelope: {
+      locale: es ? "es" : "en",
+      heading: es ? "Tu lectura está lista" : "Your reading is ready",
+      button: { label: es ? "Leerla" : "Read it", url },
+    },
+  });
+  if (!sent.ok && !sent.skipped) redirect(`${page(clientId)}/reading?error=send`);
+
+  await prisma.integrativeReading.update({
+    where: { userId: clientId },
+    data: { clientNotifiedAt: new Date() },
+  });
+  console.log(`[reading] client notified client=${clientId} emailed=${sent.ok}`);
+  revalidatePath(`${page(clientId)}/reading`);
+  redirect(`${page(clientId)}/reading?saved=${sent.ok ? "sent" : "sent-noemail"}`);
+}
+
 // Practice-wide: hold new readings for her review before clients see them.
 export async function setReadingHold(clientId: string, on: boolean) {
   await requirePractitioner();

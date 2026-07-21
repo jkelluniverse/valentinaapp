@@ -1,20 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
 import type { PromptKind } from "@prisma/client";
 import { PROMPT_KINDS } from "@/lib/prompt-meta";
+import { PendingButton } from "@/components/PendingButton";
 
 function SaveButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
+    <PendingButton
+      pendingLabel="Saving…"
       className="self-start rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine disabled:opacity-50"
     >
-      {pending ? "Saving…" : label}
-    </button>
+      {label}
+    </PendingButton>
   );
 }
 

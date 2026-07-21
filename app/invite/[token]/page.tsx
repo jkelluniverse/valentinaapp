@@ -5,6 +5,7 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { ReadingProse } from "@/components/ReadingProse";
 import { getConsentText } from "@/lib/consent";
 import { acceptInvite } from "./actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -110,12 +111,9 @@ export default async function InvitePage({
 
         {errorMessage && <p className="text-sm text-rose">{errorMessage}</p>}
 
-        <button
-          type="submit"
-          className="mt-2 rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine"
-        >
+        <PendingButton className="mt-2 rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine">
           Create my space
-        </button>
+        </PendingButton>
       </form>
     </main>
   );

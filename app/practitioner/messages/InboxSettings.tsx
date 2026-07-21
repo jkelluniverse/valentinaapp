@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Sheet } from "@/components/mobile/Sheet";
+import { PendingButton } from "@/components/PendingButton";
 import { saveAwayNote } from "./actions";
 
 // AMENDMENT-04 §2a — "Your response rhythm" is a setting, not a conversation:
@@ -32,9 +33,9 @@ export function InboxSettings({ awayNote }: { awayNote: string | null }) {
               placeholder="e.g. Away until Monday — I'll reply when I'm back."
               className="rounded-md border border-line bg-white px-3 py-2 text-ink outline-none focus:border-wine"
             />
-            <button className="min-h-[44px] self-start rounded-lg bg-wine px-5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+            <PendingButton className="min-h-[44px] self-start rounded-lg bg-wine px-5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
               Save
-            </button>
+            </PendingButton>
           </form>
           {awayNote && (
             <p className="text-[12px] text-whisper">Clear the field and save to take the note down.</p>

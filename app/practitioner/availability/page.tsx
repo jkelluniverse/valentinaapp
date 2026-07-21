@@ -12,6 +12,7 @@ import {
 } from "@/lib/schedule-meta";
 import { saveConfig, saveAllWeekdayHours, addException, deleteException } from "./actions";
 import { SaveButton } from "./SaveButton";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -309,9 +310,9 @@ export default async function AvailabilityPage({
               className="rounded-md border border-line px-3 py-2 text-ink"
             />
           </label>
-          <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+          <PendingButton className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
             Add
-          </button>
+          </PendingButton>
         </form>
 
         {exceptions.length > 0 && (
@@ -336,9 +337,9 @@ export default async function AvailabilityPage({
                   {e.reason ? ` · ${e.reason}` : ""}
                 </span>
                 <form action={deleteException.bind(null, e.id)} className="ml-auto">
-                  <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                  <PendingButton className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
                     Remove
-                  </button>
+                  </PendingButton>
                 </form>
               </li>
             ))}

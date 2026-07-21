@@ -7,6 +7,7 @@ import { formatDay, formatTime } from "@/components/entries";
 import type { PrepOutput } from "@/ai/sessionPrepPrompt";
 import { RunPrepButton } from "./RunPrepButton";
 import { savePrepNotes } from "./actions";
+import { PendingButton } from "@/components/PendingButton";
 import { ConfidencePill } from "../intelligence-tabs";
 
 // C12X §8 — the document's brief order, worded plainly.
@@ -270,9 +271,9 @@ export default async function PrepRoom({
                 placeholder="What you validated, set aside, or want to bring into session…"
                 className="rounded-card border border-line bg-surface px-4 py-3 font-headline text-lg leading-relaxed text-ink outline-none placeholder:text-whisper focus:border-wine"
               />
-              <button className="self-start rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+              <PendingButton className="self-start rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                 Save &amp; mark reviewed
-              </button>
+              </PendingButton>
             </form>
           )}
         </article>

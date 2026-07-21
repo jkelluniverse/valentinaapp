@@ -15,6 +15,7 @@ import {
 } from "@/lib/schedule";
 import { formatMoney } from "@/lib/billing";
 import { rescheduleMyAppointment } from "../../actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -104,9 +105,9 @@ export default async function RescheduleSessionPage({
             <input type="hidden" name="start" value={chosen.toISOString()} />
             {policy.late && <input type="hidden" name="feeConfirmed" value="1" />}
             <div className="flex flex-wrap items-center gap-4">
-              <button className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
+              <PendingButton className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
                 {policy.late ? t("reschedule.confirmFee", { amount }) : t("reschedule.confirm")}
-              </button>
+              </PendingButton>
               <Link
                 href={base}
                 className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline"

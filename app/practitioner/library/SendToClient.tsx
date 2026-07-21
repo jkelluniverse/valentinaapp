@@ -1,20 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
+import { PendingButton } from "@/components/PendingButton";
 
 export type ClientOption = { id: string; name: string | null; email: string };
 
 function SendButton() {
-  const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
+    <PendingButton
+      pendingLabel="Sending…"
       className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark disabled:opacity-50"
     >
-      {pending ? "Sending…" : "Send"}
-    </button>
+      Send
+    </PendingButton>
   );
 }
 

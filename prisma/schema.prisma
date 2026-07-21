@@ -420,6 +420,7 @@ model IntegrativeReading {
   status               String   @default("PUBLISHED") // PUBLISHED | PENDING_REVIEW
   editedByPractitioner Boolean  @default(false)
   structured           Json? // C12X §2 — the structured reading (sections + expandable placement blocks)
+  clientNotifiedAt     DateTime? // last "your reading is ready" send (one-tap from the full-page view)
   generatedAt          DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }

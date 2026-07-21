@@ -164,9 +164,9 @@ export default async function NotePage({
               ))}
             </select>
           </label>
-          <button className="rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+          <PendingButton className="rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
             {note.clientId ? "Move" : "File"}
-          </button>
+          </PendingButton>
         </form>
       </div>
 
@@ -192,9 +192,9 @@ export default async function NotePage({
               ))}
             </select>
           </label>
-          <button className="rounded-md border border-mocha px-3 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+          <PendingButton className="rounded-md border border-mocha px-3 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
             {linkedSession ? "Update link" : "Link"}
-          </button>
+          </PendingButton>
         </form>
       )}
 
@@ -202,11 +202,11 @@ export default async function NotePage({
       <div className="flex flex-wrap items-center gap-4 border-t border-line pt-4 text-sm">
         {note.depth === "JOT" && (
           <form action={expandNote.bind(null, note.id)}>
-            <button className="font-medium text-wine underline-offset-4 hover:underline">Expand into a note</button>
+            <PendingButton className="font-medium text-wine underline-offset-4 hover:underline">Expand into a note</PendingButton>
           </form>
         )}
         <form action={elaborateNote.bind(null, note.id)}>
-          <button className="font-medium text-wine underline-offset-4 hover:underline">Elaborate →</button>
+          <PendingButton className="font-medium text-wine underline-offset-4 hover:underline">Elaborate →</PendingButton>
         </form>
         {note.clientId && (
           <>
@@ -214,7 +214,7 @@ export default async function NotePage({
           </>
         )}
         <form action={archiveNote.bind(null, note.id)} className="ml-auto">
-          <button className="text-slate underline-offset-4 hover:text-wine hover:underline">Archive</button>
+          <PendingButton className="text-slate underline-offset-4 hover:text-wine hover:underline">Archive</PendingButton>
         </form>
       </div>
 
@@ -248,9 +248,9 @@ export default async function NotePage({
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink">{draftedPrompt.body}</p>
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 <form action={assignPromptFromNote.bind(null, note.id, draftedPrompt.id)}>
-                  <button className="rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                  <PendingButton className="rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                     Assign to {clientName}
-                  </button>
+                  </PendingButton>
                 </form>
                 <Link href={`/practitioner/library/${draftedPrompt.id}`} className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
                   Edit in library first
@@ -264,9 +264,9 @@ export default async function NotePage({
               {draftedWorksheet.intro && <p className="text-sm leading-relaxed text-ink">{draftedWorksheet.intro}</p>}
               <div className="flex flex-wrap items-center gap-4 pt-2">
                 <form action={assignWorksheetFromNote.bind(null, note.id, draftedWorksheet.id)}>
-                  <button className="rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                  <PendingButton className="rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                     Assign to {clientName}
-                  </button>
+                  </PendingButton>
                 </form>
                 <Link href={`/practitioner/worksheets/${draftedWorksheet.id}`} className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
                   Refine in the studio first
@@ -325,9 +325,9 @@ export default async function NotePage({
                   <p className="flex-1 text-sm italic leading-relaxed text-slate">{c.suggestion}</p>
                   <form action={appendToNote.bind(null, note.id)}>
                     <input type="hidden" name="text" value={c.suggestion} />
-                    <button className="text-[13px] font-medium text-wine underline-offset-4 hover:underline">
+                    <PendingButton className="text-[13px] font-medium text-wine underline-offset-4 hover:underline">
                       Pull into note
-                    </button>
+                    </PendingButton>
                   </form>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { REFERENCE_ERRORS } from "@/lib/reference-input";
 import { draftFromStudio, createBlankWorksheet } from "../actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -90,15 +91,18 @@ export default async function WorksheetStudioPage({
           </p>
         </div>
 
-        <button className="self-start rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+        <PendingButton
+          pendingLabel="Drafting…"
+          className="self-start rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark"
+        >
           Draft it for me
-        </button>
+        </PendingButton>
       </form>
 
       <form action={createBlankWorksheet}>
-        <button className="text-sm font-medium text-wine underline-offset-4 hover:underline">
+        <PendingButton className="text-sm font-medium text-wine underline-offset-4 hover:underline">
           Or start from a blank worksheet →
-        </button>
+        </PendingButton>
       </form>
     </div>
   );

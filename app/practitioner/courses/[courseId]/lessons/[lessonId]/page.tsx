@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { InlineField } from "@/components/InlineField";
+import { PendingButton } from "@/components/PendingButton";
 import { parseVideoUrl, lessonTypeLabel, lessonContentText } from "@/lib/course-meta";
 import { promptKindLabel } from "@/lib/prompt-meta";
 import { saveLessonField } from "../../../actions";
@@ -124,9 +125,9 @@ export default async function LessonEditorPage({
                   </option>
                 ))}
               </select>
-              <button className="rounded-md bg-wine px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+              <PendingButton className="rounded-md bg-wine px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
                 Attach
-              </button>
+              </PendingButton>
             </form>
           )}
           {lesson.promptId && <p className="text-sm text-slate">Attached ✓</p>}

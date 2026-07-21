@@ -5,6 +5,7 @@ import { requirePractitioner } from "@/lib/auth-guards";
 import { getCourseOutline, flattenLessons } from "@/lib/courses";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { InlineField } from "@/components/InlineField";
+import { PendingButton } from "@/components/PendingButton";
 import { LESSON_TYPES, lessonTypeLabel, lessonTypePill } from "@/lib/course-meta";
 import {
   saveCourseField,
@@ -94,15 +95,15 @@ export default async function CourseBuilderPage({ params }: { params: { courseId
         <div className="flex flex-wrap items-center gap-4">
           {course.status === "DRAFT" ? (
             <form action={publish}>
-              <button className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+              <PendingButton className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
                 Publish
-              </button>
+              </PendingButton>
             </form>
           ) : (
             <form action={unpublish}>
-              <button className="rounded-md border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+              <PendingButton className="rounded-md border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
                 Unpublish
-              </button>
+              </PendingButton>
             </form>
           )}
           <Link
@@ -112,9 +113,9 @@ export default async function CourseBuilderPage({ params }: { params: { courseId
             Preview as a client
           </Link>
           <form action={removeCourse} className="ml-auto">
-            <button className="text-sm text-slate underline-offset-4 hover:text-rose hover:underline">
+            <PendingButton className="text-sm text-slate underline-offset-4 hover:text-rose hover:underline">
               Delete course
-            </button>
+            </PendingButton>
           </form>
         </div>
       </div>
@@ -136,13 +137,13 @@ export default async function CourseBuilderPage({ params }: { params: { courseId
               />
               <div className="mt-1.5 flex shrink-0 items-center gap-1">
                 <form action={moveChapter.bind(null, chapter.id, "up")}>
-                  <button className={iconBtn} disabled={ci === 0} title="Move up">↑</button>
+                  <PendingButton className={iconBtn} disabled={ci === 0} title="Move up">↑</PendingButton>
                 </form>
                 <form action={moveChapter.bind(null, chapter.id, "down")}>
-                  <button className={iconBtn} disabled={ci === course.chapters.length - 1} title="Move down">↓</button>
+                  <PendingButton className={iconBtn} disabled={ci === course.chapters.length - 1} title="Move down">↓</PendingButton>
                 </form>
                 <form action={deleteChapter.bind(null, chapter.id)}>
-                  <button className={iconBtn} title="Delete chapter">✕</button>
+                  <PendingButton className={iconBtn} title="Delete chapter">✕</PendingButton>
                 </form>
               </div>
             </div>
@@ -162,13 +163,13 @@ export default async function CourseBuilderPage({ params }: { params: { courseId
                     {lesson.title}
                   </Link>
                   <form action={moveLesson.bind(null, lesson.id, "up")}>
-                    <button className={iconBtn} disabled={li === 0} title="Move up">↑</button>
+                    <PendingButton className={iconBtn} disabled={li === 0} title="Move up">↑</PendingButton>
                   </form>
                   <form action={moveLesson.bind(null, lesson.id, "down")}>
-                    <button className={iconBtn} disabled={li === chapter.lessons.length - 1} title="Move down">↓</button>
+                    <PendingButton className={iconBtn} disabled={li === chapter.lessons.length - 1} title="Move down">↓</PendingButton>
                   </form>
                   <form action={deleteLesson.bind(null, lesson.id)}>
-                    <button className={iconBtn} title="Delete lesson">✕</button>
+                    <PendingButton className={iconBtn} title="Delete lesson">✕</PendingButton>
                   </form>
                 </li>
               ))}
@@ -178,12 +179,12 @@ export default async function CourseBuilderPage({ params }: { params: { courseId
               <span className="text-xs text-slate">Add:</span>
               {LESSON_TYPES.map((t) => (
                 <form key={t.value} action={addLesson.bind(null, chapter.id, t.value)}>
-                  <button
+                  <PendingButton
                     className="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-blush"
                     title={t.ask}
                   >
                     {t.ask}
-                  </button>
+                  </PendingButton>
                 </form>
               ))}
             </div>
@@ -191,9 +192,9 @@ export default async function CourseBuilderPage({ params }: { params: { courseId
         ))}
 
         <form action={newChapter}>
-          <button className="rounded-md border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+          <PendingButton className="rounded-md border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
             Add a chapter
-          </button>
+          </PendingButton>
         </form>
       </section>
 
@@ -216,9 +217,9 @@ export default async function CourseBuilderPage({ params }: { params: { courseId
                     · {totalLessons === 0 ? 0 : Math.round((e.progress.length / totalLessons) * 100)}% complete
                   </span>
                   <form action={unenrollClient.bind(null, e.id)} className="ml-auto">
-                    <button className="text-xs text-slate underline-offset-4 hover:text-rose hover:underline">
+                    <PendingButton className="text-xs text-slate underline-offset-4 hover:text-rose hover:underline">
                       Remove
-                    </button>
+                    </PendingButton>
                   </form>
                 </li>
               ))}
@@ -237,16 +238,16 @@ export default async function CourseBuilderPage({ params }: { params: { courseId
                     </option>
                   ))}
                 </select>
-                <button className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+                <PendingButton className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
                   Enroll
-                </button>
+                </PendingButton>
               </form>
             )}
             {enrollable.length > 1 && (
               <form action={enrollAll}>
-                <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                <PendingButton className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                   Enroll everyone
-                </button>
+                </PendingButton>
               </form>
             )}
           </div>

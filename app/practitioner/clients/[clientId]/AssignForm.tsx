@@ -1,23 +1,10 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
 import { promptKindLabel } from "@/lib/prompt-meta";
 import type { PromptKind } from "@prisma/client";
+import { PendingButton } from "@/components/PendingButton";
 
 type LibraryItem = { id: string; title: string; kind: PromptKind };
-
-function SendButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="self-start rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine disabled:opacity-50"
-    >
-      {pending ? "Sending…" : "Send to client"}
-    </button>
-  );
-}
 
 export function AssignForm({
   action,
@@ -67,7 +54,12 @@ export function AssignForm({
         />
       </label>
 
-      <SendButton />
+      <PendingButton
+        pendingLabel="Sending…"
+        className="self-start rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine disabled:opacity-50"
+      >
+        Send to client
+      </PendingButton>
     </form>
   );
 }

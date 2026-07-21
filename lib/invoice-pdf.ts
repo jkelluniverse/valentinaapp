@@ -57,14 +57,14 @@ const MOCHA = "0.718 0.569 0.459";
 
 // Approximate Helvetica advance widths (em fractions) — good enough for
 // wrapping and right-alignment on a one-page document.
-function charW(ch: string): number {
+export function charW(ch: string): number {
   if ("iljI.,:;'|!".includes(ch)) return 0.28;
   if ("ftr()[]-\" ".includes(ch)) return 0.34;
   if ("mwMW@".includes(ch)) return 0.89;
   if (/[A-Z]/.test(ch)) return 0.67;
   return 0.53;
 }
-function textWidth(s: string, size: number): number {
+export function textWidth(s: string, size: number): number {
   let w = 0;
   for (const ch of s) w += charW(ch);
   return w * size;
@@ -88,7 +88,7 @@ function wrap(s: string, size: number, maxWidth: number): string[] {
 
 // WinAnsi-safe: normalize typographic chars, drop anything outside Latin-1,
 // escape the three characters PDF string literals care about.
-function pdfEscape(s: string): string {
+export function pdfEscape(s: string): string {
   const normalized = s
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')

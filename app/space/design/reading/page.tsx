@@ -29,7 +29,15 @@ export default async function ReadingPrintPage() {
         <Link href="/space/design" className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
           ← Back to your design
         </Link>
-        <PrintButton />
+        <div className="flex items-center gap-4">
+          <a
+            href={`/api/reading/${user.id}/pdf`}
+            className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+          >
+            Download PDF
+          </a>
+          <PrintButton />
+        </div>
       </div>
 
       <header className="flex flex-col gap-1">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
+import { PendingButton } from "@/components/PendingButton";
 import { REFERENCE_ERRORS } from "@/lib/reference-input";
 import { draftPromptWithAi } from "../actions";
 
@@ -90,9 +91,9 @@ export default async function LibraryStudioPage({
           </p>
         </div>
 
-        <button className="self-start rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+        <PendingButton className="self-start rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
           Draft it for me
-        </button>
+        </PendingButton>
       </form>
 
       <Link href="/practitioner/library" className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">

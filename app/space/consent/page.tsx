@@ -4,6 +4,7 @@ import { ReadingProse } from "@/components/ReadingProse";
 import { getConsentText, hasConsent } from "@/lib/consent";
 import { redirect } from "next/navigation";
 import { grantConsent } from "./actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -46,12 +47,9 @@ export default async function ConsentPage({ searchParams }: { searchParams: { er
         {searchParams.error && (
           <p className="text-sm text-rose">Please check the box to continue.</p>
         )}
-        <button
-          type="submit"
-          className="self-start rounded-lg bg-wine px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark"
-        >
+        <PendingButton className="self-start rounded-lg bg-wine px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
           Continue to my space
-        </button>
+        </PendingButton>
       </form>
     </div>
   );

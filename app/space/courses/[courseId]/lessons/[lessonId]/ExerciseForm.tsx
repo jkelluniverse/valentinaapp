@@ -1,21 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
 import { MOODS } from "@/lib/entry-meta";
-
-function SaveButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark disabled:opacity-50"
-    >
-      {pending ? "Saving…" : "Save response"}
-    </button>
-  );
-}
+import { PendingButton } from "@/components/PendingButton";
 
 export function ExerciseForm({
   action,
@@ -57,7 +44,12 @@ export function ExerciseForm({
         className="w-full rounded-lg border border-line bg-white p-4 text-base leading-relaxed text-ink shadow-soft outline-none placeholder:text-slate focus:border-wine focus:ring-2 focus:ring-wine/20"
       />
       {error && <p className="text-sm text-rose">{error}</p>}
-      <SaveButton />
+      <PendingButton
+        pendingLabel="Saving…"
+        className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark disabled:opacity-50"
+      >
+        Save response
+      </PendingButton>
     </form>
   );
 }

@@ -7,6 +7,7 @@ import { billingDashboard, type BillingDashboard } from "@/lib/billing-dashboard
 import { squareConfigured } from "@/lib/square";
 import { getPractitioner, getOrCreateConfig, formatInZone } from "@/lib/schedule";
 import { clientLabel } from "@/lib/appointments";
+import { PendingButton } from "@/components/PendingButton";
 import { programStageLabel } from "@/lib/program-config";
 import {
   markChargePaid,
@@ -574,15 +575,15 @@ export default async function BillingPage({
                         </option>
                       ))}
                     </select>
-                    <button className="rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                    <PendingButton className="rounded-md border border-mocha px-3 py-1.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
                       Match
-                    </button>
+                    </PendingButton>
                   </form>
                 )}
                 <form action={dismissExternalPayment.bind(null, e.id)}>
-                  <button className="rounded-md px-3 py-1.5 text-sm font-medium text-slate transition-colors hover:bg-blush hover:text-wine">
+                  <PendingButton className="rounded-md px-3 py-1.5 text-sm font-medium text-slate transition-colors hover:bg-blush hover:text-wine">
                     Dismiss
-                  </button>
+                  </PendingButton>
                 </form>
               </div>
             </div>
@@ -688,7 +689,7 @@ function ActForm({
   return (
     <form action={action}>
       <input type="hidden" name="back" value={back} />
-      <button className={actClass(primary, quiet)}>{label}</button>
+      <PendingButton className={actClass(primary, quiet)}>{label}</PendingButton>
     </form>
   );
 }

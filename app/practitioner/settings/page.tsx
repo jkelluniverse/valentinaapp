@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { getPractitioner, getOrCreateConfig } from "@/lib/schedule";
 import { changePassword, requestEmailChange, signOutEverywhere } from "@/app/account/actions";
 import { savePractitionerLocale, savePolicy, setDeletionStatus } from "./actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -132,7 +133,7 @@ export default async function PractitionerSettingsPage({
                 Nothing changes until you confirm from the new address — a link (valid 24 hours)
                 goes there, and a notice goes to your current address.
               </p>
-              <button className={primaryBtn}>Send confirmation link</button>
+              <PendingButton className={primaryBtn}>Send confirmation link</PendingButton>
             </form>
           </details>
         </div>
@@ -182,7 +183,7 @@ export default async function PractitionerSettingsPage({
               <p className="text-xs text-slate">
                 At least 8 characters. Changing it signs you out on every other device.
               </p>
-              <button className={primaryBtn}>Change password</button>
+              <PendingButton className={primaryBtn}>Change password</PendingButton>
             </form>
           </details>
         </div>
@@ -195,7 +196,7 @@ export default async function PractitionerSettingsPage({
             </p>
           </div>
           <form action={signOutEverywhere}>
-            <button className={quietBtn}>Sign out everywhere</button>
+            <PendingButton className={quietBtn}>Sign out everywhere</PendingButton>
           </form>
         </div>
       </Section>
@@ -221,7 +222,7 @@ export default async function PractitionerSettingsPage({
               <option value="en">English</option>
               <option value="es">Español</option>
             </select>
-            <button className={quietBtn}>Save</button>
+            <PendingButton className={quietBtn}>Save</PendingButton>
           </div>
         </form>
         <div className="flex items-center justify-between gap-4 py-4">
@@ -298,7 +299,7 @@ export default async function PractitionerSettingsPage({
           <p className="max-w-prose text-xs text-slate">
             More than {config.cancelCutoffHours}h notice → free. Less → {fee}. No-shows → {fee}.
           </p>
-          <button className={primaryBtn}>Save policy</button>
+          <PendingButton className={primaryBtn}>Save policy</PendingButton>
         </form>
       </Section>
 
@@ -331,11 +332,11 @@ export default async function PractitionerSettingsPage({
               <div className="flex gap-3">
                 {r.status === "OPEN" && (
                   <form action={setDeletionStatus.bind(null, r.id, "ACKNOWLEDGED")}>
-                    <button className={quietBtn}>Acknowledge</button>
+                    <PendingButton className={quietBtn}>Acknowledge</PendingButton>
                   </form>
                 )}
                 <form action={setDeletionStatus.bind(null, r.id, "CLOSED")}>
-                  <button className={quietBtn}>Mark closed</button>
+                  <PendingButton className={quietBtn}>Mark closed</PendingButton>
                 </form>
               </div>
             </div>

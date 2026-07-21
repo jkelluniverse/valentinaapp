@@ -8,6 +8,7 @@ import { PushToggle } from "@/components/PushToggle";
 import { changePassword, requestEmailChange, signOutEverywhere } from "@/app/account/actions";
 import { saveLocale, saveNotifications, requestDeletion, setRecordingConsent } from "./actions";
 import { RECORDING_CONSENT_TEXT } from "@/lib/recording";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -126,7 +127,7 @@ export default async function SettingsPage({
                 <input type="email" name="newEmail" required className={inputCls} />
               </label>
               <p className="text-xs text-slate">{t("account.email.note")}</p>
-              <button className={primaryBtn}>{t("account.email.send")}</button>
+              <PendingButton className={primaryBtn}>{t("account.email.send")}</PendingButton>
             </form>
           </details>
         </div>
@@ -180,7 +181,7 @@ export default async function SettingsPage({
                 />
               </label>
               <p className="text-xs text-slate">{t("account.password.hint")}</p>
-              <button className={primaryBtn}>{t("account.password.submit")}</button>
+              <PendingButton className={primaryBtn}>{t("account.password.submit")}</PendingButton>
             </form>
           </details>
         </div>
@@ -191,7 +192,7 @@ export default async function SettingsPage({
             <p className="max-w-prose text-sm text-slate">{t("account.signout.hint")}</p>
           </div>
           <form action={signOutEverywhere}>
-            <button className={quietBtn}>{t("account.signout.button")}</button>
+            <PendingButton className={quietBtn}>{t("account.signout.button")}</PendingButton>
           </form>
         </div>
       </Section>
@@ -211,7 +212,7 @@ export default async function SettingsPage({
               <option value="en">{t("language.en")}</option>
               <option value="es">{t("language.es")}</option>
             </select>
-            <button className={quietBtn}>{t("language.save")}</button>
+            <PendingButton className={quietBtn}>{t("language.save")}</PendingButton>
           </div>
         </form>
         <div className="flex items-center justify-between gap-4 py-4">
@@ -236,15 +237,15 @@ export default async function SettingsPage({
                   ? `Consentimiento dado el ${dateFmt.format(recordingConsent.grantedAt)}`
                   : `Consent given ${dateFmt.format(recordingConsent.grantedAt)}`}
               </span>
-              <button className="rounded-md border border-line px-3.5 py-1.5 text-sm font-medium text-slate transition-colors hover:border-mocha hover:text-wine">
+              <PendingButton className="rounded-md border border-line px-3.5 py-1.5 text-sm font-medium text-slate transition-colors hover:border-mocha hover:text-wine">
                 {user.locale === "es" ? "Revocar" : "Revoke"}
-              </button>
+              </PendingButton>
             </form>
           ) : (
             <form action={setRecordingConsent.bind(null, true)}>
-              <button className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+              <PendingButton className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                 {user.locale === "es" ? "Doy mi consentimiento" : "I give my consent"}
-              </button>
+              </PendingButton>
             </form>
           )}
           <p className="text-[12px] text-whisper">
@@ -307,7 +308,7 @@ export default async function SettingsPage({
             </span>
           </label>
           <div className="py-4">
-            <button className={quietBtn}>{t("notifications.save")}</button>
+            <PendingButton className={quietBtn}>{t("notifications.save")}</PendingButton>
           </div>
         </form>
       </Section>
@@ -369,7 +370,7 @@ export default async function SettingsPage({
                     <textarea name="note" rows={3} maxLength={2000} className={inputCls} />
                   </label>
                   <p className="text-xs text-slate">{t("record.deletionTimeline")}</p>
-                  <button className={primaryBtn}>{t("record.deletionSubmit")}</button>
+                  <PendingButton className={primaryBtn}>{t("record.deletionSubmit")}</PendingButton>
                 </form>
               </details>
             </>

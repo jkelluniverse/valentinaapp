@@ -4,6 +4,7 @@ import { requireClient } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { BirthTimeField } from "./BirthTimeField";
 import { saveProfile } from "./actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -120,9 +121,9 @@ export default async function ProfilePage({
         </section>
 
         <div className="flex items-center gap-4">
-          <button className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
+          <PendingButton className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
             Save profile
-          </button>
+          </PendingButton>
           <Link
             href="/space/design"
             className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline"

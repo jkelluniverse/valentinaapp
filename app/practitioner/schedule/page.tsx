@@ -18,6 +18,7 @@ import {
   setCalendarSyncDone,
   setRecordingConfirmed,
 } from "./actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -147,9 +148,9 @@ export default async function PractitionerSchedulePage({
             flow to Apple Calendar.
           </span>
           <form action={setCalendarSyncDone.bind(null, false)} className="ml-auto">
-            <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+            <PendingButton className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
               Show setup
-            </button>
+            </PendingButton>
           </form>
         </div>
       ) : (
@@ -176,14 +177,14 @@ export default async function PractitionerSchedulePage({
             </p>
             <div className="flex flex-wrap items-center gap-4">
               <form action={setCalendarSyncDone.bind(null, true)}>
-                <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                <PendingButton className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                   It&apos;s syncing — mark as done
-                </button>
+                </PendingButton>
               </form>
               <form action={rotateFeedSecret}>
-                <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                <PendingButton className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
                   Rotate feed link
-                </button>
+                </PendingButton>
               </form>
             </div>
           </div>
@@ -239,7 +240,7 @@ export default async function PractitionerSchedulePage({
               {/* C19 §0 — per-session confirm: she asks aloud; the app remembers. */}
               {a.kind === "SESSION" && a.client && recordingConsented.has(a.client.id) && (
                 <form action={setRecordingConfirmed.bind(null, a.id, !(a.recordingConfirmed ?? false))}>
-                  <button
+                  <PendingButton
                     title="Consent to the practice exists — this logs the in-the-moment yes/no"
                     className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
                       a.recordingConfirmed
@@ -248,7 +249,7 @@ export default async function PractitionerSchedulePage({
                     }`}
                   >
                     {a.recordingConfirmed ? "Recording today ✓" : "Recording today?"}
-                  </button>
+                  </PendingButton>
                 </form>
               )}
               {(() => {
@@ -313,21 +314,21 @@ export default async function PractitionerSchedulePage({
                   {a.status === "SCHEDULED" ? (
                     <span className="ml-auto flex items-center gap-3">
                       <form action={markSessionCompleted.bind(null, a.id)}>
-                        <button className="font-medium text-wine underline-offset-4 hover:underline">
+                        <PendingButton className="font-medium text-wine underline-offset-4 hover:underline">
                           Completed
-                        </button>
+                        </PendingButton>
                       </form>
                       <span className="text-line">·</span>
                       <form action={markSessionNoShow.bind(null, a.id)}>
-                        <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                        <PendingButton className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
                           No-show
-                        </button>
+                        </PendingButton>
                       </form>
                       <span className="text-line">·</span>
                       <form action={markSessionDidntHappen.bind(null, a.id)}>
-                        <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                        <PendingButton className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
                           Didn&apos;t happen
-                        </button>
+                        </PendingButton>
                       </form>
                     </span>
                   ) : (
@@ -342,16 +343,16 @@ export default async function PractitionerSchedulePage({
                             {formatMoney(fee.amountCents, fee.currency)} fee applied
                             <form action={waiveCharge.bind(null, fee.id)}>
                               <input type="hidden" name="back" value="/practitioner/schedule" />
-                              <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                              <PendingButton className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
                                 Waive
-                              </button>
+                              </PendingButton>
                             </form>
                           </span>
                         )}
                       <form action={revertSessionStatus.bind(null, a.id)}>
-                        <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                        <PendingButton className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
                           Revert
-                        </button>
+                        </PendingButton>
                       </form>
                     </span>
                   )}

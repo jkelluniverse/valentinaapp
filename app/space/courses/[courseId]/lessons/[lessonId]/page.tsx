@@ -8,6 +8,7 @@ import { LessonBody } from "@/components/LessonContent";
 import { MoodDots, formatDay } from "@/components/entries";
 import { markLessonComplete, respondToExercise } from "../../../actions";
 import { ExerciseForm } from "./ExerciseForm";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -105,9 +106,9 @@ export default async function LessonPlayerPage({
       <div className="flex flex-wrap items-center gap-4">
         {lesson.type !== "EXERCISE" && !isDone && (
           <form action={complete}>
-            <button className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+            <PendingButton className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
               Mark complete {next ? "& continue" : ""}
-            </button>
+            </PendingButton>
           </form>
         )}
         {isDone && <span className="text-sm font-medium text-wine">Completed ✓</span>}

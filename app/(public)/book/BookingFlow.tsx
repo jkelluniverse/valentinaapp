@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { DiscoveryDay } from "@/lib/discovery";
+import { PendingButton } from "@/components/PendingButton";
 
 // C18 §4 — the funnel: pick a day → pick a time → a short warm form → confirmed.
 // The server action is passed in from the (server) page; this component holds
@@ -161,12 +162,9 @@ export function BookingFlow({
             />
           </label>
 
-          <button
-            type="submit"
-            className="mt-2 rounded-pill bg-wine px-7 py-3 text-[15px] font-medium text-white shadow-soft transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine"
-          >
+          <PendingButton className="mt-2 rounded-pill bg-wine px-7 py-3 text-[15px] font-medium text-white shadow-soft transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine">
             Confirm my call
-          </button>
+          </PendingButton>
           <p className="text-[13px] leading-relaxed text-whisper">
             Your details are used only to arrange and confirm this call. Nothing is shared. See our{" "}
             <a href="/privacy" className="underline underline-offset-2 hover:text-wine">

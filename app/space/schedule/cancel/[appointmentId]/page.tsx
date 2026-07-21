@@ -7,6 +7,7 @@ import { checkChangePolicy } from "@/lib/appointments";
 import { getOrCreateConfig, formatInZone, zoneAbbrev } from "@/lib/schedule";
 import { formatMoney } from "@/lib/billing";
 import { cancelMyAppointmentWithPolicy } from "../../actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -57,9 +58,9 @@ export default async function CancelSessionPage({
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-4">
               <form action={cancelMyAppointmentWithPolicy.bind(null, appt.id, true)}>
-                <button className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
+                <PendingButton className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
                   {t("cancel.anyway", { amount })}
-                </button>
+                </PendingButton>
               </form>
               <Link
                 href="/space/messages"
@@ -81,9 +82,9 @@ export default async function CancelSessionPage({
             <p className="mt-3 max-w-prose text-ink">{t("cancel.freeBody")}</p>
             <div className="mt-5 flex flex-wrap items-center gap-4">
               <form action={cancelMyAppointmentWithPolicy.bind(null, appt.id, false)}>
-                <button className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
+                <PendingButton className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
                   {t("cancel.confirm")}
-                </button>
+                </PendingButton>
               </form>
               <Link
                 href="/space/schedule"

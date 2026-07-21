@@ -24,6 +24,7 @@ import { JotBox } from "@/components/JotBox";
 import { NoteRow } from "@/components/NoteRow";
 import { createJot } from "../../notes/actions";
 import { AssignForm } from "./AssignForm";
+import { PendingButton } from "@/components/PendingButton";
 import { GuideTab, GoalsTab, BeliefsTab, OutcomesTab, AskTab } from "./intelligence-tabs";
 import {
   assignPrompt,
@@ -210,9 +211,9 @@ export default async function Portrait({
                 placeholder="A word on why (optional)"
                 className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
               />
-              <button className="self-start rounded-md bg-wine px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+              <PendingButton className="self-start rounded-md bg-wine px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
                 Move stage
-              </button>
+              </PendingButton>
             </form>
           </details>
         </div>
@@ -505,7 +506,7 @@ export default async function Portrait({
                   </a>
                 )}
                 <form action={cancelForClient.bind(null, client.id, a.id)}>
-                  <button className="text-slate underline-offset-4 hover:text-wine hover:underline">Cancel</button>
+                  <PendingButton className="text-slate underline-offset-4 hover:text-wine hover:underline">Cancel</PendingButton>
                 </form>
               </span>
             </div>
@@ -597,9 +598,9 @@ async function BetweenTab({ clientId, back }: { clientId: string; back: string }
                 className="rounded-md border border-line bg-surface px-3 py-2.5 text-base text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
               />
             </label>
-            <button className="self-start rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+            <PendingButton className="self-start rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
               Send worksheet
-            </button>
+            </PendingButton>
           </form>
         )}
       </div>
@@ -887,9 +888,9 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
               <p className="mb-3 max-w-prose text-sm text-ink">
                 Square couldn&apos;t place this client just now — try the link again in a moment.
               </p>
-              <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+              <PendingButton className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                 Link to Square
-              </button>
+              </PendingButton>
             </form>
           ) : (
             <div className="mt-3 flex flex-col gap-4">
@@ -949,9 +950,9 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
                       />
                     </label>
                   ))}
-                  <button className="self-end justify-self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+                  <PendingButton className="self-end justify-self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
                     Save to Square
-                  </button>
+                  </PendingButton>
                 </form>
               </details>
 
@@ -1033,9 +1034,9 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
               className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
             />
           </label>
-          <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+          <PendingButton className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
             {payee ? "Update payee" : "Save payee"}
-          </button>
+          </PendingButton>
         </form>
         {payee && (
           <p className="mt-2 text-xs text-slate">
@@ -1113,9 +1114,9 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
                 className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
               />
             </label>
-            <button className="self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+            <PendingButton className="self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
               Send invoice
-            </button>
+            </PendingButton>
             <p className="text-xs text-slate">
               Your branded email carries it; Square hosts the payment page. It shows as paid here
               on its own.
@@ -1178,22 +1179,22 @@ async function BillingTab({ clientId, back }: { clientId: string; back: string }
                           ))}
                         </select>
                       )}
-                      <button className="font-medium text-wine underline-offset-4 hover:underline">
+                      <PendingButton className="font-medium text-wine underline-offset-4 hover:underline">
                         {cards.length === 1 ? `Charge ····${cards[0].last4}` : "Charge card"}
-                      </button>
+                      </PendingButton>
                     </form>
                   )}
                   <form action={remindCharge.bind(null, c.id)}>
                     <input type="hidden" name="back" value={back} />
-                    <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Remind</button>
+                    <PendingButton className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Remind</PendingButton>
                   </form>
                   <form action={markChargePaid.bind(null, c.id)}>
                     <input type="hidden" name="back" value={back} />
-                    <button className="font-medium text-wine underline-offset-4 hover:underline">Mark paid</button>
+                    <PendingButton className="font-medium text-wine underline-offset-4 hover:underline">Mark paid</PendingButton>
                   </form>
                   <form action={waiveCharge.bind(null, c.id)}>
                     <input type="hidden" name="back" value={back} />
-                    <button className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Waive</button>
+                    <PendingButton className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Waive</PendingButton>
                   </form>
                 </span>
               )}

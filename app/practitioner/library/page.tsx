@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
+import { PendingButton } from "@/components/PendingButton";
 import {
   ensureLibrary,
   getFolderView,
@@ -167,9 +168,9 @@ export default async function LibraryPage({
               </p>
             </div>
             <form action={createSpiralAssessment}>
-              <button className="rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+              <PendingButton className="rounded-lg border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                 Create values assessment
-              </button>
+              </PendingButton>
             </form>
           </div>
         </section>

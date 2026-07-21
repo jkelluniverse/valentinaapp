@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { formatInZone, getOrCreateConfig, getPractitioner } from "@/lib/schedule";
 import { applyHandwrittenNote, dismissHandwrittenNote, retryTranscription } from "../actions";
+import { PendingButton } from "@/components/PendingButton";
 
 // C14-REMARKABLE R.3 — the 10-second review: transcript beside the
 // handwriting, client + session pre-matched, one wine Apply. Fixing a word is
@@ -100,12 +101,13 @@ export default async function HandwrittenReview({
               <p className="text-sm text-ink">
                 The transcription didn&apos;t finish — try it again.
               </p>
-              <button
+              <PendingButton
                 formAction={retryTranscription.bind(null, draft.id)}
+                pendingLabel="Transcribing…"
                 className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
               >
                 Transcribe again
-              </button>
+              </PendingButton>
             </div>
           ) : (
             <>
@@ -161,15 +163,19 @@ export default async function HandwrittenReview({
                 </label>
               </div>
               <div className="flex items-center gap-4">
-                <button className="rounded-md bg-wine px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+                <PendingButton
+                  formAction={applyHandwrittenNote.bind(null, draft.id)}
+                  pendingLabel="Applying…"
+                  className="rounded-md bg-wine px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark"
+                >
                   Apply
-                </button>
-                <button
+                </PendingButton>
+                <PendingButton
                   formAction={dismissHandwrittenNote.bind(null, draft.id)}
                   className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline"
                 >
                   Dismiss
-                </button>
+                </PendingButton>
               </div>
             </>
           )}

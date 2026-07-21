@@ -3,6 +3,7 @@ import { requireClient } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { getPractitioner, getOrCreateConfig, isSlotOpen, formatInZone, zoneAbbrev } from "@/lib/schedule";
 import { bookSlot } from "../actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -78,9 +79,9 @@ export default async function ConfirmBookingPage({
             />
           </label>
           <div className="flex items-center gap-4">
-            <button className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
+            <PendingButton className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
               Confirm booking
-            </button>
+            </PendingButton>
             <Link
               href="/space/schedule"
               className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline"

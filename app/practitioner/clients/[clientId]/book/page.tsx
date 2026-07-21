@@ -14,6 +14,7 @@ import {
   DAY_MS,
 } from "@/lib/schedule";
 import { bookForClient } from "../actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -81,9 +82,9 @@ export default async function BookForClientPage({
             <input type="hidden" name="start" value={chosen.toISOString()} />
             <ConfirmFields />
             <div className="flex items-center gap-4">
-              <button className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
+              <PendingButton className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
                 Confirm for {name}
-              </button>
+              </PendingButton>
               <Link
                 href={`/practitioner/clients/${client.id}/book`}
                 className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline"
@@ -136,9 +137,9 @@ export default async function BookForClientPage({
                 </label>
               </div>
               <ConfirmFields />
-              <button className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+              <PendingButton className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
                 Book this time
-              </button>
+              </PendingButton>
             </form>
           </section>
         </>

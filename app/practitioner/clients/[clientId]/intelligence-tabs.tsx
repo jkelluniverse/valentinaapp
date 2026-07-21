@@ -22,6 +22,7 @@ import {
   saveInterventionOutcome,
   askTheRecord,
 } from "./intelligence-actions";
+import { PendingButton } from "@/components/PendingButton";
 
 const fmtDay = (d: Date) =>
   new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(d);
@@ -153,9 +154,9 @@ export async function GuideTab({
           </p>
         </div>
         <form action={refreshGuide.bind(null, clientId)}>
-          <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+          <PendingButton className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
             {guide ? "Refresh against the record" : "Draw the Guide"}
-          </button>
+          </PendingButton>
         </form>
       </div>
       {guide && (
@@ -177,9 +178,9 @@ export async function GuideTab({
             New since this was written — {staleness.reasons.join("; ")}.
           </p>
           <form action={refreshGuide.bind(null, clientId)}>
-            <button className="text-[13px] font-semibold text-wine underline-offset-4 hover:underline">
+            <PendingButton className="text-[13px] font-semibold text-wine underline-offset-4 hover:underline">
               Refresh?
-            </button>
+            </PendingButton>
           </form>
         </div>
       )}
@@ -296,7 +297,7 @@ export async function GuideTab({
                   {(["FEELS_TRUE", "PARTLY", "DOESNT_FIT", "NOT_YET", "NO_LONGER"] as const).map((v) => (
                     <form key={v} action={markGuideClaim.bind(null, clientId, c.key)}>
                       <input type="hidden" name="value" value={v} />
-                      <button
+                      <PendingButton
                         className={`rounded-full px-2.5 py-1 text-[11.5px] transition-colors ${
                           mark === v
                             ? "bg-wine font-semibold text-cream"
@@ -312,7 +313,7 @@ export async function GuideTab({
                             NO_LONGER: "No longer relevant",
                           }[v]
                         }
-                      </button>
+                      </PendingButton>
                     </form>
                   ))}
                 </div>
@@ -409,9 +410,9 @@ export async function GoalsTab({ clientId, banner }: { clientId: string; banner?
               <option value="ACHIEVED">Achieved</option>
               <option value="RETIRED">Retired</option>
             </select>
-            <button className="text-[13px] font-medium text-wine underline-offset-4 hover:underline">
+            <PendingButton className="text-[13px] font-medium text-wine underline-offset-4 hover:underline">
               Update
-            </button>
+            </PendingButton>
           </form>
         </div>
       ))}
@@ -436,9 +437,9 @@ export async function GoalsTab({ clientId, banner }: { clientId: string; banner?
             placeholder="What stands in the way (optional)"
             className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
           />
-          <button className="self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+          <PendingButton className="self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
             Keep it
-          </button>
+          </PendingButton>
           <p className="text-[12px] text-whisper">
             The wording can never be edited afterwards — that&apos;s the point.
           </p>
@@ -510,9 +511,9 @@ export async function BeliefsTab({ clientId, banner }: { clientId: string; banne
               <>
                 {options.length === 0 ? (
                   <form action={generateBeliefOptions.bind(null, clientId, b.id)} className="mt-3">
-                    <button className="rounded-md border border-mocha px-3.5 py-1.5 text-[13px] font-medium text-wine transition-colors hover:bg-blush">
+                    <PendingButton className="rounded-md border border-mocha px-3.5 py-1.5 text-[13px] font-medium text-wine transition-colors hover:bg-blush">
                       Draft statement options
-                    </button>
+                    </PendingButton>
                   </form>
                 ) : (
                   <div className="mt-3 flex flex-col gap-3">
@@ -556,9 +557,9 @@ export async function BeliefsTab({ clientId, banner }: { clientId: string; banne
                             is usable without it).
                           </span>
                         </label>
-                        <button className="self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+                        <PendingButton className="self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
                           Record approval
-                        </button>
+                        </PendingButton>
                       </form>
                       <p className="mt-2 text-[11.5px] text-whisper">
                         Criteria: {STATEMENT_CRITERIA.map((c) => c.label).join(" · ")}
@@ -599,9 +600,9 @@ export async function BeliefsTab({ clientId, banner }: { clientId: string; banne
                     <option value="REVISED">Revised</option>
                     <option value="RETIRED">Retired</option>
                   </select>
-                  <button className="text-[13px] font-medium text-wine underline-offset-4 hover:underline">
+                  <PendingButton className="text-[13px] font-medium text-wine underline-offset-4 hover:underline">
                     Save
-                  </button>
+                  </PendingButton>
                 </div>
               </form>
             </details>
@@ -631,9 +632,9 @@ export async function BeliefsTab({ clientId, banner }: { clientId: string; banne
               ))}
             </select>
           )}
-          <button className="self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+          <PendingButton className="self-start rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
             Add belief
-          </button>
+          </PendingButton>
         </form>
       </div>
     </div>
@@ -785,9 +786,9 @@ export async function OutcomesTab({ clientId, banner }: { clientId: string; bann
                   <option value="ADAPT">Adapt</option>
                   <option value="DISCONTINUE">Discontinue</option>
                 </select>
-                <button className="rounded-md bg-wine px-3.5 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-wine-dark">
+                <PendingButton className="rounded-md bg-wine px-3.5 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-wine-dark">
                   Save
-                </button>
+                </PendingButton>
               </div>
             </form>
           </details>
@@ -870,18 +871,18 @@ export async function AskTab({
             placeholder="e.g. When did she first mention her father?"
             className="min-w-0 flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
           />
-          <button className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+          <PendingButton className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
             Ask
-          </button>
+          </PendingButton>
         </div>
       </form>
       <div className="flex flex-wrap gap-1.5">
         {SUGGESTED_QUERIES.map((q) => (
           <form key={q.en} action={askTheRecord.bind(null, clientId)}>
             <input type="hidden" name="question" value={q.en} />
-            <button className="rounded-full border border-line px-3 py-1.5 text-[12.5px] text-slate transition-colors hover:border-mocha hover:text-ink">
+            <PendingButton className="rounded-full border border-line px-3 py-1.5 text-[12.5px] text-slate transition-colors hover:border-mocha hover:text-ink">
               {q.en}
-            </button>
+            </PendingButton>
           </form>
         ))}
       </div>

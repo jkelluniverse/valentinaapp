@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { formatMoney } from "@/lib/billing";
 import { PROGRAM_STAGES, programStageLabel } from "@/lib/program-config";
 import { addRate, retireRate } from "../actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -63,9 +64,9 @@ export default async function RatesPage({
                   </span>
                 )}
                 <form action={retireRate.bind(null, r.id)} className="ml-auto">
-                  <button className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
+                  <PendingButton className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline">
                     Retire
-                  </button>
+                  </PendingButton>
                 </form>
               </li>
             ))}
@@ -126,9 +127,9 @@ export default async function RatesPage({
               ))}
             </select>
           </label>
-          <button className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
+          <PendingButton className="rounded-md bg-wine px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
             Add
-          </button>
+          </PendingButton>
         </form>
       </section>
 

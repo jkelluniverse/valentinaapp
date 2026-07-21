@@ -5,6 +5,7 @@ import { requirePractitioner } from "@/lib/auth-guards";
 import { formatInZone, getOrCreateConfig, getPractitioner } from "@/lib/schedule";
 import { hasRecordingConsent, type PulledRecording } from "@/lib/recording";
 import { applyRecordingDraft, dismissRecordingDraft } from "../../actions";
+import { PendingButton } from "@/components/PendingButton";
 
 // C19 REC.3 — recording review: her-template summary on top, the
 // speaker-labeled transcript, redaction strike per passage, the matched
@@ -160,15 +161,19 @@ export default async function RecordingReview({
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="rounded-md bg-wine px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+          <PendingButton
+            formAction={applyRecordingDraft.bind(null, draft.id)}
+            pendingLabel="Applying…"
+            className="rounded-md bg-wine px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-wine-dark"
+          >
             Apply
-          </button>
-          <button
+          </PendingButton>
+          <PendingButton
             formAction={dismissRecordingDraft.bind(null, draft.id)}
             className="text-sm font-medium text-slate underline-offset-4 hover:text-wine hover:underline"
           >
             Dismiss
-          </button>
+          </PendingButton>
         </div>
       </form>
     </div>

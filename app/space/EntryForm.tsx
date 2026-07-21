@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useFormStatus } from "react-dom";
 import type { EntryType } from "@prisma/client";
 import { ENTRY_TYPES, MOODS } from "@/lib/entry-meta";
+import { PendingButton } from "@/components/PendingButton";
 
 // Low-friction capture (spec §4): the textarea is the entry; everything else
 // is optional one-tap extras. Shared by /space/new and the edit screen.
@@ -20,19 +20,6 @@ type EntryDefaults = {
 function toLocalInputValue(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function SaveButton({ label }: { label: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine disabled:opacity-50"
-    >
-      {pending ? "Saving…" : label}
-    </button>
-  );
 }
 
 export function EntryForm({
@@ -171,7 +158,12 @@ export function EntryForm({
       </div>
 
       <div className="flex items-center gap-4">
-        <SaveButton label={submitLabel} />
+        <PendingButton
+          pendingLabel="Saving…"
+          className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine disabled:opacity-50"
+        >
+          {submitLabel}
+        </PendingButton>
       </div>
     </form>
   );

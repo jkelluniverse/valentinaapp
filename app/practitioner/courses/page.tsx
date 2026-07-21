@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
+import { PendingButton } from "@/components/PendingButton";
 import { createCourse } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -26,9 +27,9 @@ export default async function CoursesPage() {
       </div>
 
       <form action={createCourse}>
-        <button className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
+        <PendingButton className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark">
           New course
-        </button>
+        </PendingButton>
       </form>
 
       {courses.length === 0 ? (

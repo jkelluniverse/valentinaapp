@@ -1,25 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { PendingButton } from "@/components/PendingButton";
 import type { WorksheetField, WorksheetAnswers } from "@/lib/worksheet-meta";
 
 // The client fill-out form (C9 spec §6). Draft answers autosave to this
 // device (localStorage) so a long worksheet is never lost; the draft is
 // cleared once the submit round-trip succeeds.
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark disabled:opacity-50"
-    >
-      {pending ? "Sending…" : "Send to Valentina"}
-    </button>
-  );
-}
 
 export function WorksheetFill({
   assignmentId,
@@ -191,7 +178,14 @@ export function WorksheetFill({
       })}
 
       {error && <p className="text-sm text-rose">{error}</p>}
-      {!preview && <SubmitButton />}
+      {!preview && (
+        <PendingButton
+          pendingLabel="Sending…"
+          className="rounded-md bg-wine px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-wine-dark"
+        >
+          Send to Valentina
+        </PendingButton>
+      )}
       {preview && (
         <p className="text-sm text-slate">(Preview — clients get a &quot;Send to Valentina&quot; button here.)</p>
       )}

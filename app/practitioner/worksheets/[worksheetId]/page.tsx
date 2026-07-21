@@ -15,6 +15,7 @@ import {
   createSpanishVersion,
   toggleWorksheetActiveInBuilder,
 } from "../actions";
+import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,7 @@ export default async function WorksheetBuilderPage({
           {worksheet.locale === "es" && (
             <>
               <form action={toggleWorksheetActiveInBuilder.bind(null, worksheet.id)}>
-                <button
+                <PendingButton
                   className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
                     worksheet.active
                       ? "bg-wine text-white"
@@ -103,7 +104,7 @@ export default async function WorksheetBuilderPage({
                   title={worksheet.active ? "Deactivate this Spanish version" : "Activate — clients with Spanish preference will see this version"}
                 >
                   {worksheet.active ? "Español · active" : "Español · draft — activate"}
-                </button>
+                </PendingButton>
               </form>
               {sibling && (
                 <Link
@@ -125,9 +126,12 @@ export default async function WorksheetBuilderPage({
           )}
           {worksheet.locale === "en" && !spanishSibling && !worksheet.isSpiral && (
             <form action={createSpanishVersion.bind(null, worksheet.id)}>
-              <button className="text-xs text-slate underline-offset-4 hover:text-wine hover:underline">
+              <PendingButton
+                pendingLabel="Drafting…"
+                className="text-xs text-slate underline-offset-4 hover:text-wine hover:underline"
+              >
                 Create a Spanish version
-              </button>
+              </PendingButton>
             </form>
           )}
 
@@ -149,25 +153,25 @@ export default async function WorksheetBuilderPage({
               </span>
               {field.type !== "SECTION" && field.type !== "CHECKBOX" && (
                 <form action={toggleFieldRequired.bind(null, worksheet.id, field.id)}>
-                  <button
+                  <PendingButton
                     className={`rounded-full px-2 py-0.5 text-xs transition-colors ${
                       field.required ? "bg-wine text-white" : "border border-line text-slate hover:bg-blush"
                     }`}
                     title="Toggle required"
                   >
                     {field.required ? "required" : "optional"}
-                  </button>
+                  </PendingButton>
                 </form>
               )}
               <div className="ml-auto flex items-center gap-1">
                 <form action={moveField.bind(null, worksheet.id, field.id, "up")}>
-                  <button className={iconBtn} disabled={i === 0} title="Move up">↑</button>
+                  <PendingButton className={iconBtn} disabled={i === 0} title="Move up">↑</PendingButton>
                 </form>
                 <form action={moveField.bind(null, worksheet.id, field.id, "down")}>
-                  <button className={iconBtn} disabled={i === fields.length - 1} title="Move down">↓</button>
+                  <PendingButton className={iconBtn} disabled={i === fields.length - 1} title="Move down">↓</PendingButton>
                 </form>
                 <form action={deleteField.bind(null, worksheet.id, field.id)}>
-                  <button className={iconBtn} title="Delete">✕</button>
+                  <PendingButton className={iconBtn} title="Delete">✕</PendingButton>
                 </form>
               </div>
             </div>
@@ -204,9 +208,9 @@ export default async function WorksheetBuilderPage({
         <span className="text-xs text-slate">Add:</span>
         {FIELD_TYPES.map((t) => (
           <form key={t} action={addField.bind(null, worksheet.id, t)}>
-            <button className="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-blush">
+            <PendingButton className="rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-blush">
               {FIELD_TYPE_META[t].add}
-            </button>
+            </PendingButton>
           </form>
         ))}
       </section>

@@ -6,6 +6,7 @@ import { referenceableFor } from "@/lib/message-refs";
 import { CRISIS_RESOURCES } from "@/lib/message-safety";
 import { displayName, firstNameOf } from "@/lib/name";
 import { ThreadScreen } from "@/components/ThreadScreen";
+import { PendingButton } from "@/components/PendingButton";
 import { sendPractitionerMessage, pollPractitioner, pauseThread, acknowledgeFlag } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -52,17 +53,17 @@ export default async function PractitionerThread({ params }: { params: { clientI
           </p>
           {flagged.map((f) => (
             <form key={f.id} action={acknowledgeFlag.bind(null, client.id, f.id)}>
-              <button className="min-h-[40px] w-full rounded-md border border-rose text-sm font-medium text-rose transition-colors hover:bg-rose hover:text-white">
+              <PendingButton className="min-h-[40px] w-full rounded-md border border-rose text-sm font-medium text-rose transition-colors hover:bg-rose hover:text-white">
                 I&apos;ve checked in
-              </button>
+              </PendingButton>
             </form>
           ))}
         </div>
       )}
       <form action={pauseThread.bind(null, client.id, !paused)}>
-        <button className="min-h-[44px] w-full rounded-lg border border-line text-sm font-medium text-ink transition-colors hover:border-wine hover:text-wine">
+        <PendingButton className="min-h-[44px] w-full rounded-lg border border-line text-sm font-medium text-ink transition-colors hover:border-wine hover:text-wine">
           {paused ? "Reopen this line" : "Pause this line"}
-        </button>
+        </PendingButton>
       </form>
       <p className="text-[12px] text-whisper">
         {paused
