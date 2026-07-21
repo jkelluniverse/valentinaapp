@@ -1,4 +1,4 @@
-# FIXTURES-PATCH-VALUES verify — 2026-07-21T15:07:02.543Z
+# FIXTURES-PATCH-VALUES verify — 2026-07-21T15:26:58.942Z
 
 ## §3 · The stale test (pre-seed formulation)
 - ✓ formulation regenerates without the spiral
@@ -19,7 +19,7 @@
 - ✓ rosa: approved blend (order)
 - ✓ sofia: approved blend (belonging)
 - ✓ yuki: approved blend (achievement)
-- ✗ every stage appears at least twice (top-2 across the roster) — {"harmony":2,"achievement":7,"order":4,"belonging":6,"drive":1,"flow":2,"grounding":2}
+- ✓ every stage appears at least twice (top-2 across the roster) — {"harmony":2,"achievement":7,"order":4,"belonging":5,"drive":2,"flow":2,"grounding":2}
 
 ## §2 · The deliberate gaps stay deliberate
 - ✓ Tomás: absent — no lens, no assignment, ever
@@ -36,10 +36,10 @@
 - ✓ maria: assembled payload now carries the values spiral
 - ✓ maria: reading regenerates (en)
 - ✓ maria: language law holds — 0 lint hits
-  · maria center=achievement · reading 25020 chars · status PUBLISHED
+  · maria center=achievement · reading 26382 chars · status PUBLISHED
 - ✓ elena: assembled payload now carries the values spiral
 - ✓ elena: reading regenerates (es)
 - ✓ elena: language law holds — 0 lint hits
-  · elena center=belonging · reading 23628 chars · status PUBLISHED
+  · elena center=belonging · reading 25049 chars · status PUBLISHED
 
-1 CHECK(S) FAILED
+ALL CHECKS PASS
