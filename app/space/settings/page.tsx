@@ -6,7 +6,7 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PushToggle } from "@/components/PushToggle";
 import { changePassword, requestEmailChange, signOutEverywhere } from "@/app/account/actions";
-import { saveLocale, saveNotifications, requestDeletion, setRecordingConsent } from "./actions";
+import { saveLocale, saveNotifications, requestDeletion, setRecordingConsent, setCardConsent } from "./actions";
 import { RECORDING_CONSENT_TEXT } from "@/lib/recording";
 import { PendingButton } from "@/components/PendingButton";
 
@@ -51,14 +51,30 @@ export default async function SettingsPage({
   const user = await requireClient();
   const t = await getTranslations("settings");
 
-  const [profile, pendingDeletion, recordingConsent] = await Promise.all([
+  const [profile, pendingDeletion, recordingConsent, squareLink, assistVisits] = await Promise.all([
     prisma.clientProfile.findUnique({ where: { userId: user.id } }),
     prisma.deletionRequest.findFirst({
       where: { userId: user.id, status: { in: ["OPEN", "ACKNOWLEDGED"] } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.recordingConsent.findUnique({ where: { clientId: user.id } }),
+    prisma.squareCustomerLink.findUnique({ where: { clientId: user.id } }),
+    // AMD-06 §2 — transparency: every assist session leaves a visible line.
+    prisma.assistGrant.findMany({
+      where: { clientId: user.id },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
   ]);
+  const assisted = Boolean(user.assistedBy);
+  const es = user.locale === "es";
+  const assistNote = (
+    <p className="py-4 text-sm text-slate">
+      {es
+        ? "No disponible mientras Valentina te asiste — esta parte es solo tuya."
+        : "Not available while Valentina is assisting — this part stays yours alone."}
+    </p>
+  );
 
   const dateFmt = new Intl.DateTimeFormat(user.locale === "es" ? "es" : "en", {
     dateStyle: "long",
@@ -79,6 +95,11 @@ export default async function SettingsPage({
       {saved && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
           {t(`saved.${saved}`)}
+        </p>
+      )}
+      {searchParams.saved === "card" && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          {es ? "Preferencia de cobro guardada." : "Card authorization saved."}
         </p>
       )}
       {error && (
@@ -105,6 +126,7 @@ export default async function SettingsPage({
 
       {/* Account */}
       <Section title={t("account.heading")}>
+        {assisted ? assistNote : (<>
         <div className="py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -195,6 +217,7 @@ export default async function SettingsPage({
             <PendingButton className={quietBtn}>{t("account.signout.button")}</PendingButton>
           </form>
         </div>
+        </>)}
       </Section>
 
       {/* Language & appearance */}
@@ -230,6 +253,7 @@ export default async function SettingsPage({
           <p className="max-w-prose text-sm leading-relaxed text-ink">
             {RECORDING_CONSENT_TEXT[user.locale === "es" ? "es" : "en"]}
           </p>
+          {assisted ? assistNote : (<>
           {recordingConsent && !recordingConsent.revokedAt ? (
             <form action={setRecordingConsent.bind(null, false)} className="flex flex-wrap items-center gap-3">
               <span className="text-sm font-medium text-wine">
@@ -253,8 +277,59 @@ export default async function SettingsPage({
               ? "Sin este consentimiento, ninguna sesión tuya se graba — nunca."
               : "Without this consent, none of your sessions are recorded — ever."}
           </p>
+          </>)}
         </div>
       </Section>
+
+      {/* AMD-06/AMD-01 — card-on-file authorization: theirs to give, revocable. */}
+      {squareLink?.cardOnFile && (
+        <Section title={es ? "Cobro con tarjeta guardada" : "Card on file"}>
+          <div className="flex flex-col gap-3 py-4">
+            <p className="max-w-prose text-sm leading-relaxed text-ink">
+              {es
+                ? "Hay una tarjeta guardada de forma segura en Square. Con tu autorización, Valentina puede usarla para cobrar lo que debas (sesiones y paquetes que ya acordaron) sin pedirte la tarjeta cada vez."
+                : "A card is stored securely with Square. With your authorization, Valentina can use it to charge what you owe (sessions and packages you've already agreed to) without asking for the card each time."}
+            </p>
+            {assisted ? assistNote : squareLink.cardConsentAt && !squareLink.cardConsentRevokedAt ? (
+              <form action={setCardConsent.bind(null, false)} className="flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium text-wine">
+                  {es
+                    ? `Autorizado el ${dateFmt.format(squareLink.cardConsentAt)}`
+                    : `Authorized ${dateFmt.format(squareLink.cardConsentAt)}`}
+                </span>
+                <PendingButton className="rounded-md border border-line px-3.5 py-1.5 text-sm font-medium text-slate transition-colors hover:border-mocha hover:text-wine">
+                  {es ? "Revocar" : "Revoke"}
+                </PendingButton>
+              </form>
+            ) : (
+              <form action={setCardConsent.bind(null, true)}>
+                <PendingButton className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                  {es ? "Autorizo estos cobros" : "I authorize these charges"}
+                </PendingButton>
+              </form>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {/* AMD-06 §2 — the visible trace of every assist session. */}
+      {assistVisits.length > 0 && (
+        <Section title={es ? "Ayuda con tu cuenta" : "Help with your account"}>
+          <div className="flex flex-col gap-1.5 py-4">
+            {assistVisits.map((v) => (
+              <p key={v.id} className="text-sm text-ink">
+                {es ? "Valentina te ayudó con tu cuenta" : "Valentina helped with your account"} ·{" "}
+                {dateFmt.format(v.createdAt)}
+              </p>
+            ))}
+            <p className="text-[12px] text-whisper">
+              {es
+                ? "Cada sesión de ayuda queda registrada a su nombre — nunca como acciones tuyas."
+                : "Every help session is recorded under her name — never as actions of yours."}
+            </p>
+          </div>
+        </Section>
+      )}
 
       {/* Notifications */}
       <Section title={t("notifications.heading")}>
@@ -334,12 +409,16 @@ export default async function SettingsPage({
             <p className="max-w-prose text-sm text-slate">{t("record.exportHint")}</p>
           </div>
           <div className="flex items-center gap-4">
+            {assisted ? (
+              <span className="text-sm text-slate">—</span>
+            ) : (
             <a
               href="/space/settings/export"
               className="text-sm font-medium text-wine underline-offset-4 hover:underline"
             >
               {t("record.exportJson")}
             </a>
+            )}
             <Link
               href="/space/settings/keepsake"
               className="text-sm font-medium text-wine underline-offset-4 hover:underline"
@@ -351,7 +430,7 @@ export default async function SettingsPage({
 
         <div className="py-4">
           <p className="font-medium text-ink-strong">{t("record.deletion")}</p>
-          {pendingDeletion ? (
+          {assisted ? assistNote : pendingDeletion ? (
             <p className="mt-1 max-w-prose text-sm text-ink">
               {t("record.deletionPending", { date: dateFmt.format(pendingDeletion.createdAt) })}
             </p>

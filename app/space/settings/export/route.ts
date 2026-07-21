@@ -8,6 +8,9 @@ export const dynamic = "force-dynamic";
 // notes (the Margins), session preps, note scans, AI-extracted psyche nodes,
 // edges, and extractions — her clinical thinking is not their record.
 export async function GET() {
+  // AMD-06 §2 exclusion 4 — data export stays the client's own act.
+  const { forbidInAssist } = await import("@/lib/assist");
+  await forbidInAssist("export");
   const user = await requireClient();
 
   const [

@@ -5,7 +5,7 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { getPractitioner, getOrCreateConfig } from "@/lib/schedule";
 import { changePassword, requestEmailChange, signOutEverywhere } from "@/app/account/actions";
-import { savePractitionerLocale, savePolicy, setDeletionStatus } from "./actions";
+import { savePractitionerLocale, savePolicy, setDeletionStatus , setAssistNotify } from "./actions";
 import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,7 @@ const SAVED: Record<string, string> = {
   email: "Check the new address for a confirmation link — nothing changes until it's confirmed.",
   language: "Language saved.",
   policy: "Session-change policy saved.",
+  assist: "Assist notification preference saved.",
   deletion: "Updated.",
 };
 
@@ -89,6 +90,11 @@ export default async function PractitionerSettingsPage({
     currency: "USD",
   });
   const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "long" });
+
+  const assistNotifyRow = await prisma.practiceSetting.findUnique({
+    where: { key: "assistNotifyEmail" },
+  });
+  const assistNotifyOn = assistNotifyRow?.value !== "off";
 
   return (
     <div className="flex flex-col gap-8">
@@ -251,6 +257,25 @@ export default async function PractitionerSettingsPage({
           label="Response rhythm & away note"
           hint="How the Open Line sets expectations."
         />
+        {/* AMD-06 — assist-session transparency email, her conscious default. */}
+        <form action={setAssistNotify} className="flex flex-wrap items-center justify-between gap-4 py-4">
+          <div>
+            <p className="font-medium text-ink-strong">Email clients after an assist session</p>
+            <p className="max-w-prose text-sm text-slate">
+              A quiet note — “Valentina helped with your account today” — each time you enter
+              their portal to help. Recommended on; the visible line in their settings stays
+              either way.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input type="checkbox" name="assistNotify" defaultChecked={assistNotifyOn} /> On
+            </label>
+            <PendingButton className="rounded-md border border-line px-3.5 py-1.5 text-sm font-medium text-slate transition-colors hover:border-mocha hover:text-wine">
+              Save
+            </PendingButton>
+          </div>
+        </form>
       </Section>
 
       {/* Session-change policy */}

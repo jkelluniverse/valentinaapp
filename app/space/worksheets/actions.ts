@@ -60,9 +60,13 @@ export async function submitWorksheet(assignmentId: string, formData: FormData) 
   );
   if (!anyAnswer) redirect(`${back}?error=required`);
 
+  // AMD-06 §2 — worksheets ARE allowed in assist (dictation help is
+  // legitimate) and carry the honest label wherever they surface as evidence.
+  const assistedById = user.assistedBy?.practitionerId ?? null;
+
   await prisma.$transaction(async (tx) => {
     const response = await tx.worksheetResponse.create({
-      data: { assignmentId: assignment.id, answers },
+      data: { assignmentId: assignment.id, answers, assistedById },
     });
     await tx.worksheetAssignment.update({
       where: { id: assignment.id },
@@ -74,7 +78,9 @@ export async function submitWorksheet(assignmentId: string, formData: FormData) 
         clientId: user.id,
         kind: "WORKSHEET_RESPONSE",
         occurredAt: response.completedAt,
-        title: assignment.worksheet.title,
+        title: assistedById
+          ? `${assignment.worksheet.title} · entered with Valentina`
+          : assignment.worksheet.title,
         summary: snapshot(answersDigest(fields, answers)) ?? "Completed a worksheet",
         tags: [],
         sourceType: "WorksheetResponse",
@@ -113,6 +119,16 @@ export async function submitWorksheet(assignmentId: string, formData: FormData) 
       }
     }
   });
+
+  if (assistedById) {
+    const { audit } = await import("@/lib/audit");
+    await audit({
+      actorId: assistedById,
+      onBehalfOfId: user.id,
+      action: "assist-worksheet",
+      meta: { assignmentId: assignment.id },
+    });
+  }
 
   revalidatePath("/space");
   redirect(`${back}?done=1`);

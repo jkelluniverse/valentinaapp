@@ -15,6 +15,11 @@ export type SessionUser = {
   active: boolean;
   locale: string; // AMD-05 — "en" | "es"
   consentAt: Date | null; // legacy; new consent checks go through lib/consent.ts
+  // AMD-06 §2 — set ONLY when this "client" is actually the practitioner
+  // viewing through an assist grant. The id/role above are the CLIENT's (so
+  // the portal renders as a view); actions that must not run in assist check
+  // this via forbidInAssist().
+  assistedBy?: { practitionerId: string; grantId: string; expiresAt: Date };
 };
 
 export async function getSessionUser(): Promise<SessionUser | null> {
@@ -50,7 +55,32 @@ export async function requirePractitioner(): Promise<SessionUser> {
 export async function requireClient(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (user.role !== "CLIENT") redirect("/practitioner");
+  if (user.role !== "CLIENT") {
+    // AMD-06 §2 — a practitioner with an active assist grant renders the
+    // client portal AS A VIEW: the returned identity is the client's (pages
+    // just work), assistedBy carries who is actually acting.
+    if (user.role === "PRACTITIONER") {
+      const { activeAssist } = await import("@/lib/assist");
+      const assist = await activeAssist(user.id);
+      if (assist) {
+        const client = await prisma.user.findFirst({
+          where: { id: assist.clientId, role: "CLIENT", active: true },
+          select: { id: true, name: true, email: true, role: true, active: true, locale: true, consentAt: true },
+        });
+        if (client) {
+          return {
+            ...(client as SessionUser),
+            assistedBy: {
+              practitionerId: user.id,
+              grantId: assist.grantId,
+              expiresAt: assist.expiresAt,
+            },
+          };
+        }
+      }
+    }
+    redirect("/practitioner");
+  }
   // Deactivation gate against the DB, so a client deactivated mid-session loses
   // access on their next navigation (not just at next login).
   if (!user.active) redirect("/login?error=inactive");

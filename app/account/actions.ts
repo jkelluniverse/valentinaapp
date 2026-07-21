@@ -22,6 +22,11 @@ import { signIn, signOut } from "@/auth";
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 async function requireUser() {
+  // AMD-06 §2 exclusion 3 — password & security screens never run inside
+  // assist: these actions would touch HER account while the page looks like
+  // theirs. The §1 tools exist precisely so she never acts in here.
+  const { forbidInAssist } = await import("@/lib/assist");
+  await forbidInAssist("security");
   const user = await getSessionUser();
   if (!user) redirect("/login");
   return user;

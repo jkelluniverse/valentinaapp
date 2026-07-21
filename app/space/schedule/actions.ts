@@ -60,6 +60,9 @@ export async function payChargeWithToken(
   chargeId: string,
   token: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  // AMD-06 §2 exclusion 2 — payment instruments never run inside assist.
+  const { blockedInAssist } = await import("@/lib/assist");
+  if (await blockedInAssist("payment")) return { ok: false, error: "assist" };
   const user = await requireClient();
   if (!squareConfigured()) return { ok: false, error: "config" };
   if (!token || typeof token !== "string") return { ok: false, error: "token" };
@@ -107,6 +110,9 @@ export async function purchasePackage(
   priceBookId: string,
   token: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  // AMD-06 §2 exclusion 2 — payment instruments never run inside assist.
+  const { blockedInAssist } = await import("@/lib/assist");
+  if (await blockedInAssist("payment")) return { ok: false, error: "assist" };
   const user = await requireClient();
   if (!squareConfigured()) return { ok: false, error: "config" };
   if (!token || typeof token !== "string") return { ok: false, error: "token" };

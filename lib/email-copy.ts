@@ -312,6 +312,49 @@ export function invoiceEmail(
 }
 
 // AMD-05 B2 — verified email change: link to the NEW address…
+// AMD-06 — assisted email change: the switch already happened (she verified
+// them directly), so the old address gets the plain truth plus the escape
+// hatch. The takeover tripwire stays.
+export function assistedEmailChangedEmail(locale: Locale, v: { newEmail: string }): Mail {
+  if (locale === "es") {
+    return {
+      subject: "El correo de tu cuenta fue actualizado",
+      text:
+        `Valentina actualizó el correo de tu cuenta a ${v.newEmail} después de verificarlo contigo.\n\n` +
+        `Si fuiste tú quien lo pidió, no necesitas hacer nada.\n\n` +
+        `Si NO reconoces este cambio, responde a este correo o contacta a Valentina de inmediato.`,
+    };
+  }
+  return {
+    subject: "Your account email was updated",
+    text:
+      `Valentina updated your account email to ${v.newEmail} after verifying it with you.\n\n` +
+      `If you asked for this, there's nothing to do.\n\n` +
+      `If you do NOT recognize this change, reply to this email or contact Valentina right away.`,
+  };
+}
+
+// AMD-06 §2 — transparency note after an assist session (default ON; her
+// conscious setting). Quiet, factual, no alarm.
+export function assistSessionEmail(locale: Locale): Mail {
+  if (locale === "es") {
+    return {
+      subject: "Valentina te ayudó con tu cuenta hoy",
+      text:
+        `Valentina entró a ayudarte con tu cuenta hoy — por teléfono o en persona, contigo.\n\n` +
+        `Todo lo que se hizo quedó registrado a su nombre, y puedes ver la nota en tus ajustes.\n\n` +
+        `Si tienes cualquier pregunta, escríbele con confianza.`,
+    };
+  }
+  return {
+    subject: "Valentina helped with your account today",
+    text:
+      `Valentina stepped in to help with your account today — by phone or in person, with you.\n\n` +
+      `Everything done is recorded under her name, and you can see the note in your settings.\n\n` +
+      `Any questions at all, just write to her.`,
+  };
+}
+
 // Password reset — the way back in. The link is the whole message; the note
 // keeps the not-you case calm (nothing changes unless the link is used).
 export function passwordResetEmail(locale: Locale, v: { link: string }): Mail {

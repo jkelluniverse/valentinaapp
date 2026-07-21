@@ -32,6 +32,10 @@ export async function sendClientMessage(
   conversationId: string,
   formData: FormData,
 ): Promise<{ ok: boolean; crisis?: boolean; error?: string }> {
+  // AMD-06 — a message sent in assist would forge the client's voice; her own
+  // inbox is where she speaks as herself.
+  const { blockedInAssist } = await import("@/lib/assist");
+  if (await blockedInAssist("message")) return { ok: false, error: "assist" };
   const user = await requireClient();
   const convo = await ownConversation(conversationId, user.id);
   if (!convo) return { ok: false, error: "not-found" };

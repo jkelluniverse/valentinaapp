@@ -45,6 +45,9 @@ export async function saveNotifications(formData: FormData) {
 // conversation, not a self-serve nuke) on a stated timeline: reviewed within
 // 7 days, completed within 30 days of confirmation.
 export async function requestDeletion(formData: FormData) {
+  // AMD-06 §2 — hard exclusion, enforced server-side.
+  const { forbidInAssist } = await import("@/lib/assist");
+  await forbidInAssist("deletion");
   const user = await requireClient();
   if (rateLimited(`del:${user.id}`, 3, 60 * 60_000)) redirect(`${PATH}?error=del-rate`);
 
@@ -81,10 +84,33 @@ export async function requestDeletion(formData: FormData) {
   redirect(`${PATH}?saved=deletion`);
 }
 
+// AMD-06/AMD-01 — the client's standing authorization to charge their stored
+// card for what they owe. In-context, revocable, and NEVER grantable in
+// assist — this consent only means something when they give it themselves.
+export async function setCardConsent(grant: boolean) {
+  const { forbidInAssist } = await import("@/lib/assist");
+  await forbidInAssist("consent");
+  const user = await requireClient();
+  const link = await prisma.squareCustomerLink.findUnique({ where: { clientId: user.id } });
+  if (!link) redirect(`${PATH}?error=nocard`);
+  await prisma.squareCustomerLink.update({
+    where: { clientId: user.id },
+    data: grant
+      ? { cardConsentAt: new Date(), cardConsentRevokedAt: null }
+      : { cardConsentRevokedAt: new Date() },
+  });
+  console.info(`[settings] card consent ${grant ? "granted" : "revoked"} user=${user.id}`);
+  revalidatePath(PATH);
+  redirect(`${PATH}?saved=card`);
+}
+
 // C19 §0 — recording consent: grant records the exact wording agreed to;
 // revoke stamps revokedAt (future sessions unrecordable for this client;
 // past-recording deletion flows through the AMD-05 request path).
 export async function setRecordingConsent(grant: boolean) {
+  // AMD-06 §2 — hard exclusion, enforced server-side.
+  const { forbidInAssist } = await import("@/lib/assist");
+  await forbidInAssist("consent");
   const user = await requireClient();
   const { RECORDING_CONSENT_TEXT, RECORDING_CONSENT_VERSION } = await import("@/lib/recording");
   if (grant) {

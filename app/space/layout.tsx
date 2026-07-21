@@ -25,9 +25,25 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
   const t = await getTranslations("nav");
   const initial = (user.name?.trim()?.[0] ?? user.email[0] ?? "·").toUpperCase();
 
-  // AMENDMENT-01 §5 — the one-time consent re-ask (consent route exempt).
   const pathname = headers().get("x-pathname") ?? "";
-  if (pathname && !pathname.startsWith("/space/consent") && !(await hasConsent(user.id))) {
+
+  // AMD-06 §1 — a temp password works exactly once as a door: the next stop is
+  // choosing their own. (Never triggered during assist — that's her session.)
+  if (!user.assistedBy && pathname && !pathname.startsWith("/space/consent")) {
+    const flag = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { mustChangePassword: true },
+    });
+    if (flag?.mustChangePassword) redirect("/must-change");
+  }
+
+  // AMENDMENT-01 §5 — the one-time consent re-ask (consent route exempt).
+  if (
+    !user.assistedBy &&
+    pathname &&
+    !pathname.startsWith("/space/consent") &&
+    !(await hasConsent(user.id))
+  ) {
     redirect("/space/consent");
   }
 
@@ -64,8 +80,33 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
     await signOut({ redirectTo: "/login" });
   }
 
+  async function doExitAssist() {
+    "use server";
+    const { requirePractitioner } = await import("@/lib/auth-guards");
+    const { endAssist } = await import("@/lib/assist");
+    const me = await requirePractitioner();
+    const clientId = user.id;
+    await endAssist(me.id);
+    redirect(`/practitioner/clients/${clientId}`);
+  }
+
   return (
     <div data-portal="client" className="min-h-dvh bg-canvas text-ink">
+      {/* AMD-06 §2 — the persistent assist banner: never absent, never subtle. */}
+      {user.assistedBy && (
+        <div className="sticky top-0 z-40 flex items-center gap-3 bg-wine px-4 py-2 text-[13px] text-cream">
+          <span aria-hidden>✧</span>
+          <span>
+            Assisting {user.name || user.email}&apos;s account — actions are recorded as yours.
+            Until {user.assistedBy.expiresAt.toISOString().slice(11, 16)} UTC.
+          </span>
+          <form action={doExitAssist} className="ml-auto">
+            <button className="rounded border border-cream/60 px-3 py-1 text-xs font-semibold text-cream hover:bg-cream/10">
+              Exit assist
+            </button>
+          </form>
+        </div>
+      )}
       <header className="sticky top-0 z-30 border-b border-line bg-surface/60 pt-safe backdrop-blur">
         {/* Mobile bar: wordmark + avatar only. */}
         <div className="flex h-12 items-center px-4 md:hidden">

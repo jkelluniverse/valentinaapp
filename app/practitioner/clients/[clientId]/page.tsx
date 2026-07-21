@@ -25,6 +25,7 @@ import { NoteRow } from "@/components/NoteRow";
 import { createJot } from "../../notes/actions";
 import { AssignForm } from "./AssignForm";
 import { PendingButton } from "@/components/PendingButton";
+import { HelpSheet } from "./HelpSheet";
 import { GuideTab, GoalsTab, BeliefsTab, OutcomesTab, AskTab } from "./intelligence-tabs";
 import {
   assignPrompt,
@@ -98,6 +99,7 @@ export default async function Portrait({
     outcome?: string;
     ask?: string;
     st?: string; // C19 REC.5 — spoken-record search query
+    help?: string; // AMD-06 — help-sheet notices
   };
 }) {
   await requirePractitioner();
@@ -167,6 +169,28 @@ export default async function Portrait({
   const groups = groupByDay(rec.timeline);
   const nextSession = upcomingSessions[0];
 
+  // AMD-06 §1 — the Help sheet's data: SKUs to sell, jammed items, whether the
+  // card path may even be shown (card saved AND their standing authorization),
+  // and the recent audit trail for this client. DB-only reads — cheap.
+  const [helpSkus, helpAssignments, helpLink, helpAudit] = await Promise.all([
+    prisma.priceBook.findMany({ where: { active: true }, orderBy: { amountCents: "desc" } }),
+    prisma.worksheetAssignment.findMany({
+      where: { clientId: client.id },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      include: { worksheet: { select: { title: true } }, response: { select: { id: true } } },
+    }),
+    prisma.squareCustomerLink.findUnique({ where: { clientId: client.id } }),
+    prisma.auditEvent.findMany({
+      where: { onBehalfOfId: client.id },
+      orderBy: { createdAt: "desc" },
+      take: 6,
+    }),
+  ]);
+  const cardPathAvailable = Boolean(
+    helpLink?.cardOnFile && helpLink.cardConsentAt && !helpLink.cardConsentRevokedAt,
+  );
+
   return (
     <div className="flex flex-col gap-8">
       <Link
@@ -223,6 +247,29 @@ export default async function Portrait({
         </p>
         <div className="hidden h-px w-16 origin-left bg-mocha rule-draw md:block" />
       </div>
+
+      {/* AMD-06 §1 — support tools, one tap + one audit line each. */}
+      <HelpSheet
+        clientId={client.id}
+        notice={searchParams.help}
+        cardPathAvailable={cardPathAvailable}
+        skus={helpSkus.map((s) => ({
+          id: s.id,
+          name: s.name,
+          kind: s.kind,
+          amount: `$${(s.amountCents / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+        }))}
+        jams={helpAssignments.map((a) => ({
+          id: a.id,
+          title: a.worksheet.title,
+          status: a.status,
+          hasAnswers: Boolean(a.response),
+        }))}
+        auditLines={helpAudit.map((a) => ({
+          when: a.createdAt.toISOString().slice(0, 10),
+          text: `${a.action}${a.reason ? ` — ${a.reason}` : ""}`,
+        }))}
+      />
 
       {/* Banners */}
       {searchParams.sent && <Banner>Sent — it&apos;s waiting in their space.</Banner>}

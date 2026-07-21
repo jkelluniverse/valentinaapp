@@ -44,6 +44,10 @@ export async function markReadingBlock(
   blockKey: string,
   value: string,
 ): Promise<{ ok: boolean }> {
+  // AMD-06 §2 exclusion 5 — resonance marks are client-voice evidence; a mark
+  // she placed would poison the signal. She reads; marking is theirs.
+  const { forbidInAssist } = await import("@/lib/assist");
+  await forbidInAssist("resonance");
   const user = await requireClient();
   if (!(CLIENT_VALUES as readonly string[]).includes(value)) return { ok: false };
   if (!blockKey || blockKey.length > 60) return { ok: false };

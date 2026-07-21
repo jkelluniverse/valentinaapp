@@ -46,6 +46,21 @@ export async function savePolicy(formData: FormData) {
   redirect(`${PATH}?saved=policy`);
 }
 
+// AMD-06 §2 flag — whether clients get an email note after an assist session.
+// Default ON; turning it off is her conscious choice, made here.
+export async function setAssistNotify(formData: FormData) {
+  const user = await requirePractitioner();
+  const on = formData.get("assistNotify") === "on";
+  await prisma.practiceSetting.upsert({
+    where: { key: "assistNotifyEmail" },
+    create: { key: "assistNotifyEmail", value: on ? "on" : "off" },
+    update: { value: on ? "on" : "off" },
+  });
+  console.info(`[settings] assist notify ${on ? "on" : "off"} by=${user.id}`);
+  revalidatePath(PATH);
+  redirect(`${PATH}?saved=assist`);
+}
+
 // AMD-05 B3 — deletion requests are handled attributably: who moved it, when.
 export async function setDeletionStatus(
   id: string,

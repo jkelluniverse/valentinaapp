@@ -21,6 +21,7 @@ model User {
   active       Boolean    @default(true) // deactivation gate for login
   locale       String     @default("en") // AMD-05 — UI chrome + client-facing AI + email ("en" | "es")
   sessionVersion Int      @default(0) // AMD-05 B2 — stamped into the JWT; bump revokes all sessions
+  mustChangePassword Boolean @default(false) // AMD-06 — temp password forces a new one at next sign-in
   notifyPrefs  Json? // AMD-05 — per-kind email prefs (e.g. {"booking":true,"messages":true,"quietStart":22,"quietEnd":7})
   consentAt    DateTime? // legacy account consent (kept for back-compat; AMENDMENT-01)
   aiConsentAt  DateTime? // legacy AI-review opt-in — folded into unified consent (AMENDMENT-01)
@@ -836,6 +837,8 @@ model Charge {
   squareInvoiceId String?      @unique
   squareInvoiceUrl String? // the hosted pay page — OUR branded email carries it
   lastActionById  String? // who moved the status (audit)
+  channel         String? // AMD-06 — PRACTITIONER_ASSISTED for phone/in-person purchases
+  channelNote     String? // AMD-06 — required authorization note ("authorized by phone, Jul 20")
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -851,6 +854,11 @@ model SquareCustomerLink {
   clientId         String  @unique
   squareCustomerId String  @unique
   cardOnFile       Boolean @default(false)
+  // AMD-06/AMD-01 — the CLIENT's standing authorization to charge the stored
+  // card for what they owe. Practitioner-assisted charge paths require this;
+  // without it the card option simply isn't shown.
+  cardConsentAt        DateTime?
+  cardConsentRevokedAt DateTime?
 }
 
 // Square payments seen by webhook that don't reference one of our charges —
@@ -908,7 +916,39 @@ model WorksheetResponse {
   assignmentId String              @unique
   assignment   WorksheetAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   answers      Json // { fieldId: value } — structured, keyed to the schema
+  assistedById String? // AMD-06 — entered with Valentina's help (dictation is legitimate; the label is honest)
   completedAt  DateTime            @default(now())
+}
+
+// AMD-06 §2 — the bounded act-as. One active grant per practitioner at a time
+// (cookie-scoped); 30 minutes, then re-entry with a fresh reason.
+model AssistGrant {
+  id             String    @id @default(cuid())
+  practitionerId String
+  clientId       String
+  reason         String // picklist value
+  note           String? // free text
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+  endedAt        DateTime?
+
+  @@index([clientId, createdAt])
+}
+
+// AMD-06 §3 — the audit spine: append-only, attributable, metadata only
+// (never note bodies, answers, tokens, or card data). actorId is who ACTED;
+// onBehalfOfId is whose account it touched.
+model AuditEvent {
+  id           String   @id @default(cuid())
+  actorId      String
+  onBehalfOfId String?
+  action       String // slug: "temp-password", "assist-enter", "assisted-purchase", …
+  reason       String?
+  meta         Json? // small metadata: charge id, settlement path — never content
+  createdAt    DateTime @default(now())
+
+  @@index([onBehalfOfId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 enum CourseStatus {
