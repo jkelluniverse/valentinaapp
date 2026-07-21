@@ -800,7 +800,37 @@ export async function OutcomesTab({ clientId, banner }: { clientId: string; bann
 // ---------------------------------------------------------------------------
 // Ask the Record (§8) — cite or decline.
 
-export async function AskTab({ clientId, banner }: { clientId: string; banner?: string }) {
+export async function AskTab({
+  clientId,
+  banner,
+  spokenQuery,
+}: {
+  clientId: string;
+  banner?: string;
+  spokenQuery?: string;
+}) {
+  // C19 REC.5 — search the spoken record (practitioner-only). Plain text
+  // match over stored transcripts; the provider's semantic search can plug in
+  // through the adapter later.
+  const spokenHits: { when: Date; speaker: string; text: string; startMs?: number }[] = [];
+  if (spokenQuery && spokenQuery.trim().length >= 2) {
+    const q = spokenQuery.trim().toLowerCase();
+    const transcripts = await prisma.sessionTranscript.findMany({
+      where: { clientId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: { createdAt: true, segments: true },
+    });
+    for (const t of transcripts) {
+      for (const s of (t.segments as { speaker?: string; text?: string; startMs?: number }[]) ?? []) {
+        if (s.text?.toLowerCase().includes(q)) {
+          spokenHits.push({ when: t.createdAt, speaker: s.speaker ?? "?", text: s.text, startMs: s.startMs });
+          if (spokenHits.length >= 20) break;
+        }
+      }
+      if (spokenHits.length >= 20) break;
+    }
+  }
   const answers = await prisma.askRecordAnswer.findMany({
     where: { clientId },
     orderBy: { createdAt: "desc" },
@@ -854,6 +884,45 @@ export async function AskTab({ clientId, banner }: { clientId: string; banner?: 
             </button>
           </form>
         ))}
+      </div>
+
+      {/* C19 REC.5 — the spoken record. */}
+      <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-mocha">
+          Search the spoken record
+        </p>
+        <form method="get" className="mt-2 flex flex-wrap gap-2">
+          <input type="hidden" name="tab" value="ask" />
+          <input
+            name="st"
+            defaultValue={spokenQuery ?? ""}
+            placeholder="a word or phrase they said in session"
+            className="min-w-0 flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+          />
+          <button className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+            Search
+          </button>
+        </form>
+        {spokenQuery && (
+          <div className="mt-3 flex flex-col gap-1.5">
+            {spokenHits.length === 0 ? (
+              <p className="text-[13px] text-slate">Nothing in the spoken record matches.</p>
+            ) : (
+              spokenHits.map((h, i) => (
+                <p key={i} className="text-[13px] leading-relaxed text-ink">
+                  <span className="mr-1.5 text-[11px] font-semibold uppercase text-whisper">
+                    {fmtDay(h.when)}
+                    {h.startMs != null
+                      ? ` · ${Math.floor(h.startMs / 60000)}:${String(Math.floor((h.startMs % 60000) / 1000)).padStart(2, "0")}`
+                      : ""}{" "}
+                    · {h.speaker === "CLIENT" ? "client" : "V"}
+                  </span>
+                  {h.text}
+                </p>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {answers.map((a) => {

@@ -220,6 +220,13 @@ export default async function ClientSchedulePage({
                     {whenLabel(a.startAt)}{" "}
                     <span className="text-slate">{zoneAbbrev(a.startAt, config.timezone)}</span>
                   </p>
+                  {/* C19 §0 — no secrets: the client always sees when a
+                      session is (to be) recorded. */}
+                  {a.recordingConfirmed && (
+                    <span className="text-[12px] text-slate">
+                      {user.locale === "es" ? "esta sesión se graba" : "this session is recorded"}
+                    </span>
+                  )}
                   <span className="ml-auto flex items-center gap-4">
                     {a.location === "VIRTUAL" && a.videoUrl && (
                       <a

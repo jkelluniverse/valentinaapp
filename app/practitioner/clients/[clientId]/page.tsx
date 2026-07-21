@@ -96,6 +96,7 @@ export default async function Portrait({
     belief?: string;
     outcome?: string;
     ask?: string;
+    st?: string; // C19 REC.5 — spoken-record search query
   };
 }) {
   await requirePractitioner();
@@ -471,7 +472,9 @@ export default async function Portrait({
         {tab === "goals" && <GoalsTab clientId={client.id} banner={searchParams.goal} />}
         {tab === "beliefs" && <BeliefsTab clientId={client.id} banner={searchParams.belief} />}
         {tab === "outcomes" && <OutcomesTab clientId={client.id} banner={searchParams.outcome} />}
-        {tab === "ask" && <AskTab clientId={client.id} banner={searchParams.ask} />}
+        {tab === "ask" && (
+          <AskTab clientId={client.id} banner={searchParams.ask} spokenQuery={searchParams.st} />
+        )}
 
         {tab === "margins" && (
           <MarginsTab clientId={client.id} clientName={client.name || client.email} tag={searchParams.noteTag} />

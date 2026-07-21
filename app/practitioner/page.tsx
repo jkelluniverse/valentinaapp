@@ -168,6 +168,23 @@ export default async function TheStudy() {
       href: `/practitioner/clients`,
     });
   }
+
+  // C14-REMARKABLE R.5 — a session note (or recording) waiting for its
+  // ten-second review, right after safety signals.
+  const [draftNotes, draftRecordings] = await Promise.all([
+    prisma.handwrittenNote.count({ where: { status: "DRAFT" } }).catch(() => 0),
+    prisma.recordingDraft.count({ where: { status: "DRAFT" } }).catch(() => 0),
+  ]);
+  const inboxCount = draftNotes + draftRecordings;
+  if (inboxCount > 0) {
+    signals.splice(crisisFlags.length + entryCrisis.length, 0, {
+      text:
+        inboxCount === 1
+          ? "A session note is waiting in the Margins inbox — ten seconds to apply."
+          : `${inboxCount} session notes are waiting in the Margins inbox.`,
+      href: "/practitioner/notes/inbox",
+    });
+  }
   const shown = signals.slice(0, 3);
   const moreSignals = signals.length - shown.length;
 

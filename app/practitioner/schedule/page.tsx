@@ -16,6 +16,7 @@ import {
   markSessionDidntHappen,
   revertSessionStatus,
   setCalendarSyncDone,
+  setRecordingConfirmed,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,17 @@ export default async function PractitionerSchedulePage({
 
   const config = await getOrCreateConfig(practitioner.id);
   const now = new Date();
+
+  // C19 — which clients hold active recording consent (gates the per-session
+  // "Recording today?" toggle; no consent → the control simply isn't there).
+  const recordingConsented = new Set(
+    (
+      await prisma.recordingConsent.findMany({
+        where: { revokedAt: null },
+        select: { clientId: true },
+      })
+    ).map((c) => c.clientId),
+  );
 
   const [appointments, recent] = await Promise.all([
     prisma.appointment.findMany({
@@ -224,6 +236,21 @@ export default async function PractitionerSchedulePage({
               <span className="inline-flex items-center rounded-full bg-blush-deep px-2.5 py-0.5 text-xs font-medium text-wine">
                 {a.location === "VIRTUAL" ? "Virtual" : "In person"}
               </span>
+              {/* C19 §0 — per-session confirm: she asks aloud; the app remembers. */}
+              {a.kind === "SESSION" && a.client && recordingConsented.has(a.client.id) && (
+                <form action={setRecordingConfirmed.bind(null, a.id, !(a.recordingConfirmed ?? false))}>
+                  <button
+                    title="Consent to the practice exists — this logs the in-the-moment yes/no"
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                      a.recordingConfirmed
+                        ? "bg-wine text-cream"
+                        : "border border-line text-slate hover:border-mocha hover:text-wine"
+                    }`}
+                  >
+                    {a.recordingConfirmed ? "Recording today ✓" : "Recording today?"}
+                  </button>
+                </form>
+              )}
               {(() => {
                 const c = chargeFor.get(a.id);
                 if (!c) return null;

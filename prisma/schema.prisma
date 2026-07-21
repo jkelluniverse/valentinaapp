@@ -183,6 +183,8 @@ model PsycheNode {
   promptKey             String? // which First Map prompt birthed a self-reported node
   chartBasis            String? // C12X §4 — which chart feature proposed this (CHART_DERIVED only)
   blockKey              String? // C12X — reading placement key this hypothesis mirrors ("center:head")
+  evidenceNoteIds       String[] // C14-REMARKABLE — her session notes as first-class evidence (practitioner-only surface)
+  evidenceTranscriptRefs String[] // C19 — spoken moments: "t:<transcriptId>#<segmentIndex>"
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
@@ -575,6 +577,80 @@ model Note {
 
   @@index([clientId, createdAt])
   @@index([authorId, depth, status])
+}
+
+// C14-REMARKABLE — a handwritten page emailed from her reMarkable, awaiting
+// the 10-second review. The original PDF is part of the record she may want
+// to see again — stored whole, never auto-deleted. Same privacy class as
+// Notes (strictest in the app; never client-visible; no content in logs).
+model HandwrittenNote {
+  id                   String    @id @default(cuid())
+  status               String    @default("DRAFT") // DRAFT | APPLIED | DISMISSED
+  source               String    @default("EMAIL") // EMAIL | DRIVE | CLOUD
+  fromAddress          String
+  subject              String?
+  pdf                  Bytes // the original handwriting
+  transcript           String? // verbatim, emphasis markers kept, [?] never guessed
+  transcriptModel      String?
+  matchedClientId      String? // SUGGESTION only — Apply requires explicit confirm (§3 gate)
+  matchedAppointmentId String?
+  matchConfidence      String? // CONFIDENT | AMBIGUOUS | NONE
+  appliedNoteId        String?   @unique // the C14 Note it became
+  appliedAt            DateTime?
+  appliedById          String?
+  receivedAt           DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status, receivedAt])
+}
+
+// C19 §0 — recording consent: its own in-context opt-in (AMENDMENT-01 kept it
+// OUTSIDE the global consent). Names the vendor cloud; versioned; revocable.
+// No consent → the feature is invisible for that client.
+model RecordingConsent {
+  id           String    @id @default(cuid())
+  clientId     String    @unique
+  version      String
+  textSnapshot String // the exact wording they agreed to
+  grantedAt    DateTime  @default(now())
+  revokedAt    DateTime?
+}
+
+// C19 — a processed recording awaiting review (parallel to HandwrittenNote).
+model RecordingDraft {
+  id                   String    @id @default(cuid())
+  status               String    @default("DRAFT") // DRAFT | APPLIED | DISMISSED
+  provider             String // "pocket" | "fixture"
+  providerRef          String    @unique // recording id on the provider
+  payload              Json // {summary, segments[], tags[], language, audioUrl?}
+  matchedClientId      String?
+  matchedAppointmentId String?
+  matchConfidence      String?
+  appliedTranscriptId  String?   @unique
+  receivedAt           DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status, receivedAt])
+}
+
+// C19 §4 — the session transcript: speaker-attributed, redactions applied
+// BEFORE persistence (struck passages never persist). C14-grade privacy.
+model SessionTranscript {
+  id            String   @id @default(cuid())
+  clientId      String
+  appointmentId String?  @unique
+  provider      String
+  providerRef   String?
+  audioRef      String? // our custody pointer — own the audio (§5)
+  summary       String?
+  segments      Json // [{speaker: CLIENT|PRACTITIONER|UNKNOWN, text, startMs?}]
+  redactedCount Int      @default(0)
+  language      String?
+  noteId        String?  @unique // the C14 session note carrying the summary
+  crisisFlag    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([clientId, createdAt])
 }
 
 model NoteScan {
@@ -1168,6 +1244,7 @@ model Appointment {
   bookedBy       String // "practitioner" | "client"
   clientNote     String? // optional topic
   reminderSentAt DateTime? // EMAIL-SPEC #10 — the 24h reminder fired (tick dedup)
+  recordingConfirmed Boolean? // C19 §0 — per-session "Recording today?" (null = not asked)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 

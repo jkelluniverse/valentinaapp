@@ -85,8 +85,8 @@ export async function runPsycheExtraction(
     take: deep ? DEEP_CAP : INCREMENTAL_CAP,
     select: { id: true, kind: true, title: true, summary: true, tags: true, occurredAt: true },
   });
-  if (items.length === 0) return { ok: false, error: "empty" };
-
+  // NOTE: no empty-return yet — session notes and transcripts (below) are
+  // material too; the freshness gate runs after they're assembled.
   const identifiers = [client.name ?? "", client.email, client.email.split("@")[0]].filter(Boolean);
 
   const [existingNodes, existingEdges, hd, notesEnabled] = await Promise.all([
@@ -106,16 +106,70 @@ export async function runPsycheExtraction(
   ]);
 
   // Her notes as CONTEXT only (no ids — they are never evidence), if enabled.
+  // EXCEPTION (C14-REMARKABLE R.4): applied SESSION notes are first-class,
+  // evidence-eligible material — her in-room observations, id-prefixed
+  // "note:" so evidence marks can point into the handwriting.
   let notesContext: string[] = [];
+  type ExtraItem = { id: string; kind: string; title: string | null; text: string; tags: string[]; when: string };
+  const extraItems: ExtraItem[] = [];
+  let freshExtra = 0; // extra material newer than the last run's high-water mark
   if (notesEnabled?.value === "true") {
     const notes = await prisma.note.findMany({
       where: { clientId, status: { not: "ARCHIVED" } },
       orderBy: { createdAt: "desc" },
-      take: 20,
-      select: { body: true },
+      take: 30,
+      select: { id: true, body: true, title: true, tags: true, createdAt: true },
     });
-    notesContext = notes.map((n) => strip(n.body, identifiers).slice(0, 400));
+    for (const n of notes) {
+      if (n.tags.includes("session-note")) {
+        if (!scopeFrom || n.createdAt > scopeFrom) freshExtra++;
+        extraItems.push({
+          id: `note:${n.id}`,
+          kind: "SESSION_NOTE",
+          title: n.title ? strip(n.title, identifiers) : null,
+          text: strip(n.body, identifiers).slice(0, 2000),
+          tags: n.tags,
+          when: n.createdAt.toISOString().slice(0, 10),
+        });
+      } else {
+        notesContext.push(strip(n.body, identifiers).slice(0, 400));
+      }
+    }
+    notesContext = notesContext.slice(0, 20);
   }
+
+  // C19 REC.4 — the client's own spoken words: the strongest evidence the map
+  // can have. Client-attributed segments ONLY (her speech never becomes
+  // client-psyche data); ids "t:<transcriptId>#<segment>" deep-link the moment.
+  const transcripts = await prisma.sessionTranscript.findMany({
+    where: { clientId },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: { id: true, segments: true, createdAt: true },
+  });
+  let spokenCount = 0;
+  for (const t of transcripts) {
+    const segs = (t.segments as { speaker?: string; text?: string; startMs?: number }[]) ?? [];
+    for (let i = 0; i < segs.length && spokenCount < 200; i++) {
+      const s = segs[i];
+      if (s.speaker !== "CLIENT" || !s.text?.trim()) continue;
+      if (!scopeFrom || t.createdAt > scopeFrom) freshExtra++;
+      extraItems.push({
+        id: `t:${t.id}#${i}`,
+        kind: "SPOKEN",
+        title: null,
+        text: strip(s.text, identifiers).slice(0, 800),
+        tags: [],
+        when: t.createdAt.toISOString().slice(0, 10),
+      });
+      spokenCount++;
+    }
+  }
+
+  // The freshness gate, across ALL material kinds: an applied session note or
+  // recording is enough to run even when no new RecordItems exist (the apply
+  // actions fire extraction directly — this is their path in).
+  if (items.length === 0 && freshExtra === 0) return { ok: false, error: "empty" };
 
   // The Pattern Library vocabulary — abstractions only, k-floored (§3.6).
   const [archetypes, links] = await Promise.all([
@@ -128,14 +182,17 @@ export async function runPsycheExtraction(
   const archetypeById = new Map<string, string>();
 
   const payload = {
-    material: items.map((i) => ({
-      id: i.id,
-      kind: i.kind,
-      title: strip(i.title, identifiers),
-      text: strip(i.summary, identifiers),
-      tags: i.tags,
-      when: i.occurredAt.toISOString().slice(0, 10),
-    })),
+    material: [
+      ...items.map((i) => ({
+        id: i.id,
+        kind: i.kind,
+        title: strip(i.title, identifiers),
+        text: strip(i.summary, identifiers),
+        tags: i.tags,
+        when: i.occurredAt.toISOString().slice(0, 10),
+      })),
+      ...extraItems,
+    ],
     existingMap: {
       nodes: existingNodes.map((n) => ({
         id: n.id,
@@ -190,8 +247,14 @@ export async function runPsycheExtraction(
   }
 
   // ---- Apply, defensively ----
-  const validIds = new Set(items.map((i) => i.id));
+  const validIds = new Set([...items.map((i) => i.id), ...extraItems.map((i) => i.id)]);
   const okEvidence = (ids: string[]) => ids.filter((id) => validIds.has(id));
+  // Route evidence by source: record items, session notes, spoken moments.
+  const splitEvidence = (ids: string[]) => ({
+    records: ids.filter((id) => !id.startsWith("note:") && !id.startsWith("t:")),
+    notes: ids.filter((id) => id.startsWith("note:")).map((id) => id.slice(5)),
+    trefs: ids.filter((id) => id.startsWith("t:")),
+  });
   const byLabel = new Map(existingNodes.map((n) => [n.label.trim().toLowerCase(), n.id]));
   const nodeIds = new Set(existingNodes.map((n) => n.id));
 
@@ -213,6 +276,7 @@ export async function runPsycheExtraction(
         output.attachments = [...(output.attachments ?? []), { nodeId: existingId, evidenceIds: evidence }];
         continue;
       }
+      const ev = splitEvidence(evidence);
       const node = await prisma.psycheNode.create({
         data: {
           clientId,
@@ -221,7 +285,9 @@ export async function runPsycheExtraction(
           description: n.description?.slice(0, 1500) || null,
           giftLabel: n.giftLabel?.trim().slice(0, 120) || null,
           source: "AI_EXTRACTED",
-          evidenceRecordItemIds: evidence,
+          evidenceRecordItemIds: ev.records,
+          evidenceNoteIds: ev.notes,
+          evidenceTranscriptRefs: ev.trefs,
           weight: massFromEvidence(evidence.length),
         },
       });
@@ -237,11 +303,22 @@ export async function runPsycheExtraction(
       if (evidence.length === 0) continue;
       const node = await prisma.psycheNode.findFirst({ where: { id: a.nodeId, clientId } });
       if (!node) continue;
-      const merged = [...new Set([...node.evidenceRecordItemIds, ...evidence])];
-      if (merged.length === node.evidenceRecordItemIds.length) continue;
+      const ev = splitEvidence(evidence);
+      const mergedRecords = [...new Set([...node.evidenceRecordItemIds, ...ev.records])];
+      const mergedNotes = [...new Set([...node.evidenceNoteIds, ...ev.notes])];
+      const mergedTrefs = [...new Set([...node.evidenceTranscriptRefs, ...ev.trefs])];
+      const total = mergedRecords.length + mergedNotes.length + mergedTrefs.length;
+      const before =
+        node.evidenceRecordItemIds.length + node.evidenceNoteIds.length + node.evidenceTranscriptRefs.length;
+      if (total === before) continue;
       await prisma.psycheNode.update({
         where: { id: node.id },
-        data: { evidenceRecordItemIds: merged, weight: massFromEvidence(merged.length) },
+        data: {
+          evidenceRecordItemIds: mergedRecords,
+          evidenceNoteIds: mergedNotes,
+          evidenceTranscriptRefs: mergedTrefs,
+          weight: massFromEvidence(total),
+        },
       });
       updated++;
     }
@@ -252,7 +329,8 @@ export async function runPsycheExtraction(
     for (const e of output.newEdges ?? []) {
       const fromId = resolve(e.from);
       const toId = resolve(e.to);
-      const evidence = okEvidence(e.evidenceIds ?? []);
+      // Edge evidence stays record-item-based; note/spoken refs live on nodes.
+      const evidence = splitEvidence(okEvidence(e.evidenceIds ?? [])).records;
       if (!fromId || !toId || fromId === toId) continue;
       if (!RELATIONS.includes(e.relation as (typeof RELATIONS)[number])) continue;
       const existing = await prisma.psycheEdge.findUnique({

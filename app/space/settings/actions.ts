@@ -80,3 +80,35 @@ export async function requestDeletion(formData: FormData) {
   revalidatePath(PATH);
   redirect(`${PATH}?saved=deletion`);
 }
+
+// C19 §0 — recording consent: grant records the exact wording agreed to;
+// revoke stamps revokedAt (future sessions unrecordable for this client;
+// past-recording deletion flows through the AMD-05 request path).
+export async function setRecordingConsent(grant: boolean) {
+  const user = await requireClient();
+  const { RECORDING_CONSENT_TEXT, RECORDING_CONSENT_VERSION } = await import("@/lib/recording");
+  if (grant) {
+    await prisma.recordingConsent.upsert({
+      where: { clientId: user.id },
+      create: {
+        clientId: user.id,
+        version: RECORDING_CONSENT_VERSION,
+        textSnapshot: RECORDING_CONSENT_TEXT[user.locale === "es" ? "es" : "en"],
+      },
+      update: {
+        version: RECORDING_CONSENT_VERSION,
+        textSnapshot: RECORDING_CONSENT_TEXT[user.locale === "es" ? "es" : "en"],
+        grantedAt: new Date(),
+        revokedAt: null,
+      },
+    });
+  } else {
+    await prisma.recordingConsent.updateMany({
+      where: { clientId: user.id },
+      data: { revokedAt: new Date() },
+    });
+  }
+  console.log(`[recording] consent ${grant ? "granted" : "revoked"} client=${user.id}`);
+  revalidatePath("/space/settings");
+  redirect("/space/settings");
+}

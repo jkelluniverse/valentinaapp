@@ -98,6 +98,57 @@ export async function loadGraph(clientId: string): Promise<PsycheGraph> {
   });
   const itemMap = new Map(items.map((i) => [i.id, i]));
 
+  // C14-REMARKABLE / C19 — her session notes and the client's spoken moments
+  // as evidence (practitioner-only surface; clientId re-checked).
+  const noteIds = [...new Set(nodes.flatMap((n) => n.evidenceNoteIds))];
+  const notes = noteIds.length
+    ? await prisma.note.findMany({
+        where: { id: { in: noteIds }, clientId },
+        select: { id: true, title: true, body: true, createdAt: true },
+      })
+    : [];
+  const noteMap = new Map(notes.map((n) => [n.id, n]));
+  const trefIds = [...new Set(nodes.flatMap((n) => n.evidenceTranscriptRefs))];
+  const transcriptIds = [...new Set(trefIds.map((r) => r.slice(2).split("#")[0]))];
+  const transcripts = transcriptIds.length
+    ? await prisma.sessionTranscript.findMany({
+        where: { id: { in: transcriptIds }, clientId },
+        select: { id: true, segments: true, createdAt: true },
+      })
+    : [];
+  const transcriptMap = new Map(transcripts.map((t) => [t.id, t]));
+
+  function resolveExtra(n: { evidenceNoteIds: string[]; evidenceTranscriptRefs: string[] }): EvidenceRef[] {
+    const refs: EvidenceRef[] = [];
+    for (const id of n.evidenceNoteIds) {
+      const note = noteMap.get(id);
+      if (!note) continue;
+      refs.push({
+        id: `note:${id}`,
+        kind: "SESSION_NOTE",
+        title: note.title || "Session note (her hand)",
+        snippet: note.body.slice(0, 400),
+        occurredAt: note.createdAt.toISOString(),
+      });
+    }
+    for (const ref of n.evidenceTranscriptRefs) {
+      const [tid, idxStr] = ref.slice(2).split("#");
+      const t = transcriptMap.get(tid);
+      if (!t) continue;
+      const seg = ((t.segments as { text?: string; startMs?: number }[]) ?? [])[Number(idxStr)];
+      if (!seg?.text) continue;
+      const ts = seg.startMs != null ? ` · ${Math.floor(seg.startMs / 60000)}:${String(Math.floor((seg.startMs % 60000) / 1000)).padStart(2, "0")}` : "";
+      refs.push({
+        id: ref,
+        kind: "SPOKEN",
+        title: `Spoken in session${ts}`,
+        snippet: seg.text.slice(0, 400),
+        occurredAt: t.createdAt.toISOString(),
+      });
+    }
+    return refs;
+  }
+
   // C12X — latest resonance mark per node feeds the confidence vocabulary.
   const resonanceRows = await prisma.resonanceMark.findMany({
     where: { clientId, subjectType: "NODE" },
@@ -110,17 +161,19 @@ export async function loadGraph(clientId: string): Promise<PsycheGraph> {
   const liveIds = new Set(nodes.map((n) => n.id));
   return {
     nodes: nodes.map((n) => {
-      const evidence: EvidenceRef[] = n.evidenceRecordItemIds
-        .map((id) => itemMap.get(id))
-        .filter((i): i is NonNullable<typeof i> => !!i)
-        .sort((a, b) => b.occurredAt.getTime() - a.occurredAt.getTime())
-        .map((i) => ({
-          id: i.id,
-          kind: i.kind,
-          title: i.title,
-          snippet: i.summary ?? "",
-          occurredAt: i.occurredAt.toISOString(),
-        }));
+      const evidence: EvidenceRef[] = [
+        ...n.evidenceRecordItemIds
+          .map((id) => itemMap.get(id))
+          .filter((i): i is NonNullable<typeof i> => !!i)
+          .map((i) => ({
+            id: i.id,
+            kind: i.kind as string,
+            title: i.title,
+            snippet: i.summary ?? "",
+            occurredAt: i.occurredAt.toISOString(),
+          })),
+        ...resolveExtra(n),
+      ].sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime());
       return {
         id: n.id,
         kind: n.kind,

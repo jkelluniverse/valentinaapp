@@ -6,7 +6,8 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PushToggle } from "@/components/PushToggle";
 import { changePassword, requestEmailChange, signOutEverywhere } from "@/app/account/actions";
-import { saveLocale, saveNotifications, requestDeletion } from "./actions";
+import { saveLocale, saveNotifications, requestDeletion, setRecordingConsent } from "./actions";
+import { RECORDING_CONSENT_TEXT } from "@/lib/recording";
 
 export const dynamic = "force-dynamic";
 
@@ -49,12 +50,13 @@ export default async function SettingsPage({
   const user = await requireClient();
   const t = await getTranslations("settings");
 
-  const [profile, pendingDeletion] = await Promise.all([
+  const [profile, pendingDeletion, recordingConsent] = await Promise.all([
     prisma.clientProfile.findUnique({ where: { userId: user.id } }),
     prisma.deletionRequest.findFirst({
       where: { userId: user.id, status: { in: ["OPEN", "ACKNOWLEDGED"] } },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.recordingConsent.findUnique({ where: { clientId: user.id } }),
   ]);
 
   const dateFmt = new Intl.DateTimeFormat(user.locale === "es" ? "es" : "en", {
@@ -218,6 +220,38 @@ export default async function SettingsPage({
             <p className="text-sm text-slate">{t("language.themeHint")}</p>
           </div>
           <ThemeToggle />
+        </div>
+      </Section>
+
+      {/* C19 §0 — session recording: its own consent, in context, revocable. */}
+      <Section title={user.locale === "es" ? "Grabación de sesiones" : "Session recording"}>
+        <div className="flex flex-col gap-3 py-4">
+          <p className="max-w-prose text-sm leading-relaxed text-ink">
+            {RECORDING_CONSENT_TEXT[user.locale === "es" ? "es" : "en"]}
+          </p>
+          {recordingConsent && !recordingConsent.revokedAt ? (
+            <form action={setRecordingConsent.bind(null, false)} className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-medium text-wine">
+                {user.locale === "es"
+                  ? `Consentimiento dado el ${dateFmt.format(recordingConsent.grantedAt)}`
+                  : `Consent given ${dateFmt.format(recordingConsent.grantedAt)}`}
+              </span>
+              <button className="rounded-md border border-line px-3.5 py-1.5 text-sm font-medium text-slate transition-colors hover:border-mocha hover:text-wine">
+                {user.locale === "es" ? "Revocar" : "Revoke"}
+              </button>
+            </form>
+          ) : (
+            <form action={setRecordingConsent.bind(null, true)}>
+              <button className="self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush">
+                {user.locale === "es" ? "Doy mi consentimiento" : "I give my consent"}
+              </button>
+            </form>
+          )}
+          <p className="text-[12px] text-whisper">
+            {user.locale === "es"
+              ? "Sin este consentimiento, ninguna sesión tuya se graba — nunca."
+              : "Without this consent, none of your sessions are recorded — ever."}
+          </p>
         </div>
       </Section>
 
