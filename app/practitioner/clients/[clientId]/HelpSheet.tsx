@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { PendingButton } from "@/components/PendingButton";
 import {
@@ -49,12 +49,13 @@ const REASONS: Record<string, string> = {
 };
 
 function TempPasswordTool({ clientId }: { clientId: string }) {
-  const [state, action, pending] = useActionState(
-    async () => setTempPassword(clientId),
-    null as Awaited<ReturnType<typeof setTempPassword>> | null,
-  );
+  // React 18 — no useActionState (that's React 19; it crashed the page at
+  // request time). Plain state + transition around the returned-value action:
+  // the temp password must render once, never travel through a redirect.
+  const [state, setState] = useState<Awaited<ReturnType<typeof setTempPassword>> | null>(null);
+  const [pending, startTransition] = useTransition();
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2">
       <p className="text-[13px] text-slate">
         For a client on the phone right now: a spoken temporary password. It works once — they
         choose their own at next sign-in. You never see the one they pick.
@@ -68,8 +69,9 @@ function TempPasswordTool({ clientId }: { clientId: string }) {
         </p>
       )}
       <button
-        type="submit"
+        type="button"
         disabled={pending}
+        onClick={() => startTransition(async () => setState(await setTempPassword(clientId)))}
         className="inline-flex items-center gap-2 self-start rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush disabled:cursor-wait disabled:opacity-70"
       >
         {pending && (
@@ -77,7 +79,7 @@ function TempPasswordTool({ clientId }: { clientId: string }) {
         )}
         {state?.ok ? "Set another temporary password" : "Set temporary password"}
       </button>
-    </form>
+    </div>
   );
 }
 
