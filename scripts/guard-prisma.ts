@@ -35,6 +35,8 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "lib/prisma.ts": "builds the scoped client on top of the raw one",
   "lib/tenancy/index.ts": "tenant resolution must read the Tenant table before any scope exists",
   "lib/tenancy/db.ts": "explicit-tenant DAL: states its tenant per call; also used by CLI audits",
+  "lib/tenancy/stamp-audit.ts": "null-tenant invariant audit: cross-tenant by nature, must see every row",
+  "audits/tenant-stamp-audit.ts": "CLI wrapper for the invariant audit ($disconnect only)",
 };
 
 const violations: string[] = [];

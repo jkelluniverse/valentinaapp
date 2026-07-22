@@ -352,6 +352,21 @@ async function handle(req: NextRequest) {
     console.error("[tick] reconcile failed", e instanceof Error ? e.message : "");
   }
 
+  // 7. Null-tenant invariant audit (platform): zero rows may carry a null
+  //    tenantId after migration 36. Any drift is loud — it means a write
+  //    slipped past stamping (the documented nested-writes gap).
+  try {
+    const { auditNullTenantRows } = await import("@/lib/tenancy/stamp-audit");
+    const drift = await auditNullTenantRows();
+    report.tenantStampDrift = drift.total;
+    if (drift.total > 0) {
+      console.error(`[tick] TENANT-STAMP DRIFT: ${drift.total} null-tenant row(s) ${JSON.stringify(drift.byModel)}`);
+    }
+  } catch (e) {
+    report.tenantStampDrift = "error";
+    console.error("[tick] tenant-stamp audit failed", e instanceof Error ? e.message : "");
+  }
+
   console.log(`[tick] ${JSON.stringify(report)}`);
   return NextResponse.json({ ok: true, at: now.toISOString(), ...report });
 }

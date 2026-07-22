@@ -264,6 +264,21 @@ export async function seedFixtures(opts: { fromRoute?: boolean } = {}) {
     console.log(`  · ${b.id}: ${active ? "active" : "deactivated"} — ${gen.reflections?.length ?? 0} refl, ${gen.messages?.length ?? 0} msg, ${b.first_map?.self_named?.length ?? 0} stars`);
   }
 
+  // Null-tenant convergence: seeds run outside any request (no scope), so a
+  // final pass stamps everything to the default tenant. Zero null rows is an
+  // audited invariant now (audits/tenant-stamp-audit.ts + the nightly tick).
+  const { SCOPED_MODELS } = await import("../../lib/tenancy/scope");
+  let stamped = 0;
+  for (const key of SCOPED_MODELS) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r = await (prisma as any)[key].updateMany({
+      where: { tenantId: null },
+      data: { tenantId: "tnt_valentina_000000001" },
+    });
+    stamped += r.count;
+  }
+  console.log(`tenant stamping pass: ${stamped} rows converged to the default tenant`);
+
   console.log(`\n=== FIXTURE SEED COMPLETE (staging) ===`);
   console.log(`clients=${clients} reflections=${reflections} messages=${messages} notes=${notes} stars=${stars} crisis-messages=${crises} values-blends=${blends}`);
   console.log(`Practitioner: valentina@fixture.test / fixture-pass-1  ·  clients: <id>@fixture.test / fixture-pass-1`);

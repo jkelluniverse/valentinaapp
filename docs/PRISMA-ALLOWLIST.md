@@ -29,6 +29,8 @@ no matter what they forget.
 | `lib/prisma.ts` | Builds the scoped client on top of the raw one. |
 | `lib/tenancy/index.ts` | Tenant resolution must read the `Tenant` table before any scope can exist (and this breaks the import cycle). |
 | `lib/tenancy/db.ts` | The explicit-tenant DAL — states its tenant on every call; also used by CLI audit harnesses that deliberately cross tenants to prove isolation. |
+| `lib/tenancy/stamp-audit.ts` | The null-tenant invariant audit — cross-tenant by nature; runs nightly in the tick and ad hoc via `audits/tenant-stamp-audit.ts`. |
+| `audits/tenant-stamp-audit.ts` | CLI wrapper for the invariant audit (imports the raw client for `$disconnect` only). |
 
 ## Allowlist — own PrismaClient construction
 
@@ -50,8 +52,12 @@ no matter what they forget.
 ## Known honest limits (revisit when a non-default tenant gets real traffic)
 
 - **Nested relation writes** are not auto-stamped with `tenantId` (top-level
-  creates are). Default-tenant rows land as legacy-null (correct); a demo
-  tenant exercising deep nested writes would need stamping extended.
+  creates are). SAFETY NET: migration 36 converged all historical nulls to
+  the default tenant, and the null-tenant invariant audit (nightly in the
+  jobs tick + `audits/tenant-stamp-audit.ts` + the platform verify) fails
+  loudly on any new null row — so a slipped nested write is caught within a
+  day, not discovered later. Auto-stamping nested writes is tracked as a
+  follow-up task.
 - **`$queryRaw`/`$executeRaw`** bypass scoping — currently only the health
   check's `SELECT 1`.
 - **Unique writes under the DEFAULT tenant** skip the ownership pre-check
