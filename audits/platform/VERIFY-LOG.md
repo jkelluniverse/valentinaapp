@@ -113,3 +113,30 @@ Asserted in `audits/pipeline/p12-verify.ts` (now 22/22): after the full
 automated pipeline runs, the draft is still DRAFT, no SessionTranscript
 exists, and no recording Note exists — the map is untouched until a
 practitioner Applies. No gap to close; onboarding builds on this gate.
+
+---
+
+# CLIENT-ONBOARDING Stage 1 — intake engine spine (2026-07-22)
+
+Run: `audits/onboarding/stage1-verify.ts` — 17/17 (CLI, self-cleaning).
+
+- ✓ schema GENERATED from her enabled modules (identity → birth → values
+  question-set), values set expanded to concrete scale fields, birth-time-
+  unknown path carried, honest minute estimate
+- ✓ existing clients untouched: no flow → not forced into intake (the
+  routing gate, next slice, only fires on an IN_PROGRESS flow)
+- ✓ startFlow creates one IN_PROGRESS flow, emits intake.started; resume
+  returns the SAME flow (one active flow per client)
+- ✓ per-field persistence with question-text SNAPSHOT (Rule 0.8), idempotent
+  upsert; step advance emits intake.step_completed
+- ✓ schema-drift guard: disabling a question-set module rebuilds the schema,
+  KEEPS every answer, re-syncs the stored hash. (Disabling one of two
+  chart modules that share birth fields is correctly NOT a drift — the
+  builder dedups shared requirements.)
+
+Modeling note: IntakeAnswer carries no tenantId — it is scoped transitively
+through its parent IntakeFlow (cascade); removed from SCOPED_MODELS so the
+scoped client doesn't inject a filter for a column that doesn't exist (the
+invariant audit caught this). Isolation verify extended with B-fixtures for
+all six models added since it was written (payment, connected account,
+capture, intake flow, hint state, activity event): ALL CHECKS PASS.

@@ -22,9 +22,15 @@ export const SCOPED_MODELS = [
   "recordItem", "prompt", "assignment", "promptResponse", "logEntry",
   "invite", "schedulingConfig", "availabilityRule", "availabilityException", "appointment",
   "lead", "connectedPaymentAccount", "payment", "sessionCapture",
+  "intakeFlow", "clientHintState", "activityEvent",
 ] as const;
-// NOT scoped (platform-level, like Tenant/TenantModule): webhookEvent —
-// provider event ids are global idempotency keys across all tenants.
+// NOT scoped:
+//  - webhookEvent (platform-level, like Tenant/TenantModule): provider event
+//    ids are global idempotency keys across all tenants.
+//  - intakeAnswer: has NO tenantId column — it is scoped transitively through
+//    its parent IntakeFlow (cascade delete). Access is always gated by a
+//    flowId obtained from a tenant-scoped IntakeFlow query, so a scoped
+//    filter here would be both wrong (no column) and redundant.
 
 export type ScopedModel = (typeof SCOPED_MODELS)[number];
 

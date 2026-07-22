@@ -40,6 +40,7 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "lib/payments/refresh.ts": "payment-token health job: walks EVERY tenant's connected account from the tick",
   "audits/billing/b1-verify.ts": "B1 acceptance harness: CLI-only, inspects raw rows to PROVE encryption at rest",
   "audits/pipeline/p12-verify.ts": "pipeline acceptance harness: CLI-only, inspects raw rows across the flow",
+  "audits/onboarding/stage1-verify.ts": "intake engine acceptance harness: CLI-only, self-cleaning",
 };
 
 const violations: string[] = [];

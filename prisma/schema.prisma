@@ -1521,3 +1521,79 @@ model SessionCapture {
 
   @@index([tenantId, status, createdAt])
 }
+
+// ---------- CLIENT-ONBOARDING v1.1 — intake engine + quiet discovery ----------
+// The intake is GENERATED from the tenant's enabled modules (lib/intake/schema),
+// resumable, and never loses an answer. Answers snapshot the question text as
+// rendered (Rule 0.8) so they stay meaningful forever.
+
+enum IntakePurpose {
+  INITIAL
+  UPDATE
+  REASSESSMENT
+}
+
+enum IntakeStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+  ABANDONED
+}
+
+enum HintStatus {
+  UNSEEN
+  SEEN
+  DISMISSED
+}
+
+model IntakeFlow {
+  tenantId    String? // null = default tenant (platform scope rule)
+  id          String        @id @default(cuid())
+  clientId    String
+  purpose     IntakePurpose @default(INITIAL)
+  status      IntakeStatus  @default(IN_PROGRESS)
+  schemaHash  String // hash of the generated schema at start (drift guard, §4.3)
+  currentStep String
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  answers     IntakeAnswer[]
+
+  @@index([tenantId, clientId])
+}
+
+model IntakeAnswer {
+  id                   String   @id @default(cuid())
+  flowId               String
+  flow                 IntakeFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  fieldKey             String // "identity.fullName", "birth.time", "values.q7"
+  value                Json
+  questionTextSnapshot String // the question EXACTLY as rendered to this client (Rule 0.8)
+  savedAt              DateTime @updatedAt
+
+  @@unique([flowId, fieldKey])
+}
+
+model ClientHintState {
+  tenantId  String?
+  id        String     @id @default(cuid())
+  clientId  String
+  hintKey   String
+  status    HintStatus @default(UNSEEN)
+  updatedAt DateTime   @updatedAt
+
+  @@unique([clientId, hintKey])
+}
+
+model ActivityEvent {
+  tenantId  String?
+  id        String   @id @default(cuid())
+  clientId  String?
+  actor     String // "client" | "practitioner" | "system"
+  eventKey  String // "intake.started", "intake.step_completed", ...
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, eventKey, createdAt])
+}

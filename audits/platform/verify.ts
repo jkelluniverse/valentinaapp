@@ -116,7 +116,10 @@ async function main() {
 
   log(`\n${failed === 0 ? "ALL CHECKS PASS" : `${failed} CHECK(S) FAILED`}`);
   mkdirSync(join(__dirname), { recursive: true });
-  writeFileSync(join(__dirname, "VERIFY-LOG.md"), report.join("\n") + "\n");
+  // Machine output goes to its OWN file — VERIFY-LOG.md is the curated,
+  // human-maintained accumulation of every phase's acceptance and must not
+  // be clobbered by a re-run of this harness.
+  writeFileSync(join(__dirname, "isolation-verify.out.md"), report.join("\n") + "\n");
   if (failed > 0) process.exit(1);
 }
 
@@ -193,6 +196,14 @@ async function insertBFixtures() {
   const appt = (await p.appointment.create({ data: { ...T, practitionerId: bUser, clientId: bUser, startAt: now, endAt: now, bookedBy: "probe" } })).id;
   await p.sessionCredit.create({ data: { ...T, packageId: pkg, appointmentId: appt } });
   await p.lead.create({ data: { ...T, name: "probe", email: "probe-lead@tenant-b.test" } });
+  // BILLING B1 + SESSION-PIPELINE + ONBOARDING models.
+  await p.connectedPaymentAccount.create({ data: { ...T, provider: "probe", merchantId: "bfx_merch", accessTokenEnc: "v1.x.y.z", status: "CONNECTED", connectedAt: now } });
+  await p.payment.create({ data: { ...T, provider: "probe", providerPaymentId: "bfx_payment", amountCents: 1, purpose: "probe", status: "PENDING", occurredAt: now, raw: j({}) } });
+  await p.sessionCapture.create({ data: { ...T, practitionerId: bUser, clientId: bUser, source: "UPLOAD", status: "TRANSCRIBING", recordedAt: now } });
+  const flow = (await p.intakeFlow.create({ data: { ...T, clientId: bUser, schemaHash: "bfx", currentStep: "identity" } })).id;
+  await p.intakeAnswer.create({ data: { flowId: flow, fieldKey: "identity.fullName", value: j("probe"), questionTextSnapshot: "Full name" } });
+  await p.clientHintState.create({ data: { ...T, clientId: bUser, hintKey: "bfx_hint" } });
+  await p.activityEvent.create({ data: { ...T, clientId: bUser, actor: "system", eventKey: "probe" } });
 
   return { bUser, pkg };
 }
