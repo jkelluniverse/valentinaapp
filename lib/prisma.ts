@@ -155,20 +155,29 @@ function wrapClient(base: object): PrismaClient {
               opts as never,
             );
           }
-          // Array form: rebuild each wrapped op as a real PrismaPromise.
-          // Ownership pre-checks (non-default tenants) run before the batch.
-          const ops = (arg as { __veritasOp?: Op }[]).map((item) => {
-            if (!item || !item.__veritasOp) return item; // already a raw PrismaPromise (unscoped model)
-            return item.__veritasOp;
-          });
-          const real: unknown[] = [];
-          for (const o of ops) {
-            if (o && typeof o === "object" && "model" in (o as object)) {
-              real.push(await buildTxOp(target, o as Op, tid));
-            } else {
-              real.push(o);
+          // Array form. Two passes, and they must stay separate: the
+          // ownership pre-checks are async, but the transaction items must be
+          // UNRESOLVED PrismaPromises — awaiting a built op would execute it
+          // outside the transaction (and fail $transaction's "must be Prisma
+          // Client promises" check). So: await the pre-checks first, then
+          // build the promise array synchronously.
+          const items = arg as { __veritasOp?: Op }[];
+          if (tid !== null && tid !== DEFAULT_TENANT_ID) {
+            for (const item of items) {
+              const op = item?.__veritasOp;
+              if (op && UNIQUE_WRITE.has(op.method)) {
+                const d = (target as Record<string, Record<string, (a: unknown) => Promise<unknown>>>)[op.model];
+                const owned = await d.findFirst({
+                  where: { AND: [scopeFilter(tid), expandUniqueWhere(op.args.where as Record<string, unknown>)] },
+                  select: { id: true },
+                });
+                if (!owned) throw new Error(`tenant-scope: ${op.model}.${op.method} target not found in tenant scope`);
+              }
             }
           }
+          const real = items.map((item) =>
+            item?.__veritasOp ? buildTxCall(target, item.__veritasOp, tid) : item,
+          );
           return (target as PrismaClient).$transaction(real as never, opts as never);
         };
       }
@@ -201,9 +210,11 @@ function wrapTx(tx: object, tenantId: string | null) {
   });
 }
 
-// Array-form helper: perform the pre-check (if any), then produce the REAL
-// delegate call (a genuine PrismaPromise) with the filter injected.
-async function buildTxOp(client: object, op: Op, tenantId: string | null): Promise<unknown> {
+// Array-form helper — SYNCHRONOUS by design: it must return an UNRESOLVED
+// PrismaPromise for $transaction to batch atomically. Any ownership
+// pre-check runs in the caller BEFORE this is called (awaiting here would
+// execute the op outside the transaction). Injects the tenant filter/stamp.
+function buildTxCall(client: object, op: Op, tenantId: string | null): unknown {
   const d = (client as Record<string, Record<string, (a?: unknown) => unknown>>)[op.model];
   const { method } = op;
   const args = op.args ?? {};
@@ -213,15 +224,8 @@ async function buildTxOp(client: object, op: Op, tenantId: string | null): Promi
   if (CREATE.has(method)) return d[method](stampCreate(args, tenantId));
   if (WRITE_WHERE.has(method)) return d[method](withScope(args, tenantId));
   if (UNIQUE_WRITE.has(method)) {
-    if (tenantId !== DEFAULT_TENANT_ID) {
-      const owned = await (d.findFirst as (a: unknown) => Promise<unknown>)({
-        where: { AND: [scopeFilter(tenantId), expandUniqueWhere(args.where as Record<string, unknown>)] },
-        select: { id: true },
-      });
-      if (!owned) throw new Error(`tenant-scope: ${op.model}.${method} target not found in tenant scope`);
-    }
     if (method === "upsert") {
-      return d[method]({ ...args, create: { tenantId, ...((args.create as Record<string, unknown>) ?? {}) } });
+      return d.upsert({ ...args, create: { tenantId, ...((args.create as Record<string, unknown>) ?? {}) } });
     }
     return d[method](args);
   }

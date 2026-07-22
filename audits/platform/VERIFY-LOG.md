@@ -140,3 +140,34 @@ scoped client doesn't inject a filter for a column that doesn't exist (the
 invariant audit caught this). Isolation verify extended with B-fixtures for
 all six models added since it was written (payment, connected account,
 capture, intake flow, hint state, activity event): ALL CHECKS PASS.
+
+---
+
+# CLIENT-ONBOARDING §5 — completion orchestration + both intersections (2026-07-22)
+
+Run: `audits/onboarding/complete-verify.ts` — 16/16 (throwaway client, self-cleaning).
+
+Intersections the user flagged, both proven:
+- (1) the recording ConsentRecord created at the Review step IS the same
+  RecordingConsent row the session pipeline's gate reads — the verify
+  asserts hasRecordingConsent() passes for the client afterwards (not a
+  parallel record).
+- (2) at completion BOTH fire: the values-spiral internal scorer → SPIRAL
+  LensResult (held for review), and the birth-data → reading path → her
+  in-house chart engine (ensureChart: HD + Gene Keys). reading.computed
+  events emitted for each. (Her tenant uses her existing computation, not
+  the held astrology-api.io ReadingProvider — Rule 5.1.)
+- identity/birth committed to profile with the time-unknown path; flow
+  marked COMPLETE; intake.completed emitted; re-completion no-ops.
+
+## Production bug this surfaced and fixed
+The scoped client's `$transaction([...])` array form was AWAITING each built
+op — which executes the PrismaPromise into a resolved value instead of
+passing the unresolved promise to $transaction, so every array-form
+transaction threw "All elements must be Prisma Client promises." Live since
+the scoped-client deploy; smoke is GET-only so it never exercised a write
+path. Affected in-request paths: library item/folder actions, notes,
+billing, courses, forgot-password, and ensureChart (profile-save chart
+regeneration silently failed). Fixed: pre-checks run first (async), then the
+promise array is built SYNCHRONOUSLY. complete-verify now permanently guards
+this path (ensureChart's 3-item transaction runs green through it).

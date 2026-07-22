@@ -35,6 +35,7 @@ no matter what they forget.
 | `audits/billing/b1-verify.ts` | B1 acceptance harness — CLI-only; reads raw rows to prove tokens are encrypted at rest. |
 | `audits/pipeline/p12-verify.ts` | Session-pipeline acceptance harness — CLI-only; inspects raw rows across the capture flow. |
 | `audits/onboarding/stage1-verify.ts` | Intake-engine acceptance harness — CLI-only; self-cleaning. |
+| `audits/onboarding/complete-verify.ts` | Intake-completion acceptance harness — CLI-only; throwaway client; self-cleaning. |
 
 ## Allowlist — own PrismaClient construction
 
