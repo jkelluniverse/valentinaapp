@@ -150,6 +150,12 @@ async function main() {
       check("extraction stays descriptive (no diagnosis-adjacent terms)", !/diagnos|disorder|pathol/.test(joined));
     }
     check("nothing merged: client record untouched (draft-only)", (await prisma.sessionTranscript.count({ where: { clientId: maria.id } })) === 0);
+    // THE hard boundary (spec §1.1): the automated pipeline leaves the draft
+    // in DRAFT — it never auto-applies. Only a practitioner action
+    // (applyRecordingCore, requires practitionerId) moves it to APPLIED and
+    // writes SessionTranscript/Note. completeCapture has no path to either.
+    check("draft stays DRAFT — no auto-merge to the map", draft?.status === "DRAFT");
+    check("no note created by the pipeline (Apply owns that)", (await prisma.note.count({ where: { clientId: maria.id, tags: { has: "recording" } } })) === 0);
 
     // 4 — error path is retryable state, never data loss
     const errCap = await prisma.sessionCapture.create({

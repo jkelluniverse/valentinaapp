@@ -84,3 +84,32 @@ REAL extraction call.
   every query through the scoped client, prebuild guard green
 
 Gates: baseline byte-identical, 51-page smoke pass.
+
+---
+
+# Draft→map hard-boundary verification (pre-onboarding, 2026-07-22)
+
+Question: is there ANY code path — direct API call included — by which an
+extraction draft reaches a client's live map without a practitioner action?
+Answer: NO. The existing C19/Margins Apply flow already guarantees the
+spec's draft-review gate at full strength. Full trace:
+
+- The only writers of recording content into the live map are
+  `applyRecordingCore` (→ SessionTranscript + Note) and `applyHandwrittenNote`
+  (→ Note). `applyRecordingCore` takes `practitionerId` as a required arg;
+  its only callers are the `applyRecordingDraft` server action (opens with
+  `requirePractitioner()`) and the CLI verify harness.
+- All THREE automated pipeline entry points create only a `RecordingDraft`
+  (status DRAFT) and never touch the map: `/api/webhooks/transcription` and
+  the jobs-tick backstop both call `completeCapture` (draft-only);
+  `/api/recording/webhook` calls `ingestRecording` (draft-only).
+- The map extractor `runPsycheExtraction` reads only persisted rows
+  (recordItem, note, sessionTranscript, psycheNode/edge, HD chart) — NEVER
+  `RecordingDraft.payload`. A draft is invisible to the map until Apply
+  persists it. Its three server-action callers all open with
+  `requirePractitioner()`.
+
+Asserted in `audits/pipeline/p12-verify.ts` (now 22/22): after the full
+automated pipeline runs, the draft is still DRAFT, no SessionTranscript
+exists, and no recording Note exists — the map is untouched until a
+practitioner Applies. No gap to close; onboarding builds on this gate.
