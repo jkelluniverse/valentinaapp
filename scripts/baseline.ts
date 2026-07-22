@@ -19,6 +19,8 @@ import { prisma } from "../lib/prisma";
 // same-timestamp ties (e.g. "Quietly, this week") break by id — so capture a
 // new baseline immediately after ANY reseed, then run code slices against
 // that fixed dataset. Diffs are only meaningful with the data held still.
+// The clock invalidates it too: time-of-day greetings and relative-date copy
+// drift across day/part-of-day boundaries — recapture rather than chase them.
 
 const PORT = 3106;
 const BASE = `http://localhost:${PORT}`;

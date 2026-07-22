@@ -202,17 +202,22 @@ export default async function Portrait({
 
       {/* Header — minimal (AMENDMENT-04 §3): name + stage chip, one line, one verb. */}
       <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-3 gentle-rise">
+        {/* relative z-30: gentle-rise's transform makes every row its own
+            stacking context, so without a lift the stage-chip dropdown would
+            paint underneath later rows (including the lifted verb row). */}
+        <div className="relative z-30 flex flex-wrap items-center gap-3 gentle-rise">
           <h1 className="font-headline text-[1.375rem] font-medium text-ink-strong md:text-[2.25rem]">
             {client.name || client.email}
           </h1>
-          <details className="relative">
+          {/* On phones the panel anchors to the row (the chip can sit too far
+              right for a 288px panel); on sm+ it anchors to the chip as before. */}
+          <details className="sm:relative">
             <summary className="cursor-pointer list-none rounded-pill border border-mocha px-3 py-1 text-xs font-medium text-mocha transition-colors hover:bg-blush">
               {stageLabel ?? "Set stage"} ▾
             </summary>
             <form
               action={setClientStage.bind(null, client.id)}
-              className="absolute left-0 top-9 z-10 flex w-72 flex-col gap-3 rounded-card border border-line bg-surface p-4 shadow-card"
+              className="absolute left-0 top-full z-10 mt-2 flex w-72 flex-col gap-3 rounded-card border border-line bg-surface p-4 shadow-card sm:top-9 sm:mt-0"
             >
               <input type="hidden" name="back" value={tabHref(tab)} />
               <label className="flex flex-col gap-1.5">
@@ -316,7 +321,9 @@ export default async function Portrait({
       )}
 
       {/* ONE verb + a quiet ⋯ menu (Book next moved there, AMENDMENT-04 §3). */}
-      <div className="flex items-center gap-2 gentle-rise" style={{ animationDelay: "280ms" }}>
+      {/* relative z-20: same stacking-context lift — the ⋯ menu must open
+          OVER the tab chips below, not interleave behind them. */}
+      <div className="relative z-20 flex items-center gap-2 gentle-rise" style={{ animationDelay: "280ms" }}>
         <Link
           href={`${base}/prep`}
           className="flex min-h-[40px] flex-1 items-center justify-center rounded-lg bg-wine px-5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark sm:flex-none"
