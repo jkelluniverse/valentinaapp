@@ -1,0 +1,78 @@
+import { readFileSync, readdirSync, statSync } from "fs";
+import { join, relative } from "path";
+
+// TENANT-SCOPE GUARD — runs before every build (npm prebuild hook, so it
+// gates local builds AND Railway deploys). The rule it enforces: feature
+// code can only reach the database through tenant-scoped surfaces.
+//
+//   1. `new PrismaClient(` may exist ONLY in the allowlisted plumbing/ops
+//      files — anywhere else it creates an unscoped side door.
+//   2. `lib/prisma-internal` (the raw client) may be imported ONLY by the
+//      allowlisted files. `@/lib/prisma` is the safe import: it carries the
+//      request's tenant scope structurally.
+//
+// Every allowlist entry carries its justification here AND in
+// docs/PRISMA-ALLOWLIST.md. Extending the list is a reviewed decision, not
+// a convenience.
+
+const ROOT = process.cwd();
+const SCAN_DIRS = ["app", "lib", "components", "scripts", "audits", "prisma"];
+const SCAN_FILES = ["auth.ts", "middleware.ts"];
+
+// path → justification
+const ALLOW_NEW_CLIENT: Record<string, string> = {
+  "lib/prisma-internal.ts": "THE raw client definition — everything else derives from it",
+  "prisma/seed.ts": "ops/seed tooling: runs from the CLI against a stated DATABASE_URL, never inside a request",
+  "prisma/staging-seed.ts": "ops/seed tooling (staging roster)",
+  "prisma/backfill-record.ts": "ops backfill script, CLI-only",
+  "prisma/fixtures/map.ts": "fixture tooling, CLI-only",
+  "prisma/fixtures/verify.ts": "fixture verification, CLI-only",
+  "prisma/fixtures/kfloor-verify.ts": "fixture verification, CLI-only",
+  "prisma/fixtures/packages-verify.ts": "fixture verification, CLI-only",
+};
+
+const ALLOW_RAW_IMPORT: Record<string, string> = {
+  "lib/prisma.ts": "builds the scoped client on top of the raw one",
+  "lib/tenancy/index.ts": "tenant resolution must read the Tenant table before any scope exists",
+  "lib/tenancy/db.ts": "explicit-tenant DAL: states its tenant per call; also used by CLI audits",
+};
+
+const violations: string[] = [];
+
+function walk(dir: string) {
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name === ".next" || name.startsWith(".")) continue;
+    const p = join(dir, name);
+    const st = statSync(p);
+    if (st.isDirectory()) walk(p);
+    else if (/\.(ts|tsx)$/.test(name)) checkFile(p);
+  }
+}
+
+function checkFile(path: string) {
+  const rel = relative(ROOT, path).replace(/\\/g, "/");
+  if (rel === "scripts/guard-prisma.ts") return; // the rule text matches itself
+  const src = readFileSync(path, "utf8");
+
+  if (/new\s+PrismaClient\s*\(/.test(src) && !(rel in ALLOW_NEW_CLIENT)) {
+    violations.push(`${rel}: constructs its own PrismaClient (unscoped side door) — use @/lib/prisma, or allowlist with justification`);
+  }
+  if (/from\s+["'][^"']*prisma-internal["']/.test(src) && !(rel in ALLOW_RAW_IMPORT)) {
+    violations.push(`${rel}: imports the raw prisma client — use @/lib/prisma (tenant-scoped), or allowlist with justification`);
+  }
+}
+
+for (const d of SCAN_DIRS) {
+  try { walk(join(ROOT, d)); } catch { /* dir absent */ }
+}
+for (const f of SCAN_FILES) {
+  try { checkFile(join(ROOT, f)); } catch { /* file absent */ }
+}
+
+if (violations.length > 0) {
+  console.error("TENANT-SCOPE GUARD FAILED — unscoped database access:\n");
+  for (const v of violations) console.error(`  ✗ ${v}`);
+  console.error("\nSee docs/PRISMA-ALLOWLIST.md for the rules and the allowlist.");
+  process.exit(1);
+}
+console.log("tenant-scope guard: clean (raw prisma access confined to the allowlist)");

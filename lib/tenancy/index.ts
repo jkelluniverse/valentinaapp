@@ -1,5 +1,8 @@
 import { headers } from "next/headers";
-import { prisma } from "@/lib/prisma";
+// Raw client on purpose: tenant resolution is the platform's own plumbing —
+// it must see the Tenant table before any scope exists (and the scoped
+// client depends on this module, so this also breaks the import cycle).
+import { rawPrisma as prisma } from "@/lib/prisma-internal";
 
 // PLATFORM Phase 0 — tenant resolution. The host decides the tenant:
 // `{slug}.$PLATFORM_DOMAIN` resolves that slug; every other host (Valentina's

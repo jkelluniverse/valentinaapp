@@ -1,4 +1,11 @@
-import { prisma } from "@/lib/prisma";
+// Raw client on purpose: this DAL states its tenant explicitly per call —
+// self-scoping over the scoped client would double-filter, and audit
+// scripts use it outside any request scope.
+import { rawPrisma as prisma } from "@/lib/prisma-internal";
+import { scopeFilter as scope, SCOPED_MODELS, DEFAULT_TENANT_ID, type ScopedModel } from "./scope";
+
+export { SCOPED_MODELS, DEFAULT_TENANT_ID };
+export type { ScopedModel } from "./scope";
 
 // PLATFORM Phase 0.5 — the tenant-scoped data-access layer, now covering
 // EVERY table directly (per-client scoping pulled forward from later phases).
@@ -8,34 +15,6 @@ import { prisma } from "@/lib/prisma";
 //
 // Feature code migrates onto tenantDb as it is touched; the enforced boundary
 // at the door (getSessionUser host↔tenant check) holds regardless.
-
-// The default tenant's id is fixed by the Phase 0 migration.
-export const DEFAULT_TENANT_ID = "tnt_valentina_000000001";
-
-const scope = (tenantId: string) =>
-  tenantId === DEFAULT_TENANT_ID
-    ? { OR: [{ tenantId }, { tenantId: null }] }
-    : { tenantId };
-
-// Every tenant-scoped Prisma delegate (all models except Tenant/TenantModule).
-export const SCOPED_MODELS = [
-  "user", "consentGrant", "pushSubscription", "emailChangeRequest", "passwordResetToken",
-  "deletionRequest", "entryDeepening", "psycheNode", "psycheEdge", "psycheExtraction",
-  "psycheAudit", "patternArchetype", "patternLink", "libraryFolder", "libraryItem",
-  "clientProfile", "humanDesignChart", "birthChartCore", "lensResult", "integrativeProfile",
-  "artifactVersion", "integrativeReading", "resonanceMark", "integrationGuide", "clientGoal",
-  "beliefWork", "interventionOutcome", "askRecordAnswer", "practiceSetting", "note",
-  "handwrittenNote", "recordingConsent", "recordingDraft", "sessionTranscript", "noteScan",
-  "conversation", "message", "stageChange", "package", "sessionCredit",
-  "priceBook", "charge", "squareCustomerLink", "externalPayment", "worksheet",
-  "worksheetAssignment", "worksheetResponse", "assistGrant", "auditEvent", "course",
-  "chapter", "lesson", "enrollment", "lessonProgress", "sessionPrep",
-  "recordItem", "prompt", "assignment", "promptResponse", "logEntry",
-  "invite", "schedulingConfig", "availabilityRule", "availabilityException", "appointment",
-  "lead",
-] as const;
-
-export type ScopedModel = (typeof SCOPED_MODELS)[number];
 
 type Args = { where?: Record<string, unknown>; [k: string]: unknown };
 export type ScopedDelegate = {
