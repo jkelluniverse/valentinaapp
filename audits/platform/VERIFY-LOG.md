@@ -225,3 +225,20 @@ current module config (toggling a module changes the preview).
   after walking the full preview. Persistence-free by construction — the page
   has no form actions and no writes.
 - ✓ baseline byte-identical (a new practitioner route; client screens untouched)
+
+---
+
+# CLIENT-ONBOARDING §4.4 — invite-link lifecycle (2026-07-22)
+
+The invite system already had single-use (acceptance guard on PENDING) and
+resend-regenerates-the-token. Completed to spec:
+- ✓ links live 14 days (INVITE_TTL_DAYS 7 → 14)
+- ✓ resend invalidates the old link (token regenerated) AND logs an
+  invite.resent event
+- ✓ expired/used-link page: a friendly "Ask for a fresh link" button that
+  notifies the inviting practitioner (email + invite.fresh_requested event),
+  no enumeration (same response whether or not the token is real)
+- ✓ new clients get their intake flow at acceptance (wired in the intake UI
+  slice) → first login lands in intake
+
+Gates: baseline byte-identical, smoke, build green.

@@ -112,3 +112,28 @@ export async function acceptInvite(token: string, formData: FormData) {
   // Auto sign-in, then land on the client home. signIn throws the redirect.
   await signIn("credentials", { email: invite.email, password, redirectTo: "/space" });
 }
+
+// ONBOARDING §4.4 — the expired/used-link path: the visitor asks the
+// practitioner for a fresh link. No enumeration — we respond the same
+// whether or not the token maps to a real invite; if it does (even expired
+// or used, but not yet accepted), the inviting practitioner is notified.
+export async function requestFreshInvite(token: string) {
+  const invite = await prisma.invite.findUnique({ where: { tokenHash: hashToken(token) } });
+  if (invite && invite.status !== "ACCEPTED") {
+    try {
+      const pract = await prisma.user.findUnique({ where: { id: invite.invitedById }, select: { email: true } });
+      const { sendEmail } = await import("@/lib/notify");
+      if (pract?.email) {
+        await sendEmail({
+          to: pract.email,
+          subject: `${invite.email} asked for a fresh invite link`,
+          text: `${invite.name || invite.email} tried an invite link that had expired or been used, and asked for a new one.\n\nOpen their client page and choose "Resend invite" to send a fresh link.`,
+        });
+      }
+      const { emitEvent } = await import("@/lib/intake/engine");
+      const { getTenant } = await import("@/lib/tenancy");
+      await emitEvent({ tenantId: (await getTenant()).id, clientId: null, actor: "system", eventKey: "invite.fresh_requested", meta: { inviteId: invite.id } });
+    } catch { /* best-effort notify */ }
+  }
+  redirect(`/invite/${token}?requested=1`);
+}

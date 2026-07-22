@@ -4,7 +4,7 @@ import { hashToken } from "@/lib/invites";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { ReadingProse } from "@/components/ReadingProse";
 import { getConsentText } from "@/lib/consent";
-import { acceptInvite } from "./actions";
+import { acceptInvite, requestFreshInvite } from "./actions";
 import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
@@ -16,16 +16,33 @@ const ERRORS: Record<string, string> = {
   invalid: "This link can no longer be used.",
 };
 
-function InvalidLink() {
+function InvalidLink({ token, requested }: { token: string; requested: boolean }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 px-6">
       <Eyebrow>Invite</Eyebrow>
       <h1 className="text-[2.25rem] font-semibold">This link isn&apos;t active</h1>
       <SignatureRule />
-      <p className="text-lg leading-relaxed text-ink">
-        This invitation link is invalid, has expired, or has already been used. If you think
-        this is a mistake, reach out to Valentina for a fresh link.
-      </p>
+      {requested ? (
+        <p className="text-lg leading-relaxed text-ink">
+          Thanks — we let them know. They&apos;ll send you a fresh link soon.
+        </p>
+      ) : (
+        <>
+          <p className="text-lg leading-relaxed text-ink">
+            This invitation link has expired or has already been used. Ask for a fresh one and
+            we&apos;ll let them know right away.
+          </p>
+          {/* ONBOARDING §4.4 — one button that notifies the practitioner. */}
+          <form action={requestFreshInvite.bind(null, token)}>
+            <PendingButton
+              pendingLabel="Letting them know…"
+              className="self-start rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90"
+            >
+              Ask for a fresh link
+            </PendingButton>
+          </form>
+        </>
+      )}
       <Link href="/login" className="text-sm text-wine underline-offset-4 hover:underline">
         Go to sign in
       </Link>
@@ -38,12 +55,12 @@ export default async function InvitePage({
   searchParams,
 }: {
   params: { token: string };
-  searchParams: { error?: string };
+  searchParams: { error?: string; requested?: string };
 }) {
   const invite = await prisma.invite.findUnique({ where: { tokenHash: hashToken(params.token) } });
   const valid = invite && invite.status === "PENDING" && invite.expiresAt > new Date();
 
-  if (!invite || !valid) return <InvalidLink />;
+  if (!invite || !valid) return <InvalidLink token={params.token} requested={searchParams.requested === "1"} />;
 
   const errorMessage = searchParams.error ? ERRORS[searchParams.error] ?? ERRORS.invalid : null;
   const accept = acceptInvite.bind(null, params.token);

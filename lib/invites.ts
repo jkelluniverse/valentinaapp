@@ -11,7 +11,7 @@ export function hashToken(raw: string) {
   return createHash("sha256").update(raw).digest("hex");
 }
 
-export const INVITE_TTL_DAYS = 7;
+export const INVITE_TTL_DAYS = 14; // ONBOARDING §4.4 — links live 14 days
 
 export function inviteExpiry(from: Date = new Date()) {
   return new Date(from.getTime() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);

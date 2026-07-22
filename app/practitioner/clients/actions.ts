@@ -110,6 +110,12 @@ export async function resendInvite(inviteId: string): Promise<ActionResult> {
     where: { id: inviteId },
     data: { tokenHash: hash, expiresAt: inviteExpiry(), status: "PENDING" },
   });
+  // ONBOARDING §4.4 — regenerating the token invalidates the old link; log it.
+  try {
+    const { emitEvent } = await import("@/lib/intake/engine");
+    const { getTenant } = await import("@/lib/tenancy");
+    await emitEvent({ tenantId: (await getTenant()).id, clientId: null, actor: "practitioner", eventKey: "invite.resent", meta: { inviteId, oldLinkInvalidated: true } });
+  } catch { /* the event log is best-effort */ }
 
   const link = inviteLink(raw);
   const emailed = await sendInviteEmail(inviteId, link);
