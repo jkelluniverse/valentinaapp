@@ -21,7 +21,7 @@ export const SCOPED_MODELS = [
   "chapter", "lesson", "enrollment", "lessonProgress", "sessionPrep",
   "recordItem", "prompt", "assignment", "promptResponse", "logEntry",
   "invite", "schedulingConfig", "availabilityRule", "availabilityException", "appointment",
-  "lead", "connectedPaymentAccount", "payment",
+  "lead", "connectedPaymentAccount", "payment", "sessionCapture",
 ] as const;
 // NOT scoped (platform-level, like Tenant/TenantModule): webhookEvent —
 // provider event ids are global idempotency keys across all tenants.

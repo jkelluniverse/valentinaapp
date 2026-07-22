@@ -33,6 +33,7 @@ no matter what they forget.
 | `audits/tenant-stamp-audit.ts` | CLI wrapper for the invariant audit (imports the raw client for `$disconnect` only). |
 | `lib/payments/refresh.ts` | Daily payment-token health job — walks every tenant's connected account from the tick, cross-tenant by design (BILLING §3.3). |
 | `audits/billing/b1-verify.ts` | B1 acceptance harness — CLI-only; reads raw rows to prove tokens are encrypted at rest. |
+| `audits/pipeline/p12-verify.ts` | Session-pipeline acceptance harness — CLI-only; inspects raw rows across the capture flow. |
 
 ## Allowlist — own PrismaClient construction
 

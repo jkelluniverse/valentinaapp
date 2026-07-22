@@ -159,3 +159,25 @@ export async function dismissRecordingDraft(draftId: string) {
   revalidatePath(INBOX);
   redirect(INBOX);
 }
+
+// SESSION-PIPELINE §5 — the one-tap speaker flip: the diarization heuristic
+// is provisional; the reviewer corrects it here before anything persists.
+export async function flipRecordingSpeakers(draftId: string) {
+  await requirePractitioner();
+  const draft = await prisma.recordingDraft.findUnique({ where: { id: draftId } });
+  if (!draft || draft.status !== "DRAFT") return;
+  const payload = draft.payload as unknown as {
+    segments: { speaker: string; [k: string]: unknown }[];
+    transcriptMeta?: { speakerMapping?: Record<string, string> };
+    [k: string]: unknown;
+  };
+  const flip = (r: string) => (r === "CLIENT" ? "PRACTITIONER" : r === "PRACTITIONER" ? "CLIENT" : r);
+  payload.segments = payload.segments.map((s) => ({ ...s, speaker: flip(s.speaker) }));
+  if (payload.transcriptMeta?.speakerMapping) {
+    for (const k of Object.keys(payload.transcriptMeta.speakerMapping)) {
+      payload.transcriptMeta.speakerMapping[k] = flip(payload.transcriptMeta.speakerMapping[k]);
+    }
+  }
+  await prisma.recordingDraft.update({ where: { id: draftId }, data: { payload: payload as unknown as object } });
+  revalidatePath(`/practitioner/notes/inbox/rec/${draftId}`);
+}

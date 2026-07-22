@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { formatInZone, getOrCreateConfig, getPractitioner } from "@/lib/schedule";
 import { hasRecordingConsent, type PulledRecording } from "@/lib/recording";
-import { applyRecordingDraft, dismissRecordingDraft } from "../../actions";
+import { applyRecordingDraft, dismissRecordingDraft, flipRecordingSpeakers } from "../../actions";
+import type { CaptureExtraction } from "@/lib/capture-extract";
 import { PendingButton } from "@/components/PendingButton";
 
 // C19 REC.3 — recording review: her-template summary on top, the
@@ -23,7 +24,10 @@ export default async function RecordingReview({
   await requirePractitioner();
   const draft = await prisma.recordingDraft.findUnique({ where: { id: params.draftId } });
   if (!draft || draft.status !== "DRAFT") notFound();
-  const payload = draft.payload as unknown as PulledRecording;
+  const payload = draft.payload as unknown as PulledRecording & {
+    extraction?: (Partial<CaptureExtraction> & { failed?: boolean }) | null;
+  };
+  const ex = payload.extraction && !payload.extraction.failed ? payload.extraction : null;
 
   const practitioner = await getPractitioner();
   const config = practitioner ? await getOrCreateConfig(practitioner.id) : null;
@@ -92,10 +96,82 @@ export default async function RecordingReview({
           </div>
         )}
 
+        {/* SESSION-PIPELINE §6 — the extraction, drafted for review. Flags
+            lead: safety never buried. Renders only for pipeline captures. */}
+        {ex && (ex.flags?.length ?? 0) > 0 && (
+          <div className="rounded-card border border-mocha bg-blush p-5">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-wine">Review carefully</p>
+            <ul className="mt-1.5 flex flex-col gap-1 text-[14px] leading-relaxed text-wine">
+              {ex.flags!.map((f, i) => (
+                <li key={i}>{f}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {ex && (
+          <div className="grid gap-4 md:grid-cols-2">
+            {(ex.belief_statements?.length ?? 0) > 0 && (
+              <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-mocha">Belief statements heard</p>
+                <ul className="mt-1.5 flex flex-col gap-2 text-[13.5px] leading-relaxed text-ink">
+                  {ex.belief_statements!.map((b, i) => (
+                    <li key={i}>
+                      “{b.statement}”{b.context && <span className="block text-[12px] text-whisper">{b.context}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {(ex.action_items?.length ?? 0) > 0 && (
+              <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-mocha">Action items</p>
+                <ul className="mt-1.5 flex flex-col gap-1 text-[13.5px] leading-relaxed text-ink">
+                  {ex.action_items!.map((a, i) => (
+                    <li key={i}>
+                      <span className="text-whisper">{a.owner}:</span> {a.item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {(ex.follow_up_questions?.length ?? 0) > 0 && (
+              <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-mocha">Worth revisiting</p>
+                <ul className="mt-1.5 flex flex-col gap-1 text-[13.5px] leading-relaxed text-ink">
+                  {ex.follow_up_questions!.map((q, i) => (
+                    <li key={i}>{q}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {(ex.notable_quotes?.length ?? 0) > 0 && (
+              <div className="rounded-card border border-line bg-surface p-5 shadow-soft">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-mocha">In their words</p>
+                <ul className="mt-1.5 flex flex-col gap-2 text-[13.5px] leading-relaxed text-ink">
+                  {ex.notable_quotes!.map((q, i) => (
+                    <li key={i}>
+                      “{q.quote}” <span className="text-[12px] text-whisper">— {q.speaker}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="rounded-card border border-line bg-surface shadow-soft">
-          <p className="border-b border-line px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-mocha">
-            Transcript · check a line to strike it
-          </p>
+          <div className="flex items-center justify-between border-b border-line px-5 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-mocha">
+              Transcript · check a line to strike it
+            </p>
+            <PendingButton
+              formAction={flipRecordingSpeakers.bind(null, draft.id)}
+              formNoValidate
+              className="text-[12px] font-medium text-wine underline-offset-4 hover:underline"
+            >
+              Swap speakers
+            </PendingButton>
+          </div>
           <div className="flex max-h-[480px] flex-col overflow-y-auto">
             {payload.segments.map((s, i) => (
               <label

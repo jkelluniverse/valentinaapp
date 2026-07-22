@@ -17,6 +17,7 @@ export function PendingButton({
   value,
   disabled,
   title,
+  formNoValidate,
 }: {
   children: React.ReactNode;
   pendingLabel?: string;
@@ -27,6 +28,7 @@ export function PendingButton({
   value?: string;
   disabled?: boolean;
   title?: string;
+  formNoValidate?: boolean;
 }) {
   const { pending, action } = useFormStatus();
   const mine = pending && (formAction == null || action === formAction);
@@ -34,6 +36,7 @@ export function PendingButton({
     <button
       type="submit"
       formAction={formAction}
+      formNoValidate={formNoValidate}
       name={name}
       value={value}
       title={title}

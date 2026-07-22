@@ -55,3 +55,32 @@ placeholder env values and nothing blocks on paperwork).
   greeting + inactivity-threshold rollover; eyeballed both), 50-page smoke
 
 B1 VERIFY PASS — 18/18 · B2–B4 held by instruction
+
+---
+
+# SESSION-PIPELINE Phases 1–2 (multi-tenant amendment) — 2026-07-22
+
+Run: `audits/pipeline/p12-verify.ts` — 20/20 against a local mock of
+AssemblyAI's surface (shapes verified against live docs same day) and ONE
+REAL extraction call.
+
+- ✓ consent HARD STOP in code: no transcription without an active
+  RecordingConsent; blocked uploads store nothing
+- ✓ audio in OUR custody via the storage adapter (local driver; S3/R2 is a
+  config decision, not a refactor); signed expiring access only — no public
+  objects
+- ✓ submit: diarization ×2 speakers, webhook auth-header binding, signed
+  capture token in both URLs
+- ✓ normalize + speaker heuristic (opener/talker → practitioner), one-tap
+  Swap speakers in review; vendor copy DELETED after normalize
+- ✓ real Claude extraction returns the strict §6 schema — heard the belief
+  statement verbatim, captured action items, stayed descriptive (no
+  diagnosis-adjacent language), flags array present
+- ✓ draft lands in the EXISTING C19 review inbox (provider "capture") —
+  practitioner-as-author: nothing merges without Apply; redaction-before-
+  persistence unchanged
+- ✓ error path keeps audio for retry; tick §6a2 polls webhook-less captures
+- ✓ amendment honored: SessionCapture carries tenantId (scoped model #69),
+  every query through the scoped client, prebuild guard green
+
+Gates: baseline byte-identical, 51-page smoke pass.

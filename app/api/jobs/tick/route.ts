@@ -352,6 +352,23 @@ async function handle(req: NextRequest) {
     console.error("[tick] reconcile failed", e instanceof Error ? e.message : "");
   }
 
+  // 6a2. SESSION-PIPELINE §8 backstop — a webhook that never arrived: any
+  //      capture still TRANSCRIBING after 30 minutes gets its status polled
+  //      directly (completeCapture is idempotent and handles pending/error).
+  try {
+    const stuck = await prisma.sessionCapture.findMany({
+      where: { status: "TRANSCRIBING", providerJobId: { not: null }, updatedAt: { lt: new Date(now.getTime() - 30 * 60_000) } },
+      select: { id: true },
+      take: 20,
+    });
+    const { completeCapture } = await import("@/lib/capture");
+    for (const c of stuck) await completeCapture(c.id).catch(() => {});
+    report.capturesPolled = stuck.length;
+  } catch (e) {
+    report.capturesPolled = "error";
+    console.error("[tick] capture backstop failed", e instanceof Error ? e.message : "");
+  }
+
   // 6b. Payment-token health (CLAUDE-BILLING §3.3): proactive refresh for
   //     every tenant's connected account; failures flip to NEEDS_RECONNECT.
   try {

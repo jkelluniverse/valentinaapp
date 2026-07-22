@@ -37,6 +37,13 @@ export default async function MarginsInbox({
         eyebrow="The Margins"
         lede="Session notes from your reMarkable and processed recordings — a glance, a fix if needed, one Apply."
       />
+      <p className="text-[13px] text-whisper">
+        Have a session recording on your phone or Pocket?{" "}
+        <Link href="/practitioner/captures" className="font-medium text-wine underline-offset-4 hover:underline">
+          Upload it here
+        </Link>{" "}
+        — the draft lands in this inbox.
+      </p>
 
       {searchParams.applied === "note" && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">

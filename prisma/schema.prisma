@@ -1477,3 +1477,47 @@ model WebhookEvent {
   receivedAt  DateTime  @default(now())
   processedAt DateTime?
 }
+
+// ---------- SESSION-PIPELINE Phase 1 — the capture job ----------
+// One row per recorded/uploaded session moving through the pipeline. The
+// transcript itself lands in SessionTranscript at APPROVAL (C19 privacy:
+// redactions before persistence); the draft payload carries it until then.
+
+enum CaptureSource {
+  UPLOAD
+  PORTAL_RECORDER
+  EMAIL_IN
+  SHARE
+}
+
+enum CaptureStatus {
+  AWAITING_CLIENT
+  AWAITING_CONSENT
+  TRANSCRIBING
+  EXTRACTING
+  REVIEW
+  MERGED
+  DISCARDED
+  ERROR
+}
+
+model SessionCapture {
+  tenantId       String? // null = default tenant (platform scope rule)
+  id             String        @id @default(cuid())
+  practitionerId String
+  clientId       String?
+  source         CaptureSource
+  status         CaptureStatus
+  recordedAt     DateTime
+  audioKey       String? // object-storage key (adapter)
+  audioMime      String?
+  audioBytes     Int?
+  audioDeletedAt DateTime? // retention job (spec Phase 3) sets this
+  providerJobId  String?       @unique
+  draftId        String?       @unique // RecordingDraft carrying the review payload
+  errorMessage   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([tenantId, status, createdAt])
+}
