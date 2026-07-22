@@ -24,3 +24,32 @@
 - ✓ nested subdomain never leaks a slug
 
 ALL CHECKS PASS
+
+---
+
+# Phase 1 — dashboard-v1 + skins + the DEMO switch (2026-07-22)
+
+Run: `audits/platform/phase1-switch.ts` against the scratch dataset with the
+built app on :3108 and PLATFORM_DOMAIN=platform.test. A DEMO tenant is
+provisioned by row inserts alone, served on its subdomain, and re-arranged by
+a config UPDATE while the server keeps running. Self-cleaning.
+
+## Config is data
+- ✓ demo host serves login wearing clinical-light
+- ✓ demo practitioner gets dashboard-v1 (sidebar + Today home)
+- ✓ config UPDATE alone flips the live portal to celestial-dark + journey-v1
+  (no deploy, no restart — the 60s tenant cache is the only delay)
+- ✓ default host stays journey-v1 + warm-clay throughout
+
+## Isolation at the feature level
+- ✓ demo roster shows only the demo client — none of the default tenant's people
+- ✓ no cross-tenant unread badge (regression: the practitioner layout's unread
+  count now goes through the DAL)
+- ✓ demo session refused on the default host (door check, 307)
+
+## Render acceptance (eyeballed screenshots, desktop + mobile)
+- ✓ dashboard-v1 × clinical-light
+- ✓ dashboard-v1 × celestial-dark
+- ✓ journey-v1 × warm-clay — byte-identical baseline, every slice
+
+SWITCH TEST PASS — 12/12

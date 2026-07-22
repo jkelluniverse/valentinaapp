@@ -14,6 +14,14 @@ the simulated map, incl. two Dusk shots) and the 49-page smoke walk
 | Tenant-scoped DAL; cross-tenant reads impossible (test) | ✅ | `lib/tenancy/db.ts`; `audits/platform/VERIFY-LOG.md` — 16/16 incl. both isolation directions and the legacy-null rule |
 | Portal behaves identically end-to-end | ✅ | 49/49 smoke pages + 15/15 byte-identical screens after every slice |
 
+## Phase 1 — second layout + skins (accepted 2026-07-22)
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| `dashboard-v1` layout complete, all features rendering | ✅ | `components/layouts/dashboard-v1/` (both shells + the Today home); same prop contracts as journey-v1; 49/49 smoke against the registry |
+| `clinical-light` + `celestial-dark`; skin × layout combos render acceptably | ✅ | `styles/skins/*.css` on the warm-clay token contract; eyeballed screenshots of dashboard-v1 in both skins, desktop + mobile; journey-v1 × warm-clay byte-identical every slice |
+| Layout/skin switch on a DEMO tenant is config-only | ✅ | `audits/platform/phase1-switch.ts` — 12/12 incl. a live config flip with the server running (see VERIFY-LOG) |
+
 ## Honest scope notes (the strangler continues)
 
 - **Phase 0.5 (pulled forward):** every table now carries `tenantId`

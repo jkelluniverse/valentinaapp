@@ -1,5 +1,4 @@
 import { requirePractitioner } from "@/lib/auth-guards";
-import { prisma } from "@/lib/prisma";
 import { signOut } from "@/auth";
 import { getLayout } from "@/components/layouts";
 
@@ -12,9 +11,15 @@ export const metadata = { robots: { index: false, follow: false } };
 export default async function PractitionerLayout({ children }: { children: React.ReactNode }) {
   const user = await requirePractitioner();
 
-  // Unread client messages → a soft dot on the Messages tab, a count on desktop.
-  const unread = await prisma.message
-    .count({ where: { senderRole: "CLIENT", readAt: null, deletedAt: null } })
+  const { getTenant } = await import("@/lib/tenancy");
+  const { tenantDb } = await import("@/lib/tenancy/db");
+  const tenant = await getTenant();
+
+  // Unread client messages → a soft dot on the Messages tab, a count on
+  // desktop. Through the DAL: another tenant's waiting messages must not
+  // even be countable from here.
+  const unread = await tenantDb(tenant.id)
+    .message.count({ where: { senderRole: "CLIENT", readAt: null, deletedAt: null } })
     .catch(() => 0);
 
   async function doSignOut() {
@@ -22,8 +27,6 @@ export default async function PractitionerLayout({ children }: { children: React
     await signOut({ redirectTo: "/login" });
   }
 
-  const { getTenant } = await import("@/lib/tenancy");
-  const tenant = await getTenant();
   const { PractitionerShell } = getLayout(tenant.layoutKey);
   return (
     <PractitionerShell user={{ name: user.name, email: user.email }} unread={unread} signOutAction={doSignOut}>
