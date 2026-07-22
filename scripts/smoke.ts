@@ -53,6 +53,7 @@ const PRACTITIONER_PAGES = [
   "/practitioner/search",
   "/practitioner/messages",
   "/practitioner/settings",
+  "/practitioner/settings/payments",
 ];
 
 // Client surfaces.

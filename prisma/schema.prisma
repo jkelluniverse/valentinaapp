@@ -1421,3 +1421,59 @@ model Lead {
 
   @@index([status, createdAt])
 }
+
+// ---------- CLAUDE-BILLING Phase B1 — Layer 1 foundation (Square OAuth) ----------
+// Layer 1 = practitioners collecting from THEIR clients via THEIR processor
+// account. We store references and statuses, never balances (Rule 0.2).
+
+enum ConnAccountStatus {
+  CONNECTED
+  NEEDS_RECONNECT
+  REVOKED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  FAILED
+}
+
+model ConnectedPaymentAccount {
+  id              String            @id @default(cuid())
+  tenantId        String?           @unique // one connected account per tenant (v1); nullable per platform scope rule
+  provider        String // "square" ("stripe-connect" future)
+  merchantId      String
+  merchantName    String?
+  locationId      String?
+  accessTokenEnc  String // AES-GCM at rest; never plaintext, never logged, never to the browser
+  refreshTokenEnc String?
+  scopes          String[]
+  status          ConnAccountStatus
+  connectedAt     DateTime
+  lastVerifiedAt  DateTime? // daily token health check
+  expiresAt       DateTime? // access-token expiry, for proactive refresh
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  tenantId          String? // nullable per platform scope rule (null = default tenant)
+  clientId          String?
+  provider          String
+  providerPaymentId String        @unique
+  amountCents       Int // integer cents, always (Rule 0.9)
+  currency          String        @default("USD")
+  purpose           String // "session" | "package" | tenant-defined
+  status            PaymentStatus
+  occurredAt        DateTime
+  raw               Json // provider payload, archived
+
+  @@index([tenantId, clientId])
+}
+
+model WebhookEvent {
+  id          String    @id // provider event id — idempotency for BOTH layers
+  layer       String // "square" | "stripe"
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+}

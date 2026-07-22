@@ -352,6 +352,17 @@ async function handle(req: NextRequest) {
     console.error("[tick] reconcile failed", e instanceof Error ? e.message : "");
   }
 
+  // 6b. Payment-token health (CLAUDE-BILLING §3.3): proactive refresh for
+  //     every tenant's connected account; failures flip to NEEDS_RECONNECT.
+  try {
+    const { refreshDueTokens } = await import("@/lib/payments/refresh");
+    const r = await refreshDueTokens(now);
+    report.paymentTokens = `refreshed=${r.refreshed} flagged=${r.flagged}`;
+  } catch (e) {
+    report.paymentTokens = "error";
+    console.error("[tick] payment token refresh failed", e instanceof Error ? e.message : "");
+  }
+
   // 7. Null-tenant invariant audit (platform): zero rows may carry a null
   //    tenantId after migration 36. Any drift is loud — it means a write
   //    slipped past stamping (the documented nested-writes gap).

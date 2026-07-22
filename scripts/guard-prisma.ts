@@ -37,6 +37,8 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "lib/tenancy/db.ts": "explicit-tenant DAL: states its tenant per call; also used by CLI audits",
   "lib/tenancy/stamp-audit.ts": "null-tenant invariant audit: cross-tenant by nature, must see every row",
   "audits/tenant-stamp-audit.ts": "CLI wrapper for the invariant audit ($disconnect only)",
+  "lib/payments/refresh.ts": "payment-token health job: walks EVERY tenant's connected account from the tick",
+  "audits/billing/b1-verify.ts": "B1 acceptance harness: CLI-only, inspects raw rows to PROVE encryption at rest",
 };
 
 const violations: string[] = [];

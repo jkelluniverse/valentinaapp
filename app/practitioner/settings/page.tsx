@@ -253,6 +253,11 @@ export default async function PractitionerSettingsPage({
           hint="Hours, session length, buffers, and video links."
         />
         <LinkRow
+          href="/practitioner/settings/payments"
+          label="Getting paid"
+          hint="Your payment connection — money goes directly to you."
+        />
+        <LinkRow
           href="/practitioner/messages"
           label="Response rhythm & away note"
           hint="How the Open Line sets expectations."

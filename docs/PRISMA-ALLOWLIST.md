@@ -31,6 +31,8 @@ no matter what they forget.
 | `lib/tenancy/db.ts` | The explicit-tenant DAL — states its tenant on every call; also used by CLI audit harnesses that deliberately cross tenants to prove isolation. |
 | `lib/tenancy/stamp-audit.ts` | The null-tenant invariant audit — cross-tenant by nature; runs nightly in the tick and ad hoc via `audits/tenant-stamp-audit.ts`. |
 | `audits/tenant-stamp-audit.ts` | CLI wrapper for the invariant audit (imports the raw client for `$disconnect` only). |
+| `lib/payments/refresh.ts` | Daily payment-token health job — walks every tenant's connected account from the tick, cross-tenant by design (BILLING §3.3). |
+| `audits/billing/b1-verify.ts` | B1 acceptance harness — CLI-only; reads raw rows to prove tokens are encrypted at rest. |
 
 ## Allowlist — own PrismaClient construction
 
