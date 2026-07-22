@@ -210,3 +210,18 @@ Run: `audits/onboarding/update-verify.ts` — 7/7 (throwaway client, self-cleani
   §4.6) + intake.birthtime_added event emitted
 
 Gates: baseline byte-identical, smoke, invariant clean.
+
+---
+
+# CLIENT-ONBOARDING §4.5 — practitioner preview mode (2026-07-22)
+
+"Preview intake" (Settings → Preview intake): renders the EXACT generated
+intake — same schema builder, same copy — with a persistent "PREVIEW —
+nothing saved" banner and a distinct dashed-tint frame. Reflects the tenant's
+current module config (toggling a module changes the preview).
+
+- ✓ all preview screens render (welcome → steps → review) — in the GET smoke
+- ✓ ZERO persistence proven: IntakeFlow row count identical (0 → 0) before and
+  after walking the full preview. Persistence-free by construction — the page
+  has no form actions and no writes.
+- ✓ baseline byte-identical (a new practitioner route; client screens untouched)
