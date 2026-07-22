@@ -74,6 +74,16 @@ function feedSentence({ item, count }: FeedGroup): string {
 }
 
 export default async function TheStudy() {
+  // PLATFORM Layer 1 — a layout owns its home. journey-v1 tenants get The
+  // Study below, exactly as always; dashboard-v1 tenants get Today. Config
+  // decides (layoutKey is data), never tenant identity.
+  const { getTenant } = await import("@/lib/tenancy");
+  const tenant = await getTenant();
+  if (tenant.layoutKey === "dashboard-v1") {
+    const { DashboardHome } = await import("@/components/layouts/dashboard-v1/DashboardHome");
+    return <DashboardHome />;
+  }
+
   const practitioner = await requirePractitioner();
   const first = practitioner.name?.trim().split(/\s+/)[0] || "there";
   const o = await getPracticeOverview();
