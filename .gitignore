@@ -12,3 +12,4 @@ next-env.d.ts
 # TypeScript incremental build cache (regenerated each build)
 tsconfig.tsbuildinfo
 *.tsbuildinfo
+docs/baseline/.current/
