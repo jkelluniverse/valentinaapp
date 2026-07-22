@@ -2,8 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Crimson_Pro, Inter } from "next/font/google";
 import "./globals.css";
 // PLATFORM Layer 2 — all skin files are statically imported; data-skin on
-// <html> selects which one's tokens apply. Only warm-clay exists today.
+// <html> selects which one's tokens apply.
 import "../styles/skins/warm-clay.css";
+import "../styles/skins/clinical-light.css";
+import "../styles/skins/celestial-dark.css";
 import { RegisterSW } from "@/components/mobile/RegisterSW";
 import { PwaHint } from "@/components/mobile/PwaHint";
 
