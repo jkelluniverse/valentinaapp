@@ -16,12 +16,12 @@ the simulated map, incl. two Dusk shots) and the 49-page smoke walk
 
 ## Honest scope notes (the strangler continues)
 
-- The DAL covers the **root/practice tables** (users, invites, leads,
-  worksheets, prompts, courses, price book, practice settings). Per-client
-  tables inherit scope through their user linkage; feature code migrates onto
-  `tenantDb` as later phases touch it. The enforced boundary today is at the
-  door: `getSessionUser` refuses a user whose tenant doesn't match the
-  request's host-resolved tenant.
+- **Phase 0.5 (pulled forward):** every table now carries `tenantId`
+  directly (migration 34) and the DAL covers all 66 scoped models through one
+  factory/code path. The isolation proof runs both directions against every
+  table with a real tenant-B row inserted per table (parent chains included).
+  Feature code still migrates onto `tenantDb` progressively; the door check
+  (`getSessionUser` host↔tenant) holds regardless.
 - Host→tenant resolution runs server-side in `lib/tenancy` (Node), not edge
   middleware (no DB at the edge). A `TenantDomain` table takes over
   custom-domain mapping when a second custom-domain tenant exists.

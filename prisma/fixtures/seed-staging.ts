@@ -123,7 +123,7 @@ export async function seedFixtures(opts: { fromRoute?: boolean } = {}) {
     if (isPending && !isDeactivated) {
       const token = createHash("sha256").update(`invite:${b.id}`).digest("hex");
       await prisma.invite.deleteMany({ where: { email } });
-      await prisma.invite.create({ data: { email, name: b.identity.name, tokenHash: token, status: "PENDING", invitedById: pw.id, expiresAt: at(7) } });
+      await prisma.invite.create({ data: { tenantId: "tnt_valentina_000000001", email, name: b.identity.name, tokenHash: token, status: "PENDING", invitedById: pw.id, expiresAt: at(7) } });
       console.log(`  · ${b.id}: pending invite (converted from lead)`);
       continue;
     }

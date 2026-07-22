@@ -56,6 +56,7 @@ model User {
 // only thing that ever re-asks. Card-on-file and session recording stay
 // separate in-context opt-ins and are NOT represented here.
 model ConsentGrant {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id        String   @id @default(cuid())
   userId    String
   version   String // e.g. "2026-07"
@@ -69,6 +70,7 @@ model ConsentGrant {
 // endpoints are pruned when a push bounces. Payloads never carry message
 // content — only "you have something waiting" plus a destination.
 model PushSubscription {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -84,6 +86,7 @@ model PushSubscription {
 // sent to the NEW address is confirmed; the old address is notified on request
 // (account-takeover tripwire). Tokens stored hashed, single-use, expiring.
 model EmailChangeRequest {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id         String    @id @default(cuid())
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -99,6 +102,7 @@ model EmailChangeRequest {
 // Password reset — the self-serve way back in. Single-use hashed token, short
 // expiry; consuming it bumps sessionVersion so every open session dies.
 model PasswordResetToken {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id         String    @id @default(cuid())
   userId     String
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -113,6 +117,7 @@ model PasswordResetToken {
 // AMD-05 B3 — "request deletion" is a REQUEST, not a self-serve nuke: it opens
 // a flagged task for the practitioner and gets honored on a defined timeline.
 model DeletionRequest {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id          String    @id @default(cuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -130,6 +135,7 @@ model DeletionRequest {
 // record items (feeding C16) and self-map stars. A skip is signal, never a nag;
 // crisis suppresses deepening and flags Valentina. No entry content is logged.
 model EntryDeepening {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                 String    @id @default(cuid())
   entryId            String    @unique // one deepening per kept entry
   clientId           String
@@ -182,6 +188,7 @@ enum NodeState {
 }
 
 model PsycheNode {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                    String     @id @default(cuid())
   clientId              String
   kind                  NodeKind
@@ -209,6 +216,7 @@ model PsycheNode {
 }
 
 model PsycheEdge {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                    String   @id @default(cuid())
   clientId              String
   fromId                String // e.g. the wound
@@ -224,6 +232,7 @@ model PsycheEdge {
 
 // Metadata-only audit of extraction runs (C5-grade handling).
 model PsycheExtraction {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id            String    @id @default(cuid())
   clientId      String
   requestedById String
@@ -242,6 +251,7 @@ model PsycheExtraction {
 
 // Every curation action Valentina takes on a map, audited.
 model PsycheAudit {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id        String   @id @default(cuid())
   clientId  String
   actorId   String
@@ -281,6 +291,7 @@ model PatternLink {
 // storage-free docs (body) and links (url). Deleting moves to trash (deletedAt),
 // never silent loss.
 model LibraryFolder {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id             String   @id @default(cuid())
   practitionerId String
   name           String
@@ -295,6 +306,7 @@ model LibraryFolder {
 }
 
 model LibraryItem {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id        String   @id @default(cuid())
   folderId  String
   kind      String // WORKSHEET | PROMPT | COURSE | FILE | LINK | DOC
@@ -316,6 +328,7 @@ model LibraryItem {
 // engine) never sent to any external service — only the place NAME goes to a
 // geocoder, with no identity or date attached.
 model ClientProfile {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id               String    @id @default(cuid())
   userId           String    @unique
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -349,6 +362,7 @@ model ClientProfile {
 // ephemeris + HD mechanics) — provider records engine + version for audit;
 // raw keeps the full computation so a provider switch needs no schema change.
 model HumanDesignChart {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String   @id @default(cuid())
   userId       String   @unique
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -374,6 +388,7 @@ model HumanDesignChart {
 // synthesis on top is Valentina's method — elicited from her, never invented.
 
 model BirthChartCore {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id               String   @id @default(cuid())
   userId           String   @unique
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -387,6 +402,7 @@ model BirthChartCore {
 }
 
 model LensResult {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                   String   @id @default(cuid())
   userId               String
   user                 User     @relation("ClientLenses", fields: [userId], references: [id], onDelete: Cascade)
@@ -401,6 +417,7 @@ model LensResult {
 }
 
 model IntegrativeProfile {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id          String   @id @default(cuid())
   userId      String   @unique
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -414,6 +431,7 @@ model IntegrativeProfile {
 // C12X-PATCH-01 §2 — prior versions of generated artifacts append here on
 // regeneration; her artifacts are part of the record's history.
 model ArtifactVersion {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String   @id @default(cuid())
   clientId     String
   artifactType String // READING | FORMULATION | GUIDE
@@ -430,6 +448,7 @@ model ArtifactVersion {
 // never the private record. A reflective reading of their design, not a
 // formulation of their blocks (which stays practitioner-only, C5).
 model IntegrativeReading {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                   String   @id @default(cuid())
   userId               String   @unique
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -452,6 +471,7 @@ model IntegrativeReading {
 // which interpretation, when, and what it said before. The latest mark per
 // subject is its current resonance; history is never rewritten.
 model ResonanceMark {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String   @id @default(cuid())
   clientId     String
   subjectType  String // READING_BLOCK | GUIDE_CLAIM | NODE
@@ -468,6 +488,7 @@ model ResonanceMark {
 // §3 — the Practitioner Integration Guide: chart × the full record, HER eyes
 // only. Regenerated on demand; the heaviest AI call in the app by design.
 model IntegrationGuide {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id          String   @id @default(cuid())
   clientId    String   @unique
   model       String // model + prompt version (audit)
@@ -482,6 +503,7 @@ model IntegrationGuide {
 // never paraphrased away). statement is immutable after creation by design —
 // there is no update path for it in the actions.
 model ClientGoal {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                    String   @id @default(cuid())
   clientId              String
   statement             String // their words, verbatim — never edited
@@ -501,6 +523,7 @@ model ClientGoal {
 // sides, generated statement OPTIONS (never pre-approved), and the client-
 // approved final wording. A statement is unusable until approvedAt is set.
 model BeliefWork {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                       String    @id @default(cuid())
   clientId                 String
   belief                   String // the client's wording, verbatim first
@@ -524,6 +547,7 @@ model BeliefWork {
 // §7 domain L — Intervention outcomes: what each assignment was FOR and what
 // it actually produced, feeding "which interventions helped?".
 model InterventionOutcome {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                    String   @id @default(cuid())
   clientId              String
   assignmentId          String?  @unique // prompt assignment
@@ -544,6 +568,7 @@ model InterventionOutcome {
 // §8 — Ask the Record: longitudinal queries with cite-or-decline answers.
 // Kept (practitioner-only) because yesterday's answer is session gold.
 model AskRecordAnswer {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id        String   @id @default(cuid())
   clientId  String
   question  String
@@ -580,6 +605,7 @@ enum NoteStatus {
 }
 
 model Note {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                  String     @id @default(cuid())
   authorId            String // practitioner (always)
   clientId            String? // null = free-floating idea (unfiled notebook)
@@ -605,6 +631,7 @@ model Note {
 // to see again — stored whole, never auto-deleted. Same privacy class as
 // Notes (strictest in the app; never client-visible; no content in logs).
 model HandwrittenNote {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                   String    @id @default(cuid())
   status               String    @default("DRAFT") // DRAFT | APPLIED | DISMISSED
   source               String    @default("EMAIL") // EMAIL | DRIVE | CLOUD
@@ -629,6 +656,7 @@ model HandwrittenNote {
 // OUTSIDE the global consent). Names the vendor cloud; versioned; revocable.
 // No consent → the feature is invisible for that client.
 model RecordingConsent {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String    @id @default(cuid())
   clientId     String    @unique
   version      String
@@ -639,6 +667,7 @@ model RecordingConsent {
 
 // C19 — a processed recording awaiting review (parallel to HandwrittenNote).
 model RecordingDraft {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                   String    @id @default(cuid())
   status               String    @default("DRAFT") // DRAFT | APPLIED | DISMISSED
   provider             String // "pocket" | "fixture"
@@ -657,6 +686,7 @@ model RecordingDraft {
 // C19 §4 — the session transcript: speaker-attributed, redactions applied
 // BEFORE persistence (struck passages never persist). C14-grade privacy.
 model SessionTranscript {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id            String   @id @default(cuid())
   clientId      String
   appointmentId String?  @unique
@@ -675,6 +705,7 @@ model SessionTranscript {
 }
 
 model NoteScan {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String   @id @default(cuid())
   noteId       String
   note         Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
@@ -702,6 +733,7 @@ enum ConvoStatus {
 }
 
 model Conversation {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id             String      @id @default(cuid())
   clientId       String      @unique // single practitioner: one thread per client
   client         User        @relation("ClientConversation", fields: [clientId], references: [id], onDelete: Cascade)
@@ -713,6 +745,7 @@ model Conversation {
 }
 
 model Message {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                 String       @id @default(cuid())
   conversationId     String
   conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -737,6 +770,7 @@ model Message {
 // actor id; logs stay metadata-only.
 
 model StageChange {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id          String   @id @default(cuid())
   clientId    String
   fromStage   String?
@@ -775,6 +809,7 @@ enum CreditState {
 }
 
 model Package {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                  String        @id @default(cuid())
   clientId            String
   priceBookId         String // the 3/6/9 SKU
@@ -794,6 +829,7 @@ model Package {
 }
 
 model SessionCredit {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id            String      @id @default(cuid())
   packageId     String
   package       Package     @relation(fields: [packageId], references: [id], onDelete: Cascade)
@@ -822,6 +858,7 @@ model PriceBook {
 }
 
 model Charge {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id              String       @id @default(cuid())
   clientId        String
   appointmentId   String? // the session it bills (null for custom/package charges)
@@ -855,6 +892,7 @@ model Charge {
 }
 
 model SquareCustomerLink {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id               String  @id @default(cuid())
   clientId         String  @unique
   squareCustomerId String  @unique
@@ -869,6 +907,7 @@ model SquareCustomerLink {
 // Square payments seen by webhook that don't reference one of our charges —
 // e.g. taken on her POS/reader — surfaced in the ledger for one-tap matching.
 model ExternalPayment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id               String    @id @default(cuid())
   squarePaymentId  String    @unique
   squareCustomerId String?
@@ -902,6 +941,7 @@ model Worksheet {
 }
 
 model WorksheetAssignment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String             @id @default(cuid())
   worksheetId  String
   worksheet    Worksheet          @relation(fields: [worksheetId], references: [id], onDelete: Cascade)
@@ -918,6 +958,7 @@ model WorksheetAssignment {
 }
 
 model WorksheetResponse {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String              @id @default(cuid())
   assignmentId String              @unique
   assignment   WorksheetAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
@@ -929,6 +970,7 @@ model WorksheetResponse {
 // AMD-06 §2 — the bounded act-as. One active grant per practitioner at a time
 // (cookie-scoped); 30 minutes, then re-entry with a fresh reason.
 model AssistGrant {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id             String    @id @default(cuid())
   practitionerId String
   clientId       String
@@ -974,6 +1016,7 @@ model TenantModule {
 // (never note bodies, answers, tokens, or card data). actorId is who ACTED;
 // onBehalfOfId is whose account it touched.
 model AuditEvent {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String   @id @default(cuid())
   actorId      String
   onBehalfOfId String?
@@ -1020,6 +1063,7 @@ model Course {
 }
 
 model Chapter {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id          String   @id @default(cuid())
   courseId    String
   course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -1033,6 +1077,7 @@ model Chapter {
 }
 
 model Lesson {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id        String     @id @default(cuid())
   chapterId String
   chapter   Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -1053,6 +1098,7 @@ model Lesson {
 }
 
 model Enrollment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id         String           @id @default(cuid())
   courseId   String
   course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -1065,6 +1111,7 @@ model Enrollment {
 }
 
 model LessonProgress {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String     @id @default(cuid())
   enrollmentId String
   enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
@@ -1077,6 +1124,7 @@ model LessonProgress {
 // C5 — a stored session-prep formulation. Practitioner-only, doubles as the
 // audit record (who/when/client/model/flag). Content never goes to app logs.
 model SessionPrep {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id                String   @id @default(cuid())
   clientId          String
   client            User     @relation("ClientPreps", fields: [clientId], references: [id], onDelete: Cascade)
@@ -1106,6 +1154,7 @@ enum RecordKind {
 // denormalized snapshots for fast timelines and C5's input; the source row
 // (sourceType/sourceId) stays the full-fidelity truth.
 model RecordItem {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id         String     @id @default(cuid())
   clientId   String
   client     User       @relation("ClientRecord", fields: [clientId], references: [id], onDelete: Cascade)
@@ -1154,6 +1203,7 @@ model Prompt {
 }
 
 model Assignment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String           @id @default(cuid())
   promptId     String
   prompt       Prompt           @relation(fields: [promptId], references: [id], onDelete: Cascade)
@@ -1172,6 +1222,7 @@ model Assignment {
 }
 
 model PromptResponse {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id           String     @id @default(cuid())
   assignmentId String     @unique
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
@@ -1188,6 +1239,7 @@ enum EntryType {
 }
 
 model LogEntry {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id         String    @id @default(cuid())
   clientId   String
   client     User      @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -1296,6 +1348,7 @@ model SchedulingConfig {
 }
 
 model AvailabilityRule {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id             String           @id @default(cuid())
   practitionerId String
   kind           AvailabilityKind @default(SESSION) // C18 — SESSION or DISCOVERY hours
@@ -1308,6 +1361,7 @@ model AvailabilityRule {
 }
 
 model AvailabilityException {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id             String        @id @default(cuid())
   practitionerId String
   date           DateTime // the civil date (midnight UTC) this applies to
@@ -1320,6 +1374,7 @@ model AvailabilityException {
 }
 
 model Appointment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
   id             String            @id @default(cuid())
   practitionerId String
   // Nullable because a DISCOVERY appointment belongs to a Lead (a prospect), not

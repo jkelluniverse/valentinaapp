@@ -13,8 +13,12 @@ import { prisma } from "../lib/prisma";
 //   DATABASE_URL=...scratch npx tsx scripts/baseline.ts --diff     # compare
 //
 // Determinism: fixed viewport, reduced motion, same fonts/browser. The compare
-// is byte-level with a per-page fallback report (dimensions + first differing
-// offset) so a human can eyeball the pair when bytes drift.
+// is byte-level with a per-page fallback report so a human can eyeball drift.
+//
+// RULE: a reseed invalidates the baseline. Reseeded rows get fresh ids, and
+// same-timestamp ties (e.g. "Quietly, this week") break by id — so capture a
+// new baseline immediately after ANY reseed, then run code slices against
+// that fixed dataset. Diffs are only meaningful with the data held still.
 
 const PORT = 3106;
 const BASE = `http://localhost:${PORT}`;

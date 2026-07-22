@@ -74,8 +74,11 @@ export async function createInvite(input: {
   if (pending) return { ok: false, error: "There's already a pending invite for that email. Use Resend." };
 
   const { raw, hash } = generateInviteToken();
+  const { getTenant } = await import("@/lib/tenancy");
+  const tenant = await getTenant();
   const invite = await prisma.invite.create({
     data: {
+      tenantId: tenant.id, // PLATFORM Phase 0 — new rows carry their tenant
       email,
       name,
       tokenHash: hash,

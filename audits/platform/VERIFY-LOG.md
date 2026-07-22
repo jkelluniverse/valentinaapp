@@ -1,4 +1,4 @@
-# PLATFORM Phase 0 verify — 2026-07-21T21:03:37.512Z
+# PLATFORM Phase 0/0.5 verify — 2026-07-21T21:22:55.895Z
 
 ## Tenant #1
 - ✓ tenant row exists (slug valentina)
@@ -7,15 +7,14 @@
 - ✓ her three panels as generic module keys — archetypal-keys, body-graph, values-spiral
 - ✓ her branded names live in settings, not code — Human Design · Gene Keys · Values spiral
 
-## Backfill
-- ✓ every user row carries her tenantId — null-tenant users: 0
-- ✓ practice tables backfilled (worksheets)
+## Backfill (all tables)
+- ✓ every row in every scoped table carries her tenantId — 66 tables checked
 
-## Cross-tenant isolation (the DAL)
-- ✓ her tenant never sees tenant B's user — her visible users: 17
-- ✓ tenant B sees exactly its own row — tenant B visible users: 1
-- ✓ tenant B never sees her practitioner
-- ✓ legacy null-tenant rows belong to the DEFAULT tenant only
+## Cross-tenant isolation — all 66 tables
+- ✓ tenant B sees zero rows in every table (her data invisible)
+- ✓ every table's B row is visible to B
+- ✓ her tenant sees none of B's rows in any table
+- ✓ legacy null rows belong to the DEFAULT tenant only (5 table probe)
 
 ## Host resolution
 - ✓ custom domain resolves the default tenant (no PLATFORM_DOMAIN set)
