@@ -22,6 +22,18 @@ the simulated map, incl. two Dusk shots) and the 49-page smoke walk
 | `clinical-light` + `celestial-dark`; skin × layout combos render acceptably | ✅ | `styles/skins/*.css` on the warm-clay token contract; eyeballed screenshots of dashboard-v1 in both skins, desktop + mobile; journey-v1 × warm-clay byte-identical every slice |
 | Layout/skin switch on a DEMO tenant is config-only | ✅ | `audits/platform/phase1-switch.ts` — 12/12 incl. a live config flip with the server running (see VERIFY-LOG) |
 
+## Phase 2 — module registry + intake builder (accepted 2026-07-22)
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Registry with her three panels migrated, workflow unchanged (Rule 5.1) | ✅ | `lib/modules/registry.ts` + `components/modules/*`; `/space/design` renders via `panelsFor(rows)`; baseline byte-identical; her copy is data (migration 35) |
+| Intake schema derives from enabled modules; birth-time-unknown works | ✅ | `lib/intake/schema.ts` — union/dedupe, module steps in tenant order under tenant labels, degrade/hide declarations |
+| Module toggle on a DEMO tenant updates intake + map panels, zero code | ✅ | `audits/platform/phase2-verify.ts` — 16/16 (row insert/disable reshapes schema + panels; her hash untouched) |
+
+Scope note: the practitioner-side design view still renders her panels
+directly (not via the registry) — it migrates when it is next touched; the
+client map is the registry surface the onboarding build consumes.
+
 ## Honest scope notes (the strangler continues)
 
 - **Phase 0.5 (pulled forward):** every table now carries `tenantId`

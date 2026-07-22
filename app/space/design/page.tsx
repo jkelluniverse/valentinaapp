@@ -2,8 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
-import { HdChartView } from "@/components/HdChartView";
-import { GeneKeysView, SpiralView } from "@/components/LensViews";
+import { getTenant } from "@/lib/tenancy";
+import { panelsFor } from "@/lib/modules/registry";
 import { ensureChart } from "@/lib/human-design";
 import { assembleCharts, chartInputHash } from "@/lib/integrative-reading";
 import { ReadingSection } from "@/components/ReadingSection";
@@ -39,6 +39,21 @@ export default async function DesignPage({
   const spiralLens = lenses.find((l) => l.lens === "SPIRAL");
   const spheres = ((gkLens?.result as { spheres?: SpherePosition[] } | null)?.spheres ?? []) as SpherePosition[];
   const spiralScore = spiralLens?.result as (SpiralScore & { practitionerCenter?: string }) | null;
+
+  // PLATFORM Phase 2 — which panels this tenant shows, in their order, under
+  // their labels. One data bag; each panel takes what it needs.
+  const tenant = await getTenant();
+  const moduleRows = await prisma.tenantModule.findMany({
+    where: { tenantId: tenant.id, enabled: true },
+    orderBy: { position: "asc" },
+  });
+  const panels = panelsFor(moduleRows);
+  const panelData = {
+    chart,
+    spheres,
+    spiralScore,
+    spiralReviewed: Boolean(spiralLens?.practitionerReviewed),
+  };
 
   // The integrative reading (C12r) — chart-only. Fresh published readings show
   // instantly; otherwise the client component draws it together (respecting the
@@ -88,43 +103,13 @@ export default async function DesignPage({
 
       {chart ? (
         <>
-          <HdChartView chart={chart} />
-
-          {spheres.length > 0 && (
-            <section className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-xl font-semibold">Your Gene Keys</h2>
-                <p className="max-w-prose text-sm text-slate">
-                  Read from the same birth moment — eleven spheres to contemplate slowly, one at a
-                  time, rather than all at once.
-                </p>
-              </div>
-              <GeneKeysView spheres={spheres} />
-            </section>
-          )}
-
-          {spiralScore && spiralLens?.practitionerReviewed && (
-            <section className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <h2 className="text-xl font-semibold">Your values snapshot</h2>
-                <p className="max-w-prose text-sm text-slate">
-                  From your own reflections — where your energy tends to live these days.
-                </p>
-              </div>
-              <div className="rounded-lg border border-line bg-white p-6 shadow-soft">
-                <SpiralView
-                  score={spiralScore}
-                  practitionerCenter={spiralScore.practitionerCenter}
-                />
-              </div>
-            </section>
-          )}
-          {spiralScore && !spiralLens?.practitionerReviewed && (
-            <p className="rounded-md border border-line bg-white px-4 py-3 text-sm text-slate">
-              Your values reflection is in — Valentina is looking at it, and it&apos;ll appear here
-              once she has.
-            </p>
-          )}
+          {/* PLATFORM Phase 2 — the modality panels render through the module
+              registry: the tenant's TenantModule rows decide which panels
+              appear, in what order, under what words. Same data pipelines,
+              same DOM — the registry is a frame, not a redesign (Rule 5.1). */}
+          {panels.map(({ key, Panel, displayLabel, copy }) => (
+            <Panel key={key} displayLabel={displayLabel} copy={copy} data={panelData} />
+          ))}
 
           {/* C12r — the woven reading, at the foot of the charts. */}
           <section className="flex flex-col gap-4">

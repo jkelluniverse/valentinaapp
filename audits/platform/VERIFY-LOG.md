@@ -1,4 +1,4 @@
-# PLATFORM Phase 0/0.5 verify — 2026-07-21T21:22:55.895Z
+# PLATFORM Phase 0/0.5 verify — 2026-07-22T15:23:53.113Z
 
 ## Tenant #1
 - ✓ tenant row exists (slug valentina)
@@ -7,8 +7,16 @@
 - ✓ her three panels as generic module keys — archetypal-keys, body-graph, values-spiral
 - ✓ her branded names live in settings, not code — Human Design · Gene Keys · Values spiral
 
-## Backfill (all tables)
-- ✓ every row in every scoped table carries her tenantId — 66 tables checked
+## Null-tenant rows (default-owned by rule; informational)
+  · psycheNode: 47 null-tenant rows
+  · lensResult: 13 null-tenant rows
+  · note: 64 null-tenant rows
+  · message: 212 null-tenant rows
+  · worksheetAssignment: 14 null-tenant rows
+  · worksheetResponse: 13 null-tenant rows
+  · recordItem: 284 null-tenant rows
+  · logEntry: 271 null-tenant rows
+- ✓ null-tenant rows enumerated (all default-owned) — 8 of 66 tables hold legacy-null rows
 
 ## Cross-tenant isolation — all 66 tables
 - ✓ tenant B sees zero rows in every table (her data invisible)
@@ -27,29 +35,27 @@ ALL CHECKS PASS
 
 ---
 
-# Phase 1 — dashboard-v1 + skins + the DEMO switch (2026-07-22)
+# Phase 2 — module registry + intake schema builder (2026-07-22)
 
-Run: `audits/platform/phase1-switch.ts` against the scratch dataset with the
-built app on :3108 and PLATFORM_DOMAIN=platform.test. A DEMO tenant is
-provisioned by row inserts alone, served on its subdomain, and re-arranged by
-a config UPDATE while the server keeps running. Self-cleaning.
+Run: `audits/platform/phase2-verify.ts` — 16/16.
 
-## Config is data
-- ✓ demo host serves login wearing clinical-light
-- ✓ demo practitioner gets dashboard-v1 (sidebar + Today home)
-- ✓ config UPDATE alone flips the live portal to celestial-dark + journey-v1
-  (no deploy, no restart — the 60s tenant cache is the only delay)
-- ✓ default host stays journey-v1 + warm-clay throughout
+## Registry (Rule 0.4 / 5.1)
+- ✓ body-graph, archetypal-keys, values-spiral registered as structured-content
+  panel modules — their data pipelines untouched, the registry only frames them
+- ✓ module code is trademark-free; her labels AND her exact panel copy live in
+  TenantModule.settings (migration 35), components hold neutral defaults only
+- ✓ /space/design renders panels through panelsFor(rows) — byte-identical
+  baseline proves her page did not move
 
-## Isolation at the feature level
-- ✓ demo roster shows only the demo client — none of the default tenant's people
-- ✓ no cross-tenant unread badge (regression: the practitioner layout's unread
-  count now goes through the DAL)
-- ✓ demo session refused on the default host (door check, 307)
+## Intake schema builder
+- ✓ her derived intake: identity → birth → values question-set
+- ✓ birth data deduped across modules; asked once
+- ✓ birth-time-unknown path: both chart modules declare graceful degradation
 
-## Render acceptance (eyeballed screenshots, desktop + mobile)
-- ✓ dashboard-v1 × clinical-light
-- ✓ dashboard-v1 × celestial-dark
-- ✓ journey-v1 × warm-clay — byte-identical baseline, every slice
+## DEMO tenant zero-code toggle
+- ✓ values-only tenant generates NO birth step; one panel; tenant's own label
+- ✓ one row insert (body-graph) adds the birth step, changes the schema hash,
+  and prepends the panel — no code, no deploy
+- ✓ disabling the row reverses both; her schema hash never moved
 
-SWITCH TEST PASS — 12/12
+PHASE 2 VERIFY PASS — 16/16
