@@ -138,3 +138,16 @@ export async function setRecordingConsent(grant: boolean) {
   revalidatePath("/space/settings");
   redirect("/space/settings");
 }
+
+// ONBOARDING §4.6 — the birth-time UPDATE flow: a client who didn't know
+// their birth time at intake adds it here, and the time-dependent readings
+// recompute. Only shown when birthTimeUnknown is set.
+export async function submitBirthTime(formData: FormData) {
+  const user = await requireClient();
+  const time = String(formData.get("birthTime") ?? "").trim();
+  const { addBirthTime } = await import("@/lib/intake/update");
+  const res = await addBirthTime(user.id, time);
+  revalidatePath(PATH);
+  revalidatePath("/space/design");
+  redirect(`${PATH}?${res.ok ? "saved=birthtime" : "error=birthtime"}`);
+}

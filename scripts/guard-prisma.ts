@@ -43,6 +43,7 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "audits/onboarding/stage1-verify.ts": "intake engine acceptance harness: CLI-only, self-cleaning",
   "audits/onboarding/complete-verify.ts": "intake completion acceptance harness: CLI-only, throwaway client, self-cleaning",
   "audits/onboarding/ui-verify.ts": "intake UI acceptance harness: browser-driven, throwaway client, self-cleaning",
+  "audits/onboarding/update-verify.ts": "birth-time UPDATE acceptance harness: CLI-only, self-cleaning",
 };
 
 const violations: string[] = [];

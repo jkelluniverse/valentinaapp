@@ -6,7 +6,7 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PushToggle } from "@/components/PushToggle";
 import { changePassword, requestEmailChange, signOutEverywhere } from "@/app/account/actions";
-import { saveLocale, saveNotifications, requestDeletion, setRecordingConsent, setCardConsent } from "./actions";
+import { saveLocale, saveNotifications, requestDeletion, setRecordingConsent, setCardConsent, submitBirthTime } from "./actions";
 import { RECORDING_CONSENT_TEXT } from "@/lib/recording";
 import { PendingButton } from "@/components/PendingButton";
 
@@ -95,6 +95,18 @@ export default async function SettingsPage({
       {saved && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
           {t(`saved.${saved}`)}
+        </p>
+      )}
+      {searchParams.saved === "birthtime" && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          {user.locale === "es"
+            ? "Hora de nacimiento agregada — tu carta se está actualizando."
+            : "Birth time added — your chart is updating."}
+        </p>
+      )}
+      {searchParams.error === "birthtime" && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          {user.locale === "es" ? "Esa hora no es válida (usa HH:MM)." : "That time isn't valid (use HH:MM)."}
         </p>
       )}
       {searchParams.saved === "card" && (
@@ -248,6 +260,33 @@ export default async function SettingsPage({
       </Section>
 
       {/* C19 §0 — session recording: its own consent, in context, revocable. */}
+      {/* ONBOARDING §4.6 — add a birth time later (only when it's unknown). */}
+      {profile?.birthTimeUnknown && (
+        <Section title={user.locale === "es" ? "Hora de nacimiento" : "Birth time"}>
+          <div className="flex flex-col gap-3 py-4">
+            <p className="max-w-prose text-sm leading-relaxed text-ink">
+              {user.locale === "es"
+                ? "Cuando conozcas tu hora de nacimiento exacta, agrégala aquí — algunos detalles de tu carta (como las casas) se completarán al instante."
+                : "When you know your exact birth time, add it here — some chart details (like houses) will fill in right away."}
+            </p>
+            <form action={submitBirthTime} className="flex flex-wrap items-center gap-3">
+              <input
+                type="time"
+                name="birthTime"
+                required
+                className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink"
+              />
+              <PendingButton
+                pendingLabel={user.locale === "es" ? "Guardando…" : "Saving…"}
+                className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+              >
+                {user.locale === "es" ? "Agregar y recalcular" : "Add & recompute"}
+              </PendingButton>
+            </form>
+          </div>
+        </Section>
+      )}
+
       <Section title={user.locale === "es" ? "Grabación de sesiones" : "Session recording"}>
         <div className="flex flex-col gap-3 py-4">
           <p className="max-w-prose text-sm leading-relaxed text-ink">

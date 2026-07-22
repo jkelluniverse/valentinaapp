@@ -193,3 +193,20 @@ Wiring: new clients get their flow at invite acceptance (`app/invite`), so
 first login lands in intake; the space-layout gate renders the intake route
 bare and only redirects when a flow is active. `/space/intake` added to the
 GET smoke walk (redirects a no-flow client home → 200).
+
+---
+
+# CLIENT-ONBOARDING §4.6 — birth-time UPDATE flow (2026-07-22)
+
+Run: `audits/onboarding/update-verify.ts` — 7/7 (throwaway client, self-cleaning).
+
+- ✓ a client who onboarded WITHOUT a birth time adds it from Settings
+  (the affordance shows only when birthTimeUnknown — no fixture client has
+  that, so the baselined settings/design screens are untouched)
+- ✓ invalid time rejected; valid time sets birthTime + precision EXACT
+- ✓ targeted recompute: the chart's inputHash changes with the new time, so
+  time-dependent readings regenerate (unchanged inputs stay cached)
+- ✓ a purpose:UPDATE flow is recorded COMPLETE (the schema-ready UPDATE path,
+  §4.6) + intake.birthtime_added event emitted
+
+Gates: baseline byte-identical, smoke, invariant clean.
