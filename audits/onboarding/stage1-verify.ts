@@ -56,7 +56,7 @@ async function main() {
     const started = await startFlow(maria.id);
     const flow = await getActiveFlow(maria.id);
     check("startFlow creates one IN_PROGRESS flow", flow !== null && flow.id === started.id);
-    check("first step is identity", started.currentStep === "identity");
+    check("fresh flow starts on the Welcome screen", started.currentStep === "welcome");
     check("intake.started event emitted", (await prisma.activityEvent.count({ where: { clientId: maria.id, eventKey: "intake.started" } })) === 1);
 
     // 4 — resume: a second start returns the SAME flow (one non-complete flow)

@@ -171,3 +171,25 @@ billing, courses, forgot-password, and ensureChart (profile-save chart
 regeneration silently failed). Fixed: pre-checks run first (async), then the
 promise array is built SYNCHRONOUSLY. complete-verify now permanently guards
 this path (ensureChart's 3-item transaction runs green through it).
+
+---
+
+# CLIENT-ONBOARDING Stage 1 UI — the intake flow (2026-07-22)
+
+Run: `audits/onboarding/ui-verify.ts` — 10/10 (browser-driven, throwaway
+invited client, self-cleaning).
+
+- ✓ routing gate: a client with an IN_PROGRESS flow is redirected to
+  /space/intake from anywhere in /space; existing clients (no flow) are
+  never redirected (pixel gate safe — María byte-identical)
+- ✓ Welcome → generated Identity/Birth/values steps → Review → Done, each a
+  mobile-first single-screen takeover (no space chrome)
+- ✓ per-field auto-save on change (debounced) with the question-text snapshot
+- ✓ Complete my setup → flow COMPLETE, intakeCompletedAt stamped, the values
+  scorer produced a SPIRAL lens (the §5 fan-out, fired through the real UI)
+- ✓ after completion the gate releases — the client is no longer redirected
+
+Wiring: new clients get their flow at invite acceptance (`app/invite`), so
+first login lands in intake; the space-layout gate renders the intake route
+bare and only redirects when a flow is active. `/space/intake` added to the
+GET smoke walk (redirects a no-flow client home → 200).

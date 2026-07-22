@@ -101,6 +101,14 @@ export async function acceptInvite(token: string, formData: FormData) {
   });
   if (created) void syncSquareCustomer(created.id).catch(() => undefined);
 
+  // ONBOARDING §4.4 — a new client lands in the generated intake. Start their
+  // flow now, so first login routes into it (the space-layout gate). Existing
+  // clients never get a flow, so they are never affected.
+  if (created) {
+    const { startFlow } = await import("@/lib/intake/engine");
+    await startFlow(created.id).catch(() => undefined);
+  }
+
   // Auto sign-in, then land on the client home. signIn throws the redirect.
   await signIn("credentials", { email: invite.email, password, redirectTo: "/space" });
 }

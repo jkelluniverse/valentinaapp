@@ -70,6 +70,7 @@ const CLIENT_PAGES = [
   "/space/messages",
   "/space/settings",
   "/space/profile",
+  "/space/intake",
 ];
 
 // Signed-out surfaces.

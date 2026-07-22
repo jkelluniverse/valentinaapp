@@ -96,9 +96,10 @@ export async function startFlow(clientId: string): Promise<{ id: string; current
   if (existing) return { id: existing.id, currentStep: existing.currentStep };
 
   const schema = await concreteSchemaFor(tenant.id);
-  const first = schema.steps[0]?.key ?? "review";
+  // The UI sequence is [welcome, ...steps, review]; a fresh flow starts on
+  // the Welcome screen.
   const flow = await prisma.intakeFlow.create({
-    data: { clientId, purpose: "INITIAL", status: "IN_PROGRESS", schemaHash: schema.hash, currentStep: first, startedAt: new Date() },
+    data: { clientId, purpose: "INITIAL", status: "IN_PROGRESS", schemaHash: schema.hash, currentStep: "welcome", startedAt: new Date() },
   });
   await emitEvent({ tenantId: tenant.id, clientId, actor: "client", eventKey: "intake.started", meta: { flowId: flow.id } });
   return { id: flow.id, currentStep: flow.currentStep };

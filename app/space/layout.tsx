@@ -42,6 +42,20 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
     redirect("/space/consent");
   }
 
+  // ONBOARDING §4.4 — intake is the forced landing while IN_PROGRESS. The
+  // gate fires ONLY when the client has an active flow, so existing clients
+  // (no flow) are never redirected and the pixel gate is safe. Assist
+  // sessions never land in intake (that's her session, not the client's).
+  const onIntake = pathname.startsWith("/space/intake");
+  if (!user.assistedBy && pathname && !onIntake) {
+    const activeFlow = await prisma.intakeFlow
+      .findFirst({ where: { clientId: user.id, purpose: "INITIAL", status: "IN_PROGRESS" }, select: { id: true } })
+      .catch(() => null);
+    if (activeFlow) redirect("/space/intake");
+  }
+  // The intake route is a takeover: render it bare, without the space chrome.
+  if (onIntake) return <>{children}</>;
+
   // A soft "•" presence when a reply is waiting — never an unread count.
   const unread = await prisma.message
     .count({

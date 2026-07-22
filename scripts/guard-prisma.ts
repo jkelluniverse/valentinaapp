@@ -42,6 +42,7 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "audits/pipeline/p12-verify.ts": "pipeline acceptance harness: CLI-only, inspects raw rows across the flow",
   "audits/onboarding/stage1-verify.ts": "intake engine acceptance harness: CLI-only, self-cleaning",
   "audits/onboarding/complete-verify.ts": "intake completion acceptance harness: CLI-only, throwaway client, self-cleaning",
+  "audits/onboarding/ui-verify.ts": "intake UI acceptance harness: browser-driven, throwaway client, self-cleaning",
 };
 
 const violations: string[] = [];
