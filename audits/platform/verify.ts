@@ -206,6 +206,9 @@ async function insertBFixtures() {
   await p.activityEvent.create({ data: { ...T, clientId: bUser, actor: "system", eventKey: "probe" } });
   await p.tenantBilling.create({ data: { ...T, plan: "CARE_99", status: "ACTIVE", stripeCustomerId: "bfx_cus" } });
   await p.reading.create({ data: { ...T, clientId: bUser, moduleKey: "western-natal", kind: "natal-positions", inputsHash: "bfx_hash", payload: j({}), status: "COMPLETE", computedAt: now } });
+  const bTpl = await p.agreementTemplate.create({ data: { ...T, slug: "bfx-services", version: 1, title: "probe", body: "probe {{client_name}}" } });
+  const bAgr = await p.agreement.create({ data: { ...T, templateId: bTpl.id, clientId: bUser, titleSnapshot: "probe", bodySnapshot: "probe", mergeData: j({}) } });
+  await p.agreementEvent.create({ data: { ...T, agreementId: bAgr.id, kind: "created", actor: "system" } });
 
   return { bUser, pkg };
 }

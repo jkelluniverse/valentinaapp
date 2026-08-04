@@ -107,6 +107,10 @@ export async function acceptInvite(token: string, formData: FormData) {
   if (created) {
     const { startFlow } = await import("@/lib/intake/engine");
     await startFlow(created.id).catch(() => undefined);
+    // C20 §2 — templates toggled "on invite acceptance" go out now.
+    const { getTenant } = await import("@/lib/tenancy");
+    const { fireAgreementTrigger } = await import("@/lib/agreements/triggers");
+    await fireAgreementTrigger((await getTenant()).id, "sendOnInviteAccept", created.id).catch(() => undefined);
   }
 
   // Auto sign-in, then land on the client home. signIn throws the redirect.

@@ -1531,6 +1531,97 @@ model Reading {
   @@index([status])
 }
 
+// ---------- C20-AGREEMENTS — contracts, e-signatures, sealed records ----------
+// The consent pattern generalized (AMD-01): versioned tenant templates with
+// merge variables; a sent Agreement pins the EXACT text forever
+// (bodySnapshot); every touch lands in an append-only event trail
+// (money-grade audit). ESIGN/UETA elements are explicit columns: signer
+// attribution (name/ip/agent + authenticated session or verified signed
+// link), intent (signedAt via the one unambiguous tap), e-records
+// disclosure (disclosureShownAt), tamper-evident retention (sealedSha256).
+
+enum AgreementStatus {
+  DRAFT
+  SENT
+  VIEWED
+  SIGNED
+  DECLINED
+  EXPIRED
+  VOIDED
+}
+
+model AgreementTemplate {
+  id                     String   @id @default(cuid())
+  tenantId               String? // nullable per platform scope rule
+  slug                   String // "client-services" | "scope-of-work" | "recording-addendum" | custom
+  version                Int
+  locale                 String   @default("en") // en/es siblings per AMD-05
+  title                  String
+  body                   String // rich text with {{merge_vars}}
+  requiresCountersign    Boolean  @default(false)
+  status                 String   @default("ACTIVE") // ACTIVE | RETIRED
+  // §2 — per-template automatic triggers (tenant settings, stored as data)
+  sendOnInviteAccept     Boolean  @default(false)
+  requireBeforeBooking   Boolean  @default(false)
+  sendOnPackagePurchase  Boolean  @default(false)
+  sendOnRecordingConsent Boolean  @default(false)
+  placeholder            Boolean  @default(true) // fixture-grade until the attorney pass (§6.1)
+  createdAt              DateTime @default(now())
+
+  @@unique([tenantId, slug, version, locale])
+}
+
+model Agreement {
+  id                   String          @id @default(cuid())
+  tenantId             String?
+  templateId           String // the pinned template row (exact version + locale)
+  clientId             String? // portal client — exactly one of client/lead
+  leadId               String? // pre-portal lead (C18 signed-link pattern)
+  locale               String          @default("en")
+  status               AgreementStatus @default(DRAFT)
+  titleSnapshot        String
+  bodySnapshot         String // the exact merged text sent — pinned forever
+  mergeData            Json // the variables as resolved at send time
+  tokenHash            String?         @unique // signed no-login link (hashed at rest)
+  expiresAt            DateTime?
+  sentAt               DateTime?
+  viewedAt             DateTime? // full scroll recorded (§3.1)
+  disclosureShownAt    DateTime? // ESIGN consumer-consent line shown (§3.2)
+  signedAt             DateTime?
+  signerName           String? // typed full legal name (attribution)
+  signerDrawn          String? // canvas strokes data-url — warmth, not legality
+  signerIp             String?
+  signerAgent          String?
+  countersignRequired  Boolean         @default(false)
+  countersignedAt      DateTime?
+  countersignName      String?
+  declinedAt           DateTime?
+  voidedAt             DateTime? // hers, attributed, never deletes history
+  voidReason           String?
+  paperSignedAt        DateTime? // §6.2 escape hatch: "signed on paper" (upload scan)
+  sealedKey            String? // storage key of the sealed PDF (§4)
+  sealedSha256         String? // tamper-evidence hash of the sealed bytes
+  remindedAt           DateTime?
+  createdAt            DateTime        @default(now())
+
+  @@index([tenantId, clientId])
+  @@index([tenantId, status])
+}
+
+// Append-only. Rows are never updated or deleted — the trail IS the
+// audit certificate's source (§4).
+model AgreementEvent {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  agreementId String
+  at          DateTime @default(now())
+  kind        String // created|sent|reminded|viewed|disclosure|signed|countersigned|declined|voided|sealed|downloaded|paper-signed
+  actor       String // "practitioner" | "client" | "lead" | "system"
+  meta        Json?
+
+  @@index([agreementId, at])
+}
+
 // ---------- SESSION-PIPELINE Phase 1 — the capture job ----------
 // One row per recorded/uploaded session moving through the pipeline. The
 // transcript itself lands in SessionTranscript at APPROVAL (C19 privacy:

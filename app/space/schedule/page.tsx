@@ -46,6 +46,33 @@ export default async function ClientSchedulePage({
   const config = await getOrCreateConfig(practitioner.id);
   const now = new Date();
 
+  // C20 §2 — the before-first-session gate: a required agreement waits
+  // before new booking. Plainly worded, never an error; clients without
+  // one (all existing clients) see this page byte-identically.
+  const { bookingBlockedByAgreement } = await import("@/lib/agreements");
+  const agreementGate = await bookingBlockedByAgreement(user.id);
+  if (agreementGate.blocked) {
+    const { default: Link } = await import("next/link");
+    return (
+      <div className="mx-auto flex max-w-md flex-col gap-4 py-10">
+        <h1 className="text-[1.75rem] font-semibold">
+          {user.locale === "es" ? "Una cosa antes de empezar" : "One thing before we begin"}
+        </h1>
+        <p className="text-lg leading-relaxed text-ink">
+          {user.locale === "es"
+            ? `Hay un documento para leer y firmar antes de reservar: “${agreementGate.title}”.`
+            : `There's one thing to read and sign before booking: “${agreementGate.title}”.`}
+        </p>
+        <Link
+          href={`/space/agreements/${agreementGate.agreementId}`}
+          className="self-start rounded-lg bg-wine px-6 py-3 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark"
+        >
+          {user.locale === "es" ? "Leer y firmar" : "Read & sign"}
+        </Link>
+      </div>
+    );
+  }
+
   const [upcoming, { slots }, charges, packages, packageSkus] = await Promise.all([
     prisma.appointment.findMany({
       where: { clientId: user.id, status: "SCHEDULED", startAt: { gte: now } },

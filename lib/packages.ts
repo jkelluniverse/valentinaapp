@@ -168,6 +168,19 @@ export async function activatePackageForCharge(charge: {
       },
     });
     console.log(`[packages] package activated pkg=${pkg.id} charge=${charge.id}`);
+    // C20 §2 — "on package purchase": send the merged Scope of Work when a
+    // template is toggled for it. Best-effort, never blocks activation.
+    try {
+      const { getTenant } = await import("@/lib/tenancy");
+      const { fireAgreementTrigger } = await import("@/lib/agreements/triggers");
+      await fireAgreementTrigger((await getTenant()).id, "sendOnPackagePurchase", charge.clientId, {
+        package_name: sku.name,
+        price: `$${(sku.amountCents / 100).toFixed(2)}`,
+        term: `${sku.sessionsIncluded} sessions`,
+      });
+    } catch {
+      /* trigger is best-effort */
+    }
     return pkg;
   } catch {
     // Unique race — someone else activated it first. That's the idempotency working.

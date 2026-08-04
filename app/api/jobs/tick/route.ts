@@ -404,6 +404,17 @@ async function handle(req: NextRequest) {
     console.error("[tick] reading retry failed", e instanceof Error ? e.message : "");
   }
 
+  // 6e. Agreements (C20): the gentle reminder cadence + a seal sweep,
+  //     cross-tenant in lib/agreements/sweep (allowlisted raw client).
+  try {
+    const { agreementsTick } = await import("@/lib/agreements/sweep");
+    const r = await agreementsTick(now);
+    if (r.reminded > 0 || r.sealed > 0) report.agreements = `reminded=${r.reminded} sealed=${r.sealed}`;
+  } catch (e) {
+    report.agreements = "error";
+    console.error("[tick] agreements sweep failed", e instanceof Error ? e.message : "");
+  }
+
   // 7. Null-tenant invariant audit (platform): zero rows may carry a null
   //    tenantId after migration 36. Any drift is loud — it means a write
   //    slipped past stamping (the documented nested-writes gap).

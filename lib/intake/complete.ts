@@ -122,6 +122,17 @@ export async function runCompletionFanout(flowId: string, clientId: string): Pro
     console.error(`[intake] chart computation failed client=${clientId}: ${e instanceof Error ? e.message : "error"}`);
   }
 
+  // (2d) C20 §2 — the recording-consent trigger: when this intake granted
+  // recording consent and a template is toggled for it, send it now.
+  try {
+    if (a["consent.recording"] === true || a["consent.recording"] === "true") {
+      const { fireAgreementTrigger } = await import("@/lib/agreements/triggers");
+      await fireAgreementTrigger(tenant.id, "sendOnRecordingConsent", clientId);
+    }
+  } catch (e) {
+    console.error(`[intake] agreement trigger failed client=${clientId}: ${e instanceof Error ? e.message : "error"}`);
+  }
+
   // (2c) PLATFORM Phase 3 — provider-computed modules (western-natal,
   // numerology, …): the orchestrator caches by inputsHash, parks failures
   // as PENDING_RETRY for the tick, and never blocks completion.

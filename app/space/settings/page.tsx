@@ -51,7 +51,7 @@ export default async function SettingsPage({
   const user = await requireClient();
   const t = await getTranslations("settings");
 
-  const [profile, pendingDeletion, recordingConsent, squareLink, assistVisits] = await Promise.all([
+  const [profile, pendingDeletion, recordingConsent, squareLink, assistVisits, agreementCount] = await Promise.all([
     prisma.clientProfile.findUnique({ where: { userId: user.id } }),
     prisma.deletionRequest.findFirst({
       where: { userId: user.id, status: { in: ["OPEN", "ACKNOWLEDGED"] } },
@@ -65,6 +65,9 @@ export default async function SettingsPage({
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
+    // C20 §4 — the agreements shelf appears only once one exists (clients
+    // with none, María included, see this page byte-identically).
+    prisma.agreement.count({ where: { clientId: user.id } }),
   ]);
   const assisted = Boolean(user.assistedBy);
   const es = user.locale === "es";
@@ -258,6 +261,25 @@ export default async function SettingsPage({
           <ThemeToggle />
         </div>
       </Section>
+
+      {/* C20 §4 — "Your agreements": only when at least one exists. */}
+      {agreementCount > 0 && (
+        <Section title={es ? "Tus acuerdos" : "Your agreements"}>
+          <div className="flex items-center justify-between py-4">
+            <p className="max-w-prose text-sm leading-relaxed text-ink">
+              {es
+                ? "Todo lo que has firmado — tuyo para leer y descargar, siempre."
+                : "Everything you've signed — yours to read and download, always."}
+            </p>
+            <Link
+              href="/space/agreements"
+              className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+            >
+              {es ? "Ver" : "View"}
+            </Link>
+          </div>
+        </Section>
+      )}
 
       {/* C19 §0 — session recording: its own consent, in context, revocable. */}
       {/* ONBOARDING §4.6 — add a birth time later (only when it's unknown). */}

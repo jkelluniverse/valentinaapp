@@ -283,6 +283,11 @@ export default async function PractitionerSettingsPage({
           />
         )}
         <LinkRow
+          href="/practitioner/agreements"
+          label="Agreements"
+          hint="Send, sign, and keep the sealed record — for both of you."
+        />
+        <LinkRow
           href="/practitioner/settings/intake-preview"
           label="Preview intake"
           hint="See the intake exactly as your client will — nothing is saved."
