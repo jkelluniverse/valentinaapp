@@ -10,11 +10,13 @@ import { BottomTabBar, type Tab, type MoreLink } from "@/components/mobile/Botto
 // tree is immutable while any tenant lives on it.
 
 export function PractitionerShell({
+  wordmark = "veritas",
   user,
   unread,
   signOutAction,
   children,
 }: {
+  wordmark?: string; // tenant branding.portalTitle (PLATFORM §7 step 4)
   user: { name: string | null; email: string };
   unread: number;
   signOutAction: () => Promise<void>;
@@ -59,7 +61,7 @@ export function PractitionerShell({
         {/* Mobile bar: wordmark + avatar only. */}
         <div className="flex h-12 items-center px-4 md:hidden">
           <Link href="/practitioner" className="font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
+            {wordmark} <span className="text-mocha">✧</span>
           </Link>
           <span className="ml-auto">
             <AvatarSheet initial={initial} name={user.name} email={user.email} signOutAction={signOutAction} />
@@ -69,7 +71,7 @@ export function PractitionerShell({
         {/* Desktop bar: wordmark + quiet top-row links. */}
         <div className="mx-auto hidden max-w-[960px] items-center gap-5 px-6 py-4 md:flex">
           <Link href="/practitioner" className="font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
+            {wordmark} <span className="text-mocha">✧</span>
           </Link>
           <nav className="flex items-center gap-4 text-[13px] text-whisper">
             {NAV.map((n) => (

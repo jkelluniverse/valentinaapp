@@ -33,6 +33,18 @@ export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.NOTIFY_FROM_EMAIL);
 }
 
+// PLATFORM §7 — DEMO tenants are excluded from ANY real notification send:
+// only fixture addresses ever receive their mail, in every environment.
+export async function demoTenantSuppressed(to: string): Promise<boolean> {
+  try {
+    const { getTenant } = await import("@/lib/tenancy");
+    const tenant = await getTenant();
+    return tenant.status === "DEMO" && !to.toLowerCase().endsWith("@fixture.test");
+  } catch {
+    return false; // outside a request (CLI/tick) there is no demo context
+  }
+}
+
 // EMAIL-SPEC §1 — staging must never email a real client. On any non-production
 // Railway environment, sends are allowed only to fixture addresses and the
 // comma-separated EMAIL_TEAM_ALLOWLIST.
@@ -55,6 +67,10 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; skipped?
   }
   if (!allowedInThisEnvironment(args.to)) {
     console.info("[notify] non-production environment — send suppressed (allowlist)");
+    return { ok: false, skipped: true };
+  }
+  if (await demoTenantSuppressed(args.to)) {
+    console.info("[notify] DEMO tenant — real send suppressed");
     return { ok: false, skipped: true };
   }
   try {

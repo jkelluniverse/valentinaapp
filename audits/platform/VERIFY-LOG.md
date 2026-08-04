@@ -1,3 +1,33 @@
+# PLATFORM Phase 5 verify — 2026-08-04
+
+Provisioning + demo tenants (`phase5-verify.ts`).
+
+- ✓ CLI (`scripts/provision-tenant.ts --config provisioning/demo-coach.json`)
+  provisions a complete tenant with ZERO code changes: DEMO status, layout
+  + skin, modules with tenant labels, comped billing (no Stripe objects),
+  practitioner with a shown-once temp password + forced change (AMD-06),
+  fictional fixture cast
+- ✓ all three checked-in demo configs provision (demo-journey, demo-mystic,
+  demo-coach); slug collision refused
+- ✓ each demo serves its subdomain in its own skin; the signed-in portal
+  wears the tenant's OWN wordmark — §7 branding gap found and closed this
+  run: the shells' wordmark was hardcoded "veritas", now a prop fed from
+  branding.portalTitle (Valentina's IS "veritas" → baseline byte-identical;
+  the auth screen deliberately stays platform-branded)
+- ✓ DEMO banner on every demo surface; ACTIVE tenants never see it; DEMO
+  tenants' email suppressed to non-fixture addresses in the notify layer
+- ✓ /admin/tenants/new renders for the PLATFORM_ADMIN_EMAILS allowlist
+  (no ADMIN role exists — the env list is the explicit substitute), 404 for
+  everyone else; the form builds the same config object the CLI takes
+- ✓ THE SEPT-23 MOVE: flipping demo-mystic's row to coach settings
+  (dashboard-v1 + clinical-light + new title, modules off) transforms the
+  live portal across the 60s config-cache TTL — skin, wordmark, and chrome
+
+ALL CHECKS PASS — 17/17 · gates: baseline 16/16, smoke, write smoke,
+stamp audit, isolation verify all green.
+
+---
+
 # PLATFORM Phase 4 verify — 2026-08-04
 
 Session + manual tools (`phase4-verify.ts`).

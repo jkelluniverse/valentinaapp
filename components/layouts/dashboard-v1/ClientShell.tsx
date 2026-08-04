@@ -11,6 +11,7 @@ import type { ClientShellLabels } from "@/components/layouts/journey-v1/ClientSh
 // tenant's language. Same prop contract as journey-v1.
 
 export function ClientShell({
+  wordmark = "veritas",
   user,
   assist,
   unread,
@@ -21,6 +22,7 @@ export function ClientShell({
   exitAssistAction,
   children,
 }: {
+  wordmark?: string; // tenant branding.portalTitle (PLATFORM §7 step 4)
   user: { name: string | null; email: string };
   assist: { expiresAt: Date } | null;
   unread: number;
@@ -69,7 +71,7 @@ export function ClientShell({
       <header className="sticky top-0 z-30 border-b border-line bg-surface/60 pt-safe backdrop-blur md:hidden">
         <div className="flex h-12 items-center px-4">
           <Link href="/space" className="font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
+            {wordmark} <span className="text-mocha">✧</span>
           </Link>
           <span className="ml-auto">
             <AvatarSheet initial={initial} name={user.name} email={user.email} signOutAction={signOutAction} />
@@ -81,7 +83,7 @@ export function ClientShell({
         {/* Desktop sidebar. */}
         <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-line bg-surface/60 px-4 py-5 md:flex">
           <Link href="/space" className="px-2 font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
+            {wordmark} <span className="text-mocha">✧</span>
           </Link>
           <nav className="mt-6 flex flex-1 flex-col gap-0.5 overflow-y-auto text-sm">
             {side.map((n) => (

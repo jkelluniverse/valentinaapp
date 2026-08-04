@@ -45,6 +45,8 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "audits/billing/b4-verify.ts": "B4 hardening harness: CLI-only, pruning + money invariants + client copy audit",
   "audits/platform/phase3-verify.ts": "Phase 3 acceptance harness: CLI-only, drives computed readings against a mock provider",
   "audits/platform/phase4-verify.ts": "Phase 4 acceptance harness: CLI-only, drives session/manual tools against a mock provider",
+  "audits/platform/phase5-verify.ts": "Phase 5 acceptance harness: CLI-only, provisions + flips demo tenants end-to-end",
+  "scripts/provision-tenant.ts": "CLI provisioning wrapper ($disconnect only; the service stamps tenantId explicitly)",
   "audits/billing/b1-verify.ts": "B1 acceptance harness: CLI-only, inspects raw rows to PROVE encryption at rest",
   "audits/pipeline/p12-verify.ts": "pipeline acceptance harness: CLI-only, inspects raw rows across the flow",
   "audits/onboarding/stage1-verify.ts": "intake engine acceptance harness: CLI-only, self-cleaning",

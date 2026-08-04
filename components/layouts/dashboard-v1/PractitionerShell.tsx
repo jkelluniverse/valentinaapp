@@ -10,11 +10,13 @@ import { BottomTabBar, type Tab, type MoreLink } from "@/components/mobile/Botto
 // behave — and only skin tokens for color, so any skin composes.
 
 export function PractitionerShell({
+  wordmark = "veritas",
   user,
   unread,
   signOutAction,
   children,
 }: {
+  wordmark?: string; // tenant branding.portalTitle (PLATFORM §7 step 4)
   user: { name: string | null; email: string };
   unread: number;
   signOutAction: () => Promise<void>;
@@ -65,7 +67,7 @@ export function PractitionerShell({
       <header className="sticky top-0 z-30 border-b border-line bg-canvas/85 pt-safe backdrop-blur md:hidden">
         <div className="flex h-12 items-center px-4">
           <Link href="/practitioner" className="font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
+            {wordmark} <span className="text-mocha">✧</span>
           </Link>
           <span className="ml-auto">
             <AvatarSheet initial={initial} name={user.name} email={user.email} signOutAction={signOutAction} />
@@ -77,7 +79,7 @@ export function PractitionerShell({
         {/* Desktop sidebar — the whole practice, one click away. */}
         <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-line bg-surface/60 px-4 py-5 md:flex">
           <Link href="/practitioner" className="px-2 font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
+            {wordmark} <span className="text-mocha">✧</span>
           </Link>
           <nav className="mt-6 flex flex-1 flex-col gap-0.5 overflow-y-auto text-sm">
             {NAV.map((n) => (

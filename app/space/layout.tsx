@@ -123,8 +123,16 @@ export default async function SpaceLayout({ children }: { children: React.ReactN
       }}
       signOutAction={doSignOut}
       exitAssistAction={doExitAssist}
+      wordmark={(tenant.branding ?? {}).portalTitle || "veritas"}
     >
+      <DemoTenantBanner />
       {children}
     </ClientShell>
   );
+}
+
+// PLATFORM §7 — DEMO banner (null for ACTIVE tenants; María byte-identical).
+async function DemoTenantBanner() {
+  const { DemoBanner } = await import("@/components/DemoBanner");
+  return <DemoBanner />;
 }

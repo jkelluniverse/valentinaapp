@@ -170,13 +170,16 @@ export default async function IntakePage({ searchParams }: { searchParams: { don
 }
 
 // The intake takeover frame — deliberately minimal (no nav): the client has
-// one job here. Wordmark only, centered, mobile-first.
-function Shell({ children }: { children: React.ReactNode }) {
+// one job here. Wordmark only (tenant's portal title — §7 branding),
+// centered, mobile-first.
+async function Shell({ children }: { children: React.ReactNode }) {
+  const tenant = await getTenant();
+  const wordmark = (tenant.branding ?? {}).portalTitle || "veritas";
   return (
     <div className="min-h-dvh bg-canvas">
       <div className="mx-auto flex max-w-[560px] flex-col px-5 pt-safe">
         <div className="py-5 font-headline text-lg font-semibold text-wine">
-          veritas <span className="text-mocha">✧</span>
+          {wordmark} <span className="text-mocha">✧</span>
         </div>
         {children}
       </div>

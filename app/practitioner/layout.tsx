@@ -30,8 +30,15 @@ export default async function PractitionerLayout({ children }: { children: React
   const { PractitionerShell } = getLayout(tenant.layoutKey);
   const { PaymentsReconnectBanner } = await import("@/components/PaymentsReconnectBanner");
   const { BillingStatusBanner } = await import("@/components/BillingStatusBanner");
+  const { DemoBanner } = await import("@/components/DemoBanner");
   return (
-    <PractitionerShell user={{ name: user.name, email: user.email }} unread={unread} signOutAction={doSignOut}>
+    <PractitionerShell
+      user={{ name: user.name, email: user.email }}
+      unread={unread}
+      signOutAction={doSignOut}
+      wordmark={(tenant.branding ?? {}).portalTitle || "veritas"}
+    >
+      <DemoBanner />
       <PaymentsReconnectBanner />
       <BillingStatusBanner />
       {children}

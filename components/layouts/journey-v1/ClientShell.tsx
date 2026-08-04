@@ -23,6 +23,7 @@ export type ClientShellLabels = {
 };
 
 export function ClientShell({
+  wordmark = "veritas",
   user,
   assist,
   unread,
@@ -33,6 +34,7 @@ export function ClientShell({
   exitAssistAction,
   children,
 }: {
+  wordmark?: string; // tenant branding.portalTitle (PLATFORM §7 step 4)
   user: { name: string | null; email: string };
   assist: { expiresAt: Date } | null;
   unread: number;
@@ -66,7 +68,7 @@ export function ClientShell({
         {/* Mobile bar: wordmark + avatar only. */}
         <div className="flex h-12 items-center px-4 md:hidden">
           <Link href="/space" className="font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
+            {wordmark} <span className="text-mocha">✧</span>
           </Link>
           <span className="ml-auto">
             <AvatarSheet initial={initial} name={user.name} email={user.email} signOutAction={signOutAction} />
@@ -76,7 +78,7 @@ export function ClientShell({
         {/* Desktop bar: wordmark + quiet links. */}
         <div className="mx-auto hidden max-w-[720px] items-center gap-4 px-6 py-4 md:flex">
           <Link href="/space" className="font-headline text-lg font-semibold text-wine">
-            veritas <span className="text-mocha">✧</span>
+            {wordmark} <span className="text-mocha">✧</span>
           </Link>
           <nav className="ml-auto flex items-center gap-4 text-[13px] text-whisper">
             <Link href="/space/first-map" className="underline-offset-4 hover:text-wine hover:underline">
