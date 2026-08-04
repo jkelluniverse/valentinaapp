@@ -136,9 +136,12 @@ export function webhookConfigured(): boolean {
 }
 
 function notificationUrl(): string {
+  // The signature covers the SUBSCRIBED URL byte-for-byte, so this must be
+  // config, never request-derived: the explicit var first, else the public
+  // app origin env the rest of the app uses.
   return (
     process.env.SQUARE_WEBHOOK_NOTIFICATION_URL ??
-    `${process.env.APP_BASE_URL ?? ""}/api/webhooks/square`
+    `${(process.env.PUBLIC_APP_URL ?? "").replace(/\/$/, "")}/api/webhooks/square`
   );
 }
 

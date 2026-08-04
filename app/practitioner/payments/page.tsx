@@ -101,7 +101,7 @@ export default async function PaymentsLedgerPage({
             {fmtMoney(created.amountCents, created.currency)}.
           </p>
           <p className="break-all rounded-md bg-white/70 px-3 py-2 font-mono text-[13px] text-ink">
-            {`${process.env.APP_BASE_URL ?? ""}/space/pay-link/${created.id}`}
+            {`${(await import("@/lib/base-url")).getBaseUrlSafe()}/space/pay-link/${created.id}`}
           </p>
           <p className="text-[13px] text-slate">
             Share that link with them — it opens in their space (after sign-in) and carries them

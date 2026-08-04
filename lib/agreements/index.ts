@@ -94,16 +94,21 @@ export async function agEvent(
     .catch(() => undefined);
 }
 
-// §2 — create + send in one motion (manual path) or separately (triggers
-// prepare, email sends). Returns the RAW link token exactly once.
-export async function createAndSendAgreement(args: {
+type AgreementContentArgs = {
   tenantId: string;
   templateId: string;
   clientId?: string;
   leadId?: string;
   merge?: Record<string, string>;
-  actor?: string;
-}): Promise<{ ok: true; agreementId: string; rawToken: string } | { ok: false; error: string }> {
+};
+
+// The single resolver both the PREVIEW and the SEND use — so what the
+// practitioner previews is byte-for-byte what goes out (§2 "preview
+// merged → Send"). Writes nothing.
+async function resolveAgreementContent(args: AgreementContentArgs): Promise<
+  | { ok: true; sibling: { id: string; slug: string; version: number; locale: string; title: string; body: string; requiresCountersign: boolean }; vars: Record<string, string>; recipientEmail: string | null }
+  | { ok: false; error: string }
+> {
   if (!args.clientId === !args.leadId) return { ok: false, error: "exactly one of client/lead" };
   const template = await prisma.agreementTemplate.findFirst({
     where: { id: args.templateId, status: "ACTIVE" },
@@ -142,6 +147,31 @@ export async function createAndSendAgreement(args: {
     term: args.merge?.term ?? "—",
     ...(args.merge ?? {}),
   };
+  return { ok: true, sibling, vars, recipientEmail: client?.email ?? lead?.email ?? null };
+}
+
+// §2 — the merged preview, exactly as it would send. Persistence-free.
+export async function previewAgreement(
+  args: AgreementContentArgs
+): Promise<{ ok: true; title: string; body: string; locale: string } | { ok: false; error: string }> {
+  const resolved = await resolveAgreementContent(args);
+  if (!resolved.ok) return resolved;
+  return {
+    ok: true,
+    title: resolved.sibling.title,
+    body: mergeBody(resolved.sibling.body, resolved.vars),
+    locale: resolved.sibling.locale,
+  };
+}
+
+// §2 — create + send in one motion (manual path after preview, and the
+// automatic triggers). Returns the RAW link token exactly once.
+export async function createAndSendAgreement(args: AgreementContentArgs & { actor?: string }): Promise<
+  { ok: true; agreementId: string; rawToken: string } | { ok: false; error: string }
+> {
+  const resolved = await resolveAgreementContent(args);
+  if (!resolved.ok) return resolved;
+  const { sibling, vars, recipientEmail } = resolved;
 
   const { raw, hash } = generateInviteToken();
   const agreement = await prisma.agreement.create({
@@ -164,19 +194,29 @@ export async function createAndSendAgreement(args: {
   await agEvent(args.tenantId, agreement.id, "created", args.actor ?? "practitioner", { templateSlug: sibling.slug, version: sibling.version });
   await agEvent(args.tenantId, agreement.id, "sent", args.actor ?? "practitioner");
 
-  // Envelope email (best-effort; portal task exists regardless).
-  const to = client?.email ?? lead?.email;
-  if (to) {
+  // Envelope email (best-effort; portal task exists regardless). The link
+  // is ABSOLUTE via the house base-url helper (env → request host →
+  // production domain — an agreement email must never carry a dead
+  // button), and the raw URL rides only the plain-text part: the button
+  // carries it in the branded layout.
+  if (recipientEmail) {
     const { sendEmail } = await import("@/lib/notify");
-    const link = `${process.env.APP_BASE_URL ?? ""}/agree/${raw}`;
+    const { getBaseUrlSafe } = await import("@/lib/base-url");
+    const link = `${getBaseUrlSafe()}/agree/${raw}`;
+    const es = sibling.locale === "es";
+    const sentence = es
+      ? `${vars.practitioner_name} te envió "${sibling.title}" para leer y firmar.`
+      : `${vars.practitioner_name} sent you "${sibling.title}" to read and sign.`;
     await sendEmail({
-      to,
-      subject: sibling.locale === "es" ? "Un documento para leer y firmar" : "One document to read and sign",
-      text:
-        sibling.locale === "es"
-          ? `${vars.practitioner_name} te envió "${sibling.title}" para leer y firmar.\n\n${link}`
-          : `${vars.practitioner_name} sent you "${sibling.title}" to read and sign.\n\n${link}`,
-      envelope: { locale: sibling.locale === "es" ? "es" : "en", heading: sibling.title, button: { label: sibling.locale === "es" ? "Leer y firmar" : "Read & sign", url: link } },
+      to: recipientEmail,
+      subject: es ? "Un documento para leer y firmar" : "One document to read and sign",
+      text: `${sentence}\n\n${link}`,
+      envelope: {
+        locale: es ? "es" : "en",
+        heading: sibling.title,
+        paragraphs: [sentence],
+        button: { label: es ? "Leer y firmar" : "Read & sign", url: link },
+      },
     }).catch(() => undefined);
   }
   return { ok: true, agreementId: agreement.id, rawToken: raw };

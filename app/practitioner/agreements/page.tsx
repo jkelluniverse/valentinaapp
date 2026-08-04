@@ -92,7 +92,7 @@ export default async function AgreementsDesk({
         </form>
       ) : (
         <>
-          <form action={sendAgreementAction} className="flex flex-wrap items-end gap-3 rounded-card border border-line bg-surface p-5 shadow-card">
+          <form method="get" action="/practitioner/agreements/preview" className="flex flex-wrap items-end gap-3 rounded-card border border-line bg-surface p-5 shadow-card">
             <p className="w-full text-[13px] font-semibold uppercase tracking-wide text-mocha">Send an agreement</p>
             <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
               Template
@@ -128,9 +128,9 @@ export default async function AgreementsDesk({
               Term
               <input name="term" className={`${fieldCls} w-28`} placeholder="12 weeks" />
             </label>
-            <PendingButton className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark">
-              Preview merged &amp; send
-            </PendingButton>
+            <button className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark">
+              Preview merged →
+            </button>
           </form>
 
           <div className="flex flex-col gap-2">

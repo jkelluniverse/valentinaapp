@@ -91,6 +91,17 @@ async function main() {
     const scopeEn = await prisma.agreementTemplate.findFirst({ where: { tenantId: TENANT, slug: "scope-of-work", locale: "en" } });
     check("scope template requires countersign (dual-signature)", scopeEn?.requiresCountersign === true);
 
+    // 1b — the preview step: renders the merged text, writes NOTHING, and
+    // is byte-identical to what send will snapshot (same resolver).
+    const practCookie = await signIn("valentina@fixture.test");
+    const previewQs = `templateId=${scopeEn!.id}&clientId=${maria.id}&package_name=Deep%20Season&price=%241%2C200.00&term=12%20weeks`;
+    const rowsBefore = await prisma.agreement.count();
+    const previewPage = await fetch(`${BASE}/practitioner/agreements/preview?${previewQs}`, { headers: { Cookie: practCookie } });
+    const previewHtml = await previewPage.text();
+    check("preview renders the merged document", previewPage.status === 200 && previewHtml.includes("Deep Season") && previewHtml.includes("Nothing has been sent yet"));
+    check("preview writes zero rows", (await prisma.agreement.count()) === rowsBefore);
+    const previewOut = await AG.previewAgreement({ tenantId: TENANT, templateId: scopeEn!.id, clientId: maria.id, merge: { package_name: "Deep Season", price: "$1,200.00", term: "12 weeks" } });
+
     // 2 — María: merged Scope, sent + gated before booking
     await prisma.agreementTemplate.update({ where: { id: scopeEn!.id }, data: { requireBeforeBooking: true } });
     const sent = await AG.createAndSendAgreement({
@@ -103,6 +114,7 @@ async function main() {
     const agreementId = sent.ok ? sent.agreementId : "";
     const a1 = await prisma.agreement.findFirst({ where: { id: agreementId } });
     check("snapshot pins merged text", Boolean(a1?.bodySnapshot.includes("Deep Season") && a1.bodySnapshot.includes("$1,200.00") && !a1.bodySnapshot.includes("{{")));
+    check("preview text === sent snapshot (one resolver)", previewOut.ok === true && previewOut.body === a1?.bodySnapshot);
 
     const mariaCookie = await signIn("maria@fixture.test");
     const schedule = await fetch(`${BASE}/space/schedule`, { headers: { Cookie: mariaCookie } });

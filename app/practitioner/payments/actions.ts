@@ -30,13 +30,14 @@ export async function createPaymentLinkAction(formData: FormData) {
   if (!client) redirect("/practitioner/payments?error=client");
   if (!description) redirect("/practitioner/payments?error=description");
 
+  const { getBaseUrlSafe } = await import("@/lib/base-url");
   const result = await createCheckoutLink({
     tenantId: tenant.id,
     clientId,
     purpose: ["session", "package", "other"].includes(purpose) ? purpose : "other",
     amountCents,
     description,
-    redirectUrl: `${process.env.APP_BASE_URL ?? ""}/space?paid=1`,
+    redirectUrl: `${getBaseUrlSafe()}/space?paid=1`,
   }).catch(() => null);
 
   if (!result) redirect("/practitioner/payments?error=provider");

@@ -42,9 +42,10 @@ export default async function BillingSettingsPage({
     if (!v.stripeCustomerId || !stripeConfigured()) {
       redirect("/practitioner/settings/billing?billing=noportal");
     }
+    const { getBaseUrlSafe } = await import("@/lib/base-url");
     const url = await createPortalSession(
       v.stripeCustomerId!,
-      `${process.env.APP_BASE_URL ?? ""}/practitioner/settings/billing`
+      `${getBaseUrlSafe()}/practitioner/settings/billing`
     ).catch(() => null);
     if (!url) redirect("/practitioner/settings/billing?billing=portalfail");
     redirect(url!);
