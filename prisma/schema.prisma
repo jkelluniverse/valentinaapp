@@ -1478,6 +1478,29 @@ model WebhookEvent {
   processedAt DateTime?
 }
 
+// ---------- BILLING Layer 2 (Phase B3) — tenant subscriptions ----------
+// Root-tenant table like ConnectedPaymentAccount. Valentina/DEMO tenants are
+// FOUNDING_COMP: pinned ACTIVE, no Stripe objects ever (stripeCustomerId
+// stays null); everyone else maps 1:1 to a Stripe Customer + Subscription.
+
+enum BillingStatus {
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELED
+}
+
+model TenantBilling {
+  id                   String        @id @default(cuid())
+  tenantId             String?       @unique // nullable per platform scope rule
+  stripeCustomerId     String?       @unique // null for FOUNDING_COMP / DEMO
+  stripeSubscriptionId String?
+  plan                 String // "CARE_99" | "CARE_125" | "CARE_149" | "FOUNDING_COMP"
+  status               BillingStatus
+  graceUntil           DateTime? // set on PAST_DUE (14 days, Rule 0.7)
+  currentPeriodEnd     DateTime?
+}
+
 // ---------- SESSION-PIPELINE Phase 1 — the capture job ----------
 // One row per recorded/uploaded session moving through the pipeline. The
 // transcript itself lands in SessionTranscript at APPROVAL (C19 privacy:

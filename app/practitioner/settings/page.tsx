@@ -258,6 +258,11 @@ export default async function PractitionerSettingsPage({
           hint="Your payment connection — money goes directly to you."
         />
         <LinkRow
+          href="/practitioner/settings/billing"
+          label="Plan &amp; billing"
+          hint="Your platform plan — card, invoices, and receipts."
+        />
+        <LinkRow
           href="/practitioner/settings/intake-preview"
           label="Preview intake"
           hint="See the intake exactly as your client will — nothing is saved."

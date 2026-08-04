@@ -65,6 +65,16 @@ export async function createInvite(input: {
   if (!email || !email.includes("@")) return { ok: false, error: "Enter a valid email address." };
   if (!name) return { ok: false, error: "Enter a name." };
 
+  // BILLING §4.4 — SUSPENDED/CANCELED soft gate: no NEW client invites.
+  // Reading, exporting, and every existing client stay untouched.
+  {
+    const { getTenant } = await import("@/lib/tenancy");
+    const { newActivityAllowed, BILLING_PAUSED_MESSAGE } = await import("@/lib/billing/state");
+    if (!(await newActivityAllowed((await getTenant()).id))) {
+      return { ok: false, error: BILLING_PAUSED_MESSAGE };
+    }
+  }
+
   // Don't invite someone who already has an account.
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) return { ok: false, error: "That email already has an account." };

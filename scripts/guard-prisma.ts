@@ -40,6 +40,8 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "lib/payments/refresh.ts": "payment-token health job: walks EVERY tenant's connected account from the tick",
   "lib/payments/webhook.ts": "webhook ingress: tenant comes from the event's merchant_id, never the request host — cross-tenant by nature",
   "audits/billing/b2-verify.ts": "B2 acceptance harness: CLI-only, drives checkout + webhook against a mock Square",
+  "lib/billing/lifecycle.ts": "Stripe webhook ingress + grace sweep: tenant comes from the event's customer id, never the request host — cross-tenant by nature",
+  "audits/billing/b3-verify.ts": "B3 acceptance harness: CLI-only, drives the subscription lifecycle against a mock Stripe",
   "audits/billing/b1-verify.ts": "B1 acceptance harness: CLI-only, inspects raw rows to PROVE encryption at rest",
   "audits/pipeline/p12-verify.ts": "pipeline acceptance harness: CLI-only, inspects raw rows across the flow",
   "audits/onboarding/stage1-verify.ts": "intake engine acceptance harness: CLI-only, self-cleaning",

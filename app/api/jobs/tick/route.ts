@@ -380,6 +380,18 @@ async function handle(req: NextRequest) {
     console.error("[tick] payment token refresh failed", e instanceof Error ? e.message : "");
   }
 
+  // 6c. Billing grace sweep (CLAUDE-BILLING §4.4): PAST_DUE past its
+  //     14-day grace window becomes SUSPENDED (soft gates only — reading,
+  //     exporting, and client logins stay untouched).
+  try {
+    const { sweepBillingGrace } = await import("@/lib/billing/lifecycle");
+    const s = await sweepBillingGrace();
+    report.billingSweep = `suspended=${s.suspended}`;
+  } catch (e) {
+    report.billingSweep = "error";
+    console.error("[tick] billing grace sweep failed", e instanceof Error ? e.message : "");
+  }
+
   // 7. Null-tenant invariant audit (platform): zero rows may carry a null
   //    tenantId after migration 36. Any drift is loud — it means a write
   //    slipped past stamping (the documented nested-writes gap).

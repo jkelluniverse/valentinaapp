@@ -204,6 +204,7 @@ async function insertBFixtures() {
   await p.intakeAnswer.create({ data: { flowId: flow, fieldKey: "identity.fullName", value: j("probe"), questionTextSnapshot: "Full name" } });
   await p.clientHintState.create({ data: { ...T, clientId: bUser, hintKey: "bfx_hint" } });
   await p.activityEvent.create({ data: { ...T, clientId: bUser, actor: "system", eventKey: "probe" } });
+  await p.tenantBilling.create({ data: { ...T, plan: "CARE_99", status: "ACTIVE", stripeCustomerId: "bfx_cus" } });
 
   return { bUser, pkg };
 }

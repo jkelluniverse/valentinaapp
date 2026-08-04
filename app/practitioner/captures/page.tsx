@@ -70,6 +70,7 @@ export default async function CapturesPage({ searchParams }: { searchParams: { c
   const banner: Record<string, string> = {
     started: "Upload received — transcription is underway. The draft will appear in your inbox.",
     consent: "No recording consent on file for that client — the pipeline won't run without it.",
+    billing: "New session processing is paused over a billing issue — see Settings → Plan & billing. Everything already here stays readable.",
     format: "That file type isn't a supported audio format.",
     toobig: "That file is over the 500 MB limit.",
     provider: "The transcription service didn't accept the job — the audio is safe here; try again.",

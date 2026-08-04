@@ -55,6 +55,7 @@ const PRACTITIONER_PAGES = [
   "/practitioner/settings",
   "/practitioner/settings/payments",
   "/practitioner/payments",
+  "/practitioner/settings/billing",
   "/practitioner/settings/intake-preview",
   "/practitioner/settings/intake-preview?step=module:values-spiral",
   "/practitioner/settings/intake-preview?step=review",

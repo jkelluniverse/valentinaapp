@@ -42,6 +42,13 @@ export async function startUploadCapture(args: {
   if (!(await hasRecordingConsent(clientId))) return { ok: false, error: "consent" };
 
   const tenant = await getTenant();
+
+  // BILLING §4.4 — SUSPENDED/CANCELED soft gate: no NEW session processing.
+  // Existing drafts, review, and everything already captured stay readable.
+  {
+    const { newActivityAllowed } = await import("@/lib/billing/state");
+    if (!(await newActivityAllowed(tenant.id))) return { ok: false, error: "billing" };
+  }
   const key = newAudioKey(tenant.id, ACCEPTED.get(file.type)!);
   putObject(key, Buffer.from(await file.arrayBuffer()));
 

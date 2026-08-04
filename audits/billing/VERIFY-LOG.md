@@ -1,3 +1,34 @@
+# BILLING Phase B3 (Layer 2 subscriptions) verify — 2026-08-04
+
+Harness: `b3-verify.ts` against the built app + a local mock of Stripe
+(shapes verified in the live docs 2026-08-04: form-encoded /v1/customers,
+/v1/subscriptions, /v1/billing_portal/sessions; `Stripe-Signature:
+t=,v1=` = HMAC-SHA256(endpoint secret, `t.body`), 5-min tolerance).
+
+- ✓ FOUNDING_COMP/DEMO provisioning: comped row, ZERO Stripe objects
+- ✓ CARE_99 provisioning: Customer + Subscription, ACTIVE with period end
+- ✓ billing settings page shows plan/status; Customer Portal round-trip
+  (session url + return_url) works
+- ✓ invoice.payment_failed → PAST_DUE + 14-day grace; dashboard banner
+  "Payment issue"; the practice fully works
+- ✓ tick grace sweep: expired grace → SUSPENDED
+- ✓ SUSPENDED soft gates: newActivityAllowed false (createInvite +
+  startUploadCapture both guard on it); reading intact; banner says data
+  stays safe; client login unaffected with ZERO billing language anywhere
+- ✓ invoice.paid → ACTIVE, grace cleared, activity resumes
+- ✓ replay idempotent (WebhookEvent lock); tampered signature → 403
+- ✓ customer.subscription.deleted → CANCELED (same soft-gate posture)
+- ✓ no-row tenant (Valentina) reads "Founding partner — no platform
+  charges", pinned ACTIVE, never touches Stripe
+
+Gates on the same run: baseline 16/16 byte-identical, GET smoke
+(+ /practitioner/settings/billing), write smoke, tenant-stamp audit,
+platform isolation verify (B-fixture extended with tenantBilling).
+
+ALL CHECKS PASS — 24/24
+
+---
+
 # BILLING Phase B2 (Layer 1 payments) verify — 2026-08-04
 
 Harness: `b2-verify.ts` against the built app + a local mock of Square
