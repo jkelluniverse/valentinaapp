@@ -1,3 +1,26 @@
+# PLATFORM Phase 4 verify — 2026-08-04
+
+Session + manual tools (`phase4-verify.ts`).
+
+- ✓ tarot-draw: 78-card public-domain deck, crypto-random Fisher–Yates,
+  distinct positioned cards; every draw stored as a DATED reading (never
+  cache-deduped — events, not derivations); optional session attach
+- ✓ lookup-console: GET-driven research console renders provider results
+  transiently; save-to-client persists one Reading deduped by inputsHash
+  (identical saved lookup = one provider call, then cache)
+- ✓ gating: tools hub 404s and the settings link is absent for tenants
+  without tool modules — Valentina's chrome untouched (found + fixed in
+  the same run: TenantModule is platform config OUTSIDE the scoped-model
+  list, so the settings query needed an explicit tenant filter; the
+  harness caught the leak before it shipped)
+- ✓ neutral copy audit (Rule 0.4/0.5): all 8 registry keys and default
+  labels trademark-free
+
+ALL CHECKS PASS — 13/13 · gates: baseline 16/16, smoke, write smoke,
+stamp audit, isolation verify all green.
+
+---
+
 # PLATFORM Phase 3 verify — 2026-08-04
 
 ReadingProvider + computed modules (`phase3-verify.ts`, mock provider —

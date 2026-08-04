@@ -76,14 +76,27 @@ export default async function PractitionerSettingsPage({
   const practitioner = await getPractitioner();
   if (!practitioner) return null;
 
-  const [config, deletionRequests] = await Promise.all([
+  const [config, deletionRequests, toolRows] = await Promise.all([
     getOrCreateConfig(practitioner.id),
     prisma.deletionRequest.findMany({
       where: { status: { in: ["OPEN", "ACKNOWLEDGED"] } },
       include: { user: { select: { name: true, email: true } } },
       orderBy: { createdAt: "asc" },
     }),
+    // Phase 4 — tools link only for tenants with tool modules enabled
+    // (Valentina has none: her settings render byte-identically).
+    // TenantModule is platform config, NOT in the scoped-model list — the
+    // tenant filter must be explicit here.
+    (async () => {
+      const { getTenant } = await import("@/lib/tenancy");
+      const t = await getTenant();
+      return prisma.tenantModule.findMany({
+        where: { tenantId: t.id, enabled: true, moduleKey: { in: ["tarot-draw", "lookup-console"] } },
+        select: { id: true },
+      });
+    })(),
   ]);
+  const hasTools = toolRows.length > 0;
 
   const fee = (config.lateFeeCents / 100).toLocaleString("en-US", {
     style: "currency",
@@ -262,6 +275,13 @@ export default async function PractitionerSettingsPage({
           label="Plan &amp; billing"
           hint="Your platform plan — card, invoices, and receipts."
         />
+        {hasTools && (
+          <LinkRow
+            href="/practitioner/tools"
+            label="Session &amp; research tools"
+            hint="Draw tools and lookups for work in the moment."
+          />
+        )}
         <LinkRow
           href="/practitioner/settings/intake-preview"
           label="Preview intake"

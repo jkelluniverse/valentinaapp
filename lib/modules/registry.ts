@@ -69,7 +69,33 @@ export const MODULES: Record<string, ModuleDefinition> = {
     intakeRequirements: [BIRTH_FIELDS[0]], // date only; name arrives with identity
     mapPanel: readingPanelFor(["numerology-core"]),
   },
+  // ---- Phase 4 — session + manual tools (no map panels, no intake) ----
+  "tarot-draw": {
+    key: "tarot-draw",
+    class: "SESSION",
+    defaultLabel: "Card Draw",
+    intakeRequirements: [], // event-based in the moment — NEVER intake-derived
+  },
+  "lookup-console": {
+    key: "lookup-console",
+    class: "MANUAL_TOOL",
+    defaultLabel: "Lookup Console",
+    intakeRequirements: [],
+  },
 };
+
+// Phase 4 — does this tenant have any practitioner tools enabled? Gates the
+// /practitioner/tools surface and its settings link (Valentina has none, so
+// her chrome is untouched by construction).
+export function toolModulesFor(rows: TenantModuleRow[]): ModuleDefinition[] {
+  return rows
+    .filter((r) => r.enabled)
+    .sort((a, b) => a.position - b.position)
+    .flatMap((r) => {
+      const def = getModule(r.moduleKey);
+      return def && (def.class === "SESSION" || def.class === "MANUAL_TOOL") ? [def] : [];
+    });
+}
 
 export function getModule(key: string): ModuleDefinition | null {
   return MODULES[key] ?? null;
