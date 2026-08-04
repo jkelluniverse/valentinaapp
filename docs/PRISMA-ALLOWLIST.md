@@ -36,6 +36,9 @@ no matter what they forget.
 | `audits/pipeline/p12-verify.ts` | Session-pipeline acceptance harness — CLI-only; inspects raw rows across the capture flow. |
 | `audits/onboarding/stage1-verify.ts` | Intake-engine acceptance harness — CLI-only; self-cleaning. |
 | `audits/onboarding/complete-verify.ts` | Intake-completion acceptance harness — CLI-only; throwaway client; self-cleaning. |
+| `audits/onboarding/ui-verify.ts` | Intake UI acceptance harness — browser-driven; throwaway client; self-cleaning. |
+| `audits/onboarding/update-verify.ts` | Birth-time UPDATE acceptance harness — CLI-only; self-cleaning. |
+| `audits/onboarding/discovery-verify.ts` | Discovery-layer acceptance harness — browser-driven; throwaway client; self-cleaning. |
 
 ## Allowlist — own PrismaClient construction
 

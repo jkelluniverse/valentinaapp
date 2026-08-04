@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { getTenant } from "@/lib/tenancy";
+import { prisma } from "@/lib/prisma";
 import { concreteSchemaFor, estimateMinutes } from "@/lib/intake/engine";
 import { COPY } from "@/lib/copy/en";
 
@@ -26,6 +27,26 @@ export default async function IntakePreview({ searchParams }: { searchParams: { 
   const link = (s: string) => `/practitioner/settings/intake-preview?step=${s}`;
 
   const inputCls = "pointer-events-none w-full rounded-lg border border-line bg-surface-2 px-4 py-3 text-base text-whisper";
+
+  // ONBOARDING Stage 6 ◆ — the drop-off view: where clients are in intake,
+  // counted from ActivityEvents. Read-only; the page still writes zero rows.
+  const events = await prisma.activityEvent.findMany({
+    where: { eventKey: { in: ["intake.started", "intake.step_completed", "intake.completed"] } },
+    select: { eventKey: true, meta: true },
+  });
+  const started = events.filter((e) => e.eventKey === "intake.started").length;
+  const finished = events.filter((e) => e.eventKey === "intake.completed").length;
+  const stepCounts = new Map<string, number>();
+  for (const e of events) {
+    if (e.eventKey !== "intake.step_completed") continue;
+    const s = (e.meta as { step?: string } | null)?.step ?? "?";
+    stepCounts.set(s, (stepCounts.get(s) ?? 0) + 1);
+  }
+  const dropoff: { label: string; n: number }[] = [
+    { label: "Started", n: started },
+    ...schema.steps.map((s) => ({ label: s.title, n: stepCounts.get(s.key) ?? 0 })),
+    { label: "Completed", n: finished },
+  ];
 
   return (
     <div className="flex flex-col gap-5">
@@ -107,6 +128,27 @@ export default async function IntakePreview({ searchParams }: { searchParams: { 
           </Link>
         )}
       </div>
+
+      {/* Drop-off, quietly, below the preview. */}
+      <section className="mt-4 flex flex-col gap-3">
+        <h2 className="text-[13px] font-semibold uppercase tracking-wide text-mocha">Where clients are</h2>
+        {started === 0 ? (
+          <p className="text-[14px] text-whisper">No intake activity yet — counts appear as invited clients begin.</p>
+        ) : (
+          <div className="overflow-hidden rounded-card border border-line">
+            <table className="w-full text-[14px]">
+              <tbody>
+                {dropoff.map((r) => (
+                  <tr key={r.label} className="border-b border-line last:border-0">
+                    <td className="px-4 py-2 text-ink">{r.label}</td>
+                    <td className="px-4 py-2 text-right font-medium text-ink-strong">{r.n}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

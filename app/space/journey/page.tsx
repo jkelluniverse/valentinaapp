@@ -5,6 +5,7 @@ import { getClientRecord } from "@/lib/client-record";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { groupByDay } from "@/components/entries";
 import { RecordCard, StatCard, ThemeList, MoodTrend, CadenceLine } from "@/components/record";
+import { HintCallout } from "@/components/discovery/Discovery";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,9 @@ export default async function JourneyPage() {
           Everything you&apos;ve noticed and worked through, woven into one story.
         </p>
       </div>
+
+      {/* CLIENT-ONBOARDING §6.2 — first-visit hint; null for pre-engine clients. */}
+      <HintCallout clientId={user.id} surface="journey" path="/space/journey" />
 
       {rec.counts.total === 0 ? (
         <div className="rounded-lg border border-line bg-white p-8 shadow-soft">

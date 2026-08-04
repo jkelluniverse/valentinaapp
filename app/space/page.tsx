@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
 import { listEnrolledCourses } from "@/lib/courses";
 import { Greeting } from "@/components/Greeting";
+import { HintCallout, GettingStartedCard } from "@/components/discovery/Discovery";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,13 @@ export default async function Sanctuary() {
           Your journey
         </Link>
       </div>
+
+      {/* CLIENT-ONBOARDING §6.2/§6.3 — discovery, engine-onboarded clients
+          only. Both components render null (no wrapper element here) for
+          everyone else, so this screen stays byte-identical for existing
+          clients (Rule 0.1). */}
+      <HintCallout clientId={user.id} surface="home" path="/space" className="w-full max-w-[440px] text-left" />
+      <GettingStartedCard clientId={user.id} path="/space" className="w-full max-w-[440px] text-left" />
     </div>
   );
 }

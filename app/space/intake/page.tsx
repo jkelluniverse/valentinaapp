@@ -19,11 +19,23 @@ export default async function IntakePage({ searchParams }: { searchParams: { don
 
   // Done screen (flow just completed) — or no flow at all → home.
   if (searchParams.done) {
+    // ONBOARDING §6.4 — the practitioner's voice: an optional welcome video,
+    // pure tenant config. Beats any product tour; absent unless the tenant
+    // sets branding.welcomeVideoUrl.
+    const doneBranding = ((await getTenant()).branding ?? {}) as { welcomeVideoUrl?: string };
     return (
       <Shell>
         <div className="flex flex-col items-center gap-5 py-10 text-center">
           <h1 className="font-headline text-[1.75rem] font-medium text-ink-strong">{COPY.intake.doneTitle}</h1>
           <p className="max-w-sm text-ink">{COPY.intake.doneLede}</p>
+          {doneBranding.welcomeVideoUrl && (
+            <video
+              controls
+              preload="metadata"
+              src={doneBranding.welcomeVideoUrl}
+              className="w-full max-w-sm rounded-card border border-line shadow-soft"
+            />
+          )}
           <p className="max-w-sm text-[14px] text-whisper">{COPY.intake.donePreparing}</p>
           <a href="/space" className="mt-2 rounded-lg bg-wine px-6 py-3 text-sm font-medium text-white shadow-soft hover:bg-wine-dark">
             {COPY.intake.goHome}
@@ -55,9 +67,7 @@ export default async function IntakePage({ searchParams }: { searchParams: { don
         <div className="flex flex-col gap-6 py-6">
           <h1 className="font-headline text-[1.75rem] font-medium text-ink-strong">{COPY.intake.welcomeTitle}</h1>
           <p className="max-w-prose text-ink">{branding.welcomeCopy || COPY.intake.welcomeLede}</p>
-          <p className="text-[14px] text-whisper">
-            {COPY.intake.welcomeMinutes(minutes)} {COPY.intake.welcomeLede}
-          </p>
+          <p className="text-[14px] text-whisper">{COPY.intake.welcomeMinutes(minutes)}</p>
           <form action={advanceIntake.bind(null, flow.id, schema.steps[0]?.key ?? "review")}>
             <button className="rounded-lg bg-wine px-6 py-3 text-sm font-medium text-white shadow-soft hover:bg-wine-dark">
               {COPY.intake.begin}

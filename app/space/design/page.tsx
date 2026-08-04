@@ -15,6 +15,9 @@ import {
 } from "@/ai/integrativeReadingPrompt";
 import type { SpherePosition } from "@/lib/gene-keys";
 import type { SpiralScore } from "@/lib/spiral";
+import { HintCallout } from "@/components/discovery/Discovery";
+import { discoveryActive } from "@/lib/onboarding-discovery";
+import { COPY } from "@/lib/copy/en";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +86,10 @@ export default async function DesignPage({
   const readingMarks = Object.fromEntries(await latestMarks(user.id, "READING_BLOCK"));
   const readingPending = readingRow?.status === "PENDING_REVIEW";
 
+  // §6.1 — only consulted for the no-chart empty state; false for everyone
+  // pre-engine, so the existing empty state is untouched.
+  const enginePending = !chart && (await discoveryActive(user.id));
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-2">
@@ -94,6 +101,9 @@ export default async function DesignPage({
           together in session or on your own.
         </p>
       </div>
+
+      {/* CLIENT-ONBOARDING §6.2 — first-visit hint; null for pre-engine clients. */}
+      <HintCallout clientId={user.id} surface="design" path="/space/design" />
 
       {searchParams.generated && chart && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
@@ -143,6 +153,17 @@ export default async function DesignPage({
             and the chart regenerates.
           </p>
         </>
+      ) : enginePending ? (
+        /* CLIENT-ONBOARDING §6.1 — teaching empty state. An engine-onboarded
+           client already gave their birth details in intake; the fan-out is
+           preparing their charts, so "add your details" would be wrong. */
+        <div className="rounded-lg border border-line bg-white p-8 shadow-soft">
+          <p className="max-w-prose text-lg leading-relaxed text-ink">
+            {COPY.discovery.mapPending(
+              panels.find((p) => p.key === "values-spiral")?.displayLabel ?? "values snapshot"
+            )}
+          </p>
+        </div>
       ) : (
         <div className="rounded-lg border border-line bg-white p-8 shadow-soft">
           <p className="max-w-prose text-lg leading-relaxed text-ink">

@@ -19,7 +19,9 @@ export type TenantConfig = {
   status: string;
   layoutKey: string;
   skinKey: string;
-  branding: { portalTitle?: string; welcomeCopy?: string; accentOverride?: string } | null;
+  // welcomeVideoUrl — ONBOARDING §6.4: optional practitioner welcome video,
+  // shown on the intake Done step. Pure config; unset for Valentina today.
+  branding: { portalTitle?: string; welcomeCopy?: string; accentOverride?: string; welcomeVideoUrl?: string } | null;
   featureFlags: Record<string, boolean> | null;
 };
 
