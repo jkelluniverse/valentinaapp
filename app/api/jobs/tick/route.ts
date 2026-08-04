@@ -384,9 +384,10 @@ async function handle(req: NextRequest) {
   //     14-day grace window becomes SUSPENDED (soft gates only — reading,
   //     exporting, and client logins stay untouched).
   try {
-    const { sweepBillingGrace } = await import("@/lib/billing/lifecycle");
+    const { sweepBillingGrace, pruneWebhookEvents } = await import("@/lib/billing/lifecycle");
     const s = await sweepBillingGrace();
-    report.billingSweep = `suspended=${s.suspended}`;
+    const pr = await pruneWebhookEvents(now);
+    report.billingSweep = `suspended=${s.suspended} webhooksPruned=${pr.pruned}`;
   } catch (e) {
     report.billingSweep = "error";
     console.error("[tick] billing grace sweep failed", e instanceof Error ? e.message : "");

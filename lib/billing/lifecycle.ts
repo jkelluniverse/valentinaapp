@@ -97,3 +97,17 @@ export async function sweepBillingGrace(): Promise<{ suspended: number }> {
   });
   return { suspended: res.count };
 }
+
+// B4 — WebhookEvent pruning: the table exists for replay-idempotency, and
+// providers only retry for days, not months. PROCESSED events older than
+// the window go; unprocessed rows are kept forever (they mark deliveries
+// that never applied — evidence, not noise).
+const WEBHOOK_RETENTION_DAYS = 90;
+
+export async function pruneWebhookEvents(now = new Date()): Promise<{ pruned: number }> {
+  const cutoff = new Date(now.getTime() - WEBHOOK_RETENTION_DAYS * 86400_000);
+  const res = await rawPrisma.webhookEvent.deleteMany({
+    where: { processedAt: { not: null, lt: cutoff } },
+  });
+  return { pruned: res.count };
+}

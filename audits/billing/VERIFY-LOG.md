@@ -1,3 +1,23 @@
+# BILLING Phase B4 (hardening) verify — 2026-08-04
+
+Harness: `b4-verify.ts`. The daily token-health job is B1's
+refreshDueTokens (already verified + running in the tick).
+
+- ✓ WebhookEvent pruning (tick, 90-day window): old processed rows go;
+  old UNPROCESSED rows kept as evidence; recent rows kept
+- ✓ integer-cents invariant: fractional/zero/negative amounts rejected
+  before any provider call (plus Int columns and the single Math.round
+  boundary, documented in the runbook)
+- ✓ copy audit: zero platform-billing language on all 11 client surfaces
+  (phrase-specific by design — "invoice" in a client's OWN reflection is
+  their words, not ours)
+- Runbook: docs/BILLING-RUNBOOK.md — env matrix, reconnect walkthrough,
+  Jacob's SUSPENDED/CANCELED playbook, comp/adjust, webhook replay.
+
+ALL CHECKS PASS — 7/7 · CLAUDE-BILLING is fully built (B1–B4).
+
+---
+
 # BILLING Phase B3 (Layer 2 subscriptions) verify — 2026-08-04
 
 Harness: `b3-verify.ts` against the built app + a local mock of Stripe
