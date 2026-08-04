@@ -38,6 +38,9 @@ export type MapPanelData = {
   spheres: SpherePosition[];
   spiralScore: (SpiralScore & { practitionerCenter?: string }) | null;
   spiralReviewed: boolean;
+  // Phase 3 — computed readings by kind (payload of the client's COMPLETE
+  // Reading rows). Absent kinds render as a quiet pending line.
+  readings?: Record<string, unknown>;
 };
 
 // Tenant-entered panel copy (TenantModule.settings.panel) — the practitioner's

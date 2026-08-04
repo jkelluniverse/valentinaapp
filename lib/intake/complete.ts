@@ -122,6 +122,19 @@ export async function runCompletionFanout(flowId: string, clientId: string): Pro
     console.error(`[intake] chart computation failed client=${clientId}: ${e instanceof Error ? e.message : "error"}`);
   }
 
+  // (2c) PLATFORM Phase 3 — provider-computed modules (western-natal,
+  // numerology, …): the orchestrator caches by inputsHash, parks failures
+  // as PENDING_RETRY for the tick, and never blocks completion.
+  try {
+    const { computeReadingsFor } = await import("@/lib/readings/compute");
+    const rr = await computeReadingsFor(tenant.id, clientId);
+    if (rr.computed > 0) {
+      await emitEvent({ tenantId: tenant.id, clientId, actor: "system", eventKey: "reading.computed", meta: { kind: "provider", computed: rr.computed, cached: rr.cached } });
+    }
+  } catch (e) {
+    console.error(`[intake] provider readings failed client=${clientId}: ${e instanceof Error ? e.message : "error"}`);
+  }
+
   // (1) Recording ConsentRecord — the intersection with the session pipeline.
   // This creates the SAME RecordingConsent the pipeline gate reads. Only when
   // the client agreed to the recording terms in the Review step.

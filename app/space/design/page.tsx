@@ -46,16 +46,24 @@ export default async function DesignPage({
   // PLATFORM Phase 2 — which panels this tenant shows, in their order, under
   // their labels. One data bag; each panel takes what it needs.
   const tenant = await getTenant();
-  const moduleRows = await prisma.tenantModule.findMany({
-    where: { tenantId: tenant.id, enabled: true },
-    orderBy: { position: "asc" },
-  });
+  const [moduleRows, readingRows] = await Promise.all([
+    prisma.tenantModule.findMany({
+      where: { tenantId: tenant.id, enabled: true },
+      orderBy: { position: "asc" },
+    }),
+    // Phase 3 — provider-computed readings for this client (COMPLETE only).
+    prisma.reading.findMany({
+      where: { clientId: user.id, status: "COMPLETE" },
+      select: { kind: true, payload: true },
+    }),
+  ]);
   const panels = panelsFor(moduleRows);
   const panelData = {
     chart,
     spheres,
     spiralScore,
     spiralReviewed: Boolean(spiralLens?.practitionerReviewed),
+    readings: Object.fromEntries(readingRows.map((r) => [r.kind, r.payload])),
   };
 
   // The integrative reading (C12r) — chart-only. Fresh published readings show
@@ -111,47 +119,54 @@ export default async function DesignPage({
         </p>
       )}
 
-      {chart ? (
+      {chart || readingRows.length > 0 ? (
         <>
           {/* PLATFORM Phase 2 — the modality panels render through the module
               registry: the tenant's TenantModule rows decide which panels
               appear, in what order, under what words. Same data pipelines,
-              same DOM — the registry is a frame, not a redesign (Rule 5.1). */}
+              same DOM — the registry is a frame, not a redesign (Rule 5.1).
+              Phase 3: provider-computed panels render from Reading rows, so
+              a tenant with no in-house chart still gets a map. */}
           {panels.map(({ key, Panel, displayLabel, copy }) => (
             <Panel key={key} displayLabel={displayLabel} copy={copy} data={panelData} />
           ))}
 
-          {/* C12r — the woven reading, at the foot of the charts. */}
-          <section className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-xl font-semibold">What it all means to you</h2>
-              <p className="max-w-prose text-sm text-slate">
-                A reading woven from all three maps — read slowly, keep what rings true.
-              </p>
-            </div>
-            <ReadingSection
-              initialContent={readingInitial}
-              initialBlocks={readingBlocks}
-              initialMarks={readingMarks}
-              locale={readingLocale}
-              pendingReviewForClient={readingPending}
-              chartsComplete={readingComplete}
-              valuesJoined={valuesJoined}
-              generate={generateMyReading}
-              mark={markReadingBlock}
-            />
-          </section>
+          {/* C12r — the woven reading, at the foot of the charts. In-house
+              chart tenants only — exactly as before Phase 3. */}
+          {chart && (
+            <>
+              <section className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-xl font-semibold">What it all means to you</h2>
+                  <p className="max-w-prose text-sm text-slate">
+                    A reading woven from all three maps — read slowly, keep what rings true.
+                  </p>
+                </div>
+                <ReadingSection
+                  initialContent={readingInitial}
+                  initialBlocks={readingBlocks}
+                  initialMarks={readingMarks}
+                  locale={readingLocale}
+                  pendingReviewForClient={readingPending}
+                  chartsComplete={readingComplete}
+                  valuesJoined={valuesJoined}
+                  generate={generateMyReading}
+                  mark={markReadingBlock}
+                />
+              </section>
 
-          <p className="text-sm text-slate">
-            Birth details changed or refined?{" "}
-            <Link
-              href="/space/profile"
-              className="font-medium text-wine underline-offset-4 hover:underline"
-            >
-              Update your profile
-            </Link>{" "}
-            and the chart regenerates.
-          </p>
+              <p className="text-sm text-slate">
+                Birth details changed or refined?{" "}
+                <Link
+                  href="/space/profile"
+                  className="font-medium text-wine underline-offset-4 hover:underline"
+                >
+                  Update your profile
+                </Link>{" "}
+                and the chart regenerates.
+              </p>
+            </>
+          )}
         </>
       ) : enginePending ? (
         /* CLIENT-ONBOARDING §6.1 — teaching empty state. An engine-onboarded

@@ -2,12 +2,14 @@ import type { ModuleDefinition, IntakeField } from "./types";
 import { BodyGraphPanel } from "@/components/modules/BodyGraphPanel";
 import { ArchetypalKeysPanel } from "@/components/modules/ArchetypalKeysPanel";
 import { ValuesSpiralPanel } from "@/components/modules/ValuesSpiralPanel";
+import { readingPanelFor } from "@/components/modules/ReadingDataPanel";
 
 // PLATFORM Layer 3 — the module registry (spec §5). Every module declares
 // itself here; tenants enable/disable/order/label them purely in data
-// (TenantModule rows). Phase 2 ships the three structured-content panel
-// modules; computed modules (western-natal, numerology, …) arrive with the
-// ReadingProvider in Phase 3, session/manual tools in Phase 4.
+// (TenantModule rows). Phase 2 shipped the three structured-content panel
+// modules; Phase 3 adds the provider-computed launch set (western-natal,
+// vedic-natal, numerology — reading requests live in lib/readings/compute);
+// session/manual tools arrive in Phase 4.
 
 const BIRTH_FIELDS: IntakeField[] = [
   { key: "birth.date", label: "Date of birth", kind: "date", required: true },
@@ -44,6 +46,28 @@ export const MODULES: Record<string, ModuleDefinition> = {
       },
     ],
     mapPanel: ValuesSpiralPanel,
+  },
+  // ---- Phase 3 — provider-computed modules (ReadingProvider) ----
+  "western-natal": {
+    key: "western-natal",
+    class: "COMPUTED",
+    defaultLabel: "Natal Chart",
+    intakeRequirements: BIRTH_FIELDS,
+    mapPanel: readingPanelFor(["natal-positions", "natal-houses"]),
+  },
+  "vedic-natal": {
+    key: "vedic-natal",
+    class: "COMPUTED",
+    defaultLabel: "Vedic Chart",
+    intakeRequirements: BIRTH_FIELDS,
+    mapPanel: readingPanelFor(["vedic-positions"]),
+  },
+  numerology: {
+    key: "numerology",
+    class: "COMPUTED",
+    defaultLabel: "Numerology",
+    intakeRequirements: [BIRTH_FIELDS[0]], // date only; name arrives with identity
+    mapPanel: readingPanelFor(["numerology-core"]),
   },
 };
 

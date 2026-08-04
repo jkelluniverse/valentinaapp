@@ -1501,6 +1501,36 @@ model TenantBilling {
   currentPeriodEnd     DateTime?
 }
 
+// ---------- PLATFORM Phase 3 — computed readings (ReadingProvider) ----------
+// One row per (client, kind, inputsHash): the cache IS the table (Rule 0.6 —
+// the provider free tier is 50 calls/month, so identical inputs must never
+// recompute). Failures park as PENDING_RETRY and the tick retries them;
+// intake completion is never blocked by a provider.
+
+enum ReadingStatus {
+  COMPLETE
+  PENDING_RETRY
+  FAILED
+}
+
+model Reading {
+  id         String        @id @default(cuid())
+  tenantId   String? // nullable per platform scope rule (null = default tenant)
+  clientId   String
+  sessionId  String? // set for SESSION-class readings (draws, Phase 4)
+  moduleKey  String
+  kind       String // "natal-positions" | "natal-houses" | "numerology-core" | ...
+  inputsHash String
+  payload    Json
+  raw        Json? // full provider response, archived
+  status     ReadingStatus
+  computedAt DateTime
+
+  @@unique([tenantId, clientId, kind, inputsHash])
+  @@index([tenantId, clientId])
+  @@index([status])
+}
+
 // ---------- SESSION-PIPELINE Phase 1 — the capture job ----------
 // One row per recorded/uploaded session moving through the pipeline. The
 // transcript itself lands in SessionTranscript at APPROVAL (C19 privacy:

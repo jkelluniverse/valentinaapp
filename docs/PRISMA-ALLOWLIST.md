@@ -38,6 +38,7 @@ no matter what they forget.
 | `lib/billing/lifecycle.ts` | Stripe webhook ingress + grace sweep — tenant resolved from the event's customer id, never the request host; cross-tenant by nature. |
 | `audits/billing/b3-verify.ts` | B3 acceptance harness — CLI-only; drives the subscription lifecycle against a mock Stripe. |
 | `audits/billing/b4-verify.ts` | B4 hardening harness — CLI-only; pruning + money invariants + client copy audit. |
+| `audits/platform/phase3-verify.ts` | Phase 3 acceptance harness — CLI-only; drives computed readings against a mock provider. |
 | `audits/pipeline/p12-verify.ts` | Session-pipeline acceptance harness — CLI-only; inspects raw rows across the capture flow. |
 | `audits/onboarding/stage1-verify.ts` | Intake-engine acceptance harness — CLI-only; self-cleaning. |
 | `audits/onboarding/complete-verify.ts` | Intake-completion acceptance harness — CLI-only; throwaway client; self-cleaning. |

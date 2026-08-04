@@ -1,3 +1,33 @@
+# PLATFORM Phase 3 verify — 2026-08-04
+
+ReadingProvider + computed modules (`phase3-verify.ts`, mock provider —
+endpoint shapes from the vendor's own Postman collection: Bearer auth,
+POST /api/v3/data/positions, /api/v3/data/house-cusps,
+/api/v3/numerology/core-numbers).
+
+- ✓ western-natal + numerology compute at intake completion (3 calls)
+- ✓ CACHE PROOF: second identical computation = 3 cache hits, ZERO new
+  API calls (free tier is 50/month — Rule 0.6)
+- ✓ demo client's map renders the computed panels through the registry
+  (design page now shows panels for chart-less tenants; María's DOM
+  byte-identical — the in-house chart branch is untouched)
+- ✓ provider outage parks PENDING_RETRY; tick retry recovers all 3
+- ✓ birth-time-unknown: house-dependent kinds skipped entirely,
+  positions degrade to solar noon, numerology unaffected
+- ✓ unconfigured (no key, no mock): parks quietly with zero network —
+  the day ASTROLOGY_API_KEY lands, the tick computes the backlog
+- Launch modules registered: western-natal, vedic-natal, numerology.
+  Valentina's three panels remain structured-content (§5.1) — they
+  request nothing from the provider, by decision.
+- Panel rendering is deliberately defensive (positions table / numbers
+  grid / pending line): real provider payloads are unverified until the
+  key lands; refinement queued on the backlog.
+
+ALL CHECKS PASS — 11/11 · gates: baseline 16/16, smoke, write smoke,
+stamp audit, isolation verify (B-fixture + reading row) all green.
+
+---
+
 # PLATFORM Phase 0/0.5 verify — 2026-07-22T15:55:01.813Z
 
 ## Tenant #1

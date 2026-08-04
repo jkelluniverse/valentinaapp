@@ -205,6 +205,7 @@ async function insertBFixtures() {
   await p.clientHintState.create({ data: { ...T, clientId: bUser, hintKey: "bfx_hint" } });
   await p.activityEvent.create({ data: { ...T, clientId: bUser, actor: "system", eventKey: "probe" } });
   await p.tenantBilling.create({ data: { ...T, plan: "CARE_99", status: "ACTIVE", stripeCustomerId: "bfx_cus" } });
+  await p.reading.create({ data: { ...T, clientId: bUser, moduleKey: "western-natal", kind: "natal-positions", inputsHash: "bfx_hash", payload: j({}), status: "COMPLETE", computedAt: now } });
 
   return { bUser, pkg };
 }

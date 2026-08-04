@@ -22,7 +22,7 @@ export const SCOPED_MODELS = [
   "recordItem", "prompt", "assignment", "promptResponse", "logEntry",
   "invite", "schedulingConfig", "availabilityRule", "availabilityException", "appointment",
   "lead", "connectedPaymentAccount", "payment", "sessionCapture",
-  "intakeFlow", "clientHintState", "activityEvent", "tenantBilling",
+  "intakeFlow", "clientHintState", "activityEvent", "tenantBilling", "reading",
 ] as const;
 // NOT scoped:
 //  - webhookEvent (platform-level, like Tenant/TenantModule): provider event

@@ -393,6 +393,17 @@ async function handle(req: NextRequest) {
     console.error("[tick] billing grace sweep failed", e instanceof Error ? e.message : "");
   }
 
+  // 6d. Reading retry (PLATFORM Phase 3): parked PENDING_RETRY readings get
+  //     another chance, bounded per tick; the cache keeps this cheap.
+  try {
+    const { retryPendingReadings } = await import("@/lib/readings/compute");
+    const rr = await retryPendingReadings();
+    if (rr.retried > 0) report.readingRetries = `retried=${rr.retried} recovered=${rr.recovered}`;
+  } catch (e) {
+    report.readingRetries = "error";
+    console.error("[tick] reading retry failed", e instanceof Error ? e.message : "");
+  }
+
   // 7. Null-tenant invariant audit (platform): zero rows may carry a null
   //    tenantId after migration 36. Any drift is loud — it means a write
   //    slipped past stamping (the documented nested-writes gap).
