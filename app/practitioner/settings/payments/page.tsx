@@ -93,6 +93,15 @@ export default async function PaymentsSettingsPage({
       )}
 
       {account?.source === "oauth" && (
+        <Link
+          href="/practitioner/payments"
+          className="self-start text-sm font-medium text-wine underline-offset-4 hover:underline"
+        >
+          Payments ledger →
+        </Link>
+      )}
+
+      {account?.source === "oauth" && (
         <div className="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 shadow-card">
           <div className="flex flex-col gap-1">
             <p className="font-medium text-ink-strong">

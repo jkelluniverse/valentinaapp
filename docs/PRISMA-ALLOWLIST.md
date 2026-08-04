@@ -33,6 +33,8 @@ no matter what they forget.
 | `audits/tenant-stamp-audit.ts` | CLI wrapper for the invariant audit (imports the raw client for `$disconnect` only). |
 | `lib/payments/refresh.ts` | Daily payment-token health job — walks every tenant's connected account from the tick, cross-tenant by design (BILLING §3.3). |
 | `audits/billing/b1-verify.ts` | B1 acceptance harness — CLI-only; reads raw rows to prove tokens are encrypted at rest. |
+| `lib/payments/webhook.ts` | Square webhook ingress — tenant resolved from the event's `merchant_id`, never the request host; cross-tenant by nature. |
+| `audits/billing/b2-verify.ts` | B2 acceptance harness — CLI-only; drives checkout + signed webhooks against a mock Square. |
 | `audits/pipeline/p12-verify.ts` | Session-pipeline acceptance harness — CLI-only; inspects raw rows across the capture flow. |
 | `audits/onboarding/stage1-verify.ts` | Intake-engine acceptance harness — CLI-only; self-cleaning. |
 | `audits/onboarding/complete-verify.ts` | Intake-completion acceptance harness — CLI-only; throwaway client; self-cleaning. |

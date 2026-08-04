@@ -38,6 +38,8 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "lib/tenancy/stamp-audit.ts": "null-tenant invariant audit: cross-tenant by nature, must see every row",
   "audits/tenant-stamp-audit.ts": "CLI wrapper for the invariant audit ($disconnect only)",
   "lib/payments/refresh.ts": "payment-token health job: walks EVERY tenant's connected account from the tick",
+  "lib/payments/webhook.ts": "webhook ingress: tenant comes from the event's merchant_id, never the request host — cross-tenant by nature",
+  "audits/billing/b2-verify.ts": "B2 acceptance harness: CLI-only, drives checkout + webhook against a mock Square",
   "audits/billing/b1-verify.ts": "B1 acceptance harness: CLI-only, inspects raw rows to PROVE encryption at rest",
   "audits/pipeline/p12-verify.ts": "pipeline acceptance harness: CLI-only, inspects raw rows across the flow",
   "audits/onboarding/stage1-verify.ts": "intake engine acceptance harness: CLI-only, self-cleaning",

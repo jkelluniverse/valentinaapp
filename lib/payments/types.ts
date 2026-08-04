@@ -16,6 +16,9 @@ export type PaymentEvent = {
   amountCents: number;
   currency: string;
   clientRef: string | null; // our client id, echoed back by the provider
+  /** Provider order reference — Square quick-pay links echo order_id, not
+   *  metadata; the pending Payment row created at link time is keyed on it. */
+  orderRef: string | null;
   status: "PENDING" | "COMPLETED" | "REFUNDED" | "FAILED";
   occurredAt: Date;
   raw: unknown;
