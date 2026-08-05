@@ -265,18 +265,25 @@ export default async function SettingsPage({
       {/* C20 §4 — "Your agreements": only when at least one exists. */}
       {agreementCount > 0 && (
         <Section title={es ? "Tus acuerdos" : "Your agreements"}>
-          <div className="flex items-center justify-between py-4">
-            <p className="max-w-prose text-sm leading-relaxed text-ink">
-              {es
-                ? "Todo lo que has firmado — tuyo para leer y descargar, siempre."
-                : "Everything you've signed — yours to read and download, always."}
+          <div className="flex flex-col gap-2 py-4">
+            <div className="flex items-center justify-between">
+              <p className="max-w-prose text-sm leading-relaxed text-ink">
+                {es
+                  ? "Todo lo que has firmado — tuyo para leer y descargar, siempre."
+                  : "Everything you've signed — yours to read and download, always."}
+              </p>
+              <Link
+                href="/space/agreements"
+                className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
+              >
+                {es ? "Ver" : "View"}
+              </Link>
+            </div>
+            {/* ADDENDUM R — the retention schedule, read-only, from the ONE
+                config source so the words always match the machinery. */}
+            <p className="text-[12px] text-whisper">
+              {(await import("@/lib/retention")).retentionNote(es ? "es" : "en")}
             </p>
-            <Link
-              href="/space/agreements"
-              className="rounded-md border border-mocha px-4 py-2 text-sm font-medium text-wine transition-colors hover:bg-blush"
-            >
-              {es ? "Ver" : "View"}
-            </Link>
           </div>
         </Section>
       )}

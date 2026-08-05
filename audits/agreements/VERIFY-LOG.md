@@ -1,3 +1,63 @@
+# C20 v3.1 install verify — 2026-08-05
+
+Harness: `v31-verify.ts` against the built app on a seeded scratch DB —
+the attorney master install per CLAUDE-CODE-AGREEMENT-INSTALL.md. 25/25.
+Regression: `c20-verify.ts` re-run after, 28/28.
+
+## Verbatim install (the "not a comma" rule)
+- ✓ installed body is byte-identical to the repo content file, which is
+  SHA-256-matched to counsel's upload — zero edits
+- ✓ every v3.0 continuation marker left intact (nothing reconstructed);
+  the missing-sections list is reported, not filled
+- ✓ re-running the installer is a no-op (idempotent); body refresh only
+  happens while the template is still DRAFT
+
+## DRAFT semantics (not sendable until Jacob flips it)
+- ✓ template lands as DRAFT; desk shows "DRAFT — not sendable" badge and
+  excludes it from the send dropdown
+- ✓ createAndSendAgreement refuses the DRAFT with a hard error — every
+  send path (manual, invite, package, recording triggers) goes through it
+- ✓ DRAFT preview works: live values resolve (24-hour window, formatted
+  fee) and are highlighted; unmapped SOW vars stay visibly {{unresolved}}
+- ✓ preview page renders the DRAFT banner, <mark> highlights, key-terms
+  table, and no send form
+- ✓ flipping status→ACTIVE (simulating Jacob) makes the same template
+  sendable; booking gate blocks until signed, releases on completion
+
+## Per-item acknowledgments + key-terms freeze
+- ✓ sign page renders all 10 ack items (9 typed-initials + Exhibit B
+  checkbox), text verbatim from counsel
+- ✓ signing with missing initials is refused; complete set stores all 10
+  attributed acknowledgments (initialsCaptured)
+- ✓ sealed PDF carries KEY TERMS (resolved merge values frozen) and
+  INITIALED ACKNOWLEDGMENTS (initials + timestamp + full item text)
+
+## Addenda wiring
+- ✓ Addendum P: election is real — 5 probe clients clear the k-floor,
+  one setPatternElection(false) drops the archetype count to 4 (below
+  floor); stale-archetype zeroing proven; practice switch restored
+- ✓ Addendum R: retention note ("retained for 3 years", RETENTION_YEARS
+  config) renders in the client settings agreements section
+- ✓ Addendum M: under-18 intake completion blocked with the guardian
+  notice, flow stays IN_PROGRESS, practitioner evented + emailed —
+  document present, product support intentionally absent (by spec)
+
+## Notes
+- Deviation (reported, not resolved): the spec's "block at invite" gate
+  lives at intake completion — invites carry no DOB; intake is the first
+  moment the platform knows age.
+- Null-tenant fix: CLI aggregatePatterns was creating unstamped
+  patternArchetype rows; now stamps tenantId via getTenant(); scratch
+  backfilled (43 rows) and the invariant audit is green again.
+- Gates on this run: baseline 16/16 (two recaptures — greeting rollover
+  incl. the noon knife-edge, documented classes; final BASELINE MATCH),
+  GET smoke, write smoke, tenant-stamp audit, platform isolation verify
+  (PatternElection B-fixture added) all green. Reconciliation report for
+  Jacob: docs/AGREEMENT-V31-INSTALL-REPORT.md.
+
+ALL CHECKS PASS — 25/25 · template stays DRAFT until Jacob flips
+`AgreementTemplate.status` → ACTIVE for slug `client-services-agreement`.
+
 # C20-AGREEMENTS verify — 2026-08-04
 
 Harness: `c20-verify.ts` against the built app on a seeded scratch DB —

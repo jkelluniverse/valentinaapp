@@ -1555,11 +1555,16 @@ model AgreementTemplate {
   tenantId               String? // nullable per platform scope rule
   slug                   String // "client-services" | "scope-of-work" | "recording-addendum" | custom
   version                Int
+  versionLabel           String? // human label when the Int can't carry it ("3.1")
   locale                 String   @default("en") // en/es siblings per AMD-05
   title                  String
   body                   String // rich text with {{merge_vars}}
+  // v3.1 — per-item acknowledgments on the signature page: array of
+  // { id, text, kind: "initials"|"checkbox", required }. Each capture gets
+  // the signature's attribution stack and renders on the sealed PDF.
+  initialItems           Json?
   requiresCountersign    Boolean  @default(false)
-  status                 String   @default("ACTIVE") // ACTIVE | RETIRED
+  status                 String   @default("ACTIVE") // DRAFT (not sendable) | ACTIVE | RETIRED
   // §2 — per-template automatic triggers (tenant settings, stored as data)
   sendOnInviteAccept     Boolean  @default(false)
   requireBeforeBooking   Boolean  @default(false)
@@ -1592,6 +1597,9 @@ model Agreement {
   signerDrawn          String? // canvas strokes data-url — warmth, not legality
   signerIp             String?
   signerAgent          String?
+  // v3.1 — captured acknowledgments: [{ id, value, at }] matching the
+  // template's initialItems, recorded at signing under the same attribution.
+  initialsCaptured     Json?
   countersignRequired  Boolean         @default(false)
   countersignedAt      DateTime?
   countersignName      String?
@@ -1606,6 +1614,19 @@ model Agreement {
 
   @@index([tenantId, clientId])
   @@index([tenantId, status])
+}
+
+// ADDENDUM P — the Pattern-Library participation election: recorded like
+// consent (versioned, revocable), read by the ONLY cross-client aggregation
+// (lib/pattern-library.ts) to exclude non-participants before the k-floor.
+model PatternElection {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  clientId  String   @unique
+  participate Boolean
+  version   String // the Addendum P version elected under
+  decidedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Append-only. Rows are never updated or deleted — the trail IS the

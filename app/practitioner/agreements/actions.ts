@@ -21,6 +21,16 @@ export async function seedStarterTemplates() {
   redirect(`/practitioner/agreements?seeded=${created}`);
 }
 
+// v3.1 — install counsel's master agreement (verbatim from the repo file),
+// as DRAFT. Flipping it live stays a deliberate, separate act.
+export async function installMasterV31Action() {
+  await requirePractitioner();
+  const tenant = await getTenant();
+  const { installMasterV31 } = await import("@/lib/agreements/install-v31");
+  await installMasterV31(tenant.id);
+  redirect("/practitioner/agreements?installed=v31");
+}
+
 export async function sendAgreementAction(formData: FormData) {
   await requirePractitioner();
   const tenant = await getTenant();

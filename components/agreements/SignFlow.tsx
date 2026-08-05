@@ -8,11 +8,14 @@ import { useRef, useState } from "react";
 // 3. typed full legal name (attribution) + optional drawn mark (warmth)
 // 4. ONE unambiguous wine button: "I agree and sign" — no dark patterns.
 
+export type SignFlowItem = { id: string; text: string; kind: "initials" | "checkbox"; required: boolean };
+
 export function SignFlow({
   title,
   body,
   disclosure,
   locale,
+  items = [],
   onSign,
   onDecline,
 }: {
@@ -20,6 +23,7 @@ export function SignFlow({
   body: string;
   disclosure: string;
   locale: "en" | "es";
+  items?: SignFlowItem[]; // v3.1 — per-item acknowledgments (initials/checkboxes)
   onSign: (formData: FormData) => Promise<void>;
   onDecline: () => Promise<void>;
 }) {
@@ -27,8 +31,8 @@ export function SignFlow({
   const [pending, setPending] = useState(false);
   const t =
     locale === "es"
-      ? { read: "Léelo con calma", name: "Tu nombre legal completo", draw: "Firma dibujada (opcional)", clear: "Borrar", sign: "Acepto y firmo", decline: "Prefiero no firmar" }
-      : { read: "Read it in your own time", name: "Your full legal name", draw: "Drawn signature (optional)", clear: "Clear", sign: "I agree and sign", decline: "I'd rather not sign" };
+      ? { read: "Léelo con calma", name: "Tu nombre legal completo", draw: "Firma dibujada (opcional)", clear: "Borrar", sign: "Acepto y firmo", decline: "Prefiero no firmar", acks: "Reconocimientos requeridos (inicial cada uno)", initials: "Iniciales" }
+      : { read: "Read it in your own time", name: "Your full legal name", draw: "Drawn signature (optional)", clear: "Clear", sign: "I agree and sign", decline: "I'd rather not sign", acks: "Required acknowledgments (initial each)", initials: "Initials" };
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,6 +54,38 @@ export function SignFlow({
         }}
         className="flex flex-col gap-4"
       >
+        {items.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <span className="text-[13px] font-semibold uppercase tracking-wide text-mocha">{t.acks}</span>
+            {items.map((item) =>
+              item.kind === "checkbox" ? (
+                <label key={item.id} className="flex items-start gap-3 rounded-card border border-line bg-white p-3.5 text-[13.5px] leading-relaxed text-ink">
+                  <input
+                    type="checkbox"
+                    name={`ack:${item.id}`}
+                    value="checked"
+                    required={item.required}
+                    className="mt-0.5 h-4 w-4 rounded border-line text-wine focus:ring-wine/20"
+                  />
+                  <span>{item.text}</span>
+                </label>
+              ) : (
+                <label key={item.id} className="flex items-start gap-3 rounded-card border border-line bg-white p-3.5 text-[13.5px] leading-relaxed text-ink">
+                  <input
+                    name={`ack:${item.id}`}
+                    required={item.required}
+                    minLength={2}
+                    maxLength={5}
+                    placeholder={t.initials}
+                    className="w-16 shrink-0 rounded-md border border-line px-2 py-1 text-center text-sm uppercase tracking-widest outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
+                  />
+                  <span>{item.text}</span>
+                </label>
+              )
+            )}
+          </div>
+        )}
+
         <label className="flex flex-col gap-1.5 text-[13px] font-semibold uppercase tracking-wide text-mocha">
           {t.name}
           <input

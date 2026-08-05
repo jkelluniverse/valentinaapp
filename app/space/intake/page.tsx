@@ -13,9 +13,25 @@ import { advanceIntake, jumpIntake, completeIntakeAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default async function IntakePage({ searchParams }: { searchParams: { done?: string } }) {
+export default async function IntakePage({ searchParams }: { searchParams: { done?: string; notice?: string } }) {
   const user = await requireClient();
   const flow = await getActiveFlow(user.id);
+
+  // ADDENDUM M — the adults-only pause: calm, nothing lost, she reaches out.
+  if (searchParams.notice === "guardian") {
+    return (
+      <Shell>
+        <div className="flex flex-col items-center gap-5 py-10 text-center">
+          <h1 className="font-headline text-[1.75rem] font-medium text-ink-strong">One more step needed</h1>
+          <p className="max-w-sm text-ink">
+            Working together before age 18 needs a guardian arrangement, which is set up
+            personally rather than online. Everything you&apos;ve entered is saved — your
+            practitioner has been notified and will reach out about the next step.
+          </p>
+        </div>
+      </Shell>
+    );
+  }
 
   // Done screen (flow just completed) — or no flow at all → home.
   if (searchParams.done) {

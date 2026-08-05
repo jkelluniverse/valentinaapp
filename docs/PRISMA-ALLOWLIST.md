@@ -44,6 +44,7 @@ no matter what they forget.
 | `scripts/provision-tenant.ts` | CLI provisioning wrapper — `$disconnect` only; the service stamps tenantId explicitly. |
 | `lib/agreements/sweep.ts` | Agreements tick sweep — reminders + sealing across every tenant; cross-tenant by nature. |
 | `audits/agreements/c20-verify.ts` | C20 acceptance harness — CLI-only; drives the sign/seal lifecycle end-to-end. |
+| `audits/agreements/v31-verify.ts` | v3.1 install harness — CLI-only; attorney master + initials + election/retention/minor gates. |
 | `audits/pipeline/p12-verify.ts` | Session-pipeline acceptance harness — CLI-only; inspects raw rows across the capture flow. |
 | `audits/onboarding/stage1-verify.ts` | Intake-engine acceptance harness — CLI-only; self-cleaning. |
 | `audits/onboarding/complete-verify.ts` | Intake-completion acceptance harness — CLI-only; throwaway client; self-cleaning. |

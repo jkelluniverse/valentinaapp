@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { agreementByToken, markViewed, markDisclosureShown, signAgreement, declineAgreement, E_RECORDS_DISCLOSURE } from "@/lib/agreements";
+import { prisma } from "@/lib/prisma";
+import { agreementByToken, markViewed, markDisclosureShown, signAgreement, declineAgreement, E_RECORDS_DISCLOSURE, initialItemsOf } from "@/lib/agreements";
 import { sealIfComplete } from "@/lib/agreements/seal";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { SignFlow } from "@/components/agreements/SignFlow";
@@ -46,6 +47,8 @@ export default async function AgreePage({
   await markViewed(agreement.id, actor);
   await markDisclosureShown(agreement.id, actor);
   const locale = (agreement.locale === "es" ? "es" : "en") as "en" | "es";
+  const template = await prisma.agreementTemplate.findFirst({ where: { id: agreement.templateId }, select: { initialItems: true } });
+  const items = initialItemsOf(template ?? {});
 
   async function doSign(formData: FormData) {
     "use server";
@@ -53,6 +56,10 @@ export default async function AgreePage({
     if (!a) redirect(`/agree/${params.token}`);
     const h = headers();
     const who = a!.leadId ? "lead" : "client";
+    const initials: Record<string, string> = {};
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith("ack:")) initials[key.slice(4)] = String(value);
+    }
     const result = await signAgreement({
       agreementId: a!.id,
       signerName: String(formData.get("signerName") ?? ""),
@@ -60,6 +67,7 @@ export default async function AgreePage({
       ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       agent: h.get("user-agent"),
       actor: who,
+      initials,
     });
     if (result.ok) await sealIfComplete(a!.id);
     redirect(`/agree/${params.token}?${result.ok ? "done=signed" : `error=${encodeURIComponent(result.ok ? "" : result.error)}`}`);
@@ -83,6 +91,7 @@ export default async function AgreePage({
         body={agreement.bodySnapshot}
         disclosure={E_RECORDS_DISCLOSURE[locale]}
         locale={locale}
+        items={items}
         onSign={doSign}
         onDecline={doDecline}
       />

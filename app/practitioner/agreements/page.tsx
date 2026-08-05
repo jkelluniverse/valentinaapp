@@ -6,6 +6,7 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { PendingButton } from "@/components/PendingButton";
 import {
   seedStarterTemplates,
+  installMasterV31Action,
   sendAgreementAction,
   remindAgreement,
   voidAgreementAction,
@@ -13,6 +14,7 @@ import {
   markPaperAction,
   toggleTemplateTrigger,
 } from "./actions";
+import { V31_SLUG } from "@/lib/agreements/install-v31";
 
 // C20 §2 — the practitioner's agreements desk: templates (versioned,
 // placeholder-marked until the attorney pass), the send flow (manual),
@@ -48,13 +50,15 @@ export default async function AgreementsDesk({
   const tenant = await getTenant();
 
   const [templates, agreements, clients] = await Promise.all([
-    prisma.agreementTemplate.findMany({ where: { tenantId: tenant.id, status: "ACTIVE" }, orderBy: [{ slug: "asc" }, { locale: "asc" }] }),
+    prisma.agreementTemplate.findMany({ where: { tenantId: tenant.id, status: { in: ["ACTIVE", "DRAFT"] } }, orderBy: [{ slug: "asc" }, { locale: "asc" }] }),
     prisma.agreement.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
     prisma.user.findMany({ where: { role: "CLIENT", active: true }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
   ]);
   const nameFor = new Map(clients.map((c) => [c.id, c.name ?? c.email]));
   const enTemplates = templates.filter((t) => t.locale === "en");
+  const sendableTemplates = enTemplates.filter((t) => t.status === "ACTIVE");
   const anyPlaceholder = templates.some((t) => t.placeholder);
+  const v31Installed = templates.some((t) => t.slug === V31_SLUG);
   const fieldCls =
     "rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20";
 
@@ -84,6 +88,20 @@ export default async function AgreementsDesk({
         </p>
       )}
 
+      {!v31Installed && (
+        <form action={installMasterV31Action}>
+          <PendingButton className="rounded-lg border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+            Install master agreement v3.1 (counsel&apos;s draft — not sendable until released)
+          </PendingButton>
+        </form>
+      )}
+      {searchParams.error === undefined && v31Installed && templates.find((t) => t.slug === V31_SLUG)?.status === "DRAFT" && (
+        <p className="rounded-md border border-line bg-surface px-4 py-2.5 text-sm text-slate">
+          Master agreement v3.1 is installed as a DRAFT — preview works, sending is refused until
+          it&apos;s released (counsel items outstanding).
+        </p>
+      )}
+
       {templates.length === 0 ? (
         <form action={seedStarterTemplates}>
           <PendingButton className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark">
@@ -98,9 +116,9 @@ export default async function AgreementsDesk({
               Template
               <select name="templateId" required className={fieldCls}>
                 <option value="">Choose…</option>
-                {enTemplates.map((t) => (
+                {sendableTemplates.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.title} (v{t.version})
+                    {t.title} (v{t.versionLabel ?? t.version})
                   </option>
                 ))}
               </select>
@@ -138,7 +156,19 @@ export default async function AgreementsDesk({
             {enTemplates.map((t) => (
               <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-card border border-line bg-surface px-4 py-3">
                 <span className="font-medium text-ink-strong">{t.title}</span>
-                <span className="text-[12px] text-whisper">v{t.version}{t.placeholder ? " · placeholder" : ""}</span>
+                <span className="text-[12px] text-whisper">
+                  v{t.versionLabel ?? t.version}
+                  {t.placeholder ? " · placeholder" : ""}
+                  {t.status === "DRAFT" ? " · DRAFT — not sendable" : ""}
+                </span>
+                {t.status === "DRAFT" && (
+                  <Link
+                    href={`/practitioner/agreements/preview?templateId=${t.id}&clientId=${clients[0]?.id ?? ""}`}
+                    className="text-[12px] font-medium text-wine underline-offset-4 hover:underline"
+                  >
+                    Preview
+                  </Link>
+                )}
                 <span className="ml-auto flex flex-wrap gap-1.5">
                   {TRIGGERS.map((tr) => {
                     const on = (t as unknown as Record<string, boolean>)[tr.field];

@@ -54,6 +54,10 @@ export async function completeIntakeAction(flowId: string): Promise<void> {
   if (!clientId) return;
   const { completeIntake, runCompletionFanout } = await import("@/lib/intake/complete");
   const done = await completeIntake(flowId);
+  if (done && "blocked" in done) {
+    // ADDENDUM M — adults-only platform; calm message, nothing lost.
+    redirect("/space/intake?notice=guardian");
+  }
   if (done) {
     // Fired, not awaited — the client lands on Done immediately (§3E).
     void runCompletionFanout(flowId, done.clientId).catch(() => undefined);

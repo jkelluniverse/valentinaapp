@@ -78,8 +78,48 @@ export async function ensureStarterTemplates(tenantId: string): Promise<number> 
   return created;
 }
 
-export function mergeBody(body: string, vars: Record<string, string>): string {
-  return body.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_, key: string) => vars[key.toLowerCase()] ?? `{{${key}}}`);
+// Resolved values may be wrapped in ⟦…⟧ markers (preview-only highlight);
+// unresolved vars stay visibly unresolved — a DRAFT renders its gaps.
+export function mergeBody(body: string, vars: Record<string, string>, mark = false): string {
+  return body.replace(/\{\{\s*([a-z_]+)\s*\}\}/gi, (_, key: string) => {
+    const v = vars[key.toLowerCase()];
+    if (v === undefined) return `{{${key}}}`;
+    return mark ? `⟦${v}⟧` : v;
+  });
+}
+
+// v3.1 §4.4 — Exhibit B's "[practice email address]" is filled at RENDER
+// time from config, never by editing counsel's stored text.
+function fillRenderPlaceholders(body: string, practiceEmail: string | null): string {
+  return practiceEmail ? body.replaceAll("[practice email address]", practiceEmail) : body;
+}
+
+// The per-item acknowledgments a template demands at signing.
+export type InitialItem = { id: string; text: string; kind: "initials" | "checkbox"; required: boolean };
+
+export function initialItemsOf(template: { initialItems?: unknown }): InitialItem[] {
+  return Array.isArray(template.initialItems) ? (template.initialItems as InitialItem[]) : [];
+}
+
+// The v3.1 signature-page Key Terms — the fields frozen into the sealed
+// record, rendered as a table on the sign page and the sealed PDF.
+export const KEY_TERM_FIELDS: { key: string; label: string }[] = [
+  { key: "client_name", label: "Client" },
+  { key: "package_name", label: "Package" },
+  { key: "price", label: "Package price" },
+  { key: "session_count", label: "Session credits" },
+  { key: "notice_window_hours", label: "Cancellation boundary (hours)" },
+  { key: "late_change_fee", label: "Late-change / no-show fee" },
+  { key: "late_cancellation_credit_treatment", label: "Credit treatment on late change" },
+  { key: "single_session_rate", label: "Single-session rate" },
+  { key: "personalized_deliverables_and_value", label: "Personalized deliverables & value" },
+  { key: "credit_expiration", label: "Credit expiration" },
+  { key: "payer_name_or_self", label: "Payer" },
+];
+
+export function keyTermsFrom(mergeData: unknown): [string, string][] {
+  const data = (mergeData ?? {}) as Record<string, string>;
+  return KEY_TERM_FIELDS.filter((f) => data[f.key] !== undefined).map((f) => [f.label, data[f.key]]);
 }
 
 export async function agEvent(
@@ -106,12 +146,13 @@ type AgreementContentArgs = {
 // practitioner previews is byte-for-byte what goes out (§2 "preview
 // merged → Send"). Writes nothing.
 async function resolveAgreementContent(args: AgreementContentArgs): Promise<
-  | { ok: true; sibling: { id: string; slug: string; version: number; locale: string; title: string; body: string; requiresCountersign: boolean }; vars: Record<string, string>; recipientEmail: string | null }
+  | { ok: true; sibling: { id: string; slug: string; version: number; versionLabel: string | null; locale: string; title: string; body: string; requiresCountersign: boolean; status: string; initialItems: unknown }; vars: Record<string, string>; recipientEmail: string | null }
   | { ok: false; error: string }
 > {
   if (!args.clientId === !args.leadId) return { ok: false, error: "exactly one of client/lead" };
+  // DRAFT templates resolve (so preview works); only SEND refuses them.
   const template = await prisma.agreementTemplate.findFirst({
-    where: { id: args.templateId, status: "ACTIVE" },
+    where: { id: args.templateId, status: { in: ["ACTIVE", "DRAFT"] } },
   });
   if (!template) return { ok: false, error: "template not found" };
 
@@ -138,29 +179,55 @@ async function resolveAgreementContent(args: AgreementContentArgs): Promise<
           where: { tenantId: args.tenantId, slug: template.slug, version: template.version, locale: wantLocale, status: "ACTIVE" },
         })) ?? template;
 
+  // v3.1 — live data sources for the key-terms vars (never hardcoded):
+  // the scheduling policy carries the boundary + fee; the active session
+  // rate feeds refund math; the payee field answers "Payer". SOW-only
+  // fields (credit treatment, deliverables value, credit expiration) have
+  // NO data source yet — they resolve only when passed in `merge`, and
+  // stay visibly unresolved otherwise (flagged in the install report).
+  const [schedConfig, sessionRate, profile] = await Promise.all([
+    prisma.schedulingConfig.findFirst({ select: { cancelCutoffHours: true, lateFeeCents: true } }),
+    prisma.priceBook.findFirst({ where: { active: true, kind: "SESSION" }, orderBy: { createdAt: "desc" }, select: { amountCents: true } }),
+    args.clientId ? prisma.clientProfile.findUnique({ where: { userId: args.clientId }, select: { payeeName: true } }) : Promise.resolve(null),
+  ]);
+  const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
   const vars: Record<string, string> = {
     client_name: client?.name ?? lead?.name ?? "Client",
     practitioner_name: practitioner?.name ?? tenant?.displayName ?? "Practitioner",
     date: new Date().toISOString().slice(0, 10),
-    package_name: args.merge?.package_name ?? "—",
-    price: args.merge?.price ?? "—",
-    term: args.merge?.term ?? "—",
+    ...(schedConfig ? { notice_window_hours: String(schedConfig.cancelCutoffHours), late_change_fee: money(schedConfig.lateFeeCents) } : {}),
+    ...(sessionRate ? { single_session_rate: money(sessionRate.amountCents) } : {}),
+    payer_name_or_self: profile?.payeeName ?? "Self",
     ...(args.merge ?? {}),
   };
   return { ok: true, sibling, vars, recipientEmail: client?.email ?? lead?.email ?? null };
 }
 
+function practiceEmail(): string | null {
+  return process.env.PRACTICE_EMAIL ?? process.env.NOTIFY_FROM_EMAIL ?? null;
+}
+
 // §2 — the merged preview, exactly as it would send. Persistence-free.
+// `mark` wraps resolved values in ⟦…⟧ so the preview can highlight them
+// (client-facing renders never mark).
 export async function previewAgreement(
-  args: AgreementContentArgs
-): Promise<{ ok: true; title: string; body: string; locale: string } | { ok: false; error: string }> {
+  args: AgreementContentArgs & { mark?: boolean }
+): Promise<
+  | { ok: true; title: string; body: string; locale: string; status: string; versionLabel: string | null; keyTerms: [string, string][]; draft: boolean }
+  | { ok: false; error: string }
+> {
   const resolved = await resolveAgreementContent(args);
   if (!resolved.ok) return resolved;
   return {
     ok: true,
     title: resolved.sibling.title,
-    body: mergeBody(resolved.sibling.body, resolved.vars),
+    body: fillRenderPlaceholders(mergeBody(resolved.sibling.body, resolved.vars, args.mark ?? false), practiceEmail()),
     locale: resolved.sibling.locale,
+    status: resolved.sibling.status,
+    versionLabel: resolved.sibling.versionLabel,
+    keyTerms: keyTermsFrom(resolved.vars),
+    draft: resolved.sibling.status === "DRAFT",
   };
 }
 
@@ -173,6 +240,11 @@ export async function createAndSendAgreement(args: AgreementContentArgs & { acto
   if (!resolved.ok) return resolved;
   const { sibling, vars, recipientEmail } = resolved;
 
+  // Hard rule: a DRAFT master never sends — counsel/Jacob flips it live.
+  if (sibling.status !== "ACTIVE") {
+    return { ok: false, error: `template is ${sibling.status} — not sendable` };
+  }
+
   const { raw, hash } = generateInviteToken();
   const agreement = await prisma.agreement.create({
     data: {
@@ -183,7 +255,7 @@ export async function createAndSendAgreement(args: AgreementContentArgs & { acto
       locale: sibling.locale,
       status: "SENT",
       titleSnapshot: sibling.title,
-      bodySnapshot: mergeBody(sibling.body, vars),
+      bodySnapshot: fillRenderPlaceholders(mergeBody(sibling.body, vars), practiceEmail()),
       mergeData: vars as Prisma.InputJsonValue,
       tokenHash: hash,
       expiresAt: new Date(Date.now() + AGREEMENT_LINK_TTL_DAYS * 86400_000),
@@ -252,6 +324,8 @@ export async function markDisclosureShown(agreementId: string, actor: string): P
 }
 
 // §3.4 — the signature: unambiguous intent + the full attribution stack.
+// v3.1: templates may demand per-item acknowledgments (initials/checkboxes);
+// every required item must be captured or the signature refuses.
 export async function signAgreement(args: {
   agreementId: string;
   signerName: string;
@@ -259,12 +333,27 @@ export async function signAgreement(args: {
   ip?: string | null;
   agent?: string | null;
   actor: string;
+  initials?: Record<string, string>; // itemId → typed initials / "checked"
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const a = await prisma.agreement.findFirst({ where: { id: args.agreementId } });
   if (!a) return { ok: false, error: "not found" };
   if (!["SENT", "VIEWED"].includes(a.status)) return { ok: false, error: `cannot sign from ${a.status}` };
   if (!a.disclosureShownAt) return { ok: false, error: "disclosure not shown" };
   if (!args.signerName.trim() || args.signerName.trim().length < 3) return { ok: false, error: "typed legal name required" };
+
+  const template = await prisma.agreementTemplate.findFirst({ where: { id: a.templateId } });
+  const items = initialItemsOf(template ?? {});
+  const now = new Date().toISOString();
+  const captured: { id: string; value: string; at: string }[] = [];
+  for (const item of items) {
+    const value = (args.initials?.[item.id] ?? "").trim();
+    if (item.required && !value) return { ok: false, error: `acknowledgment required: ${item.id}` };
+    if (item.kind === "initials" && value && (value.length < 2 || value.length > 5)) {
+      return { ok: false, error: `initials invalid: ${item.id}` };
+    }
+    if (value) captured.push({ id: item.id, value, at: now });
+  }
+
   await prisma.agreement.update({
     where: { id: a.id },
     data: {
@@ -274,9 +363,15 @@ export async function signAgreement(args: {
       signerDrawn: args.drawn ?? null,
       signerIp: args.ip ?? null,
       signerAgent: args.agent ?? null,
+      initialsCaptured: captured as unknown as Prisma.InputJsonValue,
     },
   });
-  await agEvent(a.tenantId ?? "", a.id, "signed", args.actor, { name: args.signerName.trim(), ip: args.ip, agent: args.agent });
+  await agEvent(a.tenantId ?? "", a.id, "signed", args.actor, {
+    name: args.signerName.trim(),
+    ip: args.ip,
+    agent: args.agent,
+    acknowledgments: captured.length,
+  });
   return { ok: true };
 }
 

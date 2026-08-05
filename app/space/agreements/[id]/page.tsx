@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { requireClient } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
-import { markViewed, markDisclosureShown, signAgreement, declineAgreement, E_RECORDS_DISCLOSURE } from "@/lib/agreements";
+import { markViewed, markDisclosureShown, signAgreement, declineAgreement, E_RECORDS_DISCLOSURE, initialItemsOf } from "@/lib/agreements";
 import { sealIfComplete } from "@/lib/agreements/seal";
 import { Eyebrow } from "@/components/brand";
 import { SignFlow } from "@/components/agreements/SignFlow";
@@ -27,6 +27,8 @@ export default async function SignAgreementPage({
   await markViewed(agreement.id, "client");
   await markDisclosureShown(agreement.id, "client");
   const locale = (agreement.locale === "es" ? "es" : "en") as "en" | "es";
+  const template = await prisma.agreementTemplate.findFirst({ where: { id: agreement.templateId }, select: { initialItems: true } });
+  const items = initialItemsOf(template ?? {});
 
   async function doSign(formData: FormData) {
     "use server";
@@ -34,6 +36,10 @@ export default async function SignAgreementPage({
     const a = await prisma.agreement.findFirst({ where: { id: params.id, clientId: me.id } });
     if (!a) notFound();
     const h = headers();
+    const initials: Record<string, string> = {};
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith("ack:")) initials[key.slice(4)] = String(value);
+    }
     const result = await signAgreement({
       agreementId: a!.id,
       signerName: String(formData.get("signerName") ?? ""),
@@ -41,6 +47,7 @@ export default async function SignAgreementPage({
       ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
       agent: h.get("user-agent"),
       actor: "client",
+      initials,
     });
     if (result.ok) {
       await sealIfComplete(a!.id);
@@ -68,6 +75,7 @@ export default async function SignAgreementPage({
         body={agreement.bodySnapshot}
         disclosure={E_RECORDS_DISCLOSURE[locale]}
         locale={locale}
+        items={items}
         onSign={doSign}
         onDecline={doDecline}
       />

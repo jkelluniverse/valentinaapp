@@ -18,6 +18,10 @@ export type SealInput = {
   events: { at: string; kind: string; actor: string; detail?: string }[];
   agreementId: string;
   paperSigned?: boolean;
+  // v3.1 — the Key Terms frozen into the sealed record, and the per-item
+  // acknowledgments (initials/checkboxes) captured at signing.
+  keyTerms?: [string, string][];
+  acknowledgments?: { text: string; value: string; at: string }[];
 };
 
 const L = {
@@ -109,6 +113,25 @@ export function renderSealedPdf(input: SealInput): Buffer {
   lines.push({ text: input.title, size: 18, bold: true, color: WINE, gap: 6 });
   lines.push({ text: "", size: 6 });
   for (const l of wrapText(input.body, 10.5, BODY_W)) lines.push({ text: l, size: 10.5 });
+
+  // ---- Key Terms (v3.1 — "captured in the sealed record") ----
+  if (input.keyTerms?.length) {
+    lines.push({ text: "", size: 10, gap: 20 });
+    lines.push({ text: input.locale === "es" ? "TÉRMINOS CLAVE (registro sellado)" : "KEY TERMS (sealed record)", size: 13, bold: true, color: WINE, gap: 8 });
+    for (const [label, value] of input.keyTerms) {
+      lines.push({ text: `${label}:  ${value}`, size: 9.5 });
+    }
+  }
+
+  // ---- Acknowledgments (v3.1 — initials/checkboxes, attributed) ----
+  if (input.acknowledgments?.length) {
+    lines.push({ text: "", size: 10, gap: 16 });
+    lines.push({ text: input.locale === "es" ? "RECONOCIMIENTOS INICIALADOS" : "INITIALED ACKNOWLEDGMENTS", size: 13, bold: true, color: WINE, gap: 8 });
+    for (const ack of input.acknowledgments) {
+      lines.push({ text: `[${ack.value}]  ${ack.at}`, size: 9, bold: true, gap: 4 });
+      for (const l of wrapText(ack.text, 8.5, BODY_W)) lines.push({ text: l, size: 8.5, color: SLATE });
+    }
+  }
 
   // ---- Signature page ----
   lines.push({ text: "", size: 10, gap: 24 });

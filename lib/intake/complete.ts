@@ -20,8 +20,9 @@ import { getAnswers, emitEvent } from "@/lib/intake/engine";
 type BirthPlace = { display?: string; lat?: number; lng?: number; tz?: string };
 
 // Commit answers to their destinations, mark the flow COMPLETE, emit the
-// event. Fast + synchronous. Returns the clientId for the fan-out.
-export async function completeIntake(flowId: string): Promise<{ clientId: string } | null> {
+// event. Fast + synchronous. Returns the clientId for the fan-out —
+// or { blocked: "minor" } (Addendum M gate; flow stays IN_PROGRESS).
+export async function completeIntake(flowId: string): Promise<{ clientId: string } | { blocked: "minor" } | null> {
   const tenant = await getTenant();
   const flow = await prisma.intakeFlow.findFirst({ where: { id: flowId }, select: { id: true, clientId: true, status: true } });
   if (!flow || flow.status !== "IN_PROGRESS") return null;
@@ -39,6 +40,33 @@ export async function completeIntake(flowId: string): Promise<{ clientId: string
   const placeObj: BirthPlace = typeof place === "string" ? { display: place } : (place ?? {});
   const birthDateRaw = a["birth.date"];
   const birthDate = typeof birthDateRaw === "string" && birthDateRaw ? new Date(`${birthDateRaw}T00:00:00Z`) : undefined;
+
+  // ADDENDUM M (C20 v3.1) — the platform is adults-only BY DESIGN: consent,
+  // safety, and crisis architecture are built for adults, and a minors
+  // pathway needs its own product pass. This is the FIRST moment a date of
+  // birth is known (invites carry no DOB — deviation noted in the install
+  // report), so the gate lives here: under-18 completion is refused with a
+  // calm message and Valentina is notified.
+  if (birthDate) {
+    const age = (Date.now() - birthDate.getTime()) / (365.25 * 86400_000);
+    if (age < 18) {
+      await emitEvent({ tenantId: tenant.id, clientId, actor: "system", eventKey: "intake.minor_blocked", meta: { flowId } });
+      try {
+        const practitioner = await prisma.user.findFirst({ where: { role: "PRACTITIONER" }, select: { email: true } });
+        if (practitioner?.email) {
+          const { sendEmail } = await import("@/lib/notify");
+          await sendEmail({
+            to: practitioner.email,
+            subject: "An intake needs your attention",
+            text: "A client's intake indicates they are under 18. The platform doesn't support minor clients yet — this intake was paused, and a guardian arrangement (Addendum M) would need its own process. Please reach out to them directly.",
+          });
+        }
+      } catch {
+        /* notification is best-effort; the block is the point */
+      }
+      return { blocked: "minor" }; // flow stays IN_PROGRESS; UI shows the calm message
+    }
+  }
   const birthTimeRaw = a["birth.time"];
   const timeUnknown = birthTimeRaw === "" || birthTimeRaw == null || birthTimeRaw === "unknown";
   const birthTime = !timeUnknown && typeof birthTimeRaw === "string" ? birthTimeRaw : null;

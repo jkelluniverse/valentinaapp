@@ -31,10 +31,23 @@ export default async function AgreementPreview({
     templateId: searchParams.templateId ?? "",
     clientId: searchParams.clientId || undefined,
     merge,
+    mark: true, // resolved values highlighted in preview only
   });
   const client = searchParams.clientId
     ? await prisma.user.findFirst({ where: { id: searchParams.clientId }, select: { name: true, email: true } })
     : null;
+
+  // ⟦…⟧ markers → highlighted spans (mocha), everything else plain.
+  const renderMarked = (body: string) =>
+    body.split(/(⟦[^⟧]*⟧)/g).map((part, i) =>
+      part.startsWith("⟦") ? (
+        <mark key={i} className="rounded bg-blush px-0.5 text-wine">
+          {part.slice(1, -1)}
+        </mark>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-6">
@@ -60,25 +73,52 @@ export default async function AgreementPreview({
 
       {preview.ok && (
         <>
+          {preview.draft && (
+            <p className="rounded-md border border-dashed border-mocha bg-blush px-4 py-2.5 text-sm font-medium text-wine">
+              DRAFT v{preview.versionLabel ?? ""} — preview only. Sending is refused until this
+              template is released (counsel items outstanding). Unresolved {`{{variables}}`} show
+              exactly where text or data is still missing.
+            </p>
+          )}
+          {preview.keyTerms.length > 0 && (
+            <div className="overflow-hidden rounded-card border border-line">
+              <table className="w-full text-[13.5px]">
+                <tbody>
+                  {preview.keyTerms.map(([label, value]) => (
+                    <tr key={label} className="border-b border-line last:border-0">
+                      <td className="bg-surface px-4 py-2 font-medium text-mocha">{label}</td>
+                      <td className="px-4 py-2 text-ink">{value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
           <div className="whitespace-pre-wrap rounded-card border border-line bg-white p-6 text-[14.5px] leading-relaxed text-ink shadow-soft">
-            {preview.body}
+            {renderMarked(preview.body)}
           </div>
-          <form action={sendAgreementAction} className="flex items-center gap-4">
-            <input type="hidden" name="templateId" value={searchParams.templateId ?? ""} />
-            <input type="hidden" name="clientId" value={searchParams.clientId ?? ""} />
-            <input type="hidden" name="package_name" value={searchParams.package_name ?? ""} />
-            <input type="hidden" name="price" value={searchParams.price ?? ""} />
-            <input type="hidden" name="term" value={searchParams.term ?? ""} />
-            <PendingButton
-              pendingLabel="Sending…"
-              className="rounded-lg bg-wine px-6 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark"
-            >
-              Send it{client?.name ? ` to ${client.name}` : ""}
-            </PendingButton>
+          {preview.draft ? (
             <Link href="/practitioner/agreements" className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
-              Go back
+              ← Back (nothing can be sent from a draft)
             </Link>
-          </form>
+          ) : (
+            <form action={sendAgreementAction} className="flex items-center gap-4">
+              <input type="hidden" name="templateId" value={searchParams.templateId ?? ""} />
+              <input type="hidden" name="clientId" value={searchParams.clientId ?? ""} />
+              <input type="hidden" name="package_name" value={searchParams.package_name ?? ""} />
+              <input type="hidden" name="price" value={searchParams.price ?? ""} />
+              <input type="hidden" name="term" value={searchParams.term ?? ""} />
+              <PendingButton
+                pendingLabel="Sending…"
+                className="rounded-lg bg-wine px-6 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark"
+              >
+                Send it{client?.name ? ` to ${client.name}` : ""}
+              </PendingButton>
+              <Link href="/practitioner/agreements" className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">
+                Go back
+              </Link>
+            </form>
+          )}
         </>
       )}
     </div>

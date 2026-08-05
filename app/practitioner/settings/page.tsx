@@ -347,6 +347,21 @@ export default async function PractitionerSettingsPage({
               <span className="text-xs text-slate">dollars</span>
             </label>
           </div>
+          {/* C20 v3.1 counsel note — liquidated-damages proportionality: a
+              soft warning only, never a block (her call + counsel's). */}
+          {await (async () => {
+            const rate = await prisma.priceBook.findFirst({
+              where: { active: true, kind: "SESSION" },
+              orderBy: { createdAt: "desc" },
+              select: { amountCents: true },
+            });
+            return rate && config.lateFeeCents > rate.amountCents ? (
+              <p className="rounded-md border border-mocha bg-blush px-3 py-2 text-xs text-wine">
+                Heads-up: the late fee is higher than the current session rate — counsel flagged
+                that a late-change fee should stay a reasonable proportion of the session price.
+              </p>
+            ) : null;
+          })()}
           <label className="flex items-start gap-3 text-sm text-ink">
             <input
               type="checkbox"

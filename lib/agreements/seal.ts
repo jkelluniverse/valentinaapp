@@ -3,7 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma as scopedPrisma } from "@/lib/prisma";
 import { putObject, getObject } from "@/lib/storage";
 import { renderSealedPdf } from "./pdf";
-import { E_RECORDS_DISCLOSURE } from "./index";
+import { E_RECORDS_DISCLOSURE, keyTermsFrom, initialItemsOf } from "./index";
 
 // C20 §4 — seal & store. On final signature (client signature, plus the
 // countersign when the template asks for one) the sealed PDF is generated,
@@ -29,10 +29,17 @@ export async function sealIfComplete(
   if (a.countersignRequired && !a.countersignedAt) return { sealed: false, reason: "awaiting countersign" };
   if (a.sealedKey && a.sealedSha256) return { sealed: true, reason: "already sealed" };
 
-  const [tenant, events] = await Promise.all([
+  const [tenant, events, template] = await Promise.all([
     prisma.tenant.findFirst({ where: { id: a.tenantId ?? "" }, select: { displayName: true } }),
     prisma.agreementEvent.findMany({ where: { agreementId: a.id }, orderBy: { at: "asc" } }),
+    prisma.agreementTemplate.findFirst({ where: { id: a.templateId }, select: { initialItems: true } }),
   ]);
+
+  // v3.1 — join captured acknowledgments to their template text so the
+  // sealed PDF shows what each set of initials actually acknowledged.
+  const itemText = new Map(initialItemsOf(template ?? {}).map((i) => [i.id, i.text]));
+  const captured = Array.isArray(a.initialsCaptured) ? (a.initialsCaptured as { id: string; value: string; at: string }[]) : [];
+  const acknowledgments = captured.map((c) => ({ text: itemText.get(c.id) ?? c.id, value: c.value, at: c.at }));
 
   const locale = (a.locale === "es" ? "es" : "en") as "en" | "es";
   const pdf = renderSealedPdf({
@@ -59,6 +66,8 @@ export async function sealIfComplete(
     })),
     agreementId: a.id,
     paperSigned: Boolean(a.paperSignedAt),
+    keyTerms: keyTermsFrom(a.mergeData),
+    acknowledgments,
   });
 
   const sha256 = createHash("sha256").update(pdf).digest("hex");

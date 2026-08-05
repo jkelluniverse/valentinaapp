@@ -209,6 +209,7 @@ async function insertBFixtures() {
   const bTpl = await p.agreementTemplate.create({ data: { ...T, slug: "bfx-services", version: 1, title: "probe", body: "probe {{client_name}}" } });
   const bAgr = await p.agreement.create({ data: { ...T, templateId: bTpl.id, clientId: bUser, titleSnapshot: "probe", bodySnapshot: "probe", mergeData: j({}) } });
   await p.agreementEvent.create({ data: { ...T, agreementId: bAgr.id, kind: "created", actor: "system" } });
+  await p.patternElection.create({ data: { ...T, clientId: bUser, participate: false, version: "P-1" } });
 
   return { bUser, pkg };
 }

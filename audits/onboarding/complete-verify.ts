@@ -66,7 +66,7 @@ async function main() {
 
     // --- Completion (commits + status) ---
     const done = await completeIntake(flow.id);
-    check("completeIntake returns the client", done?.clientId === client.id);
+    check("completeIntake returns the client", done !== null && "clientId" in done && done.clientId === client.id);
     const profile = await prisma.clientProfile.findUnique({ where: { userId: client.id } });
     check("identity committed to User.name", (await prisma.user.findUnique({ where: { id: client.id } }))?.name === "Robin Probe");
     check("birth data committed to profile (date + geocoded place)", Boolean(profile?.birthDate) && profile?.birthLat === 30.2672 && profile?.birthTz === "America/Chicago");

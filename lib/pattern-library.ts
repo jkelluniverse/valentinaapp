@@ -11,6 +11,34 @@ import { prisma } from "@/lib/prisma";
 export const PATTERN_LIBRARY_KEY = "patternLibraryEnabled"; // consent-gated switch (§3.6)
 export const K_FLOOR = 5;
 
+// ADDENDUM P (C20 v3.1) — the per-client participation election. Recorded
+// like consent: versioned, revocable, queryable. DEFAULT DIRECTION is a
+// counsel/Jacob decision — until they say otherwise, a client with NO
+// election row keeps today's behavior (included under the practice-level
+// switch), and an explicit opt-OUT always excludes. Flip this constant to
+// false to make participation strictly opt-in.
+export const PATTERN_ELECTION_DEFAULT_PARTICIPATE = true;
+export const PATTERN_ELECTION_VERSION = "P-3.1";
+
+export async function setPatternElection(clientId: string, participate: boolean, tenantId?: string): Promise<void> {
+  await prisma.patternElection.upsert({
+    where: { clientId },
+    create: { clientId, participate, version: PATTERN_ELECTION_VERSION, ...(tenantId ? { tenantId } : {}) },
+    update: { participate, version: PATTERN_ELECTION_VERSION },
+  });
+}
+
+// Predicate: is this client excluded from cross-client aggregation?
+async function exclusionPredicate(): Promise<(clientId: string) => boolean> {
+  const elections = await prisma.patternElection.findMany({ select: { clientId: true, participate: true } });
+  if (PATTERN_ELECTION_DEFAULT_PARTICIPATE) {
+    const optedOut = new Set(elections.filter((e) => !e.participate).map((e) => e.clientId));
+    return (id) => optedOut.has(id);
+  }
+  const optedIn = new Set(elections.filter((e) => e.participate).map((e) => e.clientId));
+  return (id) => !optedIn.has(id);
+}
+
 export type AggregateResult =
   | { ok: true; archetypes: number; links: number; usable: number }
   | { ok: false; error: "disabled" };
@@ -23,8 +51,18 @@ export async function aggregatePatterns(): Promise<AggregateResult> {
   const enabled = await prisma.practiceSetting.findUnique({ where: { key: PATTERN_LIBRARY_KEY } });
   if (enabled?.value !== "true") return { ok: false, error: "disabled" };
 
+  // Stamp aggregates with the practice tenant explicitly: this job also
+  // runs from CLI/tick contexts where the scoped client passes through
+  // (the null-tenant invariant audit caught exactly this).
+  const { getTenant } = await import("@/lib/tenancy");
+  const tenantId = (await getTenant()).id;
+
+  // ADDENDUM P — the election gate: non-participants' data never enters
+  // the aggregation at all (before counting, before the k-floor).
+  const isExcluded = await exclusionPredicate();
+
   // ---- Archetypes: label × kind → how many DISTINCT clients carry it ----
-  const nodes = await prisma.psycheNode.findMany({
+  const allNodes = await prisma.psycheNode.findMany({
     // C12X §4 — CHART_DERIVED hypotheses are NOT lived patterns: they never
     // enter the cross-client library, corroborated or not. CONTRADICTED
     // (client said "doesn't fit") stays out too.
@@ -34,6 +72,7 @@ export async function aggregatePatterns(): Promise<AggregateResult> {
     },
     select: { id: true, clientId: true, kind: true, label: true },
   });
+  const nodes = allNodes.filter((n) => !isExcluded(n.clientId));
   const byKey = new Map<string, { kind: (typeof nodes)[number]["kind"]; label: string; clients: Set<string>; ids: Map<string, string> }>();
   for (const n of nodes) {
     const key = `${n.kind}:${norm(n.label)}`;
@@ -49,6 +88,7 @@ export async function aggregatePatterns(): Promise<AggregateResult> {
     const arch = await prisma.patternArchetype.upsert({
       where: { label: entry.label },
       create: {
+        tenantId,
         kind: entry.kind,
         label: entry.label, // the label itself — an abstraction, never a quote
         definition: "",
@@ -62,9 +102,10 @@ export async function aggregatePatterns(): Promise<AggregateResult> {
   }
 
   // ---- Links: archetype↔archetype co-occurrence via edges, distinct clients ----
-  const edges = await prisma.psycheEdge.findMany({
+  const allEdges = await prisma.psycheEdge.findMany({
     select: { clientId: true, fromId: true, toId: true, relation: true, weight: true },
   });
+  const edges = allEdges.filter((e) => !isExcluded(e.clientId));
   const linkAgg = new Map<string, { fromId: string; toId: string; relation: string; clients: Set<string>; weights: number[] }>();
   for (const e of edges) {
     const fromArch = nodeToArchetype.get(e.fromId);
@@ -82,6 +123,7 @@ export async function aggregatePatterns(): Promise<AggregateResult> {
     await prisma.patternLink.upsert({
       where: { fromId_toId_relation: { fromId: l.fromId, toId: l.toId, relation: l.relation } },
       create: {
+        tenantId,
         fromId: l.fromId,
         toId: l.toId,
         relation: l.relation,
@@ -95,6 +137,14 @@ export async function aggregatePatterns(): Promise<AggregateResult> {
     });
     links++;
   }
+
+  // Elections can remove an archetype's every carrier between runs — zero
+  // out anything this run didn't see, so stale counts can't clear the floor.
+  const seenLabels = [...byKey.values()].map((e) => e.label);
+  await prisma.patternArchetype.updateMany({
+    where: { label: { notIn: seenLabels } },
+    data: { clientCount: 0 },
+  });
 
   const usable = await prisma.patternArchetype.count({ where: { clientCount: { gte: K_FLOOR } } });
   // Metadata only.
