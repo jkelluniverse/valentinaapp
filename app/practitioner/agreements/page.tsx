@@ -7,7 +7,11 @@ import { PendingButton } from "@/components/PendingButton";
 import {
   seedStarterTemplates,
   installMasterV31Action,
+  installDisputePacketAction,
   sendAgreementAction,
+  sendToEmailAction,
+  uploadRequestAction,
+  selfSignAction,
   remindAgreement,
   voidAgreementAction,
   countersignAction,
@@ -15,6 +19,7 @@ import {
   toggleTemplateTrigger,
 } from "./actions";
 import { V31_SLUG } from "@/lib/agreements/install-v31";
+import { DECLARATION_SLUG } from "@/lib/agreements/install-c21";
 
 // C20 §2 — the practitioner's agreements desk: templates (versioned,
 // placeholder-marked until the attorney pass), the send flow (manual),
@@ -41,17 +46,26 @@ const TRIGGERS: { field: string; label: string }[] = [
   { field: "sendOnRecordingConsent", label: "on recording consent" },
 ];
 
+// C21 — the agreements browser filters, Library-style: a selectable view
+// (grid tiles / detailed list) + status shelves instead of one long list.
+const SHELVES: { key: string; label: string; statuses: string[] | null }[] = [
+  { key: "all", label: "All", statuses: null },
+  { key: "awaiting", label: "Awaiting signature", statuses: ["SENT", "VIEWED"] },
+  { key: "signed", label: "Signed & sealed", statuses: ["SIGNED"] },
+  { key: "closed", label: "Declined / expired / voided", statuses: ["DECLINED", "EXPIRED", "VOIDED"] },
+];
+
 export default async function AgreementsDesk({
   searchParams,
 }: {
-  searchParams: { sent?: string; error?: string; seeded?: string };
+  searchParams: { sent?: string; error?: string; seeded?: string; view?: string; show?: string };
 }) {
   await requirePractitioner();
   const tenant = await getTenant();
 
   const [templates, agreements, clients] = await Promise.all([
     prisma.agreementTemplate.findMany({ where: { tenantId: tenant.id, status: { in: ["ACTIVE", "DRAFT"] } }, orderBy: [{ slug: "asc" }, { locale: "asc" }] }),
-    prisma.agreement.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
+    prisma.agreement.findMany({ orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.user.findMany({ where: { role: "CLIENT", active: true }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
   ]);
   const nameFor = new Map(clients.map((c) => [c.id, c.name ?? c.email]));
@@ -59,6 +73,11 @@ export default async function AgreementsDesk({
   const sendableTemplates = enTemplates.filter((t) => t.status === "ACTIVE");
   const anyPlaceholder = templates.some((t) => t.placeholder);
   const v31Installed = templates.some((t) => t.slug === V31_SLUG);
+  const packetInstalled = templates.some((t) => t.slug === DECLARATION_SLUG);
+  const fileCounts = new Map<string, number>();
+  for (const g of await prisma.agreementFile.groupBy({ by: ["templateId"], where: { templateId: { not: null } }, _count: true })) {
+    if (g.templateId) fileCounts.set(g.templateId, g._count);
+  }
   const fieldCls =
     "rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20";
 
@@ -92,6 +111,13 @@ export default async function AgreementsDesk({
         <form action={installMasterV31Action}>
           <PendingButton className="rounded-lg border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
             Install master agreement v3.1 (counsel&apos;s draft — not sendable until released)
+          </PendingButton>
+        </form>
+      )}
+      {!packetInstalled && (
+        <form action={installDisputePacketAction}>
+          <PendingButton className="rounded-lg border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+            Install the dispute packet (declaration, memorandum, recording log, Square narrative)
           </PendingButton>
         </form>
       )}
@@ -151,6 +177,87 @@ export default async function AgreementsDesk({
             </button>
           </form>
 
+          <form action={sendToEmailAction} className="flex flex-wrap items-end gap-3 rounded-card border border-line bg-surface p-5 shadow-card">
+            <p className="w-full text-[13px] font-semibold uppercase tracking-wide text-mocha">
+              Send to anyone by email
+              <span className="ml-2 font-normal normal-case tracking-normal text-whisper">
+                — no account needed; they read, fill, and sign from a secure link
+              </span>
+            </p>
+            <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+              Template
+              <select name="templateId" required className={fieldCls}>
+                <option value="">Choose…</option>
+                {sendableTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+              Recipient name
+              <input name="recipientName" required className={fieldCls} placeholder="Full name" />
+            </label>
+            <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+              Recipient email
+              <input name="recipientEmail" type="email" required className={fieldCls} placeholder="name@example.com" />
+            </label>
+            <PendingButton className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark">
+              Send for signature
+            </PendingButton>
+          </form>
+
+          <form action={uploadRequestAction} className="flex flex-col gap-3 rounded-card border border-line bg-surface p-5 shadow-card">
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-mocha">
+              Upload a document for signing
+              <span className="ml-2 font-normal normal-case tracking-normal text-whisper">
+                — PDF or Word; one or several files per request
+              </span>
+            </p>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+                Request title
+                <input name="title" required className={fieldCls} placeholder="e.g. Vendor NDA" />
+              </label>
+              <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+                Document file(s)
+                <input name="files" type="file" multiple required accept=".pdf,.docx,.png,.jpg,.jpeg" className="text-sm" />
+              </label>
+            </div>
+            <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+              Message shown beside the documents (optional)
+              <textarea name="message" rows={2} className={fieldCls} placeholder="Review the attached document(s); your signature below covers them." />
+            </label>
+            <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+              Fields to complete before signing (optional — one per line: <code className="font-mono text-[12px]">text: Label</code>,{" "}
+              <code className="font-mono text-[12px]">textarea: Label</code>, <code className="font-mono text-[12px]">initials: Label</code>,{" "}
+              <code className="font-mono text-[12px]">checkbox: Label</code>)
+              <textarea name="fields" rows={3} className={`${fieldCls} font-mono text-[12px]`} placeholder={"text: Your full legal name\ncheckbox: I have read every page"} />
+            </label>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex items-center gap-2 text-[13px] text-slate">
+                <input type="checkbox" name="saveAsTemplate" className="h-4 w-4 rounded border-line text-wine" />
+                Store as a reusable template
+              </label>
+              <label className="flex items-center gap-2 text-[13px] text-slate">
+                <input type="checkbox" name="requiresCountersign" className="h-4 w-4 rounded border-line text-wine" />
+                I countersign after they sign
+              </label>
+              <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+                Send now to — name
+                <input name="recipientName" className={fieldCls} placeholder="optional" />
+              </label>
+              <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+                …and email
+                <input name="recipientEmail" type="email" className={fieldCls} placeholder="optional" />
+              </label>
+              <PendingButton className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark">
+                Save / send
+              </PendingButton>
+            </div>
+          </form>
+
           <div className="flex flex-col gap-2">
             <h2 className="text-[13px] font-semibold uppercase tracking-wide text-mocha">Templates &amp; automatic sending</h2>
             {enTemplates.map((t) => (
@@ -158,9 +265,17 @@ export default async function AgreementsDesk({
                 <span className="font-medium text-ink-strong">{t.title}</span>
                 <span className="text-[12px] text-whisper">
                   v{t.versionLabel ?? t.version}
+                  {t.kind === "FILES" ? ` · ${fileCounts.get(t.id) ?? 0} file${(fileCounts.get(t.id) ?? 0) === 1 ? "" : "s"}` : ""}
                   {t.placeholder ? " · placeholder" : ""}
                   {t.status === "DRAFT" ? " · DRAFT — not sendable" : ""}
                 </span>
+                {t.kind === "FILES" && t.status === "ACTIVE" && !t.requiresCountersign && (
+                  <form action={selfSignAction.bind(null, t.id)}>
+                    <PendingButton className="rounded-md border border-wine px-2.5 py-0.5 text-[12px] font-medium text-wine hover:bg-blush/30">
+                      Sign &amp; seal myself
+                    </PendingButton>
+                  </form>
+                )}
                 {t.status === "DRAFT" && (
                   <Link
                     href={`/practitioner/agreements/preview?templateId=${t.id}&clientId=${clients[0]?.id ?? ""}`}
@@ -189,65 +304,168 @@ export default async function AgreementsDesk({
         </>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <h2 className="text-[13px] font-semibold uppercase tracking-wide text-mocha">Every agreement</h2>
-        {agreements.length === 0 ? (
-          <p className="rounded-card border border-line bg-surface p-5 text-sm text-slate shadow-card">
-            Nothing sent yet — the first one will appear here with its state.
-          </p>
-        ) : (
-          agreements.map((a) => (
-            <div key={a.id} className="flex flex-col gap-2 rounded-card border border-line bg-surface px-4 py-3">
-              <div className="flex flex-wrap items-center gap-2 text-[14px]">
-                <span className="font-medium text-ink-strong">{a.titleSnapshot}</span>
-                <span className="text-slate">· {a.clientId ? nameFor.get(a.clientId) ?? "—" : "lead"}</span>
-                <span className={`rounded-full px-2.5 py-0.5 text-[12px] font-medium ${STATUS_TONE[a.status] ?? ""}`}>
-                  {a.status.toLowerCase()}
-                </span>
-                {a.sealedSha256 && <span className="text-[12px] text-whisper">sealed</span>}
-                <span className="ml-auto text-[12px] text-whisper">{a.createdAt.toISOString().slice(0, 10)}</span>
-              </div>
+
+        {(() => {
+          const view = searchParams.view === "list" ? "list" : "grid";
+          const shelf = SHELVES.find((s) => s.key === searchParams.show) ?? SHELVES[0];
+          const countFor = (s: (typeof SHELVES)[number]) =>
+            s.statuses ? agreements.filter((a) => s.statuses!.includes(a.status)).length : agreements.length;
+          const shown = shelf.statuses ? agreements.filter((a) => shelf.statuses!.includes(a.status)) : agreements;
+          const href = (over: { view?: string; show?: string }) => {
+            const p = new URLSearchParams();
+            const v = over.view ?? view;
+            const sh = over.show ?? shelf.key;
+            if (v !== "grid") p.set("view", v);
+            if (sh !== "all") p.set("show", sh);
+            const qs = p.toString();
+            return `/practitioner/agreements${qs ? `?${qs}` : ""}#browser`;
+          };
+          const signerOf = (a: (typeof agreements)[number]) =>
+            a.clientId ? nameFor.get(a.clientId) ?? "—" : a.recipientName ? a.recipientName : "lead";
+
+          return (
+            <div id="browser" className="flex flex-col gap-3">
+              {/* Toolbar — shelves + the selectable view, Library-style. */}
               <div className="flex flex-wrap items-center gap-2">
-                {["SENT", "VIEWED"].includes(a.status) && (
-                  <>
-                    <form action={remindAgreement.bind(null, a.id)}>
-                      <PendingButton className="rounded-md border border-line px-3 py-1 text-[12px] text-slate hover:border-mocha hover:text-wine">
-                        Remind
-                      </PendingButton>
-                    </form>
-                    <form action={markPaperAction.bind(null, a.id)} className="flex items-center gap-1.5">
-                      <input name="note" placeholder="signed on paper by…" className="rounded-md border border-line px-2 py-1 text-[12px]" />
-                      <PendingButton className="rounded-md border border-line px-3 py-1 text-[12px] text-slate hover:border-mocha hover:text-wine">
-                        Mark signed on paper
-                      </PendingButton>
-                    </form>
-                  </>
-                )}
-                {a.status === "SIGNED" && a.countersignRequired && !a.countersignedAt && (
-                  <form action={countersignAction.bind(null, a.id)} className="flex items-center gap-1.5">
-                    <input name="name" placeholder="your legal name" className="rounded-md border border-line px-2 py-1 text-[12px]" />
-                    <PendingButton className="rounded-md bg-wine px-3 py-1 text-[12px] font-medium text-white hover:bg-wine-dark">
-                      Countersign
-                    </PendingButton>
-                  </form>
-                )}
-                {a.sealedKey && (
-                  <Link href={`/api/agreements/${a.id}/pdf`} className="text-[12px] font-medium text-wine underline-offset-4 hover:underline">
-                    Download sealed PDF
+                {SHELVES.map((s) => (
+                  <Link
+                    key={s.key}
+                    href={href({ show: s.key })}
+                    className={`rounded-full px-3 py-1 text-[13px] ${
+                      s.key === shelf.key ? "bg-wine text-white" : "border border-line text-slate hover:border-mocha hover:text-wine"
+                    }`}
+                  >
+                    {s.label} · {countFor(s)}
                   </Link>
-                )}
-                {!["VOIDED", "DECLINED"].includes(a.status) && (
-                  <form action={voidAgreementAction.bind(null, a.id)} className="ml-auto flex items-center gap-1.5">
-                    <input name="reason" placeholder="reason" className="rounded-md border border-line px-2 py-1 text-[12px]" />
-                    <PendingButton className="rounded-md border border-line px-3 py-1 text-[12px] text-slate hover:border-mocha hover:text-wine">
-                      Void
-                    </PendingButton>
-                  </form>
-                )}
+                ))}
+                <div className="ml-auto flex overflow-hidden rounded-md border border-line">
+                  <Link
+                    href={href({ view: "grid" })}
+                    aria-pressed={view === "grid"}
+                    className={`px-3 py-1.5 text-sm ${view === "grid" ? "bg-blush text-wine" : "text-slate hover:text-wine"}`}
+                  >
+                    Grid
+                  </Link>
+                  <Link
+                    href={href({ view: "list" })}
+                    aria-pressed={view === "list"}
+                    className={`px-3 py-1.5 text-sm ${view === "list" ? "bg-blush text-wine" : "text-slate hover:text-wine"}`}
+                  >
+                    List
+                  </Link>
+                </div>
               </div>
+
+              {shown.length === 0 ? (
+                <p className="rounded-card border border-dashed border-line bg-white/60 px-5 py-10 text-center text-slate">
+                  {agreements.length === 0
+                    ? "Nothing sent yet — the first one will appear here with its state."
+                    : "Nothing on this shelf right now."}
+                </p>
+              ) : view === "grid" ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {shown.map((a) => (
+                    <div key={a.id} className="flex flex-col gap-2 overflow-hidden rounded-card border border-line bg-white p-4 shadow-soft transition-shadow hover:shadow-card">
+                      <span className="line-clamp-2 font-medium leading-snug text-ink-strong">{a.titleSnapshot}</span>
+                      <span className="truncate text-[13px] text-slate">{signerOf(a)}</span>
+                      <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[12px] font-medium ${STATUS_TONE[a.status] ?? ""}`}>
+                          {a.status.toLowerCase()}
+                        </span>
+                        {a.sealedSha256 && <span className="text-[11px] text-whisper">sealed</span>}
+                        <span className="ml-auto text-[11px] text-whisper">{a.createdAt.toISOString().slice(0, 10)}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {["SENT", "VIEWED"].includes(a.status) && (
+                          <form action={remindAgreement.bind(null, a.id)}>
+                            <PendingButton className="rounded-md border border-line px-2.5 py-1 text-[12px] text-slate hover:border-mocha hover:text-wine">
+                              Remind
+                            </PendingButton>
+                          </form>
+                        )}
+                        {a.status === "SIGNED" && a.countersignRequired && !a.countersignedAt && (
+                          <form action={countersignAction.bind(null, a.id)}>
+                            <PendingButton className="rounded-md bg-wine px-2.5 py-1 text-[12px] font-medium text-white hover:bg-wine-dark">
+                              Countersign
+                            </PendingButton>
+                          </form>
+                        )}
+                        {a.sealedKey && (
+                          <Link href={`/api/agreements/${a.id}/pdf`} className="text-[12px] font-medium text-wine underline-offset-4 hover:underline">
+                            Sealed PDF
+                          </Link>
+                        )}
+                        {(["SENT", "VIEWED"].includes(a.status) || (a.status === "SIGNED" && a.countersignRequired && !a.countersignedAt)) && (
+                          <Link href={href({ view: "list" })} className="ml-auto text-[12px] text-whisper hover:text-wine">
+                            more…
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col divide-y divide-line rounded-card border border-line bg-white">
+                  {shown.map((a) => (
+                    <div key={a.id} className="flex flex-col gap-2 px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-2 text-[14px]">
+                        <span className="font-medium text-ink-strong">{a.titleSnapshot}</span>
+                        <span className="text-slate">
+                          · {a.clientId ? nameFor.get(a.clientId) ?? "—" : a.recipientName ? `${a.recipientName} (${a.recipientEmail})` : "lead"}
+                        </span>
+                        <span className={`rounded-full px-2.5 py-0.5 text-[12px] font-medium ${STATUS_TONE[a.status] ?? ""}`}>
+                          {a.status.toLowerCase()}
+                        </span>
+                        {a.sealedSha256 && <span className="text-[12px] text-whisper">sealed</span>}
+                        <span className="ml-auto text-[12px] text-whisper">{a.createdAt.toISOString().slice(0, 10)}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {["SENT", "VIEWED"].includes(a.status) && (
+                          <>
+                            <form action={remindAgreement.bind(null, a.id)}>
+                              <PendingButton className="rounded-md border border-line px-3 py-1 text-[12px] text-slate hover:border-mocha hover:text-wine">
+                                Remind
+                              </PendingButton>
+                            </form>
+                            <form action={markPaperAction.bind(null, a.id)} className="flex items-center gap-1.5">
+                              <input name="note" placeholder="signed on paper by…" className="rounded-md border border-line px-2 py-1 text-[12px]" />
+                              <PendingButton className="rounded-md border border-line px-3 py-1 text-[12px] text-slate hover:border-mocha hover:text-wine">
+                                Mark signed on paper
+                              </PendingButton>
+                            </form>
+                          </>
+                        )}
+                        {a.status === "SIGNED" && a.countersignRequired && !a.countersignedAt && (
+                          <form action={countersignAction.bind(null, a.id)} className="flex items-center gap-1.5">
+                            <input name="name" placeholder="your legal name" className="rounded-md border border-line px-2 py-1 text-[12px]" />
+                            <PendingButton className="rounded-md bg-wine px-3 py-1 text-[12px] font-medium text-white hover:bg-wine-dark">
+                              Countersign
+                            </PendingButton>
+                          </form>
+                        )}
+                        {a.sealedKey && (
+                          <Link href={`/api/agreements/${a.id}/pdf`} className="text-[12px] font-medium text-wine underline-offset-4 hover:underline">
+                            Download sealed PDF
+                          </Link>
+                        )}
+                        {!["VOIDED", "DECLINED"].includes(a.status) && (
+                          <form action={voidAgreementAction.bind(null, a.id)} className="ml-auto flex items-center gap-1.5">
+                            <input name="reason" placeholder="reason" className="rounded-md border border-line px-2 py-1 text-[12px]" />
+                            <PendingButton className="rounded-md border border-line px-3 py-1 text-[12px] text-slate hover:border-mocha hover:text-wine">
+                              Void
+                            </PendingButton>
+                          </form>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))
-        )}
+          );
+        })()}
       </div>
     </div>
   );

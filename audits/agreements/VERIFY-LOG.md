@@ -1,3 +1,58 @@
+# C21-DOCSIGN verify — 2026-08-06
+
+Harness: `c21-verify.ts` (port 3124). 29/29. Regressions: v31-verify
+32/32, c20-verify 28/28.
+
+## One-off external signature requests
+- ✓ any ACTIVE template sends to a typed-in name + email — recipient
+  needs no account; the signed link is the whole path (attribution basis
+  as with leads); agreement stores recipientName/Email, no client/lead
+- ✓ token page renders inline fillable fields (incl. block textarea for
+  multiline) + attached documents; refuses signature until every
+  required field is complete; seals; sealed copy downloads by token
+- ✓ sealed-copy email goes to the bare recipient address on seal
+
+## Uploaded documents (PDF/docx), one or several per request
+- ✓ files stored through the storage adapter, SHA-256 per file; template
+  files freeze onto each sent request as rows; certificate PDF carries a
+  DOCUMENTS IN THIS REQUEST section with per-file hashes
+- ✓ file route authorized by token OR session (practitioner/owning
+  client); 403 otherwise; tampered stored bytes refuse with 409
+- ✓ desk upload form: multiple files, optional save-as-template,
+  field-lines syntax (text/textarea/initials/checkbox), optional
+  immediate send; one-off scaffolding templates retire after send
+
+## Stored practitioner signature + auto-date
+- ✓ drawn once in settings (practice setting), previewed, replaceable
+- ✓ countersign auto-applies her mark (Sig2 embedded on the sealed PDF
+  beside the client's Sig1) with the auto-set timestamp as the date
+- ✓ self-sign ("Sign & seal myself"): practitioner-only documents sign +
+  seal in one motion under her name/mark; refuses dual-signature docs
+
+## Dispute packet installed (files_7.zip — Square deadlines Aug 9–10)
+- ✓ Client Declaration: fillable TEXT template (10 fields, verbatim
+  text, blanks → {{fill:*}}), single signature, ACTIVE
+- ✓ Memorandum of Family Services Arrangement: fillable TEXT template,
+  dual signature (client + her countersign), ACTIVE
+- ✓ Session Recording Log + Square Dispute Narrative: branded-PDF FILES
+  templates, hash-verified verbatim against the repo copies, self-sign
+- Deviation (surfaced): the paper signature-line scaffolding at each
+  document's foot is replaced by the e-sign ceremony (typed name + drawn
+  mark + timestamps + sealed certificate); all other text verbatim.
+
+## Dashboard visibility (Jacob's mid-build request)
+- ✓ Agreements in the practitioner nav (both shells, desktop + mobile
+  more-menu) — accepted chrome change, baseline recaptured
+- ✓ Portrait: Agreements tab on the client file (states + sealed PDFs)
+- ✓ desk list reorganized Library-style: status shelves + selectable
+  grid/list view; Worth-a-look lines for awaiting/countersign counts
+- Gates: baseline 16/16 (7 practitioner-screen diffs = exactly the
+  requested nav/tab chrome, eyeballed, recaptured → MATCH; client
+  screens byte-identical throughout), GET smoke, write smoke,
+  tenant-stamp audit, platform isolation (AgreementFile fixture) green.
+
+ALL CHECKS PASS — 29/29 · migration 44 · AgreementFile scoped
+
 # C20 sealed-PDF + fillable fields verify — 2026-08-06
 
 Harness: `v31-verify.ts` extended to 32 checks after Jacob's sealed-PDF

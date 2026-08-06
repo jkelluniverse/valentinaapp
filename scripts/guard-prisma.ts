@@ -50,6 +50,7 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "lib/agreements/sweep.ts": "agreements tick sweep: reminders + sealing across EVERY tenant — cross-tenant by nature",
   "audits/agreements/c20-verify.ts": "C20 acceptance harness: CLI-only, drives the sign/seal lifecycle end-to-end",
   "audits/agreements/v31-verify.ts": "v3.1 install harness: CLI-only, drives the attorney master + initials + election/retention/minor gates",
+  "audits/agreements/c21-verify.ts": "C21 docsign harness: CLI-only, drives uploads + one-off external sends + stored-signature flows",
   "audits/billing/b1-verify.ts": "B1 acceptance harness: CLI-only, inspects raw rows to PROVE encryption at rest",
   "audits/pipeline/p12-verify.ts": "pipeline acceptance harness: CLI-only, inspects raw rows across the flow",
   "audits/onboarding/stage1-verify.ts": "intake engine acceptance harness: CLI-only, self-cleaning",

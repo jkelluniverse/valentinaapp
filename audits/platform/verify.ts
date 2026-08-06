@@ -210,6 +210,7 @@ async function insertBFixtures() {
   const bAgr = await p.agreement.create({ data: { ...T, templateId: bTpl.id, clientId: bUser, titleSnapshot: "probe", bodySnapshot: "probe", mergeData: j({}) } });
   await p.agreementEvent.create({ data: { ...T, agreementId: bAgr.id, kind: "created", actor: "system" } });
   await p.patternElection.create({ data: { ...T, clientId: bUser, participate: false, version: "P-1" } });
+  await p.agreementFile.create({ data: { ...T, agreementId: bAgr.id, filename: "bfx.pdf", contentType: "application/pdf", size: 1, sha256: "bfx", key: "bfx/probe.pdf" } });
 
   return { bUser, pkg };
 }

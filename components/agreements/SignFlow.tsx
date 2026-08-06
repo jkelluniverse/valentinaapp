@@ -19,6 +19,21 @@ function renderBodyWithFields(body: string, fields: Map<string, SignFlowItem>, f
     const m = /^\{\{fill:([a-z0-9_-]+)\}\}$/i.exec(part);
     const item = m ? fields.get(m[1]) : undefined;
     if (!item) return <span key={i}>{part}</span>;
+    if (item.multiline) {
+      return (
+        <textarea
+          key={i}
+          form={formId}
+          name={`fill:${item.id}`}
+          required={item.required}
+          maxLength={2000}
+          rows={3}
+          placeholder={item.text || placeholder}
+          aria-label={item.text || placeholder}
+          className="my-1.5 block w-full rounded-md border border-line bg-blush/20 px-2.5 py-1.5 text-[13.5px] text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
+        />
+      );
+    }
     return (
       <input
         key={i}
@@ -174,7 +189,7 @@ export function SignFlow({
   );
 }
 
-function DrawPad({ onChange, clearLabel }: { onChange: (dataUrl: string | null) => void; clearLabel: string }) {
+export function DrawPad({ onChange, clearLabel }: { onChange: (dataUrl: string | null) => void; clearLabel: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const dirty = useRef(false);

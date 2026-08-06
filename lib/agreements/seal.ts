@@ -29,10 +29,11 @@ export async function sealIfComplete(
   if (a.countersignRequired && !a.countersignedAt) return { sealed: false, reason: "awaiting countersign" };
   if (a.sealedKey && a.sealedSha256) return { sealed: true, reason: "already sealed" };
 
-  const [tenant, events, template] = await Promise.all([
+  const [tenant, events, template, files] = await Promise.all([
     prisma.tenant.findFirst({ where: { id: a.tenantId ?? "" }, select: { displayName: true } }),
     prisma.agreementEvent.findMany({ where: { agreementId: a.id }, orderBy: { at: "asc" } }),
     prisma.agreementTemplate.findFirst({ where: { id: a.templateId }, select: { initialItems: true } }),
+    prisma.agreementFile.findMany({ where: { agreementId: a.id }, orderBy: { createdAt: "asc" } }),
   ]);
 
   // v3.1 — join captured acknowledgments to their template text so the
@@ -64,7 +65,9 @@ export async function sealIfComplete(
       drawnPng: a.signerDrawn,
     },
     countersigner:
-      a.countersignedAt && a.countersignName ? { name: a.countersignName, at: a.countersignedAt.toISOString() } : null,
+      a.countersignedAt && a.countersignName
+        ? { name: a.countersignName, at: a.countersignedAt.toISOString(), drawnPng: a.countersignDrawn }
+        : null,
     disclosure: E_RECORDS_DISCLOSURE[locale],
     disclosureShownAt: a.disclosureShownAt?.toISOString() ?? null,
     events: events.map((e) => ({
@@ -78,6 +81,9 @@ export async function sealIfComplete(
     keyTerms: keyTermsFrom(a.mergeData),
     acknowledgments,
     filledFields,
+    // C21 — the documents in this request, sealed by hash: the certificate
+    // freezes what was signed even though the files live beside it.
+    files: files.map((f) => ({ filename: f.filename, sha256: f.sha256, size: f.size })),
   });
 
   const sha256 = createHash("sha256").update(pdf).digest("hex");
@@ -88,12 +94,15 @@ export async function sealIfComplete(
     .create({ data: { tenantId: a.tenantId, agreementId: a.id, kind: "sealed", actor: "system", meta: { sha256 } } })
     .catch(() => undefined);
 
-  // The client's copy, by email (best-effort; the portal copy is permanent).
+  // The signer's copy, by email (best-effort; the portal copy is permanent
+  // for enrolled clients; for one-off recipients the email IS their copy).
   const client = a.clientId
     ? await prisma.user.findFirst({ where: { id: a.clientId }, select: { email: true } })
     : a.leadId
       ? await prisma.lead.findFirst({ where: { id: a.leadId }, select: { email: true } })
-      : null;
+      : a.recipientEmail
+        ? { email: a.recipientEmail }
+        : null;
   if (client?.email) {
     const { sendEmail } = await import("@/lib/notify");
     await sendEmail({

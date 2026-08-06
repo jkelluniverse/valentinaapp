@@ -160,6 +160,24 @@ export default async function TheStudy() {
       href: `/practitioner/clients/${r.id}/prep`,
     });
   }
+  // C21 — agreements needing motion: awaiting signature, or signed and
+  // waiting on her countersign. One line each, straight to the desk.
+  const [awaitingSig, awaitingCounter] = await Promise.all([
+    prisma.agreement.count({ where: { status: { in: ["SENT", "VIEWED"] } } }).catch(() => 0),
+    prisma.agreement.count({ where: { status: "SIGNED", countersignRequired: true, countersignedAt: null } }).catch(() => 0),
+  ]);
+  if (awaitingCounter > 0) {
+    signals.push({
+      text: awaitingCounter === 1 ? "One signed agreement is waiting on your countersign." : `${awaitingCounter} signed agreements are waiting on your countersign.`,
+      href: "/practitioner/agreements?show=signed",
+    });
+  }
+  if (awaitingSig > 0) {
+    signals.push({
+      text: awaitingSig === 1 ? "One agreement is out awaiting a signature." : `${awaitingSig} agreements are out awaiting signatures.`,
+      href: "/practitioner/agreements?show=awaiting",
+    });
+  }
   for (const r of o.attention.inactive) {
     signals.push({
       text: `${r.name || r.email} ${sinceWords(r.signal.lastActive)}.`,

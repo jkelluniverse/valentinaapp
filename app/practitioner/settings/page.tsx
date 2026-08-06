@@ -6,6 +6,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { getPractitioner, getOrCreateConfig } from "@/lib/schedule";
 import { changePassword, requestEmailChange, signOutEverywhere } from "@/app/account/actions";
 import { savePractitionerLocale, savePolicy, setDeletionStatus , setAssistNotify } from "./actions";
+import { savePractitionerSignatureAction } from "@/app/practitioner/agreements/actions";
+import { SignaturePadForm } from "@/components/agreements/SignaturePadForm";
 import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
@@ -287,6 +289,19 @@ export default async function PractitionerSettingsPage({
           label="Agreements"
           hint="Send, sign, and keep the sealed record — for both of you."
         />
+        {/* C21 — her stored signature: drawn once, applied automatically
+            (with the auto-set date) when she signs or countersigns. */}
+        <div className="flex flex-col gap-2 py-4">
+          <p className="font-medium text-ink-strong">Your signature</p>
+          <p className="max-w-prose text-sm text-slate">
+            Drawn once, kept here, and applied automatically — with the date — whenever you sign
+            or countersign a document.
+          </p>
+          <SignaturePadForm
+            current={await (await import("@/lib/agreements")).getPractitionerSignature()}
+            onSave={savePractitionerSignatureAction}
+          />
+        </div>
         <LinkRow
           href="/practitioner/settings/intake-preview"
           label="Preview intake"

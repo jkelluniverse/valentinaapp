@@ -63,6 +63,7 @@ const TABS = [
   { key: "courses", label: "Courses" },
   { key: "profile", label: "Profile" },
   { key: "billing", label: "Billing" },
+  { key: "agreements", label: "Agreements" }, // C21 — signed docs live with the client file
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -537,6 +538,7 @@ export default async function Portrait({
 
         {tab === "messages" && <MessagesShortcut clientId={client.id} />}
 
+        {tab === "agreements" && <AgreementsTab clientId={client.id} />}
         {tab === "billing" && (
           <BillingTab clientId={client.id} back={tabHref("billing")} />
         )}
@@ -859,6 +861,55 @@ const CHARGE_FEE_LABEL: Record<string, string> = {
   LATE_CANCEL: "late cancellation",
   NO_SHOW: "no-show",
 };
+
+// C21 — the client's agreements, right on the Portrait: every document
+// sent to them, its state, and the sealed record when complete.
+async function AgreementsTab({ clientId }: { clientId: string }) {
+  const rows = await prisma.agreement.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 50 });
+  const tone: Record<string, string> = {
+    SIGNED: "bg-blush text-wine",
+    SENT: "border border-line text-slate",
+    VIEWED: "border border-mocha text-mocha",
+    DECLINED: "border border-line text-slate line-through",
+    EXPIRED: "border border-line text-whisper",
+    VOIDED: "border border-line text-whisper line-through",
+  };
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <h2 className="font-headline text-lg font-medium text-ink-strong">Agreements</h2>
+        <Link href="/practitioner/agreements" className="text-[13px] font-medium text-wine underline-offset-4 hover:underline">
+          Open the agreements desk →
+        </Link>
+      </div>
+      {rows.length === 0 ? (
+        <p className="rounded-card border border-line bg-surface p-5 text-sm text-slate shadow-card">
+          Nothing sent to them yet — send one from the agreements desk.
+        </p>
+      ) : (
+        <div className="flex flex-col divide-y divide-line rounded-card border border-line bg-white">
+          {rows.map((a) => (
+            <div key={a.id} className="flex flex-wrap items-center gap-2 px-4 py-3 text-[14px]">
+              <span className="min-w-0 flex-1 truncate font-medium text-ink-strong">{a.titleSnapshot}</span>
+              <span className={`rounded-full px-2.5 py-0.5 text-[12px] font-medium ${tone[a.status] ?? "border border-line text-slate"}`}>
+                {a.status.toLowerCase()}
+              </span>
+              {a.signedAt && <span className="text-[12px] text-whisper">signed {a.signedAt.toISOString().slice(0, 10)}</span>}
+              {a.countersignedAt && <span className="text-[12px] text-whisper">countersigned</span>}
+              {a.sealedKey ? (
+                <Link href={`/api/agreements/${a.id}/pdf`} className="text-[12px] font-medium text-wine underline-offset-4 hover:underline">
+                  Sealed PDF
+                </Link>
+              ) : (
+                <span className="text-[12px] text-whisper">{a.createdAt.toISOString().slice(0, 10)}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 async function BillingTab({ clientId, back }: { clientId: string; back: string }) {
   const [charges, packages, priceBook, clientUser] = await Promise.all([

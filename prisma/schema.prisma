@@ -1554,6 +1554,10 @@ model AgreementTemplate {
   id                     String   @id @default(cuid())
   tenantId               String? // nullable per platform scope rule
   slug                   String // "client-services" | "scope-of-work" | "recording-addendum" | custom
+  // C21 — TEXT templates carry their document in `body` (merge vars +
+  // {{fill:*}} markers); FILES templates carry uploaded document files
+  // (AgreementFile rows) and `body` is the request message shown beside them.
+  kind                   String   @default("TEXT") // TEXT | FILES
   version                Int
   versionLabel           String? // human label when the Int can't carry it ("3.1")
   locale                 String   @default("en") // en/es siblings per AMD-05
@@ -1580,8 +1584,12 @@ model Agreement {
   id                   String          @id @default(cuid())
   tenantId             String?
   templateId           String // the pinned template row (exact version + locale)
-  clientId             String? // portal client — exactly one of client/lead
+  clientId             String? // portal client — exactly one of client/lead/recipient
   leadId               String? // pre-portal lead (C18 signed-link pattern)
+  // C21 — one-off external signer: any email address, no enrollment.
+  // General business use (vendors, past clients, prospective clients).
+  recipientEmail       String?
+  recipientName        String?
   locale               String          @default("en")
   status               AgreementStatus @default(DRAFT)
   titleSnapshot        String
@@ -1603,6 +1611,7 @@ model Agreement {
   countersignRequired  Boolean         @default(false)
   countersignedAt      DateTime?
   countersignName      String?
+  countersignDrawn     String? // C21 — her stored signature mark, applied at countersign
   declinedAt           DateTime?
   voidedAt             DateTime? // hers, attributed, never deletes history
   voidReason           String?
@@ -1614,6 +1623,26 @@ model Agreement {
 
   @@index([tenantId, clientId])
   @@index([tenantId, status])
+}
+
+// C21 — an uploaded document file attached to a FILES template (reusable)
+// or frozen onto a specific agreement at send. Bytes live in the storage
+// adapter; sha256 makes every download tamper-evident, and the signature
+// certificate seals the hash of every file in the request.
+model AgreementFile {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  templateId  String? // reusable template attachment
+  agreementId String? // frozen onto a sent request
+  filename    String
+  contentType String
+  size        Int
+  sha256      String
+  key         String // storage key
+  createdAt   DateTime @default(now())
+
+  @@index([templateId])
+  @@index([agreementId])
 }
 
 // ADDENDUM P — the Pattern-Library participation election: recorded like

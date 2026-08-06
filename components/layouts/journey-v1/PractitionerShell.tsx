@@ -33,6 +33,7 @@ export function PractitionerShell({
     { href: "/practitioner/courses", label: "Courses" },
     { href: "/practitioner/schedule", label: "Schedule" },
     { href: "/practitioner/billing", label: "Billing" },
+    { href: "/practitioner/agreements", label: "Agreements" },
     { href: "/practitioner/notes", label: "Notes" },
   ];
 
@@ -50,6 +51,7 @@ export function PractitionerShell({
     { href: "/practitioner/notes", label: "Notes", hint: "The Margins" },
     { href: "/practitioner/patterns", label: "Pattern Library", hint: "Your method's vocabulary" },
     { href: "/practitioner/billing", label: "Billing", hint: "The ledger" },
+    { href: "/practitioner/agreements", label: "Agreements", hint: "Signatures, sealed and kept" },
     { href: "/practitioner/availability", label: "Availability", hint: "Your hours" },
     { href: "/practitioner/settings", label: "Settings", hint: "Account, language, policy" },
     { href: "/practitioner/search", label: "Search", hint: "Everything, everywhere" },

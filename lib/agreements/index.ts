@@ -159,6 +159,8 @@ type AgreementContentArgs = {
   templateId: string;
   clientId?: string;
   leadId?: string;
+  // C21 — one-off external signer: any name + email, no enrollment.
+  recipient?: { name: string; email: string };
   merge?: Record<string, string>;
 };
 
@@ -166,10 +168,11 @@ type AgreementContentArgs = {
 // practitioner previews is byte-for-byte what goes out (§2 "preview
 // merged → Send"). Writes nothing.
 async function resolveAgreementContent(args: AgreementContentArgs): Promise<
-  | { ok: true; sibling: { id: string; slug: string; version: number; versionLabel: string | null; locale: string; title: string; body: string; requiresCountersign: boolean; status: string; initialItems: unknown }; vars: Record<string, string>; recipientEmail: string | null }
+  | { ok: true; sibling: { id: string; slug: string; kind: string; version: number; versionLabel: string | null; locale: string; title: string; body: string; requiresCountersign: boolean; status: string; initialItems: unknown }; vars: Record<string, string>; recipientEmail: string | null }
   | { ok: false; error: string }
 > {
-  if (!args.clientId === !args.leadId) return { ok: false, error: "exactly one of client/lead" };
+  const identities = [args.clientId, args.leadId, args.recipient].filter(Boolean).length;
+  if (identities !== 1) return { ok: false, error: "exactly one of client/lead/recipient" };
   // DRAFT templates resolve (so preview works); only SEND refuses them.
   const template = await prisma.agreementTemplate.findFirst({
     where: { id: args.templateId, status: { in: ["ACTIVE", "DRAFT"] } },
@@ -213,7 +216,7 @@ async function resolveAgreementContent(args: AgreementContentArgs): Promise<
   const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
   const vars: Record<string, string> = {
-    client_name: client?.name ?? lead?.name ?? "Client",
+    client_name: client?.name ?? lead?.name ?? args.recipient?.name ?? "Client",
     practitioner_name: practitioner?.name ?? tenant?.displayName ?? "Practitioner",
     date: new Date().toISOString().slice(0, 10),
     ...(schedConfig ? { notice_window_hours: String(schedConfig.cancelCutoffHours), late_change_fee: money(schedConfig.lateFeeCents) } : {}),
@@ -221,7 +224,7 @@ async function resolveAgreementContent(args: AgreementContentArgs): Promise<
     payer_name_or_self: profile?.payeeName ?? "Self",
     ...(args.merge ?? {}),
   };
-  return { ok: true, sibling, vars, recipientEmail: client?.email ?? lead?.email ?? null };
+  return { ok: true, sibling, vars, recipientEmail: client?.email ?? lead?.email ?? args.recipient?.email ?? null };
 }
 
 function practiceEmail(): string | null {
@@ -253,7 +256,7 @@ export async function previewAgreement(
 
 // §2 — create + send in one motion (manual path after preview, and the
 // automatic triggers). Returns the RAW link token exactly once.
-export async function createAndSendAgreement(args: AgreementContentArgs & { actor?: string }): Promise<
+export async function createAndSendAgreement(args: AgreementContentArgs & { actor?: string; suppressEmail?: boolean }): Promise<
   { ok: true; agreementId: string; rawToken: string } | { ok: false; error: string }
 > {
   const resolved = await resolveAgreementContent(args);
@@ -272,6 +275,8 @@ export async function createAndSendAgreement(args: AgreementContentArgs & { acto
       templateId: sibling.id,
       clientId: args.clientId ?? null,
       leadId: args.leadId ?? null,
+      recipientEmail: args.recipient?.email ?? null,
+      recipientName: args.recipient?.name ?? null,
       locale: sibling.locale,
       status: "SENT",
       titleSnapshot: sibling.title,
@@ -283,6 +288,9 @@ export async function createAndSendAgreement(args: AgreementContentArgs & { acto
       countersignRequired: sibling.requiresCountersign,
     },
   });
+  // C21 — freeze the template's document files onto this request.
+  const { copyTemplateFilesToAgreement } = await import("./files");
+  await copyTemplateFilesToAgreement(sibling.id, agreement.id, args.tenantId);
   await agEvent(args.tenantId, agreement.id, "created", args.actor ?? "practitioner", { templateSlug: sibling.slug, version: sibling.version });
   await agEvent(args.tenantId, agreement.id, "sent", args.actor ?? "practitioner");
 
@@ -291,7 +299,7 @@ export async function createAndSendAgreement(args: AgreementContentArgs & { acto
   // production domain — an agreement email must never carry a dead
   // button), and the raw URL rides only the plain-text part: the button
   // carries it in the branded layout.
-  if (recipientEmail) {
+  if (recipientEmail && !args.suppressEmail) {
     const { sendEmail } = await import("@/lib/notify");
     const { getBaseUrlSafe } = await import("@/lib/base-url");
     const link = `${getBaseUrlSafe()}/agree/${raw}`;
@@ -405,15 +413,81 @@ export async function declineAgreement(agreementId: string, actor: string): Prom
   await agEvent(a.tenantId ?? "", agreementId, "declined", actor);
 }
 
+// C21 — the practitioner's stored signature mark: drawn once in settings,
+// applied automatically (with the auto-set timestamp) whenever she signs
+// or countersigns. Stored practice-level, like the other practice settings.
+export const PRACTITIONER_SIGNATURE_KEY = "practitionerSignatureDrawn";
+
+export async function getPractitionerSignature(): Promise<string | null> {
+  const row = await prisma.practiceSetting.findUnique({ where: { key: PRACTITIONER_SIGNATURE_KEY } });
+  return row?.value || null;
+}
+
+export async function setPractitionerSignature(dataUrl: string | null): Promise<void> {
+  if (!dataUrl) {
+    await prisma.practiceSetting.deleteMany({ where: { key: PRACTITIONER_SIGNATURE_KEY } });
+    return;
+  }
+  if (!dataUrl.startsWith("data:image/png;base64,") || dataUrl.length > 200_000) return;
+  await prisma.practiceSetting.upsert({
+    where: { key: PRACTITIONER_SIGNATURE_KEY },
+    create: { key: PRACTITIONER_SIGNATURE_KEY, value: dataUrl },
+    update: { value: dataUrl },
+  });
+}
+
 export async function countersignAgreement(args: { agreementId: string; name: string }): Promise<{ ok: boolean }> {
   const a = await prisma.agreement.findFirst({ where: { id: args.agreementId } });
   if (!a || a.status !== "SIGNED" || !a.countersignRequired || a.countersignedAt) return { ok: false };
+  // Her stored mark rides along automatically; the timestamp IS the date.
+  const drawn = await getPractitionerSignature();
   await prisma.agreement.update({
     where: { id: a.id },
-    data: { countersignedAt: new Date(), countersignName: args.name.trim() },
+    data: { countersignedAt: new Date(), countersignName: args.name.trim(), countersignDrawn: drawn },
   });
   await agEvent(a.tenantId ?? "", a.id, "countersigned", "practitioner", { name: args.name.trim() });
   return { ok: true };
+}
+
+// C21 — practitioner-only documents (a dispute narrative, an exhibit log):
+// she is the signer. One motion: create the record, run the same
+// viewed→disclosure→signed trail under her name with her stored mark,
+// auto-date, and seal. Refuses dual-signature templates (those go through
+// the normal send→sign→countersign path).
+export async function selfSignAndSeal(args: {
+  tenantId: string;
+  templateId: string;
+  merge?: Record<string, string>;
+}): Promise<{ ok: true; agreementId: string } | { ok: false; error: string }> {
+  const practitioner = await prisma.user.findFirst({ where: { role: "PRACTITIONER" }, select: { name: true, email: true } });
+  if (!practitioner) return { ok: false, error: "practitioner not found" };
+  const template = await prisma.agreementTemplate.findFirst({ where: { id: args.templateId } });
+  if (!template) return { ok: false, error: "template not found" };
+  if (template.requiresCountersign) return { ok: false, error: "dual-signature documents go through send + countersign" };
+
+  const created = await createAndSendAgreement({
+    tenantId: args.tenantId,
+    templateId: args.templateId,
+    recipient: { name: practitioner.name ?? "Practitioner", email: practitioner.email ?? "" },
+    merge: args.merge,
+    actor: "practitioner",
+    suppressEmail: true,
+  });
+  if (!created.ok) return created;
+
+  await markViewed(created.agreementId, "practitioner");
+  await markDisclosureShown(created.agreementId, "practitioner");
+  const drawn = await getPractitionerSignature();
+  const signed = await signAgreement({
+    agreementId: created.agreementId,
+    signerName: practitioner.name ?? "Practitioner",
+    drawn,
+    actor: "practitioner",
+  });
+  if (!signed.ok) return signed;
+  const { sealIfComplete } = await import("./seal");
+  await sealIfComplete(created.agreementId);
+  return { ok: true, agreementId: created.agreementId };
 }
 
 export async function voidAgreement(agreementId: string, reason: string): Promise<void> {

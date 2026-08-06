@@ -29,6 +29,7 @@ export default async function SignAgreementPage({
   const locale = (agreement.locale === "es" ? "es" : "en") as "en" | "es";
   const template = await prisma.agreementTemplate.findFirst({ where: { id: agreement.templateId }, select: { initialItems: true } });
   const items = initialItemsOf(template ?? {});
+  const files = await prisma.agreementFile.findMany({ where: { agreementId: agreement.id }, orderBy: { createdAt: "asc" } });
 
   async function doSign(formData: FormData) {
     "use server";
@@ -70,6 +71,24 @@ export default async function SignAgreementPage({
       <Eyebrow>Agreement</Eyebrow>
       {searchParams.error && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">{searchParams.error}</p>
+      )}
+      {files.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-card border border-line bg-white p-4 shadow-soft">
+          <span className="text-[13px] font-semibold uppercase tracking-wide text-mocha">
+            {locale === "es" ? "Documentos para revisar" : "Documents to review"}
+          </span>
+          {files.map((f) => (
+            <a
+              key={f.id}
+              href={`/api/agreements/${agreement.id}/files/${f.id}`}
+              target="_blank"
+              className="flex items-center justify-between rounded-md border border-line px-3.5 py-2.5 text-[14px] text-wine underline-offset-4 hover:bg-blush/20 hover:underline"
+            >
+              <span>{f.filename}</span>
+              <span className="text-[12px] text-whisper">{(f.size / 1024).toFixed(0)} KB</span>
+            </a>
+          ))}
+        </div>
       )}
       <SignFlow
         title={agreement.titleSnapshot}

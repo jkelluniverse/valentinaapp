@@ -16,7 +16,7 @@ export type SealInput = {
   locale: "en" | "es";
   practiceName: string;
   signer: { name: string; at: string; ip?: string | null; agent?: string | null; drawn?: boolean; drawnPng?: string | null };
-  countersigner?: { name: string; at: string } | null;
+  countersigner?: { name: string; at: string; drawnPng?: string | null } | null;
   disclosure: string;
   disclosureShownAt: string | null;
   events: { at: string; kind: string; actor: string; detail?: string }[];
@@ -29,6 +29,9 @@ export type SealInput = {
   // Fillable fields the client completed before signing (already
   // substituted into `body` where the template carried markers).
   filledFields?: { label: string; value: string; at: string }[];
+  // C21 — uploaded documents in this request, frozen by hash into the
+  // signature certificate.
+  files?: { filename: string; sha256: string; size: number }[];
 };
 
 const L = {
@@ -129,11 +132,15 @@ export function renderSealedPdf(input: SealInput): Buffer {
   const t = L[input.locale] ?? L.en;
   const lines: Block[] = [];
 
-  // Decode the drawn mark up front so the signature block can embed it.
+  // Decode the drawn marks up front so the signature blocks can embed them.
   const drawnImg = input.signer.drawnPng ? decodePngToRgb(input.signer.drawnPng) : null;
+  const counterImg = input.countersigner?.drawnPng ? decodePngToRgb(input.countersigner.drawnPng) : null;
   const images: { name: string; width: number; height: number; data: Buffer }[] = [];
   if (drawnImg) {
     images.push({ name: "Sig1", width: drawnImg.width, height: drawnImg.height, data: deflateSync(drawnImg.rgb) });
+  }
+  if (counterImg) {
+    images.push({ name: "Sig2", width: counterImg.width, height: counterImg.height, data: deflateSync(counterImg.rgb) });
   }
 
   // ---- Agreement text ----
@@ -158,6 +165,16 @@ export function renderSealedPdf(input: SealInput): Buffer {
     for (const ack of input.acknowledgments) {
       lines.push({ text: `[${ack.value}]  ${ack.at}`, size: 9, bold: true, gap: 4 });
       for (const l of wrapText(ack.text, 8.5, BODY_W)) lines.push({ text: l, size: 8.5, color: SLATE });
+    }
+  }
+
+  // ---- Documents in this request (C21 uploads), frozen by hash ----
+  if (input.files?.length) {
+    lines.push({ text: "", size: 10, gap: 16 });
+    lines.push({ text: input.locale === "es" ? "DOCUMENTOS DE ESTA SOLICITUD (sellados por hash)" : "DOCUMENTS IN THIS REQUEST (sealed by hash)", size: 13, bold: true, color: WINE, gap: 8 });
+    for (const f of input.files) {
+      lines.push({ text: f.filename, size: 9.5, bold: true, gap: 3 });
+      lines.push({ text: `SHA-256 ${f.sha256} · ${(f.size / 1024).toFixed(1)} KB`, size: 8, color: SLATE });
     }
   }
 
@@ -190,6 +207,11 @@ export function renderSealedPdf(input: SealInput): Buffer {
   if (input.countersigner) {
     lines.push({ text: `${t.counterBy}: ${input.countersigner.name}`, size: 11, bold: true, gap: 8 });
     lines.push({ text: input.countersigner.at, size: 9.5, color: SLATE });
+    if (counterImg) {
+      const scale = Math.min(210 / counterImg.width, 68 / counterImg.height, 1);
+      lines.push({ text: "", size: 2 });
+      lines.push({ image: { name: "Sig2", w: counterImg.width * scale, h: counterImg.height * scale } });
+    }
   }
   lines.push({ text: t.disclosure, size: 10, bold: true, gap: 14 });
   if (input.disclosureShownAt) lines.push({ text: input.disclosureShownAt, size: 9, color: SLATE });
