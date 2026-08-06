@@ -1,3 +1,29 @@
+# C21.1 verify — 2026-08-06 (Jacob's memorandum-test feedback)
+
+Harness: `c21-verify.ts` extended to 34 checks. 34/34. Regressions:
+v31-verify 32/32 (KEY TERMS still on the master), c20-verify 28/28.
+
+- ✓ KEY TERMS reserved for documents whose template text carries those
+  merge vars (the client-services master) — data-driven gate on the
+  unresolved template body; absent from one-off/uploaded sealed PDFs
+  and previews
+- ✓ guided signing: sticky Next-field bar (server-rendered) with a live
+  remaining-count; Next scrolls the first empty required field into
+  view, focuses it, flashes a highlight; when complete it walks to the
+  sign button — every required input carries data-sf
+- ✓ upload field authoring made comprehensible: a single Word document
+  auto-converts into a fillable signing page — text extracted verbatim
+  (hand-rolled ZIP/XML reader, no deps), [[text|textarea|initials|
+  checkbox: Label]] brackets become fields, underscore blanks (____)
+  auto-detected and labeled from preceding words (long runs → textarea);
+  PDFs/images attach as-is with listed fields; form copy explains all
+  of it in plain English
+- Gates: baseline MATCH (no chrome change this round), GET/write smoke,
+  tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 34/34 · drag-and-drop field placement on rendered
+PDFs noted as the future path if bracket/blank authoring isn't enough.
+
 # C21-DOCSIGN verify — 2026-08-06
 
 Harness: `c21-verify.ts` (port 3124). 29/29. Regressions: v31-verify

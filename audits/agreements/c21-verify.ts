@@ -172,6 +172,10 @@ async function main() {
       "token sign page renders inline fillable fields for the recipient",
       agreeHtml.includes(`name="fill:declarant_full_name"`) && agreeHtml.includes(`form="agreement-sign-form"`) && /<textarea[^>]*name="fill:agreement_communication"/.test(agreeHtml)
     );
+    check(
+      "guided signing: Next-field bar with progress renders (server-side)",
+      agreeHtml.includes("data-sign-guide") && agreeHtml.includes("Next field") && agreeHtml.includes("data-sf")
+    );
 
     const fills: Record<string, string> = {
       declarant_full_name: "Irene Maria Meza",
@@ -249,6 +253,68 @@ async function main() {
     const memoPdfRes = await fetch(`${BASE}/api/agreements/${memoId}/pdf?token=${encodeURIComponent(memoSent2.ok ? memoSent2.rawToken : "")}`);
     const memoPdf = Buffer.from(await memoPdfRes.arrayBuffer()).toString("latin1");
     check("sealed memorandum renders BOTH drawn marks", memoPdf.includes("/Sig1 Do") && memoPdf.includes("/Sig2 Do"));
+    check(
+      "KEY TERMS reserved for the client-services master — absent on one-off docs",
+      !memoPdf.includes("KEY TERMS") && !pdfText.includes("KEY TERMS")
+    );
+
+    // ---- 5b. Word-document conversion: brackets + blanks become fields ----
+    const zipStore = (entries: { name: string; data: Buffer }[]): Buffer => {
+      const parts: Buffer[] = [];
+      const central: Buffer[] = [];
+      let offset = 0;
+      for (const e of entries) {
+        const nameB = Buffer.from(e.name, "latin1");
+        const crc = crc32(e.data);
+        const local = Buffer.alloc(30);
+        local.writeUInt32LE(0x04034b50, 0);
+        local.writeUInt16LE(20, 4);
+        local.writeUInt32LE(crc, 14);
+        local.writeUInt32LE(e.data.length, 18);
+        local.writeUInt32LE(e.data.length, 22);
+        local.writeUInt16LE(nameB.length, 26);
+        parts.push(local, nameB, e.data);
+        const cen = Buffer.alloc(46);
+        cen.writeUInt32LE(0x02014b50, 0);
+        cen.writeUInt16LE(20, 4);
+        cen.writeUInt16LE(20, 6);
+        cen.writeUInt32LE(crc, 16);
+        cen.writeUInt32LE(e.data.length, 20);
+        cen.writeUInt32LE(e.data.length, 24);
+        cen.writeUInt16LE(nameB.length, 28);
+        cen.writeUInt32LE(offset, 42);
+        central.push(cen, nameB);
+        offset += 30 + nameB.length + e.data.length;
+      }
+      const centralBuf = Buffer.concat(central);
+      const eocd = Buffer.alloc(22);
+      eocd.writeUInt32LE(0x06054b50, 0);
+      eocd.writeUInt16LE(entries.length, 8);
+      eocd.writeUInt16LE(entries.length, 10);
+      eocd.writeUInt32LE(centralBuf.length, 12);
+      eocd.writeUInt32LE(offset, 16);
+      return Buffer.concat([...parts, centralBuf, eocd]);
+    };
+    const p = (s: string) => `<w:p><w:r><w:t xml:space="preserve">${s}</w:t></w:r></w:p>`;
+    const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${p("Vendor NDA")}${p("Full legal name: [[text: Full legal name]]")}${p("Effective date: ______")}${p("[[checkbox: I have read every page]]")}</w:body></w:document>`;
+    const docxBytes = zipStore([
+      { name: "[Content_Types].xml", data: Buffer.from("<Types/>") },
+      { name: "word/document.xml", data: Buffer.from(docXml) },
+    ]);
+    const { convertDocxToFillable } = await import("../../lib/agreements/docx");
+    const conv = convertDocxToFillable(docxBytes);
+    check(
+      "docx converts: bracket token → inline field, verbatim text kept",
+      Boolean(conv && conv.body.includes("Full legal name: {{fill:full-legal-name}}") && conv.body.includes("Vendor NDA") && !conv.body.includes("[["))
+    );
+    check(
+      "docx converts: underscore blank auto-detected, labeled from context",
+      Boolean(conv && conv.body.includes("Effective date: {{fill:effective-date}}") && conv.items.some((i) => i.id === "effective-date" && i.text === "Effective date" && i.kind === "text"))
+    );
+    check(
+      "docx converts: checkbox token becomes an acknowledgment item",
+      Boolean(conv && conv.items.some((i) => i.kind === "checkbox" && i.text === "I have read every page") && conv.items.filter((i) => i.required).length === 3)
+    );
 
     // ---- 6. Self-sign (the Square narrative) ----
     const self = await AG.selfSignAndSeal({ tenantId: TENANT, templateId: narr!.id });

@@ -3,7 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma as scopedPrisma } from "@/lib/prisma";
 import { putObject, getObject } from "@/lib/storage";
 import { renderSealedPdf } from "./pdf";
-import { E_RECORDS_DISCLOSURE, keyTermsFrom, initialItemsOf, substituteFilledFields } from "./index";
+import { E_RECORDS_DISCLOSURE, keyTermsForTemplate, initialItemsOf, substituteFilledFields } from "./index";
 
 // C20 §4 — seal & store. On final signature (client signature, plus the
 // countersign when the template asks for one) the sealed PDF is generated,
@@ -32,7 +32,7 @@ export async function sealIfComplete(
   const [tenant, events, template, files] = await Promise.all([
     prisma.tenant.findFirst({ where: { id: a.tenantId ?? "" }, select: { displayName: true } }),
     prisma.agreementEvent.findMany({ where: { agreementId: a.id }, orderBy: { at: "asc" } }),
-    prisma.agreementTemplate.findFirst({ where: { id: a.templateId }, select: { initialItems: true } }),
+    prisma.agreementTemplate.findFirst({ where: { id: a.templateId }, select: { initialItems: true, body: true } }),
     prisma.agreementFile.findMany({ where: { agreementId: a.id }, orderBy: { createdAt: "asc" } }),
   ]);
 
@@ -78,7 +78,9 @@ export async function sealIfComplete(
     })),
     agreementId: a.id,
     paperSigned: Boolean(a.paperSignedAt),
-    keyTerms: keyTermsFrom(a.mergeData),
+    // Key Terms only where the document's own text carries those vars
+    // (the client-services master) — never on one-off/uploaded docs.
+    keyTerms: keyTermsForTemplate(template?.body ?? "", a.mergeData),
     acknowledgments,
     filledFields,
     // C21 — the documents in this request, sealed by hash: the certificate

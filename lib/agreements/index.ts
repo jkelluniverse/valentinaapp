@@ -137,9 +137,16 @@ export const KEY_TERM_FIELDS: { key: string; label: string }[] = [
   { key: "payer_name_or_self", label: "Payer" },
 ];
 
-export function keyTermsFrom(mergeData: unknown): [string, string][] {
+// C21 fix — the Key Terms table belongs ONLY to documents whose text
+// actually carries those merge variables (the client-services master).
+// One-off sends and uploaded documents never reference them, so their
+// previews and sealed records stay clean. Gate on the TEMPLATE body (the
+// unresolved text) — the snapshot has the vars already substituted.
+export function keyTermsForTemplate(templateBody: string, mergeData: unknown): [string, string][] {
   const data = (mergeData ?? {}) as Record<string, string>;
-  return KEY_TERM_FIELDS.filter((f) => data[f.key] !== undefined).map((f) => [f.label, data[f.key]]);
+  return KEY_TERM_FIELDS.filter(
+    (f) => data[f.key] !== undefined && new RegExp(`\\{\\{\\s*${f.key}\\s*\\}\\}`, "i").test(templateBody)
+  ).map((f) => [f.label, data[f.key]]);
 }
 
 export async function agEvent(
@@ -249,7 +256,7 @@ export async function previewAgreement(
     locale: resolved.sibling.locale,
     status: resolved.sibling.status,
     versionLabel: resolved.sibling.versionLabel,
-    keyTerms: keyTermsFrom(resolved.vars),
+    keyTerms: keyTermsForTemplate(resolved.sibling.body, resolved.vars),
     draft: resolved.sibling.status === "DRAFT",
   };
 }

@@ -211,9 +211,15 @@ export default async function AgreementsDesk({
           <form action={uploadRequestAction} className="flex flex-col gap-3 rounded-card border border-line bg-surface p-5 shadow-card">
             <p className="text-[13px] font-semibold uppercase tracking-wide text-mocha">
               Upload a document for signing
-              <span className="ml-2 font-normal normal-case tracking-normal text-whisper">
-                — PDF or Word; one or several files per request
-              </span>
+            </p>
+            <p className="max-w-prose text-[13px] leading-relaxed text-slate">
+              <strong className="text-ink">Word documents become fillable signing pages automatically.</strong> Write{" "}
+              <code className="rounded bg-white px-1 font-mono text-[12px]">[[text: Full legal name]]</code> wherever the signer should
+              type (also <code className="font-mono text-[12px]">[[textarea: …]]</code>, <code className="font-mono text-[12px]">[[initials: …]]</code>,{" "}
+              <code className="font-mono text-[12px]">[[checkbox: …]]</code>) — or simply leave blank lines like{" "}
+              <code className="rounded bg-white px-1 font-mono text-[12px]">______</code> and each becomes a field, labeled from the words
+              before it. Signers are guided field-to-field with a Next button. PDFs and images attach as-is for review, with any fields
+              you list below.
             </p>
             <div className="flex flex-wrap items-end gap-3">
               <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
@@ -224,13 +230,17 @@ export default async function AgreementsDesk({
                 Document file(s)
                 <input name="files" type="file" multiple required accept=".pdf,.docx,.png,.jpg,.jpeg" className="text-sm" />
               </label>
+              <label className="flex items-center gap-2 pb-2 text-[13px] text-slate">
+                <input type="checkbox" name="convertDocx" defaultChecked className="h-4 w-4 rounded border-line text-wine" />
+                Convert a single Word doc into a fillable page (recommended)
+              </label>
             </div>
             <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
-              Message shown beside the documents (optional)
+              Message shown beside attached files (optional; not used when converting)
               <textarea name="message" rows={2} className={fieldCls} placeholder="Review the attached document(s); your signature below covers them." />
             </label>
             <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
-              Fields to complete before signing (optional — one per line: <code className="font-mono text-[12px]">text: Label</code>,{" "}
+              Extra fields to complete before signing (optional — one per line: <code className="font-mono text-[12px]">text: Label</code>,{" "}
               <code className="font-mono text-[12px]">textarea: Label</code>, <code className="font-mono text-[12px]">initials: Label</code>,{" "}
               <code className="font-mono text-[12px]">checkbox: Label</code>)
               <textarea name="fields" rows={3} className={`${fieldCls} font-mono text-[12px]`} placeholder={"text: Your full legal name\ncheckbox: I have read every page"} />

@@ -163,34 +163,64 @@ export async function uploadRequestAction(formData: FormData) {
   for (let i = 2; await prisma.agreementTemplate.findFirst({ where: { tenantId: tenant.id, slug, version: 1, locale: "en" }, select: { id: true } }); i++) {
     slug = `${baseSlug}-${i}`;
   }
-  const items = parseFieldLines(String(formData.get("fields") ?? ""));
-  const template = await prisma.agreementTemplate.create({
-    data: {
-      tenantId: tenant.id,
-      slug,
-      kind: "FILES",
-      version: 1,
-      locale: "en",
-      title,
-      body: message || "Review the attached document(s); your signature below covers them.",
-      initialItems: items.length ? items : undefined,
-      requiresCountersign: formData.get("requiresCountersign") === "on",
-      status: "ACTIVE",
-      placeholder: false,
-    },
-  });
-  for (const f of files) {
-    const saved = await saveAgreementFile({
-      tenantId: tenant.id,
-      bytes: Buffer.from(await f.arrayBuffer()),
-      filename: f.name,
-      contentType: f.type,
-      templateId: template.id,
+  const extraItems = parseFieldLines(String(formData.get("fields") ?? ""));
+
+  // C21.1 — a single Word document converts into a FILLABLE signing page:
+  // its text becomes the document body verbatim, [[kind: Label]] brackets
+  // and underscore blanks (____) become fields the signer completes in
+  // place, guided field-to-field. PDFs/multiple files attach as-is.
+  const isDocx = (f: File) => /\.docx$/i.test(f.name) || f.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const convert = formData.get("convertDocx") === "on" && files.length === 1 && isDocx(files[0]);
+  let template;
+  if (convert) {
+    const { convertDocxToFillable } = await import("@/lib/agreements/docx");
+    const converted = convertDocxToFillable(Buffer.from(await files[0].arrayBuffer()));
+    if (!converted) fail("couldn't read that Word document — attach it as-is instead, or re-save it as .docx");
+    const items = [...converted!.items, ...extraItems];
+    template = await prisma.agreementTemplate.create({
+      data: {
+        tenantId: tenant.id,
+        slug,
+        kind: "TEXT",
+        version: 1,
+        locale: "en",
+        title,
+        body: converted!.body,
+        initialItems: items.length ? (items as unknown as object[]) : undefined,
+        requiresCountersign: formData.get("requiresCountersign") === "on",
+        status: "ACTIVE",
+        placeholder: false,
+      },
     });
-    if (!saved.ok) {
-      await prisma.agreementFile.deleteMany({ where: { templateId: template.id } });
-      await prisma.agreementTemplate.delete({ where: { id: template.id } });
-      fail(`${f.name}: ${saved.error}`);
+  } else {
+    template = await prisma.agreementTemplate.create({
+      data: {
+        tenantId: tenant.id,
+        slug,
+        kind: "FILES",
+        version: 1,
+        locale: "en",
+        title,
+        body: message || "Review the attached document(s); your signature below covers them.",
+        initialItems: extraItems.length ? extraItems : undefined,
+        requiresCountersign: formData.get("requiresCountersign") === "on",
+        status: "ACTIVE",
+        placeholder: false,
+      },
+    });
+    for (const f of files) {
+      const saved = await saveAgreementFile({
+        tenantId: tenant.id,
+        bytes: Buffer.from(await f.arrayBuffer()),
+        filename: f.name,
+        contentType: f.type,
+        templateId: template.id,
+      });
+      if (!saved.ok) {
+        await prisma.agreementFile.deleteMany({ where: { templateId: template.id } });
+        await prisma.agreementTemplate.delete({ where: { id: template.id } });
+        fail(`${f.name}: ${saved.error}`);
+      }
     }
   }
 
