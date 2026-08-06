@@ -1,3 +1,25 @@
+# C21.3 verify — 2026-08-06 (Settings unreachable + signature upload)
+
+Harness: `c21-verify.ts` extended to 40 checks. 40/40. Regressions:
+v31 32/32, c20 28/28.
+
+- Root cause confirmed: journey-v1's DESKTOP nav never had a Settings
+  link (mobile more-menu only) — so the signature pad was unreachable
+  on desktop. Settings added to the desktop nav.
+- ✓ agreements desk carries a "Your signature" card one hop from where
+  she signs: shows the stored mark inline (or "not set yet — draw or
+  upload it once"), linking to /practitioner/settings#signature
+- ✓ signature can now be UPLOADED as well as drawn: any photo/scan
+  (png/jpg/webp) normalizes in the browser — canvas-drawn, downscaled
+  (≤700×260), exported as PNG — so the sealed-PDF embedder always gets
+  usable bytes; server cap raised to 500 KB as backstop; same stored
+  path signs, countersigns, and self-signs with auto-date
+- Gates: baseline 16/16 (diffs = the requested Settings nav item + the
+  documented greeting/inactivity rollovers, eyeballed, recaptured →
+  MATCH), GET/write smoke, tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 40/40
+
 # C21.2 verify — 2026-08-06 (Jacob's round-2 feedback)
 
 Harness: `c21-verify.ts` extended to 37 checks. 37/37. Regressions:

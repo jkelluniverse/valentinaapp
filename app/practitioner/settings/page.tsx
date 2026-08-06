@@ -289,13 +289,14 @@ export default async function PractitionerSettingsPage({
           label="Agreements"
           hint="Send, sign, and keep the sealed record — for both of you."
         />
-        {/* C21 — her stored signature: drawn once, applied automatically
-            (with the auto-set date) when she signs or countersigns. */}
-        <div className="flex flex-col gap-2 py-4">
+        {/* C21 — her stored signature: drawn or uploaded once, applied
+            automatically (with the auto-set date) when she signs or
+            countersigns. */}
+        <div id="signature" className="flex flex-col gap-2 scroll-mt-24 py-4">
           <p className="font-medium text-ink-strong">Your signature</p>
           <p className="max-w-prose text-sm text-slate">
-            Drawn once, kept here, and applied automatically — with the date — whenever you sign
-            or countersign a document.
+            Draw it once — or upload a photo or scan of your real signature — and it&apos;s applied
+            automatically, with the date, whenever you sign or countersign a document.
           </p>
           <SignaturePadForm
             current={await (await import("@/lib/agreements")).getPractitionerSignature()}

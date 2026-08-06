@@ -371,6 +371,17 @@ async function main() {
     const portraitHtml = await portrait.text();
     check("Portrait: agreements tab lives on the client file", portrait.status === 200 && portraitHtml.includes("Open the agreements desk"));
     check("practitioner nav carries Agreements", gridHtml.includes(`href="/practitioner/agreements"`) && portraitHtml.includes(">Agreements<"));
+    check("practitioner nav carries Settings (was desktop-unreachable)", gridHtml.includes(`href="/practitioner/settings"`) && gridHtml.includes(">Settings<"));
+    check(
+      "desk points at her signature with its stored state",
+      gridHtml.includes("/practitioner/settings#signature") && (gridHtml.includes("signs and countersigns for you") || gridHtml.includes("not set yet"))
+    );
+    const settingsPage = await fetch(`${BASE}/practitioner/settings`, { headers: { Cookie: practCookie } });
+    const settingsHtml = await settingsPage.text();
+    check(
+      "settings: signature section offers draw AND image upload",
+      settingsHtml.includes(`id="signature"`) && settingsHtml.includes("upload a photo / scan of your signature") && settingsHtml.includes(`accept="image/png,image/jpeg,image/webp"`)
+    );
   } finally {
     server.kill();
     if (priorSig) {

@@ -78,6 +78,7 @@ export default async function AgreementsDesk({
   for (const g of await prisma.agreementFile.groupBy({ by: ["templateId"], where: { templateId: { not: null } }, _count: true })) {
     if (g.templateId) fileCounts.set(g.templateId, g._count);
   }
+  const storedSignature = await (await import("@/lib/agreements")).getPractitionerSignature();
   const fieldCls =
     "rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20";
 
@@ -106,6 +107,25 @@ export default async function AgreementsDesk({
           Sent — they&apos;ll get the email, and it waits in their space too.
         </p>
       )}
+
+      {/* C21.3 — her signature, one hop from where she signs. */}
+      <Link
+        href="/practitioner/settings#signature"
+        className="flex flex-wrap items-center gap-2 rounded-card border border-line bg-surface px-4 py-3 text-[14px] shadow-soft transition-shadow hover:shadow-card"
+      >
+        <span className="font-medium text-ink-strong">Your signature</span>
+        {storedSignature ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={storedSignature} alt="Stored signature" className="h-8 w-auto max-w-[140px] rounded border border-line bg-white object-contain px-1" />
+            <span className="text-[12px] text-whisper">stored — signs and countersigns for you, auto-dated · change it →</span>
+          </>
+        ) : (
+          <span className="rounded-full bg-blush px-2.5 py-0.5 text-[12px] font-medium text-wine">
+            not set yet — draw or upload it once →
+          </span>
+        )}
+      </Link>
 
       {!v31Installed && (
         <form action={installMasterV31Action}>

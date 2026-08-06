@@ -35,6 +35,7 @@ export function PractitionerShell({
     { href: "/practitioner/billing", label: "Billing" },
     { href: "/practitioner/agreements", label: "Agreements" },
     { href: "/practitioner/notes", label: "Notes" },
+    { href: "/practitioner/settings", label: "Settings" },
   ];
 
   const tabs: Tab[] = [

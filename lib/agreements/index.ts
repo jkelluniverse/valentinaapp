@@ -446,7 +446,9 @@ export async function setPractitionerSignature(dataUrl: string | null): Promise<
     await prisma.practiceSetting.deleteMany({ where: { key: PRACTITIONER_SIGNATURE_KEY } });
     return;
   }
-  if (!dataUrl.startsWith("data:image/png;base64,") || dataUrl.length > 200_000) return;
+  // Uploaded scans run larger than pad drawings; the client normalizes to
+  // a bounded PNG, this cap is the server-side backstop.
+  if (!dataUrl.startsWith("data:image/png;base64,") || dataUrl.length > 500_000) return;
   await prisma.practiceSetting.upsert({
     where: { key: PRACTITIONER_SIGNATURE_KEY },
     create: { key: PRACTITIONER_SIGNATURE_KEY, value: dataUrl },
