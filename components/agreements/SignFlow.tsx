@@ -8,7 +8,31 @@ import { useRef, useState } from "react";
 // 3. typed full legal name (attribution) + optional drawn mark (warmth)
 // 4. ONE unambiguous wine button: "I agree and sign" — no dark patterns.
 
-export type SignFlowItem = { id: string; text: string; kind: "initials" | "checkbox"; required: boolean };
+export type SignFlowItem = { id: string; text: string; kind: "initials" | "checkbox" | "text"; required: boolean; multiline?: boolean };
+
+// Split the document body on {{fill:<id>}} markers so fillable fields
+// render INLINE at their spot in the text. Inputs live visually inside the
+// scrollable document but submit with the sign form via the form attribute.
+function renderBodyWithFields(body: string, fields: Map<string, SignFlowItem>, formId: string, placeholder: string) {
+  const parts = body.split(/(\{\{fill:[a-z0-9_-]+\}\})/gi);
+  return parts.map((part, i) => {
+    const m = /^\{\{fill:([a-z0-9_-]+)\}\}$/i.exec(part);
+    const item = m ? fields.get(m[1]) : undefined;
+    if (!item) return <span key={i}>{part}</span>;
+    return (
+      <input
+        key={i}
+        form={formId}
+        name={`fill:${item.id}`}
+        required={item.required}
+        maxLength={2000}
+        placeholder={item.text || placeholder}
+        aria-label={item.text || placeholder}
+        className="mx-1 inline-block w-48 max-w-full rounded-md border border-line bg-blush/20 px-2 py-0.5 align-baseline text-[13.5px] text-ink outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
+      />
+    );
+  });
+}
 
 export function SignFlow({
   title,
@@ -31,8 +55,17 @@ export function SignFlow({
   const [pending, setPending] = useState(false);
   const t =
     locale === "es"
-      ? { read: "Léelo con calma", name: "Tu nombre legal completo", draw: "Firma dibujada (opcional)", clear: "Borrar", sign: "Acepto y firmo", decline: "Prefiero no firmar", acks: "Reconocimientos requeridos (inicial cada uno)", initials: "Iniciales" }
-      : { read: "Read it in your own time", name: "Your full legal name", draw: "Drawn signature (optional)", clear: "Clear", sign: "I agree and sign", decline: "I'd rather not sign", acks: "Required acknowledgments (initial each)", initials: "Initials" };
+      ? { read: "Léelo con calma", name: "Tu nombre legal completo", draw: "Firma dibujada (opcional)", clear: "Borrar", sign: "Acepto y firmo", decline: "Prefiero no firmar", acks: "Reconocimientos requeridos (inicial cada uno)", initials: "Iniciales", fields: "Completa estos campos", fieldHint: "Escribe aquí" }
+      : { read: "Read it in your own time", name: "Your full legal name", draw: "Drawn signature (optional)", clear: "Clear", sign: "I agree and sign", decline: "I'd rather not sign", acks: "Required acknowledgments (initial each)", initials: "Initials", fields: "Complete these fields", fieldHint: "Type here" };
+
+  const formId = "agreement-sign-form";
+  const textItems = items.filter((i) => i.kind === "text");
+  const inlineIds = new Set(
+    [...body.matchAll(/\{\{fill:([a-z0-9_-]+)\}\}/gi)].map((m) => m[1])
+  );
+  const inlineFields = new Map(textItems.filter((i) => inlineIds.has(i.id)).map((i) => [i.id, i]));
+  const standaloneFields = textItems.filter((i) => !inlineIds.has(i.id));
+  const ackItems = items.filter((i) => i.kind !== "text");
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,11 +74,12 @@ export function SignFlow({
         <p className="text-[13px] text-whisper">{t.read}</p>
       </div>
       <div className="max-h-[50vh] overflow-y-auto whitespace-pre-wrap rounded-card border border-line bg-white p-5 text-[14.5px] leading-relaxed text-ink shadow-soft">
-        {body}
+        {inlineFields.size > 0 ? renderBodyWithFields(body, inlineFields, formId, t.fieldHint) : body}
       </div>
       <div className="rounded-card border border-line bg-surface p-4 text-[13px] leading-relaxed text-slate">{disclosure}</div>
 
       <form
+        id={formId}
         action={async (fd) => {
           setPending(true);
           if (drawn) fd.set("drawn", drawn);
@@ -54,10 +88,36 @@ export function SignFlow({
         }}
         className="flex flex-col gap-4"
       >
-        {items.length > 0 && (
+        {standaloneFields.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <span className="text-[13px] font-semibold uppercase tracking-wide text-mocha">{t.fields}</span>
+            {standaloneFields.map((item) => (
+              <label key={item.id} className="flex flex-col gap-1.5 rounded-card border border-line bg-white p-3.5 text-[13.5px] leading-relaxed text-ink">
+                <span>{item.text}</span>
+                {item.multiline ? (
+                  <textarea
+                    name={`fill:${item.id}`}
+                    required={item.required}
+                    maxLength={2000}
+                    rows={3}
+                    className="rounded-md border border-line px-2.5 py-1.5 text-sm outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
+                  />
+                ) : (
+                  <input
+                    name={`fill:${item.id}`}
+                    required={item.required}
+                    maxLength={2000}
+                    className="rounded-md border border-line px-2.5 py-1.5 text-sm outline-none focus:border-wine focus:ring-2 focus:ring-wine/20"
+                  />
+                )}
+              </label>
+            ))}
+          </div>
+        )}
+        {ackItems.length > 0 && (
           <div className="flex flex-col gap-3">
             <span className="text-[13px] font-semibold uppercase tracking-wide text-mocha">{t.acks}</span>
-            {items.map((item) =>
+            {ackItems.map((item) =>
               item.kind === "checkbox" ? (
                 <label key={item.id} className="flex items-start gap-3 rounded-card border border-line bg-white p-3.5 text-[13.5px] leading-relaxed text-ink">
                   <input

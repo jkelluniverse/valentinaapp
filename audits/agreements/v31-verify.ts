@@ -1,4 +1,5 @@
 import { spawn, execSync, type ChildProcess } from "child_process";
+import { deflateSync } from "zlib";
 import bcrypt from "bcryptjs";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 
@@ -28,10 +29,55 @@ function check(name: string, pass: boolean, note?: string) {
   console.log(`- ${pass ? "✓" : "✗"} ${name}${note ? ` — ${note}` : ""}`);
 }
 
+// A real (tiny) RGBA PNG, the same shape the DrawPad canvas emits — a wine
+// squiggle on transparency — so the embed path is proven on actual bytes.
+function crc32(buf: Buffer): number {
+  let c = ~0;
+  for (let i = 0; i < buf.length; i++) {
+    c ^= buf[i];
+    for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+  }
+  return ~c >>> 0;
+}
+function pngChunk(type: string, data: Buffer): Buffer {
+  const head = Buffer.concat([Buffer.from(type, "latin1"), data]);
+  const out = Buffer.alloc(8 + data.length + 4);
+  out.writeUInt32BE(data.length, 0);
+  head.copy(out, 4);
+  out.writeUInt32BE(crc32(head), 8 + data.length);
+  return out;
+}
+function makeSigPng(w = 40, h = 12): string {
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8; // bit depth
+  ihdr[9] = 6; // RGBA
+  const raw = Buffer.alloc(h * (w * 4 + 1));
+  for (let y = 0; y < h; y++) {
+    const row = y * (w * 4 + 1);
+    for (let x = 0; x < w; x++) {
+      const p = row + 1 + x * 4;
+      const on = Math.abs(y - (h / 2 + 3 * Math.sin(x / 3))) < 1.5;
+      raw[p] = 0x58;
+      raw[p + 1] = 0x11;
+      raw[p + 2] = 0x22;
+      raw[p + 3] = on ? 255 : 0;
+    }
+  }
+  const png = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk("IHDR", ihdr),
+    pngChunk("IDAT", deflateSync(raw)),
+    pngChunk("IEND", Buffer.alloc(0)),
+  ]);
+  return `data:image/png;base64,${png.toString("base64")}`;
+}
+
 async function cleanup() {
   await prisma.agreementEvent.deleteMany({}).catch(() => {});
   await prisma.agreement.deleteMany({}).catch(() => {});
-  await prisma.agreementTemplate.deleteMany({ where: { slug: "client-services-agreement" } }).catch(() => {});
+  await prisma.agreementTemplate.deleteMany({ where: { slug: { in: ["client-services-agreement", "v31-fill-probe"] } } }).catch(() => {});
   await prisma.patternElection.deleteMany({}).catch(() => {});
   await prisma.patternLink.deleteMany({}).catch(() => {});
   await prisma.patternArchetype.deleteMany({ where: { label: PROBE_LABEL } }).catch(() => {});
@@ -144,7 +190,7 @@ async function main() {
     const missing = await AG.signAgreement({ agreementId, signerName: "María Reyes Fuentes", actor: "client", initials: { "non-clinical": "MR" } });
     check("signature refused when required initials are missing", !missing.ok);
     const allInitials = Object.fromEntries(V31_INITIAL_ITEMS.map((i) => [i.id, i.kind === "checkbox" ? "checked" : "MRF"]));
-    const signed = await AG.signAgreement({ agreementId, signerName: "María Reyes Fuentes", ip: "203.0.113.9", agent: "v31-harness", actor: "client", initials: allInitials });
+    const signed = await AG.signAgreement({ agreementId, signerName: "María Reyes Fuentes", drawn: makeSigPng(), ip: "203.0.113.9", agent: "v31-harness", actor: "client", initials: allInitials });
     check("signature accepted with all 10 acknowledgments", signed.ok === true);
     const row = await prisma.agreement.findFirst({ where: { id: agreementId } });
     check("acknowledgments stored with timestamps", Array.isArray(row?.initialsCaptured) && (row!.initialsCaptured as unknown[]).length === 10);
@@ -156,6 +202,15 @@ async function main() {
     const pdfRes = await fetch(`${BASE}/api/agreements/${agreementId}/pdf`, { headers: { Cookie: mariaCookie } });
     const pdfText = Buffer.from(await pdfRes.arrayBuffer()).toString("latin1");
     check("sealed PDF: KEY TERMS frozen + INITIALED ACKNOWLEDGMENTS + initials", pdfText.includes("KEY TERMS") && pdfText.includes("Deep Season") && pdfText.includes("INITIALED ACKNOWLEDGMENTS") && pdfText.includes("[MRF]"));
+    check(
+      "drawn signature mark EMBEDDED as a real image (not just a note)",
+      pdfText.includes("/Subtype /Image") && pdfText.includes("/Sig1 Do") && !pdfText.includes("stored with this record")
+    );
+    const auditStream = pdfText.split("endstream").find((s) => s.includes("(AUDIT CERTIFICATE)"));
+    check(
+      "audit certificate starts on its own final page",
+      Boolean(auditStream && !auditStream.includes("(SIGNATURES)") && !auditStream.includes("ELECTRONIC RECORDS DISCLOSURE"))
+    );
 
     const gate2 = await fetch(`${BASE}/space/schedule`, { headers: { Cookie: mariaCookie } });
     check("booking gate releases on completed signatures", !(await gate2.text()).includes("before we begin"));
@@ -163,6 +218,53 @@ async function main() {
     // retention note on the client's settings (she now has an agreement)
     const settings = await fetch(`${BASE}/space/settings`, { headers: { Cookie: mariaCookie } });
     check("Addendum R schedule note flows from the ONE config source", (await settings.text()).includes("retained for 3 years"));
+
+    // ---- 3b. Fillable fields: inline {{fill:*}} inputs, capture,
+    //          substitution into the sealed document ----
+    const fillTpl = await prisma.agreementTemplate.create({
+      data: {
+        tenantId: TENANT,
+        slug: "v31-fill-probe",
+        version: 1,
+        locale: "en",
+        title: "Fill Probe Agreement",
+        body: "Emergency contact: {{fill:emergency_contact}}.\n\nThe client agrees to the terms above.",
+        status: "ACTIVE",
+        requiresCountersign: false,
+        placeholder: false,
+        initialItems: [
+          { id: "emergency_contact", text: "Emergency contact name & phone", kind: "text", required: true },
+          { id: "notes", text: "Anything your practitioner should know", kind: "text", required: true, multiline: true },
+          { id: "fill-ack", text: "I confirm the information I entered is accurate.", kind: "initials", required: true },
+        ],
+      },
+    });
+    const fillSent = await AG.createAndSendAgreement({ tenantId: TENANT, templateId: fillTpl.id, clientId: maria.id });
+    const fillId = fillSent.ok ? fillSent.agreementId : "";
+    check("fillable-template sends", fillSent.ok === true);
+    const fillPage = await fetch(`${BASE}/space/agreements/${fillId}`, { headers: { Cookie: mariaCookie } });
+    const fillHtml = await fillPage.text();
+    check(
+      "sign page: inline field rendered IN the document + standalone multiline field",
+      fillHtml.includes(`name="fill:emergency_contact"`) && fillHtml.includes(`form="agreement-sign-form"`) && /<textarea[^>]*name="fill:notes"/.test(fillHtml)
+    );
+    const fillMissing = await AG.signAgreement({ agreementId: fillId, signerName: "María Reyes Fuentes", actor: "client", initials: { "fill-ack": "MRF", notes: "Prefers mornings." } });
+    check("signature refused when a required fillable field is empty", !fillMissing.ok);
+    const fillSigned = await AG.signAgreement({
+      agreementId: fillId,
+      signerName: "María Reyes Fuentes",
+      drawn: makeSigPng(),
+      actor: "client",
+      initials: { emergency_contact: "Rosa Fuentes — 407-555-0188", notes: "Prefers mornings.", "fill-ack": "MRF" },
+    });
+    check("signature accepted with completed fields", fillSigned.ok === true);
+    await sealIfComplete(fillId);
+    const fillPdfRes = await fetch(`${BASE}/api/agreements/${fillId}/pdf`, { headers: { Cookie: mariaCookie } });
+    const fillPdfText = Buffer.from(await fillPdfRes.arrayBuffer()).toString("latin1");
+    check(
+      "filled values substituted into the sealed document + attributed section",
+      fillPdfText.includes("Rosa Fuentes - 407-555-0188") && !fillPdfText.includes("{{fill:emergency_contact}}") && fillPdfText.includes("CLIENT-COMPLETED FIELDS") && fillPdfText.includes("Prefers mornings.")
+    );
 
     // ---- 4. Addendum P: the election really changes the aggregation ----
     const { aggregatePatterns, setPatternElection, K_FLOOR } = await import("../../lib/pattern-library");

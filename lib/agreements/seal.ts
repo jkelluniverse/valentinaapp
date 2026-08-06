@@ -3,7 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma as scopedPrisma } from "@/lib/prisma";
 import { putObject, getObject } from "@/lib/storage";
 import { renderSealedPdf } from "./pdf";
-import { E_RECORDS_DISCLOSURE, keyTermsFrom, initialItemsOf } from "./index";
+import { E_RECORDS_DISCLOSURE, keyTermsFrom, initialItemsOf, substituteFilledFields } from "./index";
 
 // C20 §4 — seal & store. On final signature (client signature, plus the
 // countersign when the template asks for one) the sealed PDF is generated,
@@ -37,14 +37,22 @@ export async function sealIfComplete(
 
   // v3.1 — join captured acknowledgments to their template text so the
   // sealed PDF shows what each set of initials actually acknowledged.
-  const itemText = new Map(initialItemsOf(template ?? {}).map((i) => [i.id, i.text]));
+  // Fillable "text" items are separated out: their values substitute into
+  // the document body wherever the template placed {{fill:<id>}} markers,
+  // and they also get their own attributed section.
+  const items = initialItemsOf(template ?? {});
+  const itemById = new Map(items.map((i) => [i.id, i]));
   const captured = Array.isArray(a.initialsCaptured) ? (a.initialsCaptured as { id: string; value: string; at: string }[]) : [];
-  const acknowledgments = captured.map((c) => ({ text: itemText.get(c.id) ?? c.id, value: c.value, at: c.at }));
+  const acknowledgments = captured
+    .filter((c) => itemById.get(c.id)?.kind !== "text")
+    .map((c) => ({ text: itemById.get(c.id)?.text ?? c.id, value: c.value, at: c.at }));
+  const textCaptured = captured.filter((c) => itemById.get(c.id)?.kind === "text");
+  const filledFields = textCaptured.map((c) => ({ label: itemById.get(c.id)?.text ?? c.id, value: c.value, at: c.at }));
 
   const locale = (a.locale === "es" ? "es" : "en") as "en" | "es";
   const pdf = renderSealedPdf({
     title: a.titleSnapshot,
-    body: a.bodySnapshot,
+    body: substituteFilledFields(a.bodySnapshot, textCaptured),
     locale,
     practiceName: tenant?.displayName ?? "",
     signer: {
@@ -53,6 +61,7 @@ export async function sealIfComplete(
       ip: a.signerIp,
       agent: a.signerAgent,
       drawn: Boolean(a.signerDrawn),
+      drawnPng: a.signerDrawn,
     },
     countersigner:
       a.countersignedAt && a.countersignName ? { name: a.countersignName, at: a.countersignedAt.toISOString() } : null,
@@ -68,6 +77,7 @@ export async function sealIfComplete(
     paperSigned: Boolean(a.paperSignedAt),
     keyTerms: keyTermsFrom(a.mergeData),
     acknowledgments,
+    filledFields,
   });
 
   const sha256 = createHash("sha256").update(pdf).digest("hex");

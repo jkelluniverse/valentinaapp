@@ -39,6 +39,7 @@ export default async function SignAgreementPage({
     const initials: Record<string, string> = {};
     for (const [key, value] of formData.entries()) {
       if (key.startsWith("ack:")) initials[key.slice(4)] = String(value);
+      if (key.startsWith("fill:")) initials[key.slice(5)] = String(value);
     }
     const result = await signAgreement({
       agreementId: a!.id,

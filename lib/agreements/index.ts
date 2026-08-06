@@ -95,10 +95,30 @@ function fillRenderPlaceholders(body: string, practiceEmail: string | null): str
 }
 
 // The per-item acknowledgments a template demands at signing.
-export type InitialItem = { id: string; text: string; kind: "initials" | "checkbox"; required: boolean };
+// kind "text" is a fillable field: the client completes it before signing.
+// If the template body carries a matching {{fill:<id>}} marker, the field
+// renders INLINE at that spot in the document and the signed value is
+// substituted there in the sealed record; otherwise it renders as a
+// labeled input alongside the acknowledgments.
+export type InitialItem = {
+  id: string;
+  text: string; // the acknowledgment text, or the fillable field's label
+  kind: "initials" | "checkbox" | "text";
+  required: boolean;
+  multiline?: boolean; // text kind only — longer answers
+};
 
 export function initialItemsOf(template: { initialItems?: unknown }): InitialItem[] {
   return Array.isArray(template.initialItems) ? (template.initialItems as InitialItem[]) : [];
+}
+
+// Substitute the client's filled values into the body wherever the template
+// placed {{fill:<id>}} markers (used at seal time and on signed-doc views —
+// the client signed the document WITH these values in place).
+export function substituteFilledFields(body: string, captured: { id: string; value: string }[]): string {
+  let out = body;
+  for (const c of captured) out = out.split(`{{fill:${c.id}}}`).join(c.value);
+  return out;
 }
 
 // The v3.1 signature-page Key Terms — the fields frozen into the sealed
@@ -350,6 +370,9 @@ export async function signAgreement(args: {
     if (item.required && !value) return { ok: false, error: `acknowledgment required: ${item.id}` };
     if (item.kind === "initials" && value && (value.length < 2 || value.length > 5)) {
       return { ok: false, error: `initials invalid: ${item.id}` };
+    }
+    if (item.kind === "text" && value.length > 2000) {
+      return { ok: false, error: `field too long: ${item.id}` };
     }
     if (value) captured.push({ id: item.id, value, at: now });
   }

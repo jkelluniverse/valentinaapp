@@ -1,3 +1,39 @@
+# C20 sealed-PDF + fillable fields verify — 2026-08-06
+
+Harness: `v31-verify.ts` extended to 32 checks after Jacob's sealed-PDF
+report (drawn mark said "stored" but never shown; audit trail split
+awkwardly across a page break). 32/32. `c20-verify.ts` regression 28/28.
+
+## Sealed PDF
+- ✓ the drawn signature mark is now EMBEDDED as a real image on the
+  signature block (hand-rolled PNG decode → RGB XObject, no deps; the
+  note-only line remains solely as a fallback for undecodable data)
+- ✓ the audit certificate always starts on its own final page — the full
+  trail renders together, attached to the end of the contract
+- ✓ PDF byte accounting switched to latin1 end-to-end (binary image
+  streams made the old utf8 offsets wrong)
+
+## Fillable fields (ready for the incoming legal documents)
+- ✓ template items now support kind "text": fillable areas that render
+  INLINE in the document at {{fill:<id>}} markers (or as labeled inputs /
+  textareas beside the acknowledgments when unanchored)
+- ✓ required fields refuse the signature when empty; values are captured
+  attributed + timestamped alongside initials/checkboxes
+- ✓ at seal, values substitute into the document text where the markers
+  sit AND render in an attributed CLIENT-COMPLETED FIELDS section
+- ✓ the v3.1 master's 10 acknowledgments are untouched by all of this
+
+## Notes
+- Sealed records are immutable by design: Jacob's existing production
+  test agreement keeps its old PDF (hash-sealed). Void + re-send a test
+  to see the new rendering.
+- Gates: baseline 16/16 (morning-greeting rollover vs yesterday's
+  afternoon capture — documented class, eyeballed, recaptured 9:30 AM →
+  MATCH), GET smoke, write smoke, tenant-stamp audit, platform isolation
+  verify all green.
+
+ALL CHECKS PASS — 32/32
+
 # C20 v3.1 install verify — 2026-08-05
 
 Harness: `v31-verify.ts` against the built app on a seeded scratch DB —
