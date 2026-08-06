@@ -314,15 +314,26 @@ export async function createAndSendAgreement(args: AgreementContentArgs & { acto
     const sentence = es
       ? `${vars.practitioner_name} te envió "${sibling.title}" para leer y firmar.`
       : `${vars.practitioner_name} sent you "${sibling.title}" to read and sign.`;
+    // Every send must be unique end-to-end: a repeated identical email in
+    // the same Gmail thread gets its tail TRIMMED behind a "…" — which can
+    // hide the sign button. The subject carries the document title
+    // (distinct threads per document) and a per-send timestamp rides just
+    // below the button (nothing above it can match-and-trim away).
+    const sentAt = new Intl.DateTimeFormat(es ? "es" : "en", {
+      dateStyle: "long",
+      timeStyle: "short",
+      timeZone: "America/New_York",
+    }).format(new Date());
     await sendEmail({
       to: recipientEmail,
-      subject: es ? "Un documento para leer y firmar" : "One document to read and sign",
+      subject: es ? `Para firmar: ${sibling.title}` : `To sign: ${sibling.title}`,
       text: `${sentence}\n\n${link}`,
       envelope: {
         locale: es ? "es" : "en",
         heading: sibling.title,
         paragraphs: [sentence],
         button: { label: es ? "Leer y firmar" : "Read & sign", url: link },
+        whisper: es ? `Enviado ${sentAt} · este enlace es solo tuyo` : `Sent ${sentAt} · this link is yours alone`,
       },
     }).catch(() => undefined);
   }

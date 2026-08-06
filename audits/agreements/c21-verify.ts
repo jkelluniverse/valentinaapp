@@ -72,7 +72,7 @@ function makeSigPng(): string {
   return `data:image/png;base64,${png.toString("base64")}`;
 }
 
-const PACKET_SLUGS = ["client-declaration", "family-services-memorandum", "session-recording-log", "square-dispute-narrative"];
+const PACKET_SLUGS = ["client-declaration", "family-services-memorandum", "session-recording-log", "square-dispute-narrative", "c21-upload-probe"];
 
 async function cleanup() {
   await prisma.agreementEvent.deleteMany({}).catch(() => {});
@@ -326,13 +326,47 @@ async function main() {
     const refuse = await AG.selfSignAndSeal({ tenantId: TENANT, templateId: memo!.id });
     check("self-sign refuses dual-signature documents", !refuse.ok);
 
-    // ---- 7. Desk browser, Portrait tab, nav ----
+    // ---- 7. Desk browser (document tiles → drill-in), Portrait tab, nav ----
     const practCookie = await signIn("valentina@fixture.test");
     const deskGrid = await fetch(`${BASE}/practitioner/agreements`, { headers: { Cookie: practCookie } });
     const gridHtml = await deskGrid.text();
-    check("desk: shelves + selectable grid/list toolbar", gridHtml.includes("Awaiting signature") && gridHtml.includes("view=list") && gridHtml.includes("Send to anyone by email") && gridHtml.includes("Upload a document for signing"));
-    const deskList = await fetch(`${BASE}/practitioner/agreements?view=list&show=signed`, { headers: { Cookie: practCookie } });
-    check("desk: list view + shelf filter renders", (await deskList.text()).includes("Download sealed PDF"));
+    check(
+      "desk: documents-first tiles (no flat list) + one-step upload form",
+      gridHtml.includes("doc=") && gridHtml.includes("request") && !gridHtml.includes("Awaiting signature ·") && gridHtml.includes("Send to anyone by email") && gridHtml.includes("Preview it")
+    );
+    const memoDoc = encodeURIComponent("Memorandum of Family Services Arrangement");
+    const deskDoc = await fetch(`${BASE}/practitioner/agreements?doc=${memoDoc}&view=list&show=signed`, { headers: { Cookie: practCookie } });
+    const deskDocHtml = await deskDoc.text();
+    check("desk: opening a document shows its requests with shelves + list view", deskDocHtml.includes("All documents") && deskDocHtml.includes("Awaiting signature") && deskDocHtml.includes("Download sealed PDF"));
+
+    // ---- 7b. Upload preview flow: DRAFT until visually confirmed ----
+    const probeConv = convertDocxToFillable(docxBytes)!;
+    const probeTpl = await prisma.agreementTemplate.create({
+      data: {
+        tenantId: TENANT,
+        slug: "c21-upload-probe",
+        kind: "TEXT",
+        version: 1,
+        locale: "en",
+        title: "Upload Probe NDA",
+        body: probeConv.body,
+        initialItems: probeConv.items as unknown as object[],
+        status: "DRAFT",
+        placeholder: false,
+      },
+    });
+    const previewPage = await fetch(`${BASE}/practitioner/agreements/upload/${probeTpl.id}`, { headers: { Cookie: practCookie } });
+    const previewHtml = await previewPage.text();
+    check(
+      "upload preview: fields shown IN PLACE with checklist + release/discard controls",
+      previewHtml.includes("data-field-pill") && previewHtml.includes("3 fields detected") && previewHtml.includes("Send for signature") && previewHtml.includes("Save as template") && previewHtml.includes("Discard this upload")
+    );
+    const draftRefuse = await AG.createAndSendAgreement({ tenantId: TENANT, templateId: probeTpl.id, recipient: { name: "X", email: "x@example.test" } });
+    check("un-reviewed upload (DRAFT) refuses to send", !draftRefuse.ok);
+
+    // template-file route: practitioner-only
+    const tplFileOk = await fetch(`${BASE}/api/agreement-templates/${narr!.id}/files/${narrFiles[0].id}`, { headers: { Cookie: practCookie } });
+    check("template files open for the practitioner preview (403 anonymous)", tplFileOk.status === 200 && (await fetch(`${BASE}/api/agreement-templates/${narr!.id}/files/${narrFiles[0].id}`)).status === 403);
     const portrait = await fetch(`${BASE}/practitioner/clients/${maria.id}?tab=agreements`, { headers: { Cookie: practCookie } });
     const portraitHtml = await portrait.text();
     check("Portrait: agreements tab lives on the client file", portrait.status === 200 && portraitHtml.includes("Open the agreements desk"));

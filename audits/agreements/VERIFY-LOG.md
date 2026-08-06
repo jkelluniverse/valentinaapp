@@ -1,3 +1,35 @@
+# C21.2 verify — 2026-08-06 (Jacob's round-2 feedback)
+
+Harness: `c21-verify.ts` extended to 37 checks. 37/37. Regressions:
+v31-verify 32/32, c20-verify 28/28.
+
+- Missing email sign button DIAGNOSED as Gmail thread-trimming: two
+  near-identical sends in one thread hide the matching tail (button +
+  signoff) behind "…". Fix: every send is unique — the subject carries
+  the document title (distinct threads) and a per-send timestamp whisper
+  rides directly under the button, so nothing above it can trim away.
+- ✓ upload is now upload → VISUAL PREVIEW → confirm: the file parks as a
+  DRAFT (harness proves a DRAFT refuses to send); the preview renders
+  the converted document exactly as the signer meets it with every
+  detected field pilled IN PLACE + a field checklist; release = Send now
+  (recipient name/email, optional keep-as-template) or Save as template,
+  or Discard (deletes). Master-agreement flip explicitly excluded from
+  this path.
+- ✓ desk upload form reduced to title + file(s) + countersign + "Preview
+  it" — the extra-fields textarea and message box are GONE (they were
+  the confusion); PDFs attach as-is (fields only via the Word route,
+  stated plainly on the preview)
+- ✓ template-file route (practitioner-only, hash-verified) backs the
+  preview's open-links
+- ✓ agreements browser is documents-first, like the Library: one tile
+  per document with request counts (awaiting / countersign / sealed);
+  opening a tile shows that document's requests with the shelves +
+  grid/list toolbar; the flat firehose list is gone
+- Gates: baseline MATCH, GET/write smoke, tenant-stamp, platform
+  isolation green.
+
+ALL CHECKS PASS — 37/37
+
 # C21.1 verify — 2026-08-06 (Jacob's memorandum-test feedback)
 
 Harness: `c21-verify.ts` extended to 34 checks. 34/34. Regressions:

@@ -111,73 +111,39 @@ export async function sendToEmailAction(formData: FormData) {
   redirect(`/practitioner/agreements?sent=${result.ok ? result.agreementId : ""}`);
 }
 
-// One line per field: "text: Label", "textarea: Label", "initials: Label",
-// or "checkbox: Label". Unparseable lines are ignored.
-function parseFieldLines(src: string): { id: string; text: string; kind: string; required: boolean; multiline?: boolean }[] {
-  const items: { id: string; text: string; kind: string; required: boolean; multiline?: boolean }[] = [];
-  const seen = new Set<string>();
-  for (const rawLine of src.split("\n")) {
-    const m = /^(text|textarea|initials|checkbox)\s*:\s*(.+)$/i.exec(rawLine.trim());
-    if (!m) continue;
-    const kindWord = m[1].toLowerCase();
-    const label = m[2].trim();
-    let id = label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || `field-${items.length + 1}`;
-    while (seen.has(id)) id = `${id}-2`;
-    seen.add(id);
-    items.push({
-      id,
-      text: label,
-      kind: kindWord === "textarea" ? "text" : kindWord,
-      required: true,
-      ...(kindWord === "textarea" ? { multiline: true } : {}),
-    });
-  }
-  return items;
-}
-
-// Upload document file(s) → a signature request. Optionally stored as a
-// reusable template; optionally sent immediately to a typed-in recipient.
+// C21.2 — upload is now upload → PREVIEW → confirm. This step only reads
+// the file(s) and parks everything as a DRAFT; nothing is sendable until
+// the practitioner has SEEN the converted page (fields visually placed)
+// or the attached files, and confirmed from the preview.
 export async function uploadRequestAction(formData: FormData) {
   await requirePractitioner();
   const tenant = await getTenant();
   const { saveAgreementFile } = await import("@/lib/agreements/files");
 
   const title = String(formData.get("title") ?? "").trim();
-  const message = String(formData.get("message") ?? "").trim();
-  const saveAsTemplate = formData.get("saveAsTemplate") === "on";
-  const recipientName = String(formData.get("recipientName") ?? "").trim();
-  const recipientEmail = String(formData.get("recipientEmail") ?? "").trim();
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-
   const fail = (msg: string) => redirect(`/practitioner/agreements?error=${encodeURIComponent(msg)}`);
   if (!title) fail("a request title is required");
   if (files.length === 0) fail("attach at least one document file");
-  const sendNow = Boolean(recipientName || recipientEmail);
-  if (sendNow && (!recipientName || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recipientEmail))) {
-    fail("to send now, give the recipient's name and a valid email");
-  }
-  if (!sendNow && !saveAsTemplate) fail("either save as a template or enter a recipient to send to");
 
   const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "upload";
   let slug = baseSlug;
   for (let i = 2; await prisma.agreementTemplate.findFirst({ where: { tenantId: tenant.id, slug, version: 1, locale: "en" }, select: { id: true } }); i++) {
     slug = `${baseSlug}-${i}`;
   }
-  const extraItems = parseFieldLines(String(formData.get("fields") ?? ""));
 
-  // C21.1 — a single Word document converts into a FILLABLE signing page:
-  // its text becomes the document body verbatim, [[kind: Label]] brackets
-  // and underscore blanks (____) become fields the signer completes in
-  // place, guided field-to-field. PDFs/multiple files attach as-is.
+  // A single Word document becomes a fillable signing page (verbatim text;
+  // [[kind: Label]] brackets and ____ blanks become fields). Anything else
+  // attaches as-is for review + signature.
   const isDocx = (f: File) => /\.docx$/i.test(f.name) || f.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  const convert = formData.get("convertDocx") === "on" && files.length === 1 && isDocx(files[0]);
-  let template;
+  const convert = files.length === 1 && isDocx(files[0]);
+  const countersign = formData.get("requiresCountersign") === "on";
+  let templateId: string;
   if (convert) {
     const { convertDocxToFillable } = await import("@/lib/agreements/docx");
     const converted = convertDocxToFillable(Buffer.from(await files[0].arrayBuffer()));
-    if (!converted) fail("couldn't read that Word document — attach it as-is instead, or re-save it as .docx");
-    const items = [...converted!.items, ...extraItems];
-    template = await prisma.agreementTemplate.create({
+    if (!converted) fail("couldn't read that Word document — re-save it as .docx, or upload a PDF to attach as-is");
+    const template = await prisma.agreementTemplate.create({
       data: {
         tenantId: tenant.id,
         slug,
@@ -186,14 +152,15 @@ export async function uploadRequestAction(formData: FormData) {
         locale: "en",
         title,
         body: converted!.body,
-        initialItems: items.length ? (items as unknown as object[]) : undefined,
-        requiresCountersign: formData.get("requiresCountersign") === "on",
-        status: "ACTIVE",
+        initialItems: converted!.items.length ? (converted!.items as unknown as object[]) : undefined,
+        requiresCountersign: countersign,
+        status: "DRAFT",
         placeholder: false,
       },
     });
+    templateId = template.id;
   } else {
-    template = await prisma.agreementTemplate.create({
+    const template = await prisma.agreementTemplate.create({
       data: {
         tenantId: tenant.id,
         slug,
@@ -201,44 +168,71 @@ export async function uploadRequestAction(formData: FormData) {
         version: 1,
         locale: "en",
         title,
-        body: message || "Review the attached document(s); your signature below covers them.",
-        initialItems: extraItems.length ? extraItems : undefined,
-        requiresCountersign: formData.get("requiresCountersign") === "on",
-        status: "ACTIVE",
+        body: "Review the attached document(s); your signature below covers them.",
+        requiresCountersign: countersign,
+        status: "DRAFT",
         placeholder: false,
       },
     });
+    templateId = template.id;
     for (const f of files) {
       const saved = await saveAgreementFile({
         tenantId: tenant.id,
         bytes: Buffer.from(await f.arrayBuffer()),
         filename: f.name,
         contentType: f.type,
-        templateId: template.id,
+        templateId,
       });
       if (!saved.ok) {
-        await prisma.agreementFile.deleteMany({ where: { templateId: template.id } });
-        await prisma.agreementTemplate.delete({ where: { id: template.id } });
+        await prisma.agreementFile.deleteMany({ where: { templateId } });
+        await prisma.agreementTemplate.delete({ where: { id: templateId } });
         fail(`${f.name}: ${saved.error}`);
       }
     }
   }
+  redirect(`/practitioner/agreements/upload/${templateId}`);
+}
 
-  if (sendNow) {
-    const result = await createAndSendAgreement({
-      tenantId: tenant.id,
-      templateId: template.id,
-      recipient: { name: recipientName, email: recipientEmail },
-    });
-    if (!saveAsTemplate) {
-      // One-off: the frozen agreement carries everything; retire the
-      // scaffolding template so it doesn't clutter the library.
-      await prisma.agreementTemplate.update({ where: { id: template.id }, data: { status: "RETIRED" } });
-    }
-    if (!result.ok) redirect(`/practitioner/agreements?error=${encodeURIComponent(result.error)}`);
-    redirect(`/practitioner/agreements?sent=${result.ok ? result.agreementId : ""}`);
+// The preview's confirm: release the reviewed DRAFT — keep it as a
+// reusable template, and/or send it to a typed-in recipient right away.
+export async function confirmUploadAction(templateId: string, formData: FormData) {
+  await requirePractitioner();
+  const tenant = await getTenant();
+  const template = await prisma.agreementTemplate.findFirst({ where: { id: templateId } });
+  if (!template) redirect("/practitioner/agreements?error=upload+not+found");
+  // Never a side door for counsel's master: its DRAFT→ACTIVE flip stays a
+  // deliberate database act (v3.1 hard rule), not an upload confirm.
+  if (template!.slug === "client-services-agreement") {
+    redirect("/practitioner/agreements?error=the+master+agreement+is+released+separately");
   }
-  redirect("/practitioner/agreements?uploaded=1");
+
+  const mode = String(formData.get("mode") ?? "save");
+  await prisma.agreementTemplate.update({ where: { id: templateId }, data: { status: "ACTIVE" } });
+  if (mode !== "send") redirect("/practitioner/agreements?uploaded=saved");
+
+  const name = String(formData.get("recipientName") ?? "").trim();
+  const email = String(formData.get("recipientEmail") ?? "").trim();
+  if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    redirect(`/practitioner/agreements/upload/${templateId}?error=${encodeURIComponent("recipient name and a valid email are required")}`);
+  }
+  const result = await createAndSendAgreement({ tenantId: tenant.id, templateId, recipient: { name, email } });
+  if (formData.get("keepTemplate") !== "on") {
+    // One-off: the frozen agreement carries everything; retire the
+    // scaffolding template so the library stays curated.
+    await prisma.agreementTemplate.update({ where: { id: templateId }, data: { status: "RETIRED" } });
+  }
+  if (!result.ok) redirect(`/practitioner/agreements?error=${encodeURIComponent(result.error)}`);
+  redirect(`/practitioner/agreements?sent=${result.ok ? result.agreementId : ""}`);
+}
+
+export async function discardUploadAction(templateId: string) {
+  await requirePractitioner();
+  const template = await prisma.agreementTemplate.findFirst({ where: { id: templateId, status: "DRAFT" } });
+  if (template) {
+    await prisma.agreementFile.deleteMany({ where: { templateId } });
+    await prisma.agreementTemplate.delete({ where: { id: templateId } });
+  }
+  redirect("/practitioner/agreements?uploaded=discarded");
 }
 
 // Practitioner-only documents: sign + seal in one motion, with her stored
