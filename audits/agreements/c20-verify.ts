@@ -181,7 +181,7 @@ async function main() {
     const leadPage = await fetch(`${BASE}/agree/${leadToken}`);
     check("no-login link renders the sign flow", leadPage.status === 200 && (await leadPage.text()).includes("I agree and sign"));
     const leadAgr = await prisma.agreement.findFirst({ where: { leadId: carmen.id } });
-    const leadSigned = await AG.signAgreement({ agreementId: leadAgr!.id, signerName: "Carmen Lead Ortiz", actor: "lead" });
+    const leadSigned = await AG.signAgreement({ agreementId: leadAgr!.id, signerName: "Carmen Lead Ortiz", drawn: "data:image/png;base64,x", actor: "lead" });
     await sealIfComplete(leadAgr!.id);
     check("Carmen signs pre-portal; sealed without countersign", leadSigned.ok && Boolean((await prisma.agreement.findFirst({ where: { id: leadAgr!.id } }))?.sealedSha256));
 

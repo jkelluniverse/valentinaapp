@@ -140,6 +140,7 @@ export function SignFlow({
   const [drawn, setDrawn] = useState<string | null>(null);
   const [padOpen, setPadOpen] = useState(false);
   const [pending, setPending] = useState(false);
+  const [needSign, setNeedSign] = useState(false);
 
   // C21.1 — the guide: walks the signer field-to-field like the big
   // e-sign platforms. Every required input carries data-sf; "Next" scrolls
@@ -148,13 +149,14 @@ export function SignFlow({
   const rootRef = useRef<HTMLDivElement>(null);
   const signBtnRef = useRef<HTMLButtonElement>(null);
   const hasSignMarker = body.includes("{{signature}}");
-  const initialCount = items.filter((i) => i.required).length + 1 + (hasSignMarker ? 1 : 0);
+  // required items + the typed name + the drawn signature (always required)
+  const initialCount = items.filter((i) => i.required).length + 2;
   const [progress, setProgress] = useState<{ total: number; left: number } | null>({ total: initialCount, left: initialCount });
 
   const emptyFields = () => {
     const root = rootRef.current;
     const nodes = [...(root?.querySelectorAll<HTMLElement>("[data-sf]") ?? [])];
-    const sigBox = root?.querySelector<HTMLElement>("[data-sf-signature]") ?? null;
+    const sigBox = root?.querySelector<HTMLElement>("[data-sf-signature], [data-drawpad]") ?? null;
     const empty: HTMLElement[] = [];
     for (const el of nodes) {
       if (el instanceof HTMLInputElement) {
@@ -190,8 +192,8 @@ export function SignFlow({
 
   const t =
     locale === "es"
-      ? { read: "Léelo con calma y complete los campos", name: "Tu nombre legal completo", draw: "Firma dibujada", clear: "Borrar", sign: "Acepto y firmo", decline: "Prefiero no firmar", acks: "Reconocimientos requeridos", initials: "Iniciales", fields: "Completa estos campos", fieldHint: "Escriba aquí", next: "Siguiente campo", allSet: "Todo listo — ir a firmar", toFill: "por completar", guided: "Le llevamos campo por campo", signHere: "Firmar aquí", signed: "Firmado", dateAuto: "La fecha se registra al firmar", printedName: "Nombre en letra de imprenta", drawTitle: "Dibuje su firma", done: "Listo", counterHint: "firma de la oficina" }
-      : { read: "Read it in your own time and complete the fields", name: "Your full legal name", draw: "Drawn signature", clear: "Clear", sign: "I agree and sign", decline: "I'd rather not sign", acks: "Required acknowledgments", initials: "Initials", fields: "Complete these fields", fieldHint: "Type here", next: "Next field", allSet: "All set — go to sign", toFill: "to complete", guided: "We'll walk you through each field", signHere: "Sign here", signed: "Signed", dateAuto: "The date is recorded when you sign", printedName: "Printed name", drawTitle: "Draw your signature", done: "Done", counterHint: "office signature" };
+      ? { read: "Léelo con calma y complete los campos", name: "Tu nombre legal completo", draw: "Firma dibujada (obligatoria)", clear: "Borrar", sign: "Acepto y firmo", decline: "Prefiero no firmar", acks: "Reconocimientos requeridos", initials: "Iniciales", fields: "Completa estos campos", fieldHint: "Escriba aquí", next: "Siguiente campo", allSet: "Todo listo — ir a firmar", toFill: "por completar", guided: "Le llevamos campo por campo", signHere: "Firmar aquí", signed: "Firmado", dateAuto: "La fecha se registra al firmar", printedName: "Nombre en letra de imprenta", drawTitle: "Dibuje su firma", done: "Listo", counterHint: "firma de la oficina", mustSign: "Dibuje su firma para terminar — el documento no se envía sin ella" }
+      : { read: "Read it in your own time and complete the fields", name: "Your full legal name", draw: "Drawn signature (required)", clear: "Clear", sign: "I agree and sign", decline: "I'd rather not sign", acks: "Required acknowledgments", initials: "Initials", fields: "Complete these fields", fieldHint: "Type here", next: "Next field", allSet: "All set — go to sign", toFill: "to complete", guided: "We'll walk you through each field", signHere: "Sign here", signed: "Signed", dateAuto: "The date is recorded when you sign", printedName: "Printed name", drawTitle: "Draw your signature", done: "Done", counterHint: "office signature", mustSign: "Draw your signature to finish — the document doesn't submit without it" };
 
   const formId = "agreement-sign-form";
   // The sheet renders its own styled heading — drop the body's duplicate
@@ -253,7 +255,7 @@ export function SignFlow({
       {hasSignMarker && padOpen && (
         <div className="sticky bottom-3 z-20 flex flex-col gap-2 rounded-card border border-wine bg-white p-4 shadow-card">
           <span className="text-[13px] font-semibold uppercase tracking-wide text-mocha">{t.drawTitle}</span>
-          <DrawPad onChange={setDrawn} clearLabel={t.clear} />
+          <DrawPad onChange={(d) => { setDrawn(d); if (d) setNeedSign(false); }} clearLabel={t.clear} />
           <button
             type="button"
             onClick={() => setPadOpen(false)}
@@ -269,8 +271,20 @@ export function SignFlow({
       <form
         id={formId}
         action={async (fd) => {
+          // C22.1 — the drawn signature is required to submit.
+          if (!drawn) {
+            setNeedSign(true);
+            const box = rootRef.current?.querySelector<HTMLElement>("[data-sf-signature], [data-drawpad]");
+            if (box) {
+              box.scrollIntoView({ behavior: "smooth", block: "center" });
+              box.classList.add("ring-2", "ring-wine", "ring-offset-2");
+              setTimeout(() => box.classList.remove("ring-2", "ring-wine", "ring-offset-2"), 1600);
+            }
+            if (hasSignMarker) setPadOpen(true);
+            return;
+          }
           setPending(true);
-          if (drawn) fd.set("drawn", drawn);
+          fd.set("drawn", drawn);
           await onSign(fd);
           setPending(false);
         }}
@@ -352,11 +366,14 @@ export function SignFlow({
                 className={`px-3 py-2.5 text-base font-normal normal-case tracking-normal ${BOX}`}
               />
             </label>
-            <div className="flex flex-col gap-1.5">
+            <div data-drawpad className="flex flex-col gap-1.5">
               <span className="text-[13px] font-semibold uppercase tracking-wide text-mocha">{t.draw}</span>
-              <DrawPad onChange={setDrawn} clearLabel={t.clear} />
+              <DrawPad onChange={(d) => { setDrawn(d); if (d) setNeedSign(false); }} clearLabel={t.clear} />
             </div>
           </>
+        )}
+        {needSign && !drawn && (
+          <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm font-medium text-wine">✍ {t.mustSign}</p>
         )}
         <button
           ref={signBtnRef}

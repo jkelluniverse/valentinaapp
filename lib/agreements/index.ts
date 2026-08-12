@@ -13,11 +13,12 @@ import type { Prisma } from "@prisma/client";
 
 export const AGREEMENT_LINK_TTL_DAYS = 30;
 
-// §3.2 — the ESIGN consumer-consent line (placeholder wording, attorney
-// pass pending). Shown before signing, timestamped when shown.
+// §3.2 — the ESIGN consumer-consent line. Wording approved by Jacob
+// (Aug 12 2026, "the notice is fine as written consider it approved").
+// Shown before signing, timestamped when shown.
 export const E_RECORDS_DISCLOSURE: Record<string, string> = {
-  en: "[PLACEHOLDER — attorney review required] By continuing, you agree to receive and sign this document electronically. You may request a paper copy at any time, and signing electronically has the same effect as signing on paper.",
-  es: "[MARCADOR — requiere revisión legal] Al continuar, acepta recibir y firmar este documento electrónicamente. Puede solicitar una copia en papel en cualquier momento; la firma electrónica tiene el mismo efecto que la firma en papel.",
+  en: "By continuing, you agree to receive and sign this document electronically. You may request a paper copy at any time, and signing electronically has the same effect as signing on paper.",
+  es: "Al continuar, acepta recibir y firmar este documento electrónicamente. Puede solicitar una copia en papel en cualquier momento; la firma electrónica tiene el mismo efecto que la firma en papel.",
 };
 
 // §1 — the starter set, en/es siblings, clearly marked placeholders.
@@ -412,6 +413,12 @@ export async function signAgreement(args: {
   if (!["SENT", "VIEWED"].includes(a.status)) return { ok: false, error: `cannot sign from ${a.status}` };
   if (!a.disclosureShownAt) return { ok: false, error: "disclosure not shown" };
   if (!args.signerName.trim() || args.signerName.trim().length < 3) return { ok: false, error: "typed legal name required" };
+  // C22.1 — the drawn signature is REQUIRED (Jacob's rule, Aug 2026): a
+  // document is not signed until the mark is actually drawn in the box.
+  // The sign UI blocks submit without it; this is the server backstop.
+  if (!args.drawn || !args.drawn.startsWith("data:image/")) {
+    return { ok: false, error: a.locale === "es" ? "falta la firma dibujada — firme en el recuadro" : "drawn signature required — sign in the box" };
+  }
 
   const template = await prisma.agreementTemplate.findFirst({ where: { id: a.templateId } });
   const items = initialItemsOf(template ?? {});
@@ -524,6 +531,10 @@ export async function selfSignAndSeal(args: {
   await markViewed(created.agreementId, "practitioner");
   await markDisclosureShown(created.agreementId, "practitioner");
   const drawn = await getPractitionerSignature();
+  if (!drawn) {
+    await voidAgreement(created.agreementId, "self-sign attempted without a stored signature");
+    return { ok: false, error: "store your signature first — Settings → Your signature (or the card on this desk)" };
+  }
   const signed = await signAgreement({
     agreementId: created.agreementId,
     signerName: practitioner.name ?? "Practitioner",

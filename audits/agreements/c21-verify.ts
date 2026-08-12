@@ -199,6 +199,8 @@ async function main() {
     };
     const missing = await AG.signAgreement({ agreementId: oneOffId, signerName: "Irene Maria Meza", actor: "recipient", initials: { declarant_full_name: "Irene Maria Meza" } });
     check("signature refused until every required field is filled", !missing.ok);
+    const noDrawn = await AG.signAgreement({ agreementId: oneOffId, signerName: "Irene Maria Meza", actor: "recipient", initials: fills });
+    check("submitting WITHOUT drawing the signature is refused (server backstop)", !noDrawn.ok && !noDrawn.ok && /drawn signature required|firma dibujada/.test(noDrawn.error));
     const signed = await AG.signAgreement({ agreementId: oneOffId, signerName: "Irene Maria Meza", drawn: makeSigPng(), ip: "203.0.113.77", agent: "c21-harness", actor: "recipient", initials: fills });
     check("recipient signs with fills + drawn mark", signed.ok === true);
     await sealIfComplete(oneOffId);

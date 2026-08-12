@@ -1,3 +1,24 @@
+# C22.1 verify — 2026-08-12 (drawn signature REQUIRED + disclosure approved)
+
+Harness: `c21-verify.ts` 54/54. Regressions: v31 32/32, c20 28/28.
+
+- ✓ the drawn signature is now REQUIRED to sign — policy change by
+  Jacob (the C20 design had treated the typed name as the binding
+  signature with the mark optional). Enforced twice: the sign UI blocks
+  submit (message + scroll/flash to the signature box or pad, pad
+  auto-opens) and signAgreement refuses server-side (en/es error) — the
+  harness proves the server backstop with a full-fields/no-mark attempt.
+- ✓ the guide counts the signature in both modes (marker box or classic
+  pad); "(required)" in the pad label; self-sign refuses (and voids its
+  scaffolding) when no stored signature exists yet.
+- ✓ e-records disclosure: "[PLACEHOLDER — attorney review required]" /
+  "[MARCADOR…]" tags REMOVED per Jacob's explicit approval of the
+  wording as written (Aug 12). Starter-template placeholder bodies keep
+  their tags — those texts remain unapproved.
+- Gates: baseline MATCH, smokes, tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 54/54
+
 # C22 verify — 2026-08-12 (the paper signing experience, phase 1)
 
 Harness: `c21-verify.ts` extended to 53 checks. 53/53. Regressions:
