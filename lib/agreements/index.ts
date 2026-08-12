@@ -166,8 +166,10 @@ type AgreementContentArgs = {
   templateId: string;
   clientId?: string;
   leadId?: string;
-  // C21 — one-off external signer: any name + email, no enrollment.
-  recipient?: { name: string; email: string };
+  // C21 — one-off external signer: a name, optionally an email. With no
+  // email, nothing is emailed — the caller gets the raw sign link to pass
+  // along by hand (WhatsApp, forwarded by a client to their payer, …).
+  recipient?: { name: string; email?: string };
   merge?: Record<string, string>;
 };
 

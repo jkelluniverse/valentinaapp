@@ -1,3 +1,29 @@
+# C21.4 verify — 2026-08-12 (payment authorization + direct sign links)
+
+Harness: `c21-verify.ts` extended to 49 checks. 49/49. Regressions:
+v31 32/32, c20 28/28. (Fresh container this session: node_modules and
+the scratch cluster were gone — reinstalled, schema `db push`ed, tenant
+row replayed from migration 33, reseeded; deterministic seed → BASELINE
+MATCH with zero diffs.)
+
+- ✓ Autorización de Pago (es) installed VERBATIM from the upload as an
+  ACTIVE fillable TEXT template: inline name fill, frequency/method and
+  optional day fields, Cargo-Recurrente checkbox acknowledgment; the
+  e-sign ceremony replaces FIRMA/FECHA/NOMBRE EN IMPRENTA
+- DELIBERATE (surfaced, not silent): the account/card blanks stay
+  LITERAL blanks — full card numbers, CVV, and bank account numbers must
+  never enter this system (PCI: no PAN/CVV at rest; the form itself says
+  data lives in Square). Harness asserts no fill marker touches those
+  fields. Instrument details go into Square card-on-file or on paper.
+- ✓ DIRECT SIGN LINKS: a request can be created with just the signer's
+  NAME — no email anywhere; the desk shows the link once in a copyable
+  banner ("your client forwards it to their payer"); the es sign page,
+  guided fill, optional-field skip, sealing without an email on file,
+  and the done-page sealed-copy download all proven end-to-end
+- ✓ es-only documents (no en sibling) now visible in the desk dropdowns
+
+ALL CHECKS PASS — 49/49
+
 # C21.3 verify — 2026-08-06 (Settings unreachable + signature upload)
 
 Harness: `c21-verify.ts` extended to 40 checks. 40/40. Regressions:

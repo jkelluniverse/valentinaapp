@@ -92,6 +92,38 @@ export async function installDisputePacketAction() {
   redirect("/practitioner/agreements?installed=dispute-packet");
 }
 
+// C21.4 — install the Spanish payment authorization (payee-signed).
+export async function installPaymentAuthAction() {
+  await requirePractitioner();
+  const tenant = await getTenant();
+  const { installPaymentAuthorization } = await import("@/lib/agreements/install-c21");
+  await installPaymentAuthorization(tenant.id);
+  redirect("/practitioner/agreements?installed=payment-auth");
+}
+
+// C21.4 — a DIRECT SIGN LINK, no email: for documents passed along by
+// hand — e.g. the client forwards it to their payer over WhatsApp. Same
+// signed-token basis as emailed sends; the link is shown once, copyable.
+export async function createSignLinkAction(formData: FormData) {
+  await requirePractitioner();
+  const tenant = await getTenant();
+  const name = String(formData.get("signerName") ?? "").trim();
+  const email = String(formData.get("signerEmail") ?? "").trim();
+  if (!name) redirect(`/practitioner/agreements?error=${encodeURIComponent("the signer's name is required")}`);
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    redirect(`/practitioner/agreements?error=${encodeURIComponent("that email doesn't look right — leave it empty for a link-only request")}`);
+  }
+  const result = await createAndSendAgreement({
+    tenantId: tenant.id,
+    templateId: String(formData.get("templateId") ?? ""),
+    recipient: { name, ...(email ? { email } : {}) },
+  });
+  if (!result.ok) redirect(`/practitioner/agreements?error=${encodeURIComponent(result.error)}`);
+  const { getBaseUrlSafe } = await import("@/lib/base-url");
+  const link = `${getBaseUrlSafe()}/agree/${result.ok ? result.rawToken : ""}`;
+  redirect(`/practitioner/agreements?signlink=${encodeURIComponent(link)}&signee=${encodeURIComponent(name)}`);
+}
+
 // Send any ACTIVE template to ANY email address — recipient needs no
 // account; the signed link is their whole path.
 export async function sendToEmailAction(formData: FormData) {

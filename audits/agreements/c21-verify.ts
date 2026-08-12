@@ -72,7 +72,7 @@ function makeSigPng(): string {
   return `data:image/png;base64,${png.toString("base64")}`;
 }
 
-const PACKET_SLUGS = ["client-declaration", "family-services-memorandum", "session-recording-log", "square-dispute-narrative", "c21-upload-probe"];
+const PACKET_SLUGS = ["client-declaration", "family-services-memorandum", "session-recording-log", "square-dispute-narrative", "c21-upload-probe", "payment-authorization-es"];
 
 async function cleanup() {
   await prisma.agreementEvent.deleteMany({}).catch(() => {});
@@ -316,6 +316,49 @@ async function main() {
       Boolean(conv && conv.items.some((i) => i.kind === "checkbox" && i.text === "I have read every page") && conv.items.filter((i) => i.required).length === 3)
     );
 
+    // ---- 5c. Payment authorization (es) + DIRECT SIGN LINK (no email) ----
+    const { installPaymentAuthorization, PAYMENT_AUTH_SLUG } = await import("../../lib/agreements/install-c21");
+    check("payment authorization installs (idempotent)", (await installPaymentAuthorization(TENANT)).installed === true && (await installPaymentAuthorization(TENANT)).installed === false);
+    const payAuth = await prisma.agreementTemplate.findFirst({ where: { slug: PAYMENT_AUTH_SLUG } });
+    check(
+      "payment auth: es, ACTIVE, fillable name/frequency/method — card & account blanks stay LITERAL (no PAN/CVV capture)",
+      payAuth?.locale === "es" &&
+        payAuth.status === "ACTIVE" &&
+        payAuth.body.includes("{{fill:nombre_autorizante}}") &&
+        payAuth.body.includes("Código de Seguridad:______") &&
+        !/\{\{fill:[^}]*(cuenta|tarjeta|numero|ruta|seguridad|vencimiento)/i.test(payAuth.body) &&
+        (payAuth.initialItems as unknown[]).length === 6
+    );
+    const linkOnly = await AG.createAndSendAgreement({
+      tenantId: TENANT,
+      templateId: payAuth!.id,
+      recipient: { name: "Pagador Tercero" },
+    });
+    check("sign link creates WITHOUT an email (nothing to send to)", linkOnly.ok === true);
+    const linkRow = await prisma.agreement.findFirst({ where: { id: linkOnly.ok ? linkOnly.agreementId : "" } });
+    check("link-only agreement: name kept, no email, es locale", linkRow?.recipientName === "Pagador Tercero" && linkRow.recipientEmail === null && linkRow.locale === "es");
+    const linkTok = linkOnly.ok ? linkOnly.rawToken : "";
+    const payPage = await fetch(`${BASE}/agree/${linkTok}`);
+    const payHtml = await payPage.text();
+    check("sign page renders in Spanish with the inline name field", payHtml.includes("Acepto y firmo") && payHtml.includes(`name="fill:nombre_autorizante"`));
+    const paySigned = await AG.signAgreement({
+      agreementId: linkOnly.ok ? linkOnly.agreementId : "",
+      signerName: "Pagador Tercero",
+      drawn: makeSigPng(),
+      actor: "recipient",
+      initials: {
+        "cargo-recurrente": "checked",
+        nombre_autorizante: "Pagador Tercero",
+        frecuencia: "Semanal",
+        dia_de_la_semana: "viernes",
+        metodo_pago: "Tarjeta",
+      },
+    });
+    check("payer signs from the link (optional day-of-month field left empty)", paySigned.ok === true);
+    await sealIfComplete(linkOnly.ok ? linkOnly.agreementId : "");
+    const payDone = await fetch(`${BASE}/agree/${linkTok}`);
+    check("sealed without any email on file; signer downloads from the done page", (await payDone.text()).includes("Download your sealed copy"));
+
     // ---- 6. Self-sign (the Square narrative) ----
     const self = await AG.selfSignAndSeal({ tenantId: TENANT, templateId: narr!.id });
     check("self-sign + seal in one motion", self.ok === true);
@@ -376,6 +419,14 @@ async function main() {
       "desk points at her signature with its stored state",
       gridHtml.includes("/practitioner/settings#signature") && (gridHtml.includes("signs and countersigns for you") || gridHtml.includes("not set yet"))
     );
+    check(
+      "desk: Create-a-sign-link form + es-only document visible in dropdowns",
+      gridHtml.includes("Create a sign link") && gridHtml.includes("Autorización de Pago")
+    );
+    const linkBanner = await fetch(`${BASE}/practitioner/agreements?signlink=${encodeURIComponent(`${BASE}/agree/probe`)}&signee=Pagador`, { headers: { Cookie: practCookie } });
+    const linkBannerHtml = await linkBanner.text();
+    // (React splits text/expression nodes with comments, so match the parts.)
+    check("desk: one-time sign-link banner renders copyable", linkBannerHtml.includes("Sign link created for") && linkBannerHtml.includes("Pagador") && linkBannerHtml.includes("select-all"));
     const settingsPage = await fetch(`${BASE}/practitioner/settings`, { headers: { Cookie: practCookie } });
     const settingsHtml = await settingsPage.text();
     check(

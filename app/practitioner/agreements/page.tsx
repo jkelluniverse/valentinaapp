@@ -8,8 +8,10 @@ import {
   seedStarterTemplates,
   installMasterV31Action,
   installDisputePacketAction,
+  installPaymentAuthAction,
   sendAgreementAction,
   sendToEmailAction,
+  createSignLinkAction,
   uploadRequestAction,
   selfSignAction,
   remindAgreement,
@@ -19,7 +21,7 @@ import {
   toggleTemplateTrigger,
 } from "./actions";
 import { V31_SLUG } from "@/lib/agreements/install-v31";
-import { DECLARATION_SLUG } from "@/lib/agreements/install-c21";
+import { DECLARATION_SLUG, PAYMENT_AUTH_SLUG } from "@/lib/agreements/install-c21";
 
 // C20 §2 — the practitioner's agreements desk: templates (versioned,
 // placeholder-marked until the attorney pass), the send flow (manual),
@@ -58,7 +60,7 @@ const SHELVES: { key: string; label: string; statuses: string[] | null }[] = [
 export default async function AgreementsDesk({
   searchParams,
 }: {
-  searchParams: { sent?: string; error?: string; seeded?: string; view?: string; show?: string; doc?: string };
+  searchParams: { sent?: string; error?: string; seeded?: string; view?: string; show?: string; doc?: string; signlink?: string; signee?: string };
 }) {
   await requirePractitioner();
   const tenant = await getTenant();
@@ -69,11 +71,16 @@ export default async function AgreementsDesk({
     prisma.user.findMany({ where: { role: "CLIENT", active: true }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
   ]);
   const nameFor = new Map(clients.map((c) => [c.id, c.name ?? c.email]));
-  const enTemplates = templates.filter((t) => t.locale === "en");
+  // en rows lead; es siblings route automatically by client locale — but an
+  // es-ONLY document (no en sibling, e.g. the payment authorization) must
+  // still show on the desk.
+  const enSlugs = new Set(templates.filter((t) => t.locale === "en").map((t) => t.slug));
+  const enTemplates = templates.filter((t) => t.locale === "en" || !enSlugs.has(t.slug));
   const sendableTemplates = enTemplates.filter((t) => t.status === "ACTIVE");
   const anyPlaceholder = templates.some((t) => t.placeholder);
   const v31Installed = templates.some((t) => t.slug === V31_SLUG);
   const packetInstalled = templates.some((t) => t.slug === DECLARATION_SLUG);
+  const payAuthInstalled = templates.some((t) => t.slug === PAYMENT_AUTH_SLUG);
   const fileCounts = new Map<string, number>();
   for (const g of await prisma.agreementFile.groupBy({ by: ["templateId"], where: { templateId: { not: null } }, _count: true })) {
     if (g.templateId) fileCounts.set(g.templateId, g._count);
@@ -107,6 +114,20 @@ export default async function AgreementsDesk({
           Sent — they&apos;ll get the email, and it waits in their space too.
         </p>
       )}
+      {searchParams.signlink && (
+        <div className="flex flex-col gap-2 rounded-card border border-wine bg-blush/30 p-4">
+          <p className="text-sm font-medium text-wine">
+            Sign link created for {searchParams.signee ?? "the signer"} — copy it and pass it along any way you like
+            (WhatsApp, text, or your client forwards it). It works for 30 days; you&apos;ll see the signed result here
+            and they get their sealed copy on the signing page.
+          </p>
+          <input
+            readOnly
+            value={searchParams.signlink}
+            className="w-full select-all rounded-md border border-line bg-white px-3 py-2 font-mono text-[12.5px] text-ink"
+          />
+        </div>
+      )}
 
       {/* C21.3 — her signature, one hop from where she signs. */}
       <Link
@@ -138,6 +159,13 @@ export default async function AgreementsDesk({
         <form action={installDisputePacketAction}>
           <PendingButton className="rounded-lg border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
             Install the dispute packet (declaration, memorandum, recording log, Square narrative)
+          </PendingButton>
+        </form>
+      )}
+      {!payAuthInstalled && (
+        <form action={installPaymentAuthAction}>
+          <PendingButton className="rounded-lg border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+            Install the payment authorization (es — signed by the payer via sign link)
           </PendingButton>
         </form>
       )}
@@ -225,6 +253,37 @@ export default async function AgreementsDesk({
             </label>
             <PendingButton className="rounded-lg bg-wine px-5 py-2.5 text-sm font-medium text-white shadow-soft transition-colors hover:bg-wine-dark">
               Send for signature
+            </PendingButton>
+          </form>
+
+          <form action={createSignLinkAction} className="flex flex-wrap items-end gap-3 rounded-card border border-line bg-surface p-5 shadow-card">
+            <p className="w-full text-[13px] font-semibold uppercase tracking-wide text-mocha">
+              Create a sign link
+              <span className="ml-2 font-normal normal-case tracking-normal text-whisper">
+                — no email needed; copy the link and pass it along (e.g. your client forwards it to their payer)
+              </span>
+            </p>
+            <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+              Document
+              <select name="templateId" required className={fieldCls}>
+                <option value="">Choose…</option>
+                {sendableTemplates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+              Signer&apos;s name
+              <input name="signerName" required className={fieldCls} placeholder="Who will sign" />
+            </label>
+            <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
+              Their email (optional)
+              <input name="signerEmail" type="email" className={fieldCls} placeholder="for their sealed copy" />
+            </label>
+            <PendingButton className="rounded-lg border border-wine px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush/30">
+              Create the link
             </PendingButton>
           </form>
 
