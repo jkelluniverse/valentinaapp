@@ -1,3 +1,29 @@
+# C22.2 verify — 2026-08-12 (the action-first agreements desk)
+
+Harness: `c21-verify.ts` extended to 58 checks. 58/58. Regressions:
+v31 32/32, c20 28/28. Redesigned desk screenshotted + sent to Jacob.
+
+- ✓ the main desk is FOUR DOORS + what's moving, nothing else: Send a
+  document / Create a sign link / Upload a document / Manage documents
+  (with an "update" badge when installs are pending), a one-line
+  signature card, a countersign-needed alert block with a one-click
+  Countersign button, and "In motion" — each recent send as a card with
+  a colored journey bar (Sent → Opened → Signed → [Countersigned] →
+  Sealed; declined/expired/voided render struck-through)
+- ✓ the template list is GONE from the main page → /templates ("Manage
+  documents"): installs/updates, trigger toggles, DRAFT preview,
+  self-sign, and RETIRE (retires every locale sibling; hides the
+  document from all menus; sent/signed history untouched) — Jacob's
+  upload-test clutter can now be cleaned in one pass
+- ✓ send / sign-link / upload each get their own focused page; the sign
+  link renders right on its page with the copy button; upload errors
+  return to the upload page
+- ✓ the documents-first tile archive lives at /all (tiles → shelves →
+  grid/list with the full action set incl. journey bars in grid view)
+- Gates: baseline MATCH, smokes, tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 58/58
+
 # C22.1 verify — 2026-08-12 (drawn signature REQUIRED + disclosure approved)
 
 Harness: `c21-verify.ts` 54/54. Regressions: v31 32/32, c20 28/28.

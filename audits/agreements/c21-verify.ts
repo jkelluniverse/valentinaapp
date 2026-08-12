@@ -388,18 +388,38 @@ async function main() {
     const refuse = await AG.selfSignAndSeal({ tenantId: TENANT, templateId: memo!.id });
     check("self-sign refuses dual-signature documents", !refuse.ok);
 
-    // ---- 7. Desk browser (document tiles → drill-in), Portrait tab, nav ----
+    // ---- 7. The action-first desk (C22.2), sub-pages, Portrait tab, nav ----
     const practCookie = await signIn("valentina@fixture.test");
     const deskGrid = await fetch(`${BASE}/practitioner/agreements`, { headers: { Cookie: practCookie } });
     const gridHtml = await deskGrid.text();
     check(
-      "desk: documents-first tiles (no flat list) + one-step upload form",
-      gridHtml.includes("doc=") && gridHtml.includes("request") && !gridHtml.includes("Awaiting signature ·") && gridHtml.includes("Send to anyone by email") && gridHtml.includes("Preview it")
+      "desk: four action doors + In-motion journey bars, NO template list, NO form farm",
+      gridHtml.includes("Send a document") &&
+        gridHtml.includes("Create a sign link") &&
+        gridHtml.includes("Upload a document") &&
+        gridHtml.includes("Manage documents") &&
+        gridHtml.includes("In motion") &&
+        gridHtml.includes("data-status-bar") &&
+        !gridHtml.includes("Templates &") &&
+        !gridHtml.includes("<select")
     );
     const memoDoc = encodeURIComponent("Memorandum of Family Services Arrangement");
-    const deskDoc = await fetch(`${BASE}/practitioner/agreements?doc=${memoDoc}&view=list&show=signed`, { headers: { Cookie: practCookie } });
+    const deskDoc = await fetch(`${BASE}/practitioner/agreements/all?doc=${memoDoc}&view=list&show=signed`, { headers: { Cookie: practCookie } });
     const deskDocHtml = await deskDoc.text();
-    check("desk: opening a document shows its requests with shelves + list view", deskDocHtml.includes("All documents") && deskDocHtml.includes("Awaiting signature") && deskDocHtml.includes("Download sealed PDF"));
+    check("archive: opening a document shows its requests with shelves + list view", deskDocHtml.includes("All documents") && deskDocHtml.includes("Awaiting signature") && deskDocHtml.includes("Download sealed PDF"));
+    const allTiles = await fetch(`${BASE}/practitioner/agreements/all`, { headers: { Cookie: practCookie } });
+    check("archive: documents-first tiles", (await allTiles.text()).includes("doc="));
+    const sendPage = await fetch(`${BASE}/practitioner/agreements/send`, { headers: { Cookie: practCookie } });
+    const sendHtml = await sendPage.text();
+    check("send page: client path + anyone-by-email path together", sendHtml.includes("To a client") && sendHtml.includes("To anyone by email"));
+    const uploadPage = await fetch(`${BASE}/practitioner/agreements/upload`, { headers: { Cookie: practCookie } });
+    check("upload page: one-step form into the visual preview", (await uploadPage.text()).includes("Preview it"));
+    const templatesPage = await fetch(`${BASE}/practitioner/agreements/templates`, { headers: { Cookie: practCookie } });
+    const templatesHtml = await templatesPage.text();
+    check(
+      "manage documents: library with triggers, self-sign, and Retire",
+      templatesHtml.includes("Retire") && templatesHtml.includes("on invite acceptance") && templatesHtml.includes("Sign &amp; seal myself") && templatesHtml.includes("Autorización de Pago")
+    );
 
     // ---- 7b. Upload preview flow: DRAFT until visually confirmed ----
     const probeConv = convertDocxToFillable(docxBytes)!;
@@ -438,15 +458,17 @@ async function main() {
       "desk points at her signature with its stored state",
       gridHtml.includes("/practitioner/settings#signature") && (gridHtml.includes("signs and countersigns for you") || gridHtml.includes("not set yet"))
     );
+    const linkPage = await fetch(`${BASE}/practitioner/agreements/link`, { headers: { Cookie: practCookie } });
+    const linkPageHtml = await linkPage.text();
     check(
-      "desk: Create-a-sign-link form + es-only document visible in dropdowns",
-      gridHtml.includes("Create a sign link") && gridHtml.includes("Autorización de Pago")
+      "sign-link page: form + es-only document visible in dropdown",
+      linkPageHtml.includes("Create the link") && linkPageHtml.includes("Autorización de Pago")
     );
-    const linkBanner = await fetch(`${BASE}/practitioner/agreements?signlink=${encodeURIComponent(`${BASE}/agree/probe`)}&signee=Pagador`, { headers: { Cookie: practCookie } });
+    const linkBanner = await fetch(`${BASE}/practitioner/agreements/link?signlink=${encodeURIComponent(`${BASE}/agree/probe`)}&signee=Pagador`, { headers: { Cookie: practCookie } });
     const linkBannerHtml = await linkBanner.text();
     // (React splits text/expression nodes with comments, so match the parts.)
     check(
-      "desk: sign link renders IN the create card (anchor target) with a copy button",
+      "sign link renders right on the link page (anchor target) with a copy button",
       linkBannerHtml.includes("Link ready for") && linkBannerHtml.includes("Pagador") && linkBannerHtml.includes("Copy link") && /id="signlink"[^>]*/.test(linkBannerHtml)
     );
     const settingsPage = await fetch(`${BASE}/practitioner/settings`, { headers: { Cookie: practCookie } });

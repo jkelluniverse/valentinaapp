@@ -18,7 +18,7 @@ export async function seedStarterTemplates() {
   await requirePractitioner();
   const tenant = await getTenant();
   const created = await ensureStarterTemplates(tenant.id);
-  redirect(`/practitioner/agreements?seeded=${created}`);
+  redirect(`/practitioner/agreements/templates?installed=starter-${created}`);
 }
 
 // v3.1 — install counsel's master agreement (verbatim from the repo file),
@@ -28,7 +28,7 @@ export async function installMasterV31Action() {
   const tenant = await getTenant();
   const { installMasterV31 } = await import("@/lib/agreements/install-v31");
   await installMasterV31(tenant.id);
-  redirect("/practitioner/agreements?installed=v31");
+  redirect("/practitioner/agreements/templates?installed=v31");
 }
 
 export async function sendAgreementAction(formData: FormData) {
@@ -89,7 +89,7 @@ export async function installDisputePacketAction() {
   const tenant = await getTenant();
   const { installDisputePacket } = await import("@/lib/agreements/install-c21");
   await installDisputePacket(tenant.id);
-  redirect("/practitioner/agreements?installed=dispute-packet");
+  redirect("/practitioner/agreements/templates?installed=dispute-packet");
 }
 
 // C21.4 — install the Spanish payment authorization (payee-signed).
@@ -98,7 +98,7 @@ export async function installPaymentAuthAction() {
   const tenant = await getTenant();
   const { installPaymentAuthorization } = await import("@/lib/agreements/install-c21");
   await installPaymentAuthorization(tenant.id);
-  redirect("/practitioner/agreements?installed=payment-auth");
+  redirect("/practitioner/agreements/templates?installed=payment-auth");
 }
 
 // C21.4 — a DIRECT SIGN LINK, no email: for documents passed along by
@@ -109,20 +109,20 @@ export async function createSignLinkAction(formData: FormData) {
   const tenant = await getTenant();
   const name = String(formData.get("signerName") ?? "").trim();
   const email = String(formData.get("signerEmail") ?? "").trim();
-  if (!name) redirect(`/practitioner/agreements?error=${encodeURIComponent("the signer's name is required")}`);
+  if (!name) redirect(`/practitioner/agreements/link?error=${encodeURIComponent("the signer's name is required")}`);
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    redirect(`/practitioner/agreements?error=${encodeURIComponent("that email doesn't look right — leave it empty for a link-only request")}`);
+    redirect(`/practitioner/agreements/link?error=${encodeURIComponent("that email doesn't look right — leave it empty for a link-only request")}`);
   }
   const result = await createAndSendAgreement({
     tenantId: tenant.id,
     templateId: String(formData.get("templateId") ?? ""),
     recipient: { name, ...(email ? { email } : {}) },
   });
-  if (!result.ok) redirect(`/practitioner/agreements?error=${encodeURIComponent(result.error)}`);
+  if (!result.ok) redirect(`/practitioner/agreements/link?error=${encodeURIComponent(result.error)}`);
   const { getBaseUrlSafe } = await import("@/lib/base-url");
   const link = `${getBaseUrlSafe()}/agree/${result.ok ? result.rawToken : ""}`;
-  // Land the eye exactly where the link appears — inside the create card.
-  redirect(`/practitioner/agreements?signlink=${encodeURIComponent(link)}&signee=${encodeURIComponent(name)}#signlink`);
+  // Land the eye exactly where the link appears — right on the link page.
+  redirect(`/practitioner/agreements/link?signlink=${encodeURIComponent(link)}&signee=${encodeURIComponent(name)}#signlink`);
 }
 
 // Send any ACTIVE template to ANY email address — recipient needs no
@@ -133,14 +133,14 @@ export async function sendToEmailAction(formData: FormData) {
   const name = String(formData.get("recipientName") ?? "").trim();
   const email = String(formData.get("recipientEmail") ?? "").trim();
   if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    redirect(`/practitioner/agreements?error=${encodeURIComponent("recipient name and a valid email are required")}`);
+    redirect(`/practitioner/agreements/send?error=${encodeURIComponent("recipient name and a valid email are required")}`);
   }
   const result = await createAndSendAgreement({
     tenantId: tenant.id,
     templateId: String(formData.get("templateId") ?? ""),
     recipient: { name, email },
   });
-  if (!result.ok) redirect(`/practitioner/agreements?error=${encodeURIComponent(result.error)}`);
+  if (!result.ok) redirect(`/practitioner/agreements/send?error=${encodeURIComponent(result.error)}`);
   redirect(`/practitioner/agreements?sent=${result.ok ? result.agreementId : ""}`);
 }
 
@@ -155,7 +155,7 @@ export async function uploadRequestAction(formData: FormData) {
 
   const title = String(formData.get("title") ?? "").trim();
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
-  const fail = (msg: string) => redirect(`/practitioner/agreements?error=${encodeURIComponent(msg)}`);
+  const fail = (msg: string) => redirect(`/practitioner/agreements/upload?error=${encodeURIComponent(msg)}`);
   if (!title) fail("a request title is required");
   if (files.length === 0) fail("attach at least one document file");
 
@@ -275,7 +275,7 @@ export async function selfSignAction(templateId: string) {
   const tenant = await getTenant();
   const { selfSignAndSeal } = await import("@/lib/agreements");
   const result = await selfSignAndSeal({ tenantId: tenant.id, templateId });
-  if (!result.ok) redirect(`/practitioner/agreements?error=${encodeURIComponent(result.error)}`);
+  if (!result.ok) redirect(`/practitioner/agreements/templates?error=${encodeURIComponent(result.error)}`);
   redirect("/practitioner/agreements?selfsigned=1");
 }
 
@@ -295,7 +295,7 @@ export async function savePractitionerSignatureAction(formData: FormData) {
 export async function toggleTemplateTrigger(templateId: string, field: string) {
   await requirePractitioner();
   const allowed = new Set(["sendOnInviteAccept", "requireBeforeBooking", "sendOnPackagePurchase", "sendOnRecordingConsent"]);
-  if (!allowed.has(field)) redirect("/practitioner/agreements");
+  if (!allowed.has(field)) redirect("/practitioner/agreements/templates");
   const row = await prisma.agreementTemplate.findFirst({ where: { id: templateId } });
   if (row) {
     await prisma.agreementTemplate.update({
@@ -303,5 +303,20 @@ export async function toggleTemplateTrigger(templateId: string, field: string) {
       data: { [field]: !(row as unknown as Record<string, boolean>)[field] },
     });
   }
-  redirect("/practitioner/agreements?toggled=1");
+  redirect("/practitioner/agreements/templates?toggled=1");
+}
+
+// C22.2 — retire a document: it disappears from every menu; anything
+// already sent or signed keeps its pinned snapshots and history.
+export async function retireTemplateAction(templateId: string) {
+  await requirePractitioner();
+  const row = await prisma.agreementTemplate.findFirst({ where: { id: templateId } });
+  if (row) {
+    // retire every locale sibling of this document together
+    await prisma.agreementTemplate.updateMany({
+      where: { slug: row.slug, version: row.version },
+      data: { status: "RETIRED" },
+    });
+  }
+  redirect("/practitioner/agreements/templates?retired=1");
 }
