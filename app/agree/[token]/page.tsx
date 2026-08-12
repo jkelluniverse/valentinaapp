@@ -99,8 +99,10 @@ export default async function AgreePage({
     redirect(`/agree/${params.token}`);
   }
 
+  const tenant = await prisma.tenant.findFirst({ where: { id: agreement.tenantId ?? "" }, select: { displayName: true } });
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col gap-6 px-6 py-12">
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6">
       <Eyebrow>Agreement</Eyebrow>
       {searchParams.error && (
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">{searchParams.error}</p>
@@ -133,6 +135,7 @@ export default async function AgreePage({
         body={agreement.bodySnapshot}
         disclosure={E_RECORDS_DISCLOSURE[locale]}
         locale={locale}
+        practiceName={tenant?.displayName ?? "Veritas Consulting"}
         items={items}
         onSign={doSign}
         onDecline={doDecline}

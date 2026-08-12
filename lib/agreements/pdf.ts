@@ -147,7 +147,31 @@ export function renderSealedPdf(input: SealInput): Buffer {
   lines.push({ text: input.practiceName, size: 10, color: SLATE });
   lines.push({ text: input.title, size: 18, bold: true, color: WINE, gap: 6 });
   lines.push({ text: "", size: 6 });
-  for (const l of wrapText(input.body, 10.5, BODY_W)) lines.push({ text: l, size: 10.5 });
+  // C22 — in-document signature placement: a body may carry {{signature}}
+  // / {{countersignature}} markers where the document's own signature line
+  // lives; the drawn marks render THERE (matching what the signer saw),
+  // and the appendix then skips the duplicate images. The heading above
+  // already carries the title — drop the body's duplicate first line.
+  const bodyLines = input.body.split("\n");
+  const pdfBody =
+    bodyLines[0]?.trim().toLowerCase() === input.title.trim().toLowerCase()
+      ? bodyLines.slice(1).join("\n").replace(/^\n+/, "")
+      : input.body;
+  const placedInline = /\{\{(signature|countersignature)\}\}/.test(pdfBody);
+  for (const seg of pdfBody.split(/(\{\{signature\}\}|\{\{countersignature\}\})/g)) {
+    if (seg === "{{signature}}" || seg === "{{countersignature}}") {
+      const img = seg === "{{signature}}" ? drawnImg : counterImg;
+      const name = seg === "{{signature}}" ? "Sig1" : "Sig2";
+      if (img) {
+        const scale = Math.min(190 / img.width, 60 / img.height, 1);
+        lines.push({ image: { name, w: img.width * scale, h: img.height * scale } });
+      } else {
+        lines.push({ text: seg === "{{signature}}" ? `/s/ ${input.signer.name}` : input.countersigner ? `/s/ ${input.countersigner.name}` : "", size: 11, bold: true });
+      }
+      continue;
+    }
+    for (const l of wrapText(seg, 10.5, BODY_W)) lines.push({ text: l, size: 10.5 });
+  }
 
   // ---- Key Terms (v3.1 — "captured in the sealed record") ----
   if (input.keyTerms?.length) {
@@ -195,19 +219,19 @@ export function renderSealedPdf(input: SealInput): Buffer {
   lines.push({ text: `${t.signedBy}: ${input.signer.name}`, size: 11, bold: true, gap: 6 });
   lines.push({ text: `${input.signer.at}${input.signer.ip ? ` · IP ${input.signer.ip}` : ""}`, size: 9.5, color: SLATE });
   if (input.signer.agent) for (const l of wrapText(input.signer.agent, 8.5, BODY_W)) lines.push({ text: l, size: 8.5, color: SLATE });
-  if (drawnImg) {
+  if (drawnImg && !placedInline) {
     // The mark itself, scaled to a signature-sized box (aspect preserved).
     const scale = Math.min(210 / drawnImg.width, 68 / drawnImg.height, 1);
     lines.push({ text: "", size: 2 });
     lines.push({ image: { name: "Sig1", w: drawnImg.width * scale, h: drawnImg.height * scale } });
-  } else if (input.signer.drawn) {
+  } else if (input.signer.drawn && !placedInline) {
     lines.push({ text: t.drawnNote, size: 9.5, color: SLATE, gap: 2 });
   }
   if (input.paperSigned) lines.push({ text: t.paperNote, size: 9.5, color: SLATE, gap: 2 });
   if (input.countersigner) {
     lines.push({ text: `${t.counterBy}: ${input.countersigner.name}`, size: 11, bold: true, gap: 8 });
     lines.push({ text: input.countersigner.at, size: 9.5, color: SLATE });
-    if (counterImg) {
+    if (counterImg && !placedInline) {
       const scale = Math.min(210 / counterImg.width, 68 / counterImg.height, 1);
       lines.push({ text: "", size: 2 });
       lines.push({ image: { name: "Sig2", w: counterImg.width * scale, h: counterImg.height * scale } });

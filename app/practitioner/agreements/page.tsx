@@ -22,6 +22,7 @@ import {
 } from "./actions";
 import { V31_SLUG } from "@/lib/agreements/install-v31";
 import { DECLARATION_SLUG, PAYMENT_AUTH_SLUG, PAYMENT_AUTH_BODY } from "@/lib/agreements/install-c21";
+import { CopyButton } from "@/components/agreements/CopyButton";
 
 // C20 §2 — the practitioner's agreements desk: templates (versioned,
 // placeholder-marked until the attorney pass), the send flow (manual),
@@ -115,20 +116,6 @@ export default async function AgreementsDesk({
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
           Sent — they&apos;ll get the email, and it waits in their space too.
         </p>
-      )}
-      {searchParams.signlink && (
-        <div className="flex flex-col gap-2 rounded-card border border-wine bg-blush/30 p-4">
-          <p className="text-sm font-medium text-wine">
-            Sign link created for {searchParams.signee ?? "the signer"} — copy it and pass it along any way you like
-            (WhatsApp, text, or your client forwards it). It works for 30 days; you&apos;ll see the signed result here
-            and they get their sealed copy on the signing page.
-          </p>
-          <input
-            readOnly
-            value={searchParams.signlink}
-            className="w-full select-all rounded-md border border-line bg-white px-3 py-2 font-mono text-[12.5px] text-ink"
-          />
-        </div>
       )}
 
       {/* C21.3 — her signature, one hop from where she signs. */}
@@ -265,13 +252,29 @@ export default async function AgreementsDesk({
             </PendingButton>
           </form>
 
-          <form action={createSignLinkAction} className="flex flex-wrap items-end gap-3 rounded-card border border-line bg-surface p-5 shadow-card">
+          <form id="signlink" action={createSignLinkAction} className="flex scroll-mt-24 flex-wrap items-end gap-3 rounded-card border border-line bg-surface p-5 shadow-card">
             <p className="w-full text-[13px] font-semibold uppercase tracking-wide text-mocha">
               Create a sign link
               <span className="ml-2 font-normal normal-case tracking-normal text-whisper">
                 — no email needed; copy the link and pass it along (e.g. your client forwards it to their payer)
               </span>
             </p>
+            {searchParams.signlink && (
+              <div className="flex w-full flex-col gap-2 rounded-card border border-wine bg-blush/30 p-4">
+                <p className="text-sm font-medium text-wine">
+                  Link ready for {searchParams.signee ?? "the signer"} — send it any way you like. It works for 30
+                  days; the signed result lands below, and they get their sealed copy on the signing page.
+                </p>
+                <div className="flex w-full items-center gap-2">
+                  <input
+                    readOnly
+                    value={searchParams.signlink}
+                    className="min-w-0 flex-1 select-all rounded-md border border-line bg-white px-3 py-2 font-mono text-[12.5px] text-ink"
+                  />
+                  <CopyButton value={searchParams.signlink} />
+                </div>
+              </div>
+            )}
             <label className="flex flex-col gap-1 text-[13px] font-medium text-slate">
               Document
               <select name="templateId" required className={fieldCls}>

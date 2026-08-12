@@ -143,6 +143,10 @@ async function main() {
       decl?.kind === "TEXT" && decl.status === "ACTIVE" && !decl.requiresCountersign && Array.isArray(decl.initialItems) && (decl.initialItems as unknown[]).length === 10
     );
     check("memorandum: dual-signature (client + countersign)", memo?.kind === "TEXT" && memo.requiresCountersign === true);
+    check(
+      "installed docs carry their OWN signature lines as live markers",
+      Boolean(decl?.body.includes("{{signature}}") && memo?.body.includes("{{countersignature}}"))
+    );
     const narrFiles = narr ? await templateFiles(narr.id) : [];
     const repoNarr = readFileSync("content/agreements/files/square-dispute-narrative.pdf");
     check(
@@ -176,6 +180,10 @@ async function main() {
       "guided signing: Next-field bar with progress renders (server-side)",
       agreeHtml.includes("data-sign-guide") && agreeHtml.includes("Next field") && agreeHtml.includes("data-sf")
     );
+    check(
+      "paper experience: letterhead sheet, no scroll cage, in-document signature box + printed-name box",
+      agreeHtml.includes("data-paper") && agreeHtml.includes("data-sf-signature") && agreeHtml.includes("Sign here") && !agreeHtml.includes("max-h-[50vh]") && /name="signerName"[^>]*/.test(agreeHtml)
+    );
 
     const fills: Record<string, string> = {
       declarant_full_name: "Irene Maria Meza",
@@ -202,6 +210,10 @@ async function main() {
     check(
       "sealed record downloads by token: filled values inline + audit page + drawn mark",
       pdfByToken.status === 200 && pdfText.includes("DECLARATION OF Irene Maria Meza") && !pdfText.includes("{{fill:declarant_full_name}}") && pdfText.includes("/Sig1 Do") && pdfText.includes("(AUDIT CERTIFICATE)")
+    );
+    check(
+      "signature PLACED at the document's own line (name + date substituted, no leftover markers)",
+      pdfText.includes("Signature & Printed Name: Irene Maria Meza") && !/\{\{(signature|printed_name|date_signed)\}\}/.test(pdfText)
     );
     const donePage = await fetch(`${BASE}/agree/${rawToken}`);
     check("signed token page offers the sealed copy", (await donePage.text()).includes("Download your sealed copy"));
@@ -252,7 +264,7 @@ async function main() {
     check("countersign auto-applied her stored mark + auto-dated", Boolean(memoRow?.countersignDrawn && memoRow.countersignedAt));
     const memoPdfRes = await fetch(`${BASE}/api/agreements/${memoId}/pdf?token=${encodeURIComponent(memoSent2.ok ? memoSent2.rawToken : "")}`);
     const memoPdf = Buffer.from(await memoPdfRes.arrayBuffer()).toString("latin1");
-    check("sealed memorandum renders BOTH drawn marks", memoPdf.includes("/Sig1 Do") && memoPdf.includes("/Sig2 Do"));
+    check("sealed memorandum renders BOTH drawn marks at their own lines", memoPdf.includes("/Sig1 Do") && memoPdf.includes("/Sig2 Do") && !memoPdf.includes("{{countersign"));
     check(
       "KEY TERMS reserved for the client-services master — absent on one-off docs",
       !memoPdf.includes("KEY TERMS") && !pdfText.includes("KEY TERMS")
@@ -431,7 +443,10 @@ async function main() {
     const linkBanner = await fetch(`${BASE}/practitioner/agreements?signlink=${encodeURIComponent(`${BASE}/agree/probe`)}&signee=Pagador`, { headers: { Cookie: practCookie } });
     const linkBannerHtml = await linkBanner.text();
     // (React splits text/expression nodes with comments, so match the parts.)
-    check("desk: one-time sign-link banner renders copyable", linkBannerHtml.includes("Sign link created for") && linkBannerHtml.includes("Pagador") && linkBannerHtml.includes("select-all"));
+    check(
+      "desk: sign link renders IN the create card (anchor target) with a copy button",
+      linkBannerHtml.includes("Link ready for") && linkBannerHtml.includes("Pagador") && linkBannerHtml.includes("Copy link") && /id="signlink"[^>]*/.test(linkBannerHtml)
+    );
     const settingsPage = await fetch(`${BASE}/practitioner/settings`, { headers: { Cookie: practCookie } });
     const settingsHtml = await settingsPage.text();
     check(

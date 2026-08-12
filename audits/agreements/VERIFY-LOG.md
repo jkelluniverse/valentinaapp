@@ -1,3 +1,32 @@
+# C22 verify — 2026-08-12 (the paper signing experience, phase 1)
+
+Harness: `c21-verify.ts` extended to 53 checks. 53/53. Regressions:
+v31 32/32, c20 28/28. Screenshot of the live sign page eyeballed +
+sent to Jacob.
+
+- ✓ documents render as PAPER: full-length letterhead sheet (no inner
+  scroll window), serif text, fields as classic fillable-form boxes with
+  their labels, exactly where they sit in the text
+- ✓ in-document signature line is LIVE: {{signature}} renders a dashed
+  "Sign here" box → tap opens the draw pad → the mark lands IN the box;
+  {{date_signed}} auto-fills; {{printed_name}} is typed in place (and IS
+  the attribution name); {{countersignature}}/{{countersign_date}} for
+  dual-signature docs; documents without markers keep the classic block
+- ✓ the sealed PDF places the drawn marks at the SAME in-document spots
+  (name + date substituted, zero leftover markers, appendix keeps the
+  attribution stack without duplicate images); title deduped between the
+  sheet heading and the body's first line
+- ✓ guide counts the signature box as a field until it's drawn
+- ✓ installed docs (payment auth, declaration, memorandum) now carry
+  their real signature lines as markers; installers reconcile in place
+- ✓ sign link now renders INSIDE the "Create a sign link" card (anchor
+  redirect lands the eye on it) with a one-tap Copy button
+- Phase 2 (uploaded-PDF render-and-fill via pdf.js + pdf-lib with
+  coordinate stamping) spec'd to Jacob; awaiting go-ahead.
+- Gates: baseline MATCH, smokes, tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 53/53
+
 # C21.5 verify — 2026-08-12 (payment authorization v2, card-free)
 
 Harness: `c21-verify.ts` 50/50. Regressions: v31 32/32, c20 28/28.

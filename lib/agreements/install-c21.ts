@@ -44,7 +44,11 @@ Deseo que mis pagos se procesen automáticamente. Usted o la oficina pueden aún
 
 [ ] Semanal, el día {{fill:dia_de_la_semana}} de la semana.
 
-Autorizo a Veritas Consulting a cargar los servicios a la tarjeta que he proporcionado y mantengo en archivo, y entiendo que el cargo aparecerá en mi estado de cuenta como "VIIIV CORP"`;
+Autorizo a Veritas Consulting a cargar los servicios a la tarjeta que he proporcionado y mantengo en archivo, y entiendo que el cargo aparecerá en mi estado de cuenta como "VIIIV CORP"
+
+FIRMA AUTORIZADA {{signature}}    FECHA {{date_signed}}
+
+NOMBRE EN LETRA DE IMPRENTA {{printed_name}}`;
 
 const PAYMENT_AUTH_ITEMS = [
   { id: "cargo-recurrente", text: "Cargo Recurrente — autorizo a VIIIV CORP a establecer mis cargos regulares, programados o recurrentes a mi tarjeta de crédito o cuenta bancaria.", kind: "checkbox", required: true },
@@ -119,6 +123,9 @@ The Disputes
 
 I declare that the statements above are true and correct to the best of my knowledge.
 
+{{signature}}
+Signature & Printed Name: {{printed_name}}    Date: {{date_signed}}
+
 ATTACH (IF AVAILABLE)
 Screenshots or copies of any message, email, or other written communication in which the cardholder agreed to pay for the family's services or acknowledged the payment arrangement. A contemporaneous written trace of his agreement is the single strongest exhibit this packet can contain.
 
@@ -171,6 +178,12 @@ This Memorandum is made between VIIIV CORP (d/b/a Veritas Consulting), operated 
 
 Each signer confirms that the statements above accurately reflect the arrangement as they understood and operated under it.
 
+{{signature}}
+Client Signature & Printed Name: {{printed_name}}    Date: {{date_signed}}
+
+{{countersignature}}
+Valentina Vélez — VIIIV CORP    Date: {{countersign_date}}
+
 VIIIV CORP (d/b/a Veritas Consulting) · Orlando, Florida · Coaching — not medical or psychological treatment`;
 
 const MEMORANDUM_ITEMS = [
@@ -204,9 +217,16 @@ export async function installDisputePacket(tenantId: string): Promise<{ installe
     { slug: MEMORANDUM_SLUG, title: "Memorandum of Family Services Arrangement", body: MEMORANDUM_BODY, items: MEMORANDUM_ITEMS, countersign: true },
   ];
   for (const t of textTemplates) {
-    const exists = await prisma.agreementTemplate.findFirst({ where: { tenantId, slug: t.slug, version: 1, locale: "en" }, select: { id: true } });
+    const exists = await prisma.agreementTemplate.findFirst({ where: { tenantId, slug: t.slug, version: 1, locale: "en" }, select: { id: true, body: true } });
     if (exists) {
-      skipped.push(t.slug);
+      // Reconcile in place (C22: the in-document signature lines landed
+      // after first install). Snapshots on anything sent stay pinned.
+      if (exists.body !== t.body) {
+        await prisma.agreementTemplate.update({ where: { id: exists.id }, data: { body: t.body, initialItems: t.items } });
+        installed.push(`${t.slug} (updated)`);
+      } else {
+        skipped.push(t.slug);
+      }
       continue;
     }
     await prisma.agreementTemplate.create({

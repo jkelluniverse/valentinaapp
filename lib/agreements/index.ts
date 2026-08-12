@@ -121,6 +121,30 @@ export function substituteFilledFields(body: string, captured: { id: string; val
   return out;
 }
 
+// C22 — in-document signature placement. A template may carry the
+// document's OWN signature line as markers; the sign page renders real
+// boxes there (tap the signature box → draw → the mark lands in the box)
+// and the sealed PDF places the images at the same spots:
+//   {{signature}} {{date_signed}} {{printed_name}}
+//   {{countersignature}} {{countersign_date}}
+// Documents without markers keep the classic appended signature block.
+export function bodyHasSignMarkers(body: string): boolean {
+  return body.includes("{{signature}}");
+}
+
+// Seal-time text substitutions for the marker vocabulary — everything
+// except the two image markers, which the PDF renderer places itself.
+export function substituteSignMarkers(
+  body: string,
+  args: { signerName?: string | null; signedAt?: Date | null; countersignName?: string | null; countersignedAt?: Date | null }
+): string {
+  const day = (d?: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
+  return body
+    .split("{{printed_name}}").join(args.signerName ?? "")
+    .split("{{date_signed}}").join(day(args.signedAt))
+    .split("{{countersign_date}}").join(day(args.countersignedAt));
+}
+
 // The v3.1 signature-page Key Terms — the fields frozen into the sealed
 // record, rendered as a table on the sign page and the sealed PDF.
 export const KEY_TERM_FIELDS: { key: string; label: string }[] = [

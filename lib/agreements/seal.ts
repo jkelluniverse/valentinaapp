@@ -3,7 +3,7 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma as scopedPrisma } from "@/lib/prisma";
 import { putObject, getObject } from "@/lib/storage";
 import { renderSealedPdf } from "./pdf";
-import { E_RECORDS_DISCLOSURE, keyTermsForTemplate, initialItemsOf, substituteFilledFields } from "./index";
+import { E_RECORDS_DISCLOSURE, keyTermsForTemplate, initialItemsOf, substituteFilledFields, substituteSignMarkers } from "./index";
 
 // C20 §4 — seal & store. On final signature (client signature, plus the
 // countersign when the template asks for one) the sealed PDF is generated,
@@ -53,7 +53,14 @@ export async function sealIfComplete(
   const locale = (a.locale === "es" ? "es" : "en") as "en" | "es";
   const pdf = renderSealedPdf({
     title: a.titleSnapshot,
-    body: substituteFilledFields(a.bodySnapshot, textCaptured),
+    // fills in place, then the signature-line text markers (printed name,
+    // dates); the {{signature}} image markers render inside the PDF itself.
+    body: substituteSignMarkers(substituteFilledFields(a.bodySnapshot, textCaptured), {
+      signerName: a.signerName,
+      signedAt: a.signedAt,
+      countersignName: a.countersignName,
+      countersignedAt: a.countersignedAt,
+    }),
     locale,
     practiceName: tenant?.displayName ?? "",
     signer: {

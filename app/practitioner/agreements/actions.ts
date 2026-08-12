@@ -121,7 +121,8 @@ export async function createSignLinkAction(formData: FormData) {
   if (!result.ok) redirect(`/practitioner/agreements?error=${encodeURIComponent(result.error)}`);
   const { getBaseUrlSafe } = await import("@/lib/base-url");
   const link = `${getBaseUrlSafe()}/agree/${result.ok ? result.rawToken : ""}`;
-  redirect(`/practitioner/agreements?signlink=${encodeURIComponent(link)}&signee=${encodeURIComponent(name)}`);
+  // Land the eye exactly where the link appears — inside the create card.
+  redirect(`/practitioner/agreements?signlink=${encodeURIComponent(link)}&signee=${encodeURIComponent(name)}#signlink`);
 }
 
 // Send any ACTIVE template to ANY email address — recipient needs no
