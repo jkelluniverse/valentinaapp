@@ -319,14 +319,19 @@ async function main() {
     // ---- 5c. Payment authorization (es) + DIRECT SIGN LINK (no email) ----
     const { installPaymentAuthorization, PAYMENT_AUTH_SLUG } = await import("../../lib/agreements/install-c21");
     check("payment authorization installs (idempotent)", (await installPaymentAuthorization(TENANT)).installed === true && (await installPaymentAuthorization(TENANT)).installed === false);
+    // v2 replacement: an already-installed older text reconciles in place.
+    const payAuthId = (await prisma.agreementTemplate.findFirst({ where: { slug: PAYMENT_AUTH_SLUG }, select: { id: true } }))!.id;
+    await prisma.agreementTemplate.update({ where: { id: payAuthId }, data: { body: "stale v1 body" } });
+    check("older installed text reconciles to the new version in place", (await installPaymentAuthorization(TENANT)).updated === true);
     const payAuth = await prisma.agreementTemplate.findFirst({ where: { slug: PAYMENT_AUTH_SLUG } });
     check(
-      "payment auth: es, ACTIVE, fillable name/frequency/method — card & account blanks stay LITERAL (no PAN/CVV capture)",
+      "payment auth v2: es, ACTIVE, every box fillable, ZERO card/bank data anywhere",
       payAuth?.locale === "es" &&
         payAuth.status === "ACTIVE" &&
         payAuth.body.includes("{{fill:nombre_autorizante}}") &&
-        payAuth.body.includes("Código de Seguridad:______") &&
-        !/\{\{fill:[^}]*(cuenta|tarjeta|numero|ruta|seguridad|vencimiento)/i.test(payAuth.body) &&
+        payAuth.body.includes("{{fill:dia_del_mes}}") &&
+        payAuth.body.includes("mantengo en archivo") &&
+        !/(Código de Seguridad|Número de Cuenta|Routing|Vencimiento)/i.test(payAuth.body) &&
         (payAuth.initialItems as unknown[]).length === 6
     );
     const linkOnly = await AG.createAndSendAgreement({
@@ -351,7 +356,7 @@ async function main() {
         nombre_autorizante: "Pagador Tercero",
         frecuencia: "Semanal",
         dia_de_la_semana: "viernes",
-        metodo_pago: "Tarjeta",
+        "tarjeta-en-archivo": "checked",
       },
     });
     check("payer signs from the link (optional day-of-month field left empty)", paySigned.ok === true);

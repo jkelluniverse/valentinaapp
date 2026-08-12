@@ -1,3 +1,22 @@
+# C21.5 verify — 2026-08-12 (payment authorization v2, card-free)
+
+Harness: `c21-verify.ts` 50/50. Regressions: v31 32/32, c20 28/28.
+
+- ✓ Jacob's v2 text REPLACES v1: no card/bank information anywhere on
+  the document (harness asserts zero matches for card/account/routing/
+  CVV wording); every box fillable — name inline, both schedule day
+  blanks inline (optional), Cargo Recurrente + card-on-file
+  authorizations as required checkboxes; FIRMA/FECHA/NOMBRE = ceremony
+- ✓ reconcile-in-place proven: an installed older text updates to v2 via
+  the installer; the desk shows an "Update the payment authorization"
+  button whenever the installed body is stale (production one-click)
+- ✓ full link-only sign→seal path re-proven on v2
+- Gates: baseline 16/16 (5 diffs = documented quote-rotation/time
+  classes, eyeballed, recaptured → MATCH), smokes, tenant-stamp,
+  platform isolation green.
+
+ALL CHECKS PASS — 50/50
+
 # C21.4 verify — 2026-08-12 (payment authorization + direct sign links)
 
 Harness: `c21-verify.ts` extended to 49 checks. 49/49. Regressions:

@@ -26,18 +26,17 @@ export const RECORDING_LOG_SLUG = "session-recording-log";
 export const NARRATIVE_SLUG = "square-dispute-narrative";
 export const PAYMENT_AUTH_SLUG = "payment-authorization-es";
 
-// AUTORIZACIÓN DE PAGO (Aug 2026 upload) — the payee's recurring-charge
-// authorization, Spanish. Signed via a DIRECT SIGN LINK (the client
-// forwards it to their payer; no email needed). Text VERBATIM from the
-// upload. DELIBERATE: the account/card-number blanks stay literal blanks
-// — full card numbers, security codes, and bank account numbers must
-// NEVER enter this system (PCI: no PAN/CVV at rest; the form itself says
-// data lives in Square). What signs here is the AUTHORIZATION — name,
-// frequency, chosen method, the NSF terms, signature; the instrument
-// details go into Square's secure card-on-file, or on paper.
-const PAYMENT_AUTH_BODY = `AUTORIZACIÓN DE PAGO EN NOMBRE PROPIO O DE TERCERO
+// AUTORIZACIÓN DE PAGO v2 (Aug 12 2026 upload, replacing the v1 text) —
+// the payee's recurring-charge authorization, Spanish, signed via a
+// DIRECT SIGN LINK (the client forwards it to their payer; no email
+// needed). Jacob's v2 asks for NO card or bank information at all: the
+// card lives in Square ("la tarjeta que he proporcionado y mantengo en
+// archivo"). Every box on it is fillable: name inline, the two schedule
+// day blanks inline, and the two affirmation checkboxes as required
+// acknowledgments. FIRMA/FECHA/NOMBRE EN IMPRENTA = the e-sign ceremony.
+export const PAYMENT_AUTH_BODY = `AUTORIZACIÓN DE PAGO EN NOMBRE PROPIO O DE TERCERO
 
-[ ] Cargo Recurrente – Yo, {{fill:nombre_autorizante}}, autorizo a VIIIV CORP a establecer mis cargos regulares, programados o recurrentes a mi tarjeta de crédito o cuenta bancaria. Se me cobrará el monto indicado en mi acuerdo de servicios. Acepto que no se enviará notificación previa a menos que el monto cambie, en cuyo caso recibiré un aviso de nuestra parte antes de que se procese el cobro.
+Cargo Recurrente – Yo, {{fill:nombre_autorizante}}, autorizo a VIIIV CORP a establecer mis cargos regulares, programados o recurrentes a mi tarjeta de crédito o cuenta bancaria. Se me cobrará el monto indicado en mi acuerdo de servicios. Acepto que no se enviará notificación previa a menos que el monto cambie, en cuyo caso recibiré un aviso de nuestra parte antes de que se procese el cobro.
 
 Deseo que mis pagos se procesen automáticamente. Usted o la oficina pueden aún modificar este calendario o programar transacciones únicas en línea.
 
@@ -45,28 +44,7 @@ Deseo que mis pagos se procesen automáticamente. Usted o la oficina pueden aún
 
 [ ] Semanal, el día {{fill:dia_de_la_semana}} de la semana.
 
-(Seleccione el Método de Pago Predeterminado) Ambas opciones pueden agregarse como métodos de pago. En caso de cambio, puede notificar a la oficina para usar su método de pago alternativo.
-
-[ ] Pago por Banco (ACH)
-Número de Cuenta:_______________________ Nombre del Banco: ______________________
-Número de Ruta (Routing):_______________________
-(siempre 9 dígitos)
-
-[ ] Pago con Tarjeta
-Tipo de tarjeta: __________________________ Número: ____________________________
-Vencimiento:__________________________ Código de Seguridad:______________________
-
-(Toda la información personal se almacena de forma segura en el procesador de pagos Square).
-
-Si necesita cambiar su pago automático programado, por favor notifique a la oficina con al menos 48 horas de anticipación a la fecha programada. No nos hacemos responsables de posibles cargos por pagos devueltos si no se nos notifica a tiempo.
-
-FONDOS INSUFICIENTES (NSF) / DISPUTAS
-
-Entiendo que esta autorización permanecerá vigente hasta que yo la cancele por escrito, y me comprometo a notificar por escrito al comerciante cualquier cambio en la información de mi cuenta o la terminación de esta autorización con al menos 15 días de anticipación a la siguiente fecha de cobro. Si las fechas de pago indicadas arriba caen en fin de semana o día festivo, entiendo que los pagos podrán ejecutarse el siguiente día hábil. Respecto de los débitos ACH a mi cuenta corriente o de ahorros, entiendo que, por tratarse de transacciones electrónicas, estos fondos podrán retirarse de mi cuenta. En caso de que una transacción ACH sea rechazada por Fondos Insuficientes (NSF), entiendo que el comerciante podrá, a su discreción, intentar procesar el cargo nuevamente dentro de los 30 días siguientes, y acepto un cargo adicional de $55.00 por cada intento devuelto por NSF, el cual se iniciará como una transacción separada del pago recurrente autorizado. Reconozco que la originación de transacciones ACH a mi cuenta debe cumplir con las disposiciones de la ley de los Estados Unidos.
-
-Certifico que soy un usuario autorizado de esta tarjeta de crédito/cuenta bancaria y que no disputaré estas transacciones programadas ante mi banco o compañía de tarjeta de crédito, siempre que las transacciones correspondan a los términos indicados en este formulario de autorización.
-
-VIIIV CORP (d/b/a Veritas Consulting) · Orlando, Florida`;
+Autorizo a Veritas Consulting a cargar los servicios a la tarjeta que he proporcionado y mantengo en archivo, y entiendo que el cargo aparecerá en mi estado de cuenta como "VIIIV CORP"`;
 
 const PAYMENT_AUTH_ITEMS = [
   { id: "cargo-recurrente", text: "Cargo Recurrente — autorizo a VIIIV CORP a establecer mis cargos regulares, programados o recurrentes a mi tarjeta de crédito o cuenta bancaria.", kind: "checkbox", required: true },
@@ -74,15 +52,25 @@ const PAYMENT_AUTH_ITEMS = [
   { id: "frecuencia", text: "Frecuencia elegida: Mensual o Semanal", kind: "text", required: true },
   { id: "dia_del_mes", text: "Si es mensual: día del mes", kind: "text", required: false },
   { id: "dia_de_la_semana", text: "Si es semanal: día de la semana", kind: "text", required: false },
-  { id: "metodo_pago", text: "Método de pago predeterminado: Banco (ACH) o Tarjeta — los datos de la cuenta o tarjeta NO se escriben aquí; se registran de forma segura en Square", kind: "text", required: true },
+  { id: "tarjeta-en-archivo", text: 'Autorizo a Veritas Consulting a cargar los servicios a la tarjeta que he proporcionado y mantengo en archivo, y entiendo que el cargo aparecerá en mi estado de cuenta como "VIIIV CORP".', kind: "checkbox", required: true },
 ];
 
-export async function installPaymentAuthorization(tenantId: string): Promise<{ installed: boolean }> {
+// Installs v2 — and RECONCILES an already-installed older text in place
+// (Jacob's explicit replacement order, Aug 12). Snapshots on anything
+// already sent stay pinned; only future sends pick up the new text.
+export async function installPaymentAuthorization(tenantId: string): Promise<{ installed: boolean; updated?: boolean }> {
   const exists = await prisma.agreementTemplate.findFirst({
     where: { tenantId, slug: PAYMENT_AUTH_SLUG, version: 1, locale: "es" },
-    select: { id: true },
+    select: { id: true, body: true },
   });
-  if (exists) return { installed: false };
+  if (exists) {
+    if (exists.body === PAYMENT_AUTH_BODY) return { installed: false };
+    await prisma.agreementTemplate.update({
+      where: { id: exists.id },
+      data: { body: PAYMENT_AUTH_BODY, initialItems: PAYMENT_AUTH_ITEMS },
+    });
+    return { installed: false, updated: true };
+  }
   await prisma.agreementTemplate.create({
     data: {
       tenantId,

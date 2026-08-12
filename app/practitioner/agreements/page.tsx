@@ -21,7 +21,7 @@ import {
   toggleTemplateTrigger,
 } from "./actions";
 import { V31_SLUG } from "@/lib/agreements/install-v31";
-import { DECLARATION_SLUG, PAYMENT_AUTH_SLUG } from "@/lib/agreements/install-c21";
+import { DECLARATION_SLUG, PAYMENT_AUTH_SLUG, PAYMENT_AUTH_BODY } from "@/lib/agreements/install-c21";
 
 // C20 §2 — the practitioner's agreements desk: templates (versioned,
 // placeholder-marked until the attorney pass), the send flow (manual),
@@ -80,7 +80,9 @@ export default async function AgreementsDesk({
   const anyPlaceholder = templates.some((t) => t.placeholder);
   const v31Installed = templates.some((t) => t.slug === V31_SLUG);
   const packetInstalled = templates.some((t) => t.slug === DECLARATION_SLUG);
-  const payAuthInstalled = templates.some((t) => t.slug === PAYMENT_AUTH_SLUG);
+  const payAuthRow = templates.find((t) => t.slug === PAYMENT_AUTH_SLUG);
+  const payAuthInstalled = Boolean(payAuthRow);
+  const payAuthStale = Boolean(payAuthRow && payAuthRow.body !== PAYMENT_AUTH_BODY);
   const fileCounts = new Map<string, number>();
   for (const g of await prisma.agreementFile.groupBy({ by: ["templateId"], where: { templateId: { not: null } }, _count: true })) {
     if (g.templateId) fileCounts.set(g.templateId, g._count);
@@ -166,6 +168,13 @@ export default async function AgreementsDesk({
         <form action={installPaymentAuthAction}>
           <PendingButton className="rounded-lg border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
             Install the payment authorization (es — signed by the payer via sign link)
+          </PendingButton>
+        </form>
+      )}
+      {payAuthStale && (
+        <form action={installPaymentAuthAction}>
+          <PendingButton className="rounded-lg border border-mocha px-5 py-2.5 text-sm font-medium text-wine transition-colors hover:bg-blush">
+            Update the payment authorization to the new text (card fields removed)
           </PendingButton>
         </form>
       )}
