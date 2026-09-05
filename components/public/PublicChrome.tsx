@@ -74,6 +74,13 @@ export function PublicFooter() {
           <Link href="/privacy" className="text-cream/85 hover:text-white">
             Privacy
           </Link>
+          {/* C23-SIGNUP §5 — reachability: a practitioner who types the domain
+              finds the front door without being told a URL. Footer only, on
+              purpose: the header/hero belong to HER client-facing funnel and
+              are not changed here. */}
+          <Link href="/signup" className="text-cream/85 hover:text-white">
+            For practitioners
+          </Link>
           <Link href="/login" className="text-cream/85 hover:text-white">
             Log in
           </Link>

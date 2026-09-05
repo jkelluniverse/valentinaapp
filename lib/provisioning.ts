@@ -21,11 +21,16 @@ export type TenantConfigFile = {
   featureFlags?: Record<string, boolean>;
   seed: "EMPTY" | "DEMO_FIXTURES";
   billingPlan?: string; // defaults FOUNDING_COMP; DEMO tenants are always comped
-  practitioner: { name: string; email: string };
+  // C23-SIGNUP §2 — `password` is OPTIONAL and purely additive: when a
+  // practitioner CHOSE their own password (self-signup), it is hashed at
+  // cost 12 and the forced-change flag is NOT set — there is nothing to
+  // force, they already know it. Omitted (CLI, /admin/tenants/new) the old
+  // behavior is byte-for-byte unchanged: random temp password + forced change.
+  practitioner: { name: string; email: string; password?: string };
 };
 
 export type ProvisionOutcome =
-  | { ok: true; tenantId: string; practitionerEmail: string; tempPassword: string }
+  | { ok: true; tenantId: string; practitionerEmail: string; tempPassword: string; chosePassword: boolean }
   | { ok: false; error: string };
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
@@ -84,9 +89,14 @@ export async function provisionTenant(cfg: TenantConfigFile): Promise<ProvisionO
     demo,
   });
 
-  // The practitioner: temp password shown ONCE; first sign-in forces a
-  // new one (AMD-06 mustChangePassword).
-  const tempPassword = randomBytes(9).toString("base64url");
+  // The practitioner. Two shapes, decided ONLY by whether a password was
+  // supplied:
+  //   · chosen (C23-SIGNUP) — hashed at cost 12, no forced change, and NOTHING
+  //     is echoed back to the caller (tempPassword is "" by design).
+  //   · not supplied (CLI, admin flow) — unchanged: temp password shown ONCE,
+  //     first sign-in forces a new one (AMD-06 mustChangePassword).
+  const chosen = cfg.practitioner.password;
+  const tempPassword = chosen ? "" : randomBytes(9).toString("base64url");
   await prisma.user.create({
     data: {
       tenantId: tenant.id,
@@ -94,14 +104,20 @@ export async function provisionTenant(cfg: TenantConfigFile): Promise<ProvisionO
       name: cfg.practitioner.name,
       role: "PRACTITIONER",
       active: true,
-      mustChangePassword: true,
-      passwordHash: bcrypt.hashSync(tempPassword, 10),
+      mustChangePassword: !chosen,
+      passwordHash: chosen ? bcrypt.hashSync(chosen, 12) : bcrypt.hashSync(tempPassword, 10),
     },
   });
 
   if (demo) await seedDemoFixtures(tenant.id);
 
-  return { ok: true, tenantId: tenant.id, practitionerEmail: cfg.practitioner.email.toLowerCase(), tempPassword };
+  return {
+    ok: true,
+    tenantId: tenant.id,
+    practitionerEmail: cfg.practitioner.email.toLowerCase(),
+    tempPassword,
+    chosePassword: Boolean(chosen),
+  };
 }
 
 // DEMO_FIXTURES — a small, obviously-fictional cast so the portal shows

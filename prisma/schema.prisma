@@ -1012,6 +1012,41 @@ model TenantModule {
   @@unique([tenantId, moduleKey])
 }
 
+enum ProspectStatus {
+  LEAD
+  SIGNED_UP
+  DECLINED
+}
+
+// C23-SIGNUP §1 — the practitioner-prospect ledger (the event's people list).
+// PLATFORM-LEVEL, deliberately NOT practice-scoped: a prospect belongs to the
+// platform, not to any one practice — so it sits outside SCOPED_MODELS exactly
+// like Tenant/TenantModule/WebhookEvent, has NO tenantId scope column (its
+// `tenantId` is the tenant they came to OWN, set on conversion), and is
+// therefore outside the null-tenant stamp audit by construction.
+//
+// Kept separate from `Lead` on purpose: a Lead is a prospective CLIENT of a
+// practice and owns the invite-as-client conversion bridge (C18); overloading
+// it would corrupt that bridge.
+model PractitionerProspect {
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique // always stored lowercased; unique = the upsert key + its index
+  phone          String?
+  practiceName   String?
+  note           String?
+  status         ProspectStatus @default(LEAD)
+  source         String? // free text: "event-sept23", "web", UTM
+  referredByCode String? // raw code as captured; attribution logic is C23-REFERRAL's job
+  referralCode   String         @unique // issued at creation so the code exists before the program does
+  tenantId       String? // the tenant they now OWN (set on conversion) — not a scope column
+  convertedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([status, createdAt])
+}
+
 // AMD-06 §3 — the audit spine: append-only, attributable, metadata only
 // (never note bodies, answers, tokens, or card data). actorId is who ACTED;
 // onBehalfOfId is whose account it touched.

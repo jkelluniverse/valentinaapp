@@ -58,6 +58,8 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "audits/onboarding/ui-verify.ts": "intake UI acceptance harness: browser-driven, throwaway client, self-cleaning",
   "audits/onboarding/update-verify.ts": "birth-time UPDATE acceptance harness: CLI-only, self-cleaning",
   "audits/onboarding/discovery-verify.ts": "discovery-layer acceptance harness: browser-driven, throwaway client, self-cleaning",
+  "lib/signup.ts": "C23-SIGNUP tenant-creation ingress: runs inside a request whose host is ANOTHER tenant, so the platform-level prospect ledger, the GLOBAL practitioner-email uniqueness check, the new tenant's audit row and the failure rollback are all cross-tenant by nature",
+  "audits/signup/verify.ts": "C23-SIGNUP acceptance harness: browser-driven, throwaway tenants + prospects, self-cleaning",
 };
 
 const violations: string[] = [];
