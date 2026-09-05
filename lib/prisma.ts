@@ -2,6 +2,7 @@ import type { PrismaClient } from "@prisma/client";
 import { headers } from "next/headers";
 import { rawPrisma } from "./prisma-internal";
 import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG, SCOPED_MODEL_SET, scopeFilter } from "./tenancy/scope";
+import { stampCreateInput, stampUpdateInput } from "./tenancy/stamp";
 import { slugFromHost, tenantBySlug } from "./tenancy";
 
 // THE tenant-scoped Prisma client. Same import path, same call surface, same
@@ -24,7 +25,9 @@ import { slugFromHost, tenantBySlug } from "./tenancy";
 //   - findUnique[OrThrow]: converted to findFirst[OrThrow] with the filter —
 //     a row from another tenant is simply "not found", identical shape.
 //   - create/createMany: rows stamped with the request tenant (explicit
-//     tenantId wins — the value is never overwritten).
+//     tenantId wins — the value is never overwritten), INCLUDING nested
+//     relation writes at any depth (create / createMany / connectOrCreate /
+//     nested upsert / creates inside a nested update) — see lib/tenancy/stamp.ts.
 //   - update/delete/upsert (unique where): for NON-default tenants an
 //     ownership pre-check runs first (fail-closed); the default tenant
 //     passes through — every legacy row is already hers, and her hot paths
@@ -34,8 +37,12 @@ import { slugFromHost, tenantBySlug } from "./tenancy";
 //     array form rebuilds real Prisma promises with the filter injected.
 //
 // Known honest limits (documented, revisit when a non-default tenant gets
-// real feature traffic): nested relation writes are not auto-stamped, and
-// $queryRaw/$executeRaw bypass scoping (build-guarded to the allowlist).
+// real feature traffic): $queryRaw/$executeRaw bypass scoping (build-guarded
+// to the allowlist), and OUTSIDE a request this client is a passthrough by
+// design — so a CLI script that creates a scoped row without stating a
+// tenantId writes a NULL one. That is the deliberate ops-tooling seam, not a
+// gap in the request path, and it is what the null-tenant audit is actually
+// catching (C24-NESTED-STAMP §1). Ops tooling states its own tenant.
 
 type Op = { model: string; method: string; args: Record<string, unknown> };
 
@@ -80,10 +87,26 @@ function withScopeUnique(args: Record<string, unknown>, tenantId: string): Recor
   return { ...args, where: { AND: [scopeFilter(tenantId), expandUniqueWhere(args.where as Record<string, unknown>)] } };
 }
 
-function stampCreate(args: Record<string, unknown>, tenantId: string): Record<string, unknown> {
-  const stamp = (row: Record<string, unknown>) => ({ tenantId, ...row });
-  const data = args.data;
-  return { ...args, data: Array.isArray(data) ? data.map(stamp) : stamp((data as Record<string, unknown>) ?? {}) };
+// create / createMany / createManyAndReturn — the row AND every nested create
+// beneath it inherit the request's tenant. Explicit values are preserved.
+function stampCreate(model: string, args: Record<string, unknown>, tenantId: string): Record<string, unknown> {
+  return { ...args, data: stampCreateInput(model, args.data ?? {}, tenantId) };
+}
+
+// update / updateMany — the target row's tenantId is never rewritten, but a
+// nested create inside the update payload is stamped.
+function stampUpdate(model: string, args: Record<string, unknown>, tenantId: string): Record<string, unknown> {
+  if (!("data" in args)) return args;
+  const data = stampUpdateInput(model, args.data, tenantId);
+  return data === args.data ? args : { ...args, data };
+}
+
+// upsert — `create` behaves like a create (stamped, nested included);
+// `update` behaves like an update (row untouched, nested creates stamped).
+function stampUpsert(model: string, args: Record<string, unknown>, tenantId: string): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...args, create: stampCreateInput(model, args.create ?? {}, tenantId) };
+  if ("update" in args) out.update = stampUpdateInput(model, args.update, tenantId);
+  return out;
 }
 
 // Resolve one op against a client (rawPrisma or a transaction client),
@@ -96,8 +119,8 @@ async function runOp(client: unknown, op: Op, tenantId: string | null): Promise<
 
   if (READ_WHERE.has(method)) return d[method](withScope(args, tenantId));
   if (method in UNIQUE_READ) return d[UNIQUE_READ[method]](withScopeUnique(args, tenantId));
-  if (CREATE.has(method)) return d[method](stampCreate(args, tenantId));
-  if (WRITE_WHERE.has(method)) return d[method](withScope(args, tenantId));
+  if (CREATE.has(method)) return d[method](stampCreate(op.model, args, tenantId));
+  if (WRITE_WHERE.has(method)) return d[method](withScope(stampUpdate(op.model, args, tenantId), tenantId));
   if (UNIQUE_WRITE.has(method)) {
     if (tenantId !== DEFAULT_TENANT_ID) {
       // Fail-closed ownership check before touching a row by unique key.
@@ -109,9 +132,8 @@ async function runOp(client: unknown, op: Op, tenantId: string | null): Promise<
         throw new Error(`tenant-scope: ${op.model}.${method} target not found in tenant scope`);
       }
     }
-    if (method === "upsert") {
-      return d.upsert({ ...args, create: { tenantId, ...((args.create as Record<string, unknown>) ?? {}) } });
-    }
+    if (method === "upsert") return d.upsert(stampUpsert(op.model, args, tenantId));
+    if (method === "update") return d.update(stampUpdate(op.model, args, tenantId));
     return d[method](args);
   }
   throw new Error(
@@ -221,12 +243,11 @@ function buildTxCall(client: object, op: Op, tenantId: string | null): unknown {
   if (tenantId === null) return d[method](Object.keys(args).length ? args : undefined);
   if (READ_WHERE.has(method)) return d[method](withScope(args, tenantId));
   if (method in UNIQUE_READ) return d[UNIQUE_READ[method]](withScopeUnique(args, tenantId));
-  if (CREATE.has(method)) return d[method](stampCreate(args, tenantId));
-  if (WRITE_WHERE.has(method)) return d[method](withScope(args, tenantId));
+  if (CREATE.has(method)) return d[method](stampCreate(op.model, args, tenantId));
+  if (WRITE_WHERE.has(method)) return d[method](withScope(stampUpdate(op.model, args, tenantId), tenantId));
   if (UNIQUE_WRITE.has(method)) {
-    if (method === "upsert") {
-      return d.upsert({ ...args, create: { tenantId, ...((args.create as Record<string, unknown>) ?? {}) } });
-    }
+    if (method === "upsert") return d.upsert(stampUpsert(op.model, args, tenantId));
+    if (method === "update") return d.update(stampUpdate(op.model, args, tenantId));
     return d[method](args);
   }
   throw new Error(`tenant-scope: unclassified prisma method "${op.model}.${method}"`);

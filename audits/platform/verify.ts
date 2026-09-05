@@ -41,9 +41,10 @@ async function main() {
 
   // ---- Null-tenant invariant: STRICT again since migration 36 ----
   // Migration 36 converged all legacy nulls to the default tenant, the
-  // scoped client stamps request-path creates, and seeds stamp on
-  // completion — so zero null rows is the invariant, and any violation is
-  // drift (most likely the documented nested-writes gap).
+  // scoped client stamps request-path creates (nested writes included since
+  // C24-NESTED-STAMP), and seeds stamp on completion — so zero null rows is
+  // the invariant, and any violation is drift: most likely a CLI script or
+  // harness creating a scoped row without stating a tenantId.
   log(`\n## Null-tenant invariant (migration 36 + stamped creates)`);
   let nullRows = 0;
   for (const key of SCOPED_MODELS) {

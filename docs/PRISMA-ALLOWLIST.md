@@ -2,7 +2,7 @@
 
 Since the Phase 2 structural pass, `@/lib/prisma` no longer exports a raw
 Prisma client. It exports a **tenant-scoped client** with the identical call
-surface: inside any HTTP request, every query on a scoped model (all 66) is
+surface: inside any HTTP request, every query on a scoped model (all 79) is
 filtered to the request's tenant automatically — reads get the tenant filter
 ANDed in, unique reads become scoped finds, creates are stamped with the
 tenant, and unique writes on non-default tenants pass an ownership pre-check.
@@ -56,6 +56,7 @@ no matter what they forget.
 | `audits/signup/verify.ts` | C23-SIGNUP acceptance harness — browser-driven; throwaway tenants + prospects; self-cleaning. |
 | `audits/capture/verify.ts` | C23-CAPTURE acceptance harness — browser-driven; throwaway prospects + practitioners; self-cleaning. |
 | `audits/referral/verify.ts` | C23-REFERRAL acceptance harness — browser-driven; seeds a referral fan-out across TWO throwaway tenants (cross-tenant isolation cannot be proven from inside one tenant's scope); self-cleaning. |
+| `audits/nested-stamp-verify.ts` | C24-NESTED-STAMP acceptance harness — CLI-only. It must read `tenantId` columns RAW (a scoped read would hide the very rows it exists to see) and must WRITE a deliberately foreign `tenantId` to prove the client leaves it alone; self-cleaning. |
 | `audits/engage/verify.ts` | C23-ENGAGE acceptance harness — seeds throwaway prospects, drives `/api/jobs/tick`, and inspects the `ProspectMessage` send ledger and `AuditEvent` rows directly (an idempotency proof that read through the scoped client would be proving the wrong thing); self-cleaning. Note that C23-ENGAGE's own product code needed NO entry: `ProspectMessage` is platform-level like `PractitionerProspect`, so the scoped client passes it through. |
 
 ## Allowlist — own PrismaClient construction
@@ -77,13 +78,29 @@ no matter what they forget.
 
 ## Known honest limits (revisit when a non-default tenant gets real traffic)
 
-- **Nested relation writes** are not auto-stamped with `tenantId` (top-level
-  creates are). SAFETY NET: migration 36 converged all historical nulls to
-  the default tenant, and the null-tenant invariant audit (nightly in the
-  jobs tick + `audits/tenant-stamp-audit.ts` + the platform verify) fails
-  loudly on any new null row — so a slipped nested write is caught within a
-  day, not discovered later. Auto-stamping nested writes is tracked as a
-  follow-up task.
+- **Nested relation writes ARE now auto-stamped** at any depth
+  (C24-NESTED-STAMP, `lib/tenancy/stamp.ts`): nested `create` / `createMany` /
+  `connectOrCreate` / `upsert`, and creates inside a nested `update`, inherit
+  the request's tenant. An explicitly-provided `tenantId` is never
+  overwritten — not even a different tenant's, which must stay VISIBLE to the
+  audit rather than be silently normalised. Proven by
+  `audits/nested-stamp-verify.ts` (43/43). Note that no code in this repo
+  actually performed a nested relation write on a scoped model, so this closed
+  a latent hole rather than an active leak.
+- **THE REAL SOURCE OF NULL-TENANT ROWS is the out-of-request passthrough.**
+  Outside an HTTP request the scoped client is unscoped by design, so a CLI
+  script or gate harness that imports `@/lib/prisma` and creates a scoped row
+  WITHOUT stating a `tenantId` writes a null one. The contract is that ops
+  tooling states its own tenant — `lib/pattern-library.ts` shows the pattern
+  (`(await getTenant()).id`). Two harnesses were violating it:
+  `prisma/fixtures/c12x-verify.ts` (fixed — 11 rows across 6 tables per run)
+  and `audits/remarkable-recording/verify.ts` (NOT fixed — still produces
+  `handwrittenNote: 1` + `appointment: 1`; see
+  docs/reports/outbox/BUILD-REPORT-C24-NESTED-STAMP.md). SAFETY NET unchanged:
+  migration 36 and migration 48 converged historical nulls, and the
+  null-tenant invariant audit (nightly in the jobs tick +
+  `audits/tenant-stamp-audit.ts` + the platform verify) fails loudly on any
+  new null row.
 - **`$queryRaw`/`$executeRaw`** bypass scoping — currently only the health
   check's `SELECT 1`.
 - **Unique writes under the DEFAULT tenant** skip the ownership pre-check

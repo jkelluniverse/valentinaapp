@@ -6,9 +6,14 @@
 ## decisions, not features — see "Before the event (Jacob)" below.)
 
 ## Queue (dependency order):
-1. (Architect review) C23-ENGAGE — report in docs/reports/outbox/BUILD-REPORT-C23-ENGAGE.md;
+1. (Architect review) C24-NESTED-STAMP — report in docs/reports/outbox/BUILD-REPORT-C24-NESTED-STAMP.md.
+   Status PARTIAL. **The spec's central diagnosis was FALSE** (ruling 12/18 pattern, third time):
+   the null-tenant rows were never nested relation writes — they are the scoped client's
+   deliberate OUT-OF-REQUEST passthrough, exercised by CLI gate harnesses. One ARCHITECT-REQUEST
+   is blocking a clean close of task #75 for every gate rather than for the swept ones.
+2. (Architect review) C23-ENGAGE — report in docs/reports/outbox/BUILD-REPORT-C23-ENGAGE.md;
    8 items for ratification, incl. a spec assertion that was false (see below).
-2. (awaiting spec / Architect) whatever follows the four event surfaces. Standing candidates
+3. (awaiting spec / Architect) whatever follows the four event surfaces. Standing candidates
    already filed under Blocked: PUBLIC-I18N, C19 pipeline Phase 3+, PLATFORM Phase 6.
 
 ## Built & verified: (list as completed)
@@ -114,6 +119,41 @@ PM starts with the true ledger, not an empty one.
   scanner can trigger it — spec-compliant (§6 forbids a confirmation step) and it fails in the
   safe direction. NO open/click tracking or per-recipient telemetry of any kind (out of scope).
 
+- C24-NESTED-STAMP — the tenant-stamping data layer, and the end of a permanently-red gate:
+  `lib/tenancy/stamp.ts` (nested `create`/`createMany`/`connectOrCreate`/nested `upsert`/creates
+  inside a nested `update` all inherit the request tenant at ANY depth, schema-driven single-pass
+  walk, copy-on-write, +0.036 µs on a flat create), wired into BOTH write paths of `lib/prisma.ts`
+  (`runOp` and the array-form `$transaction` builder), migration `48_stamp_null_tenants_nested`
+  (all 79 scoped tables, platform tables deliberately absent, per-table + total RAISE NOTICE
+  counts, idempotent, REVERSIBLE via `_TenantStampBackfill48`), and `audits/nested-stamp-verify.ts`
+  **43/43** (self-cleaning, writes its own VERIFY-LOG.md per ruling 17, runs the request-path checks
+  through the REAL scoped client inside a simulated request scope) — 2026-09-05; report in
+  docs/reports/outbox/. `audits/tenant-stamp-audit.ts` **exits 0 after a full 19-gate sweep on a
+  freshly-seeded DB** — the condition that had never held; `audits/platform/verify.ts` likewise.
+  THE FINDING THAT MATTERS: **the spec's diagnosis was false.** Nested writes were a real but
+  LATENT hole — the schema-driven scan proves this repo contains ZERO nested relation writes on
+  scoped models, and `connectOrCreate` appears nowhere. The rows came from the scoped client's
+  documented OUT-OF-REQUEST passthrough: a CLI script importing `@/lib/prisma` and creating a
+  scoped row without stating a tenantId writes a null one. Two violators, found by per-gate
+  attribution: `prisma/fixtures/c12x-verify.ts` (+11 rows / 6 tables per run — FIXED: states
+  DEFAULT_TENANT_ID, and self-cleans on the way out) and `audits/remarkable-recording/verify.ts`
+  (+`handwrittenNote: 1` and `appointment: 1`, i.e. EXACTLY the signature the spec quotes — NOT
+  fixed; unrunnable here and editing a gate I cannot run to green is the wrong move). No product
+  path leaks: product code always runs inside a request. Nothing in the audit was narrowed,
+  excluded or softened; its non-zero exit was re-proved live with an injected row.
+  DECISIONS TAKEN (pending Architect ratification, see report): (a) `tenantId: undefined` now
+  counts as ABSENT and gets stamped (previously it slipped through as a null row); (b) an explicit
+  `tenantId: null` is PRESERVED, on the never-overwrite-an-explicit-value rule — so a deliberate
+  null stays audit-visible; (c) a DIFFERENT tenant's explicit id survives untouched and remains
+  findable, so a real cross-tenant write stays VISIBLE rather than being silently normalised;
+  (d) three audit files' "likely cause: a nested relation write" hints corrected to name the real
+  mechanism (no check changed) — they would have sent the next reader down the same wrong path;
+  (e) `docs/PRISMA-ALLOWLIST.md`'s stale "all 66" corrected to 79 and its known-limits section
+  rewritten. NO product code needed a guard-prisma entry; the new harness does.
+  ARCHITECT-REQUEST filed: the CLASS of bug is unfixed — recommends `withTenantScope(tenantId, fn)`
+  (opt-in AsyncLocalStorage; no existing behaviour changes) over implicitly stamping out-of-request
+  creates, which would trade a loud defect for a quiet one.
+
 ## Architect rulings — 2026-09-05 (C23-SIGNUP review, gates independently re-run: signup 37/37,
 ## c21 58/58, phase5 17/17, smoke + write smoke PASS, wall/guard/tsc clean, build clean)
 1. **Public locale = `?lang=` + `Accept-Language` fallback + on-screen EN/ES toggle. RATIFIED
@@ -147,7 +187,16 @@ PM starts with the true ledger, not an empty one.
 
 ## Standing gate numbers added since (PM-maintained, not part of the rulings above):
    signup-verify 37/37 · capture-verify 59/59 · referral-verify 68/68 · engage-verify 172/172 ·
-   platform/phase5-verify 17/17
+   platform/phase5-verify 17/17 · nested-stamp-verify 43/43
+## Standing gate set, with numbers (C24-NESTED-STAMP §4 — the stamp audit is now a REAL gate:
+## it exits 0 today and exits non-zero on any null-tenant row in any of the 79 scoped tables):
+   tenant-stamp audit **exit 0 / no number — pass is "zero rows"** · nested-stamp-verify 43/43 ·
+   platform/verify ALL CHECKS PASS · platform/phase2 16/16 · platform/phase3 11/11 ·
+   platform/phase5 17/17 · c20 28/28 · v31 32/32 · c21 58/58 · c12x 23 passed ·
+   signup 37/37 · capture 59/59 · referral 68/68 · engage 172/172 ·
+   onboarding complete 16/16 · stage1 17/17 · update 7/7 · ui 10/10 · discovery 19/19 ·
+   password-reset PASS · smoke + smoke:writes PASS · lint:wall / guard-prisma / tsc clean ·
+   16-screen visual baseline (within-session differential only, ruling 11)
 
 ## Architect rulings — 2026-09-05 (C23-CAPTURE review, gates independently re-run: capture 59/59,
 ## signup 37/37, wall/guard/tsc clean, build clean; dependency delta is exactly qrcode + @types)
@@ -239,6 +288,47 @@ PM starts with the true ledger, not an empty one.
     sender name should not assert that mark until clearance. **Nothing sends while the gate is
     closed, so this is not urgent — but it must be settled before Jacob opens it.**
 
+## Architect rulings — 2026-09-05 (C24-NESTED-STAMP review. Gates independently re-run:
+## nested-stamp 43/43 · c12x 23 passed · THE STAMP AUDIT EXIT 0 immediately after running the harness
+## that used to inject 11 null rows · platform/verify ALL CHECKS PASS · phase2 16/16 · phase3 11/11 ·
+## engage 172/172 · referral 68/68 · wall/guard/tsc clean · build clean)
+23. **The Architect's diagnosis was WRONG, and the process fix worked.** C24 §"Assumptions" named
+    nested relation writes as the hypothesis. Assumption 1 is FALSE: this repo contains **zero**
+    nested relation writes on scoped models (schema-driven scan, 462 files × 43 relation fields), and
+    `connectOrCreate` appears nowhere. The real mechanism is the scoped client's **out-of-request
+    passthrough**: `lib/prisma.ts` resolves the tenant from `headers()`, which throws outside a
+    request, yielding a null tenant and an unstamped write. The producers were two CLI gate harnesses
+    — `prisma/fixtures/c12x-verify.ts` (+11 rows across 6 tables every run) and
+    `audits/remarkable-recording/verify.ts` (the `handwrittenNote`/`appointment` pair the spec quoted
+    as its symptom). **Note what changed:** rulings 12 and 18 were written after two specs asserted
+    false premises as fact. This spec instead listed its premise as an assumption to test, and the
+    builder disproved it with evidence in the first section of its report. That is the corrective
+    working as designed — keep writing specs this way.
+24. **ARCHITECT-REQUEST 1 — option 1 RATIFIED: `withTenantScope(tenantId, fn)`.** An opt-in
+    AsyncLocalStorage scope the client consults only when `headers()` is unavailable. It changes no
+    existing request behaviour, is one line per harness, fixes both known violators and every future
+    one, and the mechanism is already proven (the new gate uses Next's version of it).
+    **Option 2 — implicitly stamping out-of-request creates with the default tenant — is REJECTED,
+    and the builder's reasoning for rejecting it is the right reasoning:** it would remove most of
+    the audit's detection surface and would silently record a second practice's forgotten rows as
+    Valentina's. That trades a loud defect for a quiet one, in the exact subsystem where quiet
+    defects are catastrophic — this is the wall that becomes the cross-practice wall.
+    **Option 3 — fixing only the remaining harness — is REJECTED**: it leaves the class open.
+25. **Stamper semantics RATIFIED: `tenantId: undefined` counts as absent and gets stamped; explicit
+    `tenantId: null` is preserved and stays audit-visible.** Both choices preserve detection rather
+    than tidiness, which is the correct bias here. Likewise ratified: a nested payload carrying a
+    DIFFERENT tenant's id is stored as-is, so a genuine cross-tenant write stays visible to the audit
+    instead of being silently normalised. Verify item 5 exists to prove that was not "helpfully"
+    fixed away, and it passes.
+26. **`_TenantStampBackfill48` (the reversal table, outside `schema.prisma`) accepted.** It is
+    harmless under `migrate deploy`, which is this program's only migration path. **Standing ops
+    rule: never run `prisma migrate dev` against this repo** — it would read that table as drift.
+27. **PARTIAL accepted as the honest status, and task #75 STAYS OPEN.** The audit is green here
+    because the builder fixed the one violating harness it could run; `audits/remarkable-recording/
+    verify.ts` still writes two null rows and could not be verified in this environment, so it was
+    correctly left alone rather than blind-edited. A gate that cannot be run must not be edited on
+    faith. #75 closes when `withTenantScope` lands and both harnesses use it.
+
 ## Before the event (Jacob) — everything the four event surfaces need that engineering cannot do
 Consolidated 2026-09-05 by the Architect. Nothing here is a feature gap; all four surfaces are built
 and gated green. These are deploys, secrets, and decisions that are Jacob's by right.
@@ -319,7 +409,22 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 - (Jacob go-ahead, no spec needed) C22 phase 2 — uploaded-PDF render-and-fill (pdf.js + pdf-lib,
   drag-drop field placement, coordinate stamping)
 - (Jacob acceptance) PLATFORM Phase 6 canvas-v1 — spec held; gated on acceptance of Phases 0–5
-- (code, anytime) task #75 — auto-stamp nested relation writes with tenantId (nightly audit is the net)
+- (code) task #75 — **the nested-write half is DONE and the audit is GREEN** (exit 0 after a full
+  19-gate sweep on a freshly-seeded DB; `audits/nested-stamp-verify.ts` 43/43). NOT closed, for one
+  honest reason: the spec's diagnosis was false and the audit's rows never came from nested writes.
+  They come from the scoped client's out-of-request passthrough, and while
+  `prisma/fixtures/c12x-verify.ts` is fixed, `audits/remarkable-recording/verify.ts` STILL produces
+  `handwrittenNote: 1` + `appointment: 1` (unrunnable in the scratch env — no ANTHROPIC_API_KEY — so
+  it was deliberately not edited). If anyone runs that gate on Jacob's environment the audit goes
+  red again. Blocked on the ARCHITECT-REQUEST in BUILD-REPORT-C24-NESTED-STAMP.md: recommended
+  remedy is `withTenantScope(tenantId, fn)` (opt-in AsyncLocalStorage, no existing behaviour
+  changes), NOT implicitly stamping out-of-request creates.
+- (ops, before the next deploy) migration `48_stamp_null_tenants_nested` — stamps any remaining
+  null-tenant rows across all 79 scoped tables to the default tenant. Idempotent, reversible via
+  `_TenantStampBackfill48`, and it RAISE NOTICEs its per-table and total counts. Read those counts
+  on the production run: a large number is information about how long the harnesses have been
+  running there. Note `_TenantStampBackfill48` is a real table outside `schema.prisma` — harmless
+  under `migrate deploy` (the only command this repo uses), drift under `migrate dev`.
 - (Jacob decision) Cloudflare R2 storage cutover (local driver live; config swap)
 
 ## Standing laws: specs are law; verbatim legal text; evidence-mandatory AI; no invented features;

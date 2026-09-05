@@ -62,6 +62,7 @@ const ALLOW_RAW_IMPORT: Record<string, string> = {
   "audits/signup/verify.ts": "C23-SIGNUP acceptance harness: browser-driven, throwaway tenants + prospects, self-cleaning",
   "audits/capture/verify.ts": "C23-CAPTURE acceptance harness: browser-driven, throwaway prospects + practitioners, self-cleaning",
   "audits/engage/verify.ts": "C23-ENGAGE acceptance harness: CLI + browser-driven, seeds throwaway prospects, drives the tick, and inspects the send ledger + audit rows directly; self-cleaning",
+  "audits/nested-stamp-verify.ts": "C24-NESTED-STAMP acceptance harness: CLI-only, must read tenantId columns RAW (a scoped read would hide the very rows it exists to see) and must write a deliberately foreign tenantId to prove it survives; self-cleaning",
   "audits/referral/verify.ts": "C23-REFERRAL acceptance harness: browser-driven, seeds a referral fan-out across TWO throwaway tenants to prove cross-tenant isolation, self-cleaning",
 };
 

@@ -18,6 +18,18 @@ import { nodeConfidence } from "../../lib/confidence";
 import { lintReadingLanguage, type StructuredReading } from "../../ai/integrativeReadingPrompt";
 import { lintStatement } from "../../lib/belief-statements";
 import { aggregatePatterns } from "../../lib/pattern-library";
+import { DEFAULT_TENANT_ID } from "../../lib/tenancy/scope";
+
+// C24-NESTED-STAMP §1 — this harness was the source of the permanently-failing
+// null-tenant audit. It imports the SCOPED client but runs from the CLI, where
+// that client is a documented passthrough (no request → no tenant → no stamp),
+// so every row it wrote — its own AND the ones the product libs it drives wrote
+// (chart seeds, resonance marks, record items) — landed with a null tenantId
+// and stayed there. Two fixes, both stating intent rather than relying on the
+// client: rows this file creates carry DEFAULT_TENANT_ID explicitly (the same
+// contract lib/pattern-library.ts already follows for its CLI/tick path), and
+// the rows the product libs create are cleared on the way OUT as well as in,
+// so a completed run leaves the invariant intact.
 
 let passed = 0;
 let failed = 0;
@@ -31,6 +43,15 @@ function check(name: string, ok: boolean, detail?: string) {
   }
 }
 
+// The rows the driven product libs create for the probe client. Cleared
+// before the run (deterministic start) and after it (leaves no null-tenant
+// drift behind, because those libs cannot be told a tenant from here).
+async function clearProbeRows(clientId: string) {
+  await prisma.psycheNode.deleteMany({ where: { clientId } });
+  await prisma.resonanceMark.deleteMany({ where: { clientId } });
+  await prisma.recordItem.deleteMany({ where: { clientId } });
+}
+
 async function main() {
   console.log("C12X verify — deterministic mechanics\n");
 
@@ -38,6 +59,7 @@ async function main() {
   const user = await prisma.user.upsert({
     where: { email: "c12x-verify@fixture.test" },
     create: {
+      tenantId: DEFAULT_TENANT_ID,
       email: "c12x-verify@fixture.test",
       name: "C12X Verify",
       role: "CLIENT",
@@ -45,12 +67,11 @@ async function main() {
     },
     update: {},
   });
-  await prisma.psycheNode.deleteMany({ where: { clientId: user.id } });
-  await prisma.resonanceMark.deleteMany({ where: { clientId: user.id } });
-  await prisma.recordItem.deleteMany({ where: { clientId: user.id } });
+  await clearProbeRows(user.id);
   await prisma.humanDesignChart.upsert({
     where: { userId: user.id },
     create: {
+      tenantId: DEFAULT_TENANT_ID,
       userId: user.id,
       provider: "verify",
       centers: { Head: "open", Ajna: "open", Throat: "defined", G: "defined", Heart: "open", Sacral: "defined", Spleen: "defined", SolarPlexus: "defined", Root: "defined" },
@@ -159,7 +180,7 @@ async function main() {
   // ---- X.4: Pattern Library exclusion ----
   await prisma.practiceSetting.upsert({
     where: { key: "patternLibraryEnabled" },
-    create: { key: "patternLibraryEnabled", value: "true" },
+    create: { tenantId: DEFAULT_TENANT_ID, key: "patternLibraryEnabled", value: "true" },
     update: { value: "true" },
   });
   await aggregatePatterns();
@@ -197,6 +218,11 @@ async function main() {
   check("statement lint rejects negation", !lintStatement("I am not afraid anymore, never again").pass);
   check("statement lint rejects future tense", !lintStatement("I will be confident someday").pass);
   check("statement lint rejects rigid absolutes", !lintStatement("I am always perfectly calm in my life").pass);
+
+  // Self-cleaning on the way out: the probe rows the product libs wrote
+  // carry no tenantId (CLI passthrough), so leaving them would re-break the
+  // null-tenant invariant every time this gate runs.
+  await clearProbeRows(user.id);
 
   console.log(`\n${passed} passed · ${failed} failed`);
   if (failed > 0) process.exit(1);
