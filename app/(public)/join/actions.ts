@@ -76,6 +76,9 @@ export async function submitCapture(formData: FormData): Promise<void> {
     note: note || null,
     source: src || null,
     referredByCode: ref || null,
+    // C23-ENGAGE §1 — the language of the screen they filled in, recorded on
+    // the prospect so follow-up honours it (law #7).
+    locale: lang,
   });
 
   if (!result.ok) back(lang, result.reason, keep);

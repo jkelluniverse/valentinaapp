@@ -56,6 +56,7 @@ no matter what they forget.
 | `audits/signup/verify.ts` | C23-SIGNUP acceptance harness — browser-driven; throwaway tenants + prospects; self-cleaning. |
 | `audits/capture/verify.ts` | C23-CAPTURE acceptance harness — browser-driven; throwaway prospects + practitioners; self-cleaning. |
 | `audits/referral/verify.ts` | C23-REFERRAL acceptance harness — browser-driven; seeds a referral fan-out across TWO throwaway tenants (cross-tenant isolation cannot be proven from inside one tenant's scope); self-cleaning. |
+| `audits/engage/verify.ts` | C23-ENGAGE acceptance harness — seeds throwaway prospects, drives `/api/jobs/tick`, and inspects the `ProspectMessage` send ledger and `AuditEvent` rows directly (an idempotency proof that read through the scoped client would be proving the wrong thing); self-cleaning. Note that C23-ENGAGE's own product code needed NO entry: `ProspectMessage` is platform-level like `PractitionerProspect`, so the scoped client passes it through. |
 
 ## Allowlist — own PrismaClient construction
 

@@ -11,6 +11,8 @@ import {
   PROSPECT_STATUSES,
 } from "@/lib/prospects";
 import { topReferrers } from "@/lib/referrals";
+import { engageQueue, engageTick, messageHistory } from "@/lib/engage";
+import { ENGAGE_ENABLED_KEY, ENGAGE_PAUSED_KEY } from "@/lib/engage-config";
 
 // C23-CAPTURE §3 — the list Jacob works the week after the event. Gated on the
 // PLATFORM_ADMIN_EMAILS allowlist exactly as /admin/tenants/new is: renders for
@@ -23,7 +25,7 @@ export const dynamic = "force-dynamic";
 export default async function ProspectsPage({
   searchParams,
 }: {
-  searchParams: { status?: string; source?: string; q?: string };
+  searchParams: { status?: string; source?: string; q?: string; dryRun?: string };
 }) {
   const user = await requirePractitioner();
   if (!isPlatformAdmin(user.email)) notFound();
@@ -38,6 +40,21 @@ export default async function ProspectsPage({
     // question about the whole ledger, and the heading says so.
     topReferrers(),
   ]);
+
+  // C23-ENGAGE §5 — follow-up, read-only. Jacob should be able to read the
+  // sequence before it reaches forty people, so this page shows the queue, the
+  // per-prospect ledger, the switch state, and a DRY RUN that writes nothing.
+  const wantDryRun = searchParams.dryRun === "1";
+  const [queue, history, dryRun] = await Promise.all([
+    engageQueue({ limit: 200 }),
+    messageHistory(rows.map((r) => r.id)),
+    // dryRun: true short-circuits before the ledger is touched at all — no
+    // claim, no update, no audit row, no send. Verify item 13 asserts the
+    // ledger count is identical before and after loading this page.
+    wantDryRun ? engageTick({ dryRun: true, limit: 200 }) : Promise.resolve(null),
+  ]);
+  const dueNext = queue.steps.filter((s) => !s.due).slice(0, 40);
+  const dueNow = queue.steps.filter((s) => s.due).slice(0, 40);
 
   const exportQs = new URLSearchParams();
   if (filter.status) exportQs.set("status", filter.status);
@@ -148,13 +165,15 @@ export default async function ProspectsPage({
               <th className={th}>Referred by</th>
               <th className={th}>Their code</th>
               <th className={th}>Tenant</th>
+              {/* C23-ENGAGE §5 — this prospect's own send ledger. */}
+              <th className={th}>Follow-up</th>
               <th className={th}>Created</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td className={`${td} text-slate`} colSpan={11}>
+                <td className={`${td} text-slate`} colSpan={12}>
                   No prospects match this filter.
                 </td>
               </tr>
@@ -171,6 +190,24 @@ export default async function ProspectsPage({
                 <td className={`${td} font-mono`}>{r.referredByCode ?? "—"}</td>
                 <td className={`${td} font-mono`}>{r.referralCode}</td>
                 <td className={td}>{r.tenantSlug ?? "—"}</td>
+                <td className={`${td} min-w-[16rem]`}>
+                  {(history.get(r.id) ?? []).length === 0 ? (
+                    <span className="text-whisper">—</span>
+                  ) : (
+                    <ul className="flex flex-col gap-0.5">
+                      {(history.get(r.id) ?? []).map((m) => (
+                        <li key={m.id} className="whitespace-nowrap text-[12px]">
+                          <span className="font-mono text-mocha">
+                            {m.sequenceKey}/{m.stepKey}
+                          </span>{" "}
+                          <span className="font-semibold text-ink-strong">{m.status}</span>
+                          {m.reason ? <span className="text-slate"> · {m.reason}</span> : null}
+                          <span className="text-whisper"> · {m.locale}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </td>
                 <td className={`${td} whitespace-nowrap text-slate`}>
                   {r.createdAt.toISOString().slice(0, 16).replace("T", " ")}
                 </td>
@@ -179,6 +216,151 @@ export default async function ProspectsPage({
           </tbody>
         </table>
       </div>
+
+      {/* C23-ENGAGE §5 — follow-up. READ-ONLY on purpose: this screen shows
+          what the engine will do and what it has done. Opening the gate or
+          pulling the pause is a deliberate act on the switch rows (see the
+          ops notes), not a button next to a table of forty people. */}
+      <section className="mt-12">
+        <h2 className="font-headline text-2xl font-semibold text-ink-strong">Follow-up sequences</h2>
+        <p className="mt-1 text-[13px] text-slate">
+          Two sequences: <span className="font-mono">event-lead</span> (3 steps) and{" "}
+          <span className="font-mono">founding-welcome</span> (2 steps). Driven by{" "}
+          <span className="font-mono">/api/jobs/tick</span>.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-8 rounded-card border border-line bg-surface px-5 py-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-mocha">Feature gate</p>
+            <p className="mt-1 text-[15px] font-semibold text-ink-strong">
+              {queue.switches.gateOpen ? "OPEN — sending allowed" : "CLOSED — nothing sends"}
+            </p>
+            <p className="text-[12px] text-whisper">
+              <span className="font-mono">{ENGAGE_ENABLED_KEY}</span>
+              {queue.switches.envEnabled ? " · opened by ENGAGE_ENABLED" : ""}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-mocha">Global pause</p>
+            <p className="mt-1 text-[15px] font-semibold text-ink-strong">
+              {queue.switches.paused ? "PAUSED — nothing sends" : "not paused"}
+            </p>
+            <p className="text-[12px] text-whisper">
+              <span className="font-mono">{ENGAGE_PAUSED_KEY}</span>
+              {queue.switches.envPaused ? " · paused by ENGAGE_PAUSED" : ""}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-mocha">Email transport</p>
+            <p className="mt-1 text-[15px] font-semibold text-ink-strong">
+              {queue.configured ? "configured" : "NOT configured"}
+            </p>
+            <p className="text-[12px] text-whisper">
+              {queue.configured ? "sends will be attempted" : "due steps record UNCONFIGURED and stay re-sendable"}
+            </p>
+          </div>
+          <div className="flex items-end">
+            <a
+              href={`/admin/prospects?${new URLSearchParams({ ...(filter.status ? { status: filter.status } : {}), ...(filter.source ? { source: filter.source } : {}), ...(filter.q ? { q: filter.q } : {}), dryRun: "1" }).toString()}`}
+              className="rounded-pill border border-mocha px-5 py-2.5 text-[14px] font-semibold text-wine transition-colors hover:bg-blush"
+            >
+              Dry run the next tick
+            </a>
+          </div>
+        </div>
+
+        {dryRun && (
+          <div className="mt-6">
+            <h3 className="font-headline text-lg font-semibold text-ink-strong">
+              Dry run — what the next tick would do
+            </h3>
+            <p className="mt-1 text-[13px] text-slate">
+              Nothing was written: no ledger row, no audit row, no send. As of{" "}
+              <span className="font-mono">{dryRun.asOf}</span> · considered {dryRun.considered} ·{" "}
+              sent {dryRun.counts.SENT} · skipped {dryRun.counts.SKIPPED} · suppressed{" "}
+              {dryRun.counts.SUPPRESSED} · unconfigured {dryRun.counts.UNCONFIGURED}
+            </p>
+            <div className="mt-3 overflow-x-auto rounded-card border border-line bg-surface">
+              <table className="min-w-full border-collapse">
+                <thead className="border-b border-line bg-blush/40">
+                  <tr>
+                    <th className={th}>Prospect</th>
+                    <th className={th}>Sequence / step</th>
+                    <th className={th}>Locale</th>
+                    <th className={th}>Scheduled</th>
+                    <th className={th}>Would record</th>
+                    <th className={th}>Reason</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dryRun.steps.length === 0 && (
+                    <tr>
+                      <td className={`${td} text-slate`} colSpan={6}>
+                        Nothing is due right now.
+                      </td>
+                    </tr>
+                  )}
+                  {dryRun.steps.map((s) => (
+                    <tr key={`${s.prospectId}-${s.sequenceKey}-${s.stepKey}`} className="border-b border-line/60 last:border-0">
+                      <td className={td}>{s.email}</td>
+                      <td className={`${td} font-mono`}>
+                        {s.sequenceKey}/{s.stepKey}
+                      </td>
+                      <td className={td}>{s.locale}</td>
+                      <td className={`${td} whitespace-nowrap text-slate`}>
+                        {s.scheduledFor.toISOString().slice(0, 16).replace("T", " ")}
+                      </td>
+                      <td className={`${td} font-semibold`}>{s.plannedStatus}</td>
+                      <td className={td}>{s.reason ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6 overflow-x-auto rounded-card border border-line bg-surface">
+          <table className="min-w-full border-collapse">
+            <thead className="border-b border-line bg-blush/40">
+              <tr>
+                <th className={th}>Queue</th>
+                <th className={th}>Prospect</th>
+                <th className={th}>Sequence / step</th>
+                <th className={th}>Locale</th>
+                <th className={th}>Scheduled</th>
+                <th className={th}>Ledger says</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dueNow.length === 0 && dueNext.length === 0 && (
+                <tr>
+                  <td className={`${td} text-slate`} colSpan={6}>
+                    Nothing queued — no prospect is in either audience yet.
+                  </td>
+                </tr>
+              )}
+              {[
+                ...dueNow.map((s) => ["due now", s] as const),
+                ...dueNext.map((s) => ["upcoming", s] as const),
+              ].map(([kind, s]) => (
+                <tr key={`${kind}-${s.prospectId}-${s.sequenceKey}-${s.stepKey}`} className="border-b border-line/60 last:border-0">
+                  <td className={`${td} font-semibold ${kind === "due now" ? "text-wine" : "text-slate"}`}>{kind}</td>
+                  <td className={td}>{s.email}</td>
+                  <td className={`${td} font-mono`}>
+                    {s.sequenceKey}/{s.stepKey}
+                  </td>
+                  <td className={td}>{s.locale}</td>
+                  <td className={`${td} whitespace-nowrap text-slate`}>
+                    {s.scheduledFor.toISOString().slice(0, 16).replace("T", " ")}
+                  </td>
+                  <td className={td}>{s.existingStatus ?? "nothing yet"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* C23-REFERRAL §4 — top referrers: who is actually carrying the network.
           Same PLATFORM_ADMIN_EMAILS gate as the rest of this page (404 for

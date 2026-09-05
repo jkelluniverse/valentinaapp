@@ -27,6 +27,14 @@ export type EnvelopeInput = {
   signoff?: string | null;
   /** Extra plain-text lines appended after the button URL in the text part. */
   textExtra?: string[];
+  /**
+   * C23-ENGAGE §3/§6 — an unsubscribe LINK in the footer, rendered as a real
+   * anchor (a plain-text URL in an HTML part is not a working one-click
+   * unsubscribe). Optional and additive: omitted, every existing email renders
+   * byte-identically to before. Marketing follow-up sets it; transactional
+   * mail (receipts, reminders, invitations) deliberately does not.
+   */
+  unsubscribe?: { label: string; url: string } | null;
 };
 
 const FOOTER: Record<EnvelopeLocale, string[]> = {
@@ -155,6 +163,13 @@ export function renderEnvelope(input: EnvelopeInput): { html: string; text: stri
           <p class="whisper" style="margin:0;font-family:${bodyFont};font-size:12px;line-height:1.7;color:#8A8580;">
             ${FOOTER[locale].map(esc).join("<br>\n            ")}
           </p>
+          ${
+            input.unsubscribe
+              ? `<p class="whisper" style="margin:10px 0 0;font-family:${bodyFont};font-size:12px;line-height:1.7;color:#8A8580;">
+            <a href="${esc(input.unsubscribe.url)}" style="color:#8A8580;text-decoration:underline;">${esc(input.unsubscribe.label)}</a>
+          </p>`
+              : ""
+          }
         </td></tr>
       </table>
     </td></tr>
@@ -175,6 +190,7 @@ export function renderEnvelope(input: EnvelopeInput): { html: string; text: stri
     "",
     "—",
     ...FOOTER[locale],
+    ...(input.unsubscribe ? [`${input.unsubscribe.label}: ${input.unsubscribe.url}`] : []),
   ];
 
   return { html, text: textLines.join("\n") };

@@ -46,6 +46,37 @@ async function handle(req: NextRequest) {
   const now = new Date();
   const report: Record<string, number | string> = {};
 
+  // C23-ENGAGE §4 — two testability affordances on THIS scheduler (a second
+  // scheduler is explicitly out of scope):
+  //   · `asOf=<ISO>`  — the explicit "as of" time the engage engine accepts.
+  //                     Used ONLY by the engage step; every other step keeps
+  //                     the real clock, because "pretend it is next Tuesday"
+  //                     is not a safe thing to hand a payments sweep.
+  //   · `only=engage` — run just the engage step. The acceptance harness needs
+  //                     to tick follow-up repeatedly without auto-completing
+  //                     appointments or sweeping billing as a side effect.
+  // Both sit behind the same JOBS_SECRET as everything else here.
+  const engageAsOfRaw = req.nextUrl.searchParams.get("asOf");
+  const engageAsOf = engageAsOfRaw && !Number.isNaN(Date.parse(engageAsOfRaw)) ? new Date(engageAsOfRaw) : now;
+  const only = req.nextUrl.searchParams.get("only");
+  const engageOnly = only === "engage";
+
+  if (engageOnly) {
+    try {
+      const { engageTick } = await import("@/lib/engage");
+      const r = await engageTick({ asOf: engageAsOf });
+      report.engage =
+        `considered=${r.considered} sent=${r.counts.SENT} skipped=${r.counts.SKIPPED} ` +
+        `suppressed=${r.counts.SUPPRESSED} unconfigured=${r.counts.UNCONFIGURED} ` +
+        `gate=${r.switches.gateOpen ? "open" : "closed"} paused=${r.switches.paused} configured=${r.emailConfigured}`;
+    } catch (e) {
+      report.engage = "error";
+      console.error("[tick] engage failed", e instanceof Error ? e.message : "");
+    }
+    console.log(`[tick] ${JSON.stringify(report)}`);
+    return NextResponse.json({ ok: true, at: now.toISOString(), only: "engage", ...report });
+  }
+
   // 1. Auto-complete past sessions (§5): SCHEDULED, endAt + 2h grace elapsed.
   //    Completion consumes the reserved credit; her override stays one tap.
   try {
@@ -413,6 +444,22 @@ async function handle(req: NextRequest) {
   } catch (e) {
     report.agreements = "error";
     console.error("[tick] agreements sweep failed", e instanceof Error ? e.message : "");
+  }
+
+  // 6f. Follow-up sequences (C23-ENGAGE §4): the two practitioner sequences,
+  //     behind their own gate + global pause, idempotent by unique constraint,
+  //     and a no-op that RECORDS ITSELF when no email credential is present.
+  try {
+    const { engageTick } = await import("@/lib/engage");
+    const r = await engageTick({ asOf: engageAsOf });
+    if (r.considered > 0) {
+      report.engage =
+        `considered=${r.considered} sent=${r.counts.SENT} skipped=${r.counts.SKIPPED} ` +
+        `suppressed=${r.counts.SUPPRESSED} unconfigured=${r.counts.UNCONFIGURED}`;
+    }
+  } catch (e) {
+    report.engage = "error";
+    console.error("[tick] engage failed", e instanceof Error ? e.message : "");
   }
 
   // 7. Null-tenant invariant audit (platform): zero rows may carry a null

@@ -152,10 +152,14 @@ export async function signUpPractitioner(input: SignupInput): Promise<SignupResu
       source: input.source?.slice(0, 120) || "web",
       referredByCode,
       referralCode,
+      // C23-ENGAGE §1 — the language they signed up in, so follow-up honours
+      // it (law #7). Same column the capture path records.
+      locale: input.locale === "es" ? "es" : "en",
     },
     update: {
       name,
       practiceName,
+      ...(input.locale ? { locale: input.locale === "es" ? "es" : "en" } : {}),
       ...(keptFirstTouch ? {} : priorIsSelf ? { referredByCode } : referredByCode ? { referredByCode } : {}),
       ...(input.source ? { source: input.source.slice(0, 120) } : {}),
     },

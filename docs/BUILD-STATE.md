@@ -1,12 +1,15 @@
 # PSYCHEFOLIO BUILD STATE
 
-## Active track: (none — C23-REFERRAL accepted by the Architect 2026-09-05;
-## next: C23-ENGAGE)
+## Active track: (none — C23-ENGAGE accepted by the Architect 2026-09-05.
+## ALL FOUR C23 EVENT SURFACES ARE BUILT AND VERIFIED: signup 37/37 · capture 59/59 ·
+## referral 68/68 · engage 172/172. Remaining work before Sept 23 is deployment + Jacob's
+## decisions, not features — see "Before the event (Jacob)" below.)
 
 ## Queue (dependency order):
-1. (awaiting spec) C23-ENGAGE — follow-up sequences. Note: capture sends NO email, on purpose.
-   Now has attribution to work with: `lib/referrals.ts` derives counts from `referredByCode`.
-2. (awaiting spec / Architect) C23's fourth event surface
+1. (Architect review) C23-ENGAGE — report in docs/reports/outbox/BUILD-REPORT-C23-ENGAGE.md;
+   8 items for ratification, incl. a spec assertion that was false (see below).
+2. (awaiting spec / Architect) whatever follows the four event surfaces. Standing candidates
+   already filed under Blocked: PUBLIC-I18N, C19 pipeline Phase 3+, PLATFORM Phase 6.
 
 ## Built & verified: (list as completed)
 Seeded 2026-09-05 from the repo's verify logs (audits/*/VERIFY-LOG.md) so the
@@ -73,6 +76,44 @@ PM starts with the true ledger, not an empty one.
   column beyond §4's literal list. `audits/referral/VERIFY-LOG.md` deliberately not written (session
   instruction not to hand-author verify logs) — evidence is in the report.
 
+- C23-ENGAGE — what happens after the room empties: migration `47_prospect_message`
+  (`ProspectMessage` send ledger, UNIQUE (prospectId, sequenceKey, stepKey) as the claim +
+  `PractitionerProspect.unsubscribedAt`/`locale`; platform-level like the prospect ledger, so
+  product code needed NO guard-prisma entry), `lib/engage-config.ts` (pure: locales, closed
+  merge-field set, switch keys, URL builders, derived HMAC unsubscribe token — no DB in its
+  graph, so the public wall holds), `lib/engage-sequences.ts` (the two sequences as DATA:
+  `event-lead` +0/+3/+10 anchored on capture, `founding-welcome` +0/+7 anchored on conversion),
+  `lib/engage-templates.ts` + `messages/{en,es}/engage.json` (5 templates × 2 locales, mandatory
+  text part, unsubscribe appended STRUCTURALLY so no template can lose it), `lib/engage.ts`
+  (plan / tick / switches / unsubscribe / history / queue), engage as step 6f of the EXISTING
+  `/api/jobs/tick` under the existing JOBS_SECRET (no second scheduler; `asOf=` and `only=engage`
+  added as testability affordances behind that secret), `app/(public)/unsubscribe/[token]`
+  (one click, no login, bilingual, idempotent, forged tokens never 500), and `/admin/prospects`
+  extended with the per-prospect ledger, a due-now/upcoming queue, the gate+pause+transport state
+  and a write-nothing dry-run (2026-09-05) — `audits/engage/verify.ts` **172/172**, run twice,
+  self-cleaning, **PASSING WITH NO RESEND_API_KEY** (the gate asserts that absence first); report
+  in docs/reports/outbox/. VERIFY-LOG.md is written BY the gate (ruling 17).
+  THE LOAD-BEARING BEHAVIOUR: `SENT`/`SUPPRESSED` are terminal; `UNCONFIGURED`/`SKIPPED` are
+  RE-CONSIDERABLE, so a tick with no credential records every due step and leaves it re-sendable —
+  proven by flipping a configured transport on at the same `asOf` and watching the SAME 7 rows
+  send with no eighth row. Suppression is checked BEFORE the gate, the pause and the transport, and
+  the no-send is asserted at the transport boundary (injected transport), not just on the row.
+  DECISIONS TAKEN (pending Architect ratification, see report): (a) the spec asserted "capture
+  records what they used" as FACT and it was FALSE — `/join` discarded the `lang` it already had
+  and no locale column existed; wired minimally at three call-sites (capture 59/59, signup 37/37
+  still); (b) the switches are `PracticeSetting.engageEnabled` + `engagePaused` with
+  `ENGAGE_ENABLED`/`ENGAGE_PAUSED` env overrides, pause beats gate, re-read on EVERY step, and the
+  **gate defaults CLOSED** (an automated mailer must not start sending because code shipped —
+  matches the `autoPayReminders` opt-in precedent); no toggle UI was invented, §5 asks only that
+  the state be shown; (c) `emails/envelope.ts` gained ONE optional `unsubscribe: {label,url}`
+  field rendering a real `<a>` (a plain-text URL in an HTML part is not a working one-click
+  unsubscribe) — additive, transactional mail renders byte-identically; (d) `only=engage` +
+  `asOf=` on the existing tick, `asOf` consumed ONLY by the engage step; (e) every message is
+  signed "Valentina" with her practice footer because the house Envelope hardcodes it — flagged,
+  not changed; (f) one-click unsubscribe is genuinely one click, so a link-prefetching mail
+  scanner can trigger it — spec-compliant (§6 forbids a confirmation step) and it fails in the
+  safe direction. NO open/click tracking or per-recipient telemetry of any kind (out of scope).
+
 ## Architect rulings — 2026-09-05 (C23-SIGNUP review, gates independently re-run: signup 37/37,
 ## c21 58/58, phase5 17/17, smoke + write smoke PASS, wall/guard/tsc clean, build clean)
 1. **Public locale = `?lang=` + `Accept-Language` fallback + on-screen EN/ES toggle. RATIFIED
@@ -105,7 +146,8 @@ PM starts with the true ledger, not an empty one.
   16-screen visual baseline · GET/write smokes · tenant-stamp audit · platform isolation verify
 
 ## Standing gate numbers added since (PM-maintained, not part of the rulings above):
-   signup-verify 37/37 · capture-verify 59/59 · referral-verify 68/68 · platform/phase5-verify 17/17
+   signup-verify 37/37 · capture-verify 59/59 · referral-verify 68/68 · engage-verify 172/172 ·
+   platform/phase5-verify 17/17
 
 ## Architect rulings — 2026-09-05 (C23-CAPTURE review, gates independently re-run: capture 59/59,
 ## signup 37/37, wall/guard/tsc clean, build clean; dependency delta is exactly qrcode + @types)
@@ -160,7 +202,97 @@ PM starts with the true ledger, not an empty one.
     gate that produced them, or not at all — a hand-authored log is a claim, not evidence, and this
     program's ledger is worth exactly what its evidence is worth. Task #79 filed.
 
+## Architect rulings — 2026-09-05 (C23-ENGAGE review, gates independently re-run: engage 172/172,
+## referral 68/68, capture 59/59, signup 37/37, wall/guard/tsc clean, build clean, RESEND_API_KEY
+## confirmed absent from the environment during the run)
+18. **The locale wiring is RATIFIED — and the Architect made ruling 12's mistake again, in the very
+    next spec.** C23-ENGAGE stated "capture records what they used" as established fact. It was not:
+    `/join` discarded the `lang` it already had, and no `locale` column existed. That is precisely
+    the false-premise failure ruling 12 was written to prevent, repeated one cycle later, which means
+    the corrective was recorded and then not applied. **Systemic fix, binding on every future spec in
+    this program: each spec carries an explicit "Assumptions to verify, not trust" section listing
+    every claim it makes about existing behavior, and each of those claims becomes a Verify item.**
+    An assumption stated as fact is an untested assertion wearing a fact's clothes; two in a row is a
+    process defect, not bad luck.
+19. **Engine switches RATIFIED exactly as built: the gate DEFAULTS CLOSED, pause beats gate, both
+    re-read on every step, env overrides available.** A mailer that begins sending because code
+    shipped is an incident; requiring a deliberate human act to open it is correct, and it matches
+    the `autoPayReminders` opt-in precedent. Nothing will send until Jacob opens it.
+20. **The no-credential seam RATIFIED, and it is the build's best property.** A keyless tick records
+    `UNCONFIGURED` and leaves those exact rows re-sendable — proved by re-running the same `asOf`
+    with a transport attached and watching the same 6 rows flip to `SENT` with no new rows created.
+    That is the difference between a keyless tick being harmless and a keyless tick silently
+    destroying the follow-up list by marking forty people as already contacted.
+21. **One-click unsubscribe stays one click.** A link-prefetching mail scanner can trip it, which
+    means someone occasionally gets unsubscribed without intending it. That fails in the safe
+    direction; a confirmation step fails in the unsafe one, and §6 forbids it. Accepted knowingly.
+22. **ESCALATED TO JACOB — sender identity. This one is not mine.** Every follow-up message is
+    currently signed "Valentina" over the Veritas Consulting / VIIIV CORP footer, because the house
+    Envelope hardcodes her practice identity. But these messages go to prospective *practitioners* —
+    the platform's customers, not her clients. Sending software marketing under her practice's
+    letterhead conflates two entities that the program otherwise keeps carefully separate, and it
+    puts her professional identity behind a commercial pitch she has not agreed to make.
+    **Architect recommendation:** a platform-identity sender for practitioner follow-up, with
+    Valentina as a named voice *inside* the copy only if she consents to that use — she is the
+    credible peer, and that credibility is the reason to ask her rather than to assume her. Note the
+    constraint: §7 records the "Psychefolio" USPTO check (Classes 042 + 044) as OUTSTANDING, so the
+    sender name should not assert that mark until clearance. **Nothing sends while the gate is
+    closed, so this is not urgent — but it must be settled before Jacob opens it.**
+
+## Before the event (Jacob) — everything the four event surfaces need that engineering cannot do
+Consolidated 2026-09-05 by the Architect. Nothing here is a feature gap; all four surfaces are built
+and gated green. These are deploys, secrets, and decisions that are Jacob's by right.
+
+**Deploy, in this order**
+1. `prisma migrate deploy` — migrations `45_practitioner_prospect`, `46_referral_index`,
+   `47_prospect_message`. The referral index is what keeps counts off a sequential scan; the
+   ProspectMessage unique constraint is what makes double-sending structurally impossible.
+2. Deploy the branch. `npm run prebuild` runs the tenant-scope guard, so a scoping regression fails
+   the deploy rather than reaching production.
+
+**Env vars — each one has a real failure mode if missed**
+- `PLATFORM_ADMIN_EMAILS` must contain Jacob's production address, or `/admin/prospects` 404s for him
+  at the event. This is the page that answers "how many did we get."
+- `PLATFORM_DOMAIN` must be set, or every signup / portal / unsubscribe link degrades to a relative
+  path — which means broken links in the one email sequence that matters.
+- `RESEND_API_KEY` — until it exists, follow-up ticks record `UNCONFIGURED` (harmlessly, and
+  re-sendably). No key means no follow-up, not a crash.
+- `JOBS_SECRET` — already in use by C13-PACKAGES; the engage step rides the existing tick.
+
+**Decisions only Jacob can make**
+- **Sender identity for practitioner follow-up (ruling 22).** Currently signed "Valentina" over the
+  Veritas Consulting footer, which puts her practice's identity behind a software pitch to her
+  professional peers. Must be settled BEFORE opening the engage gate. Architect recommends a platform
+  sender with her as a named voice only by her consent; note the Psychefolio USPTO check is still
+  outstanding, so the sender name should not assert that mark yet.
+- **Opening the engage gate.** It defaults CLOSED by design. Read `/admin/prospects` → the queue and
+  the dry-run first (the dry-run writes nothing), then set `engageEnabled="on"`. `engagePaused="on"`
+  stops everything with no deploy.
+- **Founding-partner offer copy** — the finished-portal-plus-referral-code position is ratified and
+  built; no price appears anywhere and the money/reward-language scanner enforces it in both
+  languages. If pricing gets ratified before the event, that is a new spec, not an edit.
+
+**Physical / rehearsal, not code**
+- Print-test the event QR (`/admin/prospects/qr`) on a real black-and-white printer at arm's length.
+- Walk the whole path once on a phone on cellular, not office wifi: QR → `/join` → thanks screen with
+  referral code → `/signup?ref=` → new portal on its own subdomain. `/join` has zero client components
+  so it submits even with JS disabled, but nothing replaces walking it.
+- Decide whether the signup screens come out of `noindex` (ruling 4) — one line, Jacob's timing.
+
 ## Blocked / awaiting Architect:
+- (ops, BEFORE Sept 23) migration `47_prospect_message` must be deployed before the engage
+  surfaces or the tick 500s on a missing table. Then, to turn follow-up ON in production:
+  set `PracticeSetting.engageEnabled = "on"` (the gate is CLOSED by default). Read
+  `/admin/prospects` queue + dry-run FIRST. To stop it: `PracticeSetting.engagePaused = "on"` —
+  effective on the next step of the running tick, no deploy.
+- (ops, BEFORE the first send) `PLATFORM_DOMAIN` must be set in production, or every signup /
+  portal / unsubscribe link in every follow-up message degrades to `PUBLIC_APP_URL` and then to a
+  RELATIVE path. A relative unsubscribe link is not a working unsubscribe link.
+- (ops) `RESEND_API_KEY` + `NOTIFY_FROM_EMAIL` are both required by `emailConfigured()`. Until
+  both exist, every due step records `UNCONFIGURED` and stays re-sendable — nothing is lost, but
+  nothing arrives either.
+- (code, deferred) `STRUCTURE.md` also stale now on `lib/engage*.ts`, `messages/*/engage.json`,
+  `app/(public)/unsubscribe`, `audits/engage/` (ruling 6).
 - (code, low priority) task #79 — `audits/referral/verify.ts` should self-write its VERIFY-LOG.md as
   its sibling gates do; until then its evidence lives only in its build report.
 - (code, low priority) task #78 — `/practitioner/settings` has no message catalog, so its labels

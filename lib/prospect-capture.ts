@@ -29,6 +29,10 @@ export type CaptureInput = {
   note?: string | null;
   source?: string | null;
   referredByCode?: string | null;
+  /** C23-ENGAGE — the language they actually used on the form. A prospect's
+   *  language is a property of the prospect, not of the sender's convenience
+   *  (law #7), so follow-up can honour it two weeks later. */
+  locale?: string | null;
 };
 
 export type CaptureResult =
@@ -74,6 +78,9 @@ export async function captureProspect(input: CaptureInput): Promise<CaptureResul
   const note = cap(input.note, CAPS.note);
   const source = cap(input.source, CAPS.source) ?? DEFAULT_SOURCE;
   const submittedRef = cap(input.referredByCode, CAPS.referredByCode);
+  // C23-ENGAGE §1 — recorded so follow-up arrives in their language. Only ever
+  // one of the two shipped locales; anything else is ignored rather than stored.
+  const locale = input.locale === "es" || input.locale === "en" ? input.locale : null;
 
   try {
     // 2 — upsert by lowercased email. The three invariants, in order:
@@ -106,9 +113,13 @@ export async function captureProspect(input: CaptureInput): Promise<CaptureResul
         source,
         referredByCode,
         referralCode,
+        locale,
       },
       update: {
         name,
+        // The most recent language they used is the best guess at the one they
+        // want to read; a submission that carried none does not erase it.
+        ...(locale ? { locale } : {}),
         // Optional fields update only when this submission actually carried
         // one — a hurried second pass must not blank a phone number.
         ...(phone ? { phone } : {}),

@@ -90,6 +90,9 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; skipped?
       whisper: args.envelope?.whisper,
       signoff: args.envelope?.signoff,
       textExtra: args.envelope?.textExtra,
+      // C23-ENGAGE — marketing follow-up carries a working unsubscribe link;
+      // transactional mail passes nothing here and renders exactly as before.
+      unsubscribe: args.envelope?.unsubscribe,
     };
     const rendered = renderEnvelope(envelope);
 

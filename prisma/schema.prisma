@@ -1041,6 +1041,13 @@ model PractitionerProspect {
   referralCode   String         @unique // issued at creation so the code exists before the program does
   tenantId       String? // the tenant they now OWN (set on conversion) — not a scope column
   convertedAt    DateTime?
+  // C23-ENGAGE §1 — follow-up consent + language.
+  // `unsubscribedAt` is PERMANENT suppression: set once, honoured server-side
+  // before any send, by every sequence present or future.
+  unsubscribedAt DateTime?
+  // The language they actually used when they gave us their name — a property
+  // of the prospect, not of the sender's convenience (law #7).
+  locale         String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -1048,6 +1055,48 @@ model PractitionerProspect {
   // C23-REFERRAL §1 — attribution is DERIVED from this column (no parallel
   // ledger), so every referral count is a lookup by the referrer's code.
   @@index([referredByCode])
+}
+
+// C23-ENGAGE §1 — the send ledger: one row per (prospect, sequence step),
+// append-only in spirit. Platform-level for exactly the reasons
+// PractitionerProspect is (no tenant scope column, outside SCOPED_MODELS,
+// outside the null-tenant stamp audit).
+//
+// The UNIQUE constraint below — not application care — is what makes
+// double-sending impossible: the engine CLAIMS a step by inserting its row,
+// and a second tick's insert is refused by the database.
+//
+// Status vocabulary, and which values are terminal (this distinction is the
+// whole point of the no-credential seam):
+//   SENT / SUPPRESSED  — terminal. Never reconsidered.
+//   PENDING            — in flight (a tick holds the claim).
+//   SKIPPED            — gate closed or paused: reconsidered on a later tick.
+//   UNCONFIGURED       — no email credential existed: reconsidered on a later
+//                        tick, so a tick that never sent anything can NEVER
+//                        permanently mark a prospect as messaged.
+enum ProspectMessageStatus {
+  PENDING
+  SENT
+  SKIPPED
+  SUPPRESSED
+  UNCONFIGURED
+}
+
+model ProspectMessage {
+  id           String                @id @default(cuid())
+  prospectId   String
+  sequenceKey  String
+  stepKey      String
+  locale       String
+  status       ProspectMessageStatus @default(PENDING)
+  reason       String?
+  scheduledFor DateTime
+  sentAt       DateTime?
+  createdAt    DateTime              @default(now())
+
+  @@unique([prospectId, sequenceKey, stepKey])
+  @@index([status, scheduledFor])
+  @@index([prospectId, createdAt])
 }
 
 // AMD-06 §3 — the audit spine: append-only, attributable, metadata only
