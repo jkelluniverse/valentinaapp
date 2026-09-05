@@ -22,6 +22,7 @@ export function SignupForm({
   passwordMin,
   action,
   refCode,
+  src,
   initial,
 }: {
   copy: Copy;
@@ -29,6 +30,7 @@ export function SignupForm({
   passwordMin: number;
   action: (formData: FormData) => void | Promise<void>;
   refCode?: string;
+  src?: string;
   initial: { name: string; practiceName: string; email: string; slug: string };
 }) {
   const [practiceName, setPracticeName] = useState(initial.practiceName);
@@ -98,7 +100,9 @@ export function SignupForm({
     <form action={action} className="flex flex-col gap-6">
       <input type="hidden" name="lang" value={lang} />
       <input type="hidden" name="ref" value={refCode ?? ""} />
-      <input type="hidden" name="source" value={refCode ? "referral" : "web"} />
+      {/* C23-CAPTURE §1 — an explicit ?src= (the printed event QR, via /join)
+          wins; otherwise a ?ref= makes it a referral; otherwise plain web. */}
+      <input type="hidden" name="source" value={src || (refCode ? "referral" : "web")} />
       <input type="hidden" name="t" value={renderedAt} />
       {/* honeypot — visually and semantically hidden; a human never fills it */}
       <div aria-hidden className="absolute h-0 w-0 overflow-hidden opacity-0">

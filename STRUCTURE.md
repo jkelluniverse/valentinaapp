@@ -173,6 +173,8 @@ valentinaapp/
 | AMENDMENT-01 Consent | `lib/consent.ts`, `content/consent.md`, `app/space/consent` |
 | AMENDMENT-02 Mobile/PWA | `components/mobile/*`, `app/manifest.ts`, `public/*`, `app/layout.tsx` |
 | AMENDMENT-03 Library folders | `lib/library.ts`, `app/practitioner/library/*` |
+| C23-SIGNUP Public front door | `app/(public)/signup/*`, `app/api/signup/slug`, `lib/signup.ts`, `lib/signup-config.ts`, `lib/signup-copy.ts`, `messages/{en,es}/signup.json`, `audits/signup/verify.ts` |
+| C23-CAPTURE Event capture + prospect ledger | `app/(public)/join/*`, `app/admin/prospects/*` (list · `export` CSV · `qr`), `lib/prospect-capture.ts`, `lib/prospects.ts`, `lib/capture-config.ts`, `lib/capture-copy.ts`, `lib/platform-admin.ts`, `messages/{en,es}/capture.json`, `audits/capture/verify.ts` |
 
 ## Getting started (for a new agent)
 

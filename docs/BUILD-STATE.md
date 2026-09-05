@@ -1,13 +1,14 @@
 # PSYCHEFOLIO BUILD STATE
 
-## Active track: (none — C23-SIGNUP accepted by the Architect 2026-09-05; next: C23-CAPTURE)
+## Active track: (none — C23-CAPTURE accepted by the Architect 2026-09-05; next: C23-REFERRAL)
 
 ## Queue (dependency order):
-1. (awaiting spec) C23-CAPTURE — event lead-capture form (out of scope for C23-SIGNUP)
-2. (awaiting spec) C23-REFERRAL — referral attribution + rewards. UNBLOCKED by C23-SIGNUP:
-   every `PractitionerProspect` is issued a unique `referralCode` at creation and `?ref=` is
-   captured verbatim into `referredByCode`. Attribution logic deliberately NOT built.
-3. (awaiting spec) C23-ENGAGE — follow-up sequences
+1. (awaiting spec) C23-REFERRAL — referral attribution + rewards. UNBLOCKED by C23-SIGNUP +
+   C23-CAPTURE: every `PractitionerProspect` is issued a unique `referralCode` at creation
+   (signup AND capture), `?ref=` is captured verbatim into `referredByCode` on both surfaces,
+   and the FIRST code captured is the one that survives. Attribution logic deliberately NOT built.
+2. (awaiting spec) C23-ENGAGE — follow-up sequences. Note: capture sends NO email, on purpose.
+3. (awaiting spec / Architect) C23's fourth event surface
 
 ## Built & verified: (list as completed)
 Seeded 2026-09-05 from the repo's verify logs (audits/*/VERIFY-LOG.md) so the
@@ -33,6 +34,23 @@ PM starts with the true ledger, not an empty one.
   standard modules (body-graph, archetypal-keys, values-spiral); reserved-slug list lives in
   `lib/signup-config.ts` (95 entries + `demo-` prefix + every existing tenant slug); password
   floor 8 (house floor); public locale via `?lang=`.
+
+- C23-CAPTURE — the event floor: `app/(public)/join` (+ `/join/thanks`) as a ZERO-client-component
+  bilingual form that submits with JS disabled, wall-allowed server action reusing signup's
+  honeypot + time-trap + per-IP/per-email caps, `lib/prospect-capture.ts` upsert-by-email service
+  (never downgrades `SIGNED_UP`, first `?ref=` wins, `referralCode` never reissued),
+  `/admin/prospects` list + counts + filters + email search + RFC-4180 CSV export, and a
+  server-rendered inline-SVG printable event QR (`qrcode`) — all three admin surfaces gated on the
+  existing `PLATFORM_ADMIN_EMAILS` allowlist with 404 for everyone else, no new role
+  (2026-09-05) — `audits/capture/verify.ts` **59/59**; report in docs/reports/outbox/.
+  DECISIONS TAKEN (pending Architect ratification, see report): `/signup` now honours `?src=` so
+  the /join→/signup handoff is not lossy (3 lines, signup still 37/37); capture's `AuditEvent`
+  uses `actorId = prospect.id` with `action = "prospect-capture"` and metadata-only meta;
+  capture uses the SCOPED prisma client (prospect ledger is platform-level, audit row is
+  tenant-stamped) so product code needed NO guard-prisma allowlist entry — only the harness;
+  admin counts are scoped to the current filter; rate caps IP 12/h + email 5/h; `qrcode` is the
+  only new dependency. `lib/prospect-capture.ts` is named that way because `lib/capture.ts` is the
+  SESSION pipeline's service — untouched by this build.
 
 ## Architect rulings — 2026-09-05 (C23-SIGNUP review, gates independently re-run: signup 37/37,
 ## c21 58/58, phase5 17/17, smoke + write smoke PASS, wall/guard/tsc clean, build clean)
@@ -65,7 +83,43 @@ PM starts with the true ledger, not an empty one.
 - Standing gates on every build: c21-verify 58/58 · v31-verify 32/32 · c20-verify 28/28 ·
   16-screen visual baseline · GET/write smokes · tenant-stamp audit · platform isolation verify
 
+## Standing gate numbers added since (PM-maintained, not part of the rulings above):
+   signup-verify 37/37 · capture-verify 59/59 · platform/phase5-verify 17/17
+
+## Architect rulings — 2026-09-05 (C23-CAPTURE review, gates independently re-run: capture 59/59,
+## signup 37/37, wall/guard/tsc clean, build clean; dependency delta is exactly qrcode + @types)
+7. **`/signup` honouring `?src=` RATIFIED.** C23-CAPTURE §1 required the /join→/signup handoff to
+   carry both `?ref=` and `?src=`; a handoff that drops the source is a lossy handoff, so the
+   3-line change implements the spec rather than exceeding it. Signup gate held at 37/37.
+8. **`actorId = prospect.id` with `action="prospect-capture"` RATIFIED.** `AuditEvent` requires an
+   actor and a capture genuinely has no signed-in one. The prospect IS the actor — they submitted
+   the form. A sentinel would be less true, and law #6 asks for attribution, not for a signed-in
+   session. Metadata-only meta confirmed correct (no name/email/phone/note in the blob).
+9. **Rate caps (IP 12/h, email 5/h) and field caps RATIFIED as shipped.** In-memory per-instance
+   limiting is a known, disclosed limit inherited from the C18 booking limiter — accepted for the
+   event. Filed below as task #77 rather than pretended away: behind multiple instances the
+   effective cap multiplies by instance count.
+10. **Admin counts scoped to the current filter RATIFIED** — the total is always shown alongside,
+    so both questions ("how many did we get", "how many of these") are answerable.
+11. **THE 16-SCREEN BASELINE — ruling: do NOT recapture from scratch data, and do not treat
+    cross-environment byte equality as achievable.** The committed `docs/baseline/` is a reference
+    captured against one dataset at one moment; the script's own header says a reseed invalidates it
+    and the clock invalidates it (time-of-day greetings, relative-date copy). Reseeded rows get fresh
+    ids and same-timestamp ties break by id. So all 15 screens differing in a freshly-seeded scratch
+    DB is the expected reading, not evidence of drift — and committing scratch-captured screenshots
+    would replace a meaningful production reference with a meaningless one, destroying the guard.
+    **Protocol from here:** the baseline is a WITHIN-SESSION differential gate. Capture immediately
+    after seeding and BEFORE touching code, hold the data still, then `--diff` after the build. Never
+    commit a scratch-captured baseline; recapturing the committed reference happens only on Jacob's
+    known-good environment, as a deliberate act. C23-SIGNUP and C23-CAPTURE touch no `/space` or
+    `/login` surface, so client-visible chrome is unaffected either way.
+
 ## Blocked / awaiting Architect:
+- (code, low priority) task #77 — capture/signup rate limiting is in-memory per instance; a shared
+  store (or a single-instance guarantee) is needed before the caps mean anything under horizontal
+  scale. Not event-blocking at expected volumes.
+- (ops, before Sept 23) `PLATFORM_ADMIN_EMAILS` must contain Jacob's real address in production or
+  `/admin/prospects` 404s for him. Print-test the event QR on a real black-and-white printer.
 - (code, low priority) task #76 — `/admin/tenants/new` shares the latent flaw C23-SIGNUP works around:
   `provisionTenant()` called inside a request checks practitioner-email uniqueness only within
   the request's tenant scope, so a cross-tenant duplicate would surface as a mid-provision P2002.

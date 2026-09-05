@@ -28,6 +28,7 @@ export default function SignupPage({
   searchParams: {
     lang?: string;
     ref?: string;
+    src?: string;
     error?: string;
     name?: string;
     practiceName?: string;
@@ -39,6 +40,9 @@ export default function SignupPage({
   const t = signupCopy(locale);
   const other = locale === "en" ? "es" : "en";
   const refCode = (searchParams.ref ?? "").trim().slice(0, 64) || undefined;
+  // C23-CAPTURE §1 — a visitor handed off from /join arrives carrying ?src=;
+  // it must reach the prospect row, or attribution dies at the handoff.
+  const src = (searchParams.src ?? "").trim().slice(0, 120) || undefined;
 
   const errorKey = searchParams.error ?? "";
   const errors = t.errors as Record<string, string>;
@@ -49,7 +53,7 @@ export default function SignupPage({
       <div className="flex items-start justify-between gap-4">
         <Eyebrow>{t.eyebrow}</Eyebrow>
         <Link
-          href={`/signup?lang=${other}${refCode ? `&ref=${encodeURIComponent(refCode)}` : ""}`}
+          href={`/signup?lang=${other}${refCode ? `&ref=${encodeURIComponent(refCode)}` : ""}${src ? `&src=${encodeURIComponent(src)}` : ""}`}
           hrefLang={other}
           className="rounded-pill border border-mocha px-3 py-1 text-[12px] font-semibold uppercase tracking-wide text-wine transition-colors hover:bg-blush"
         >
@@ -109,6 +113,7 @@ export default function SignupPage({
           passwordMin={PASSWORD_MIN}
           action={submitSignup}
           refCode={refCode}
+          src={src}
           initial={{
             name: searchParams.name ?? "",
             practiceName: searchParams.practiceName ?? "",

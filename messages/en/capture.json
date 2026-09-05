@@ -1,0 +1,47 @@
+{
+  "capture": {
+    "eyebrow": "Founding partners",
+    "heading": "Leave us your name",
+    "lede": "Ten seconds. Name and email is enough — we will reach out next week with your practice portal. Everything else is optional.",
+    "honest": "We use this email to contact you about the practitioner platform, and for nothing else. This form is not for client information — do not enter anything about a client here.",
+    "fields": {
+      "name": "Your name",
+      "namePlaceholder": "Alex Rivera",
+      "email": "Email",
+      "emailPlaceholder": "you@yourpractice.com",
+      "optional": "Optional",
+      "practiceName": "Practice name",
+      "practiceNamePlaceholder": "Rivera Wellness",
+      "phone": "Phone",
+      "phonePlaceholder": "(555) 010-2030",
+      "note": "What brings you?",
+      "notePlaceholder": "A sentence is plenty."
+    },
+    "submit": "Send it",
+    "submitting": "Sending…",
+    "footnote": "Founding partners are set up as a comped practice. Nothing to enter here but your details.",
+    "referredBy": "Referred by {code}",
+    "errors": {
+      "missing": "We need a name to know who you are.",
+      "email": "That email address does not look right.",
+      "rate": "Too many submissions from here. Please wait a few minutes and try again.",
+      "failed": "Something went wrong and nothing was saved. Please try again."
+    },
+    "signupInstead": "Ready now? Set up your portal instead",
+    "thanks": {
+      "eyebrow": "You are on the list",
+      "heading": "Got it — thank you",
+      "body": "We have your details. Jacob will reach out next week to set up your portal.",
+      "codeLabel": "Your founding-partner referral code",
+      "codeNote": "Hand this to the next practitioner you meet. It stays yours, account or not.",
+      "shareHeading": "Pass it on",
+      "shareEmail": "Share by email",
+      "shareSms": "Share by text",
+      "shareSubject": "A practice portal worth a look",
+      "shareBody": "I just signed up to hear about Psychefolio — a practice portal for practitioners. Use my code {code}: {url}",
+      "linkLabel": "Your link",
+      "signupNow": "Set up your portal now",
+      "keepThis": "Screenshot this screen if you are on conference wifi."
+    }
+  }
+}
