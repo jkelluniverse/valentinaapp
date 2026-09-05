@@ -1,5 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { ensureChart } from "../lib/human-design";
+import { DEFAULT_TENANT_ID } from "../lib/tenancy/scope";
+import { withTenantScope } from "../lib/tenancy/tenant-scope";
 
 // WRITE-PATH SMOKE — the standing mutation gate. The GET smoke walks pages as
 // a browser would but never mutates, so a write-path regression (like the
@@ -123,6 +125,11 @@ async function main() {
   if (failed > 0) process.exit(1);
 }
 
-main()
+// C24.1-TENANT-SCOPE §2 — this harness runs from the CLI, where the scoped
+// client has no request to resolve a tenant from, so it would write NULL
+// tenantIds (and fail the null-tenant invariant audit). withTenantScope
+// states the tenant ONCE for everything beneath it, including rows the
+// product libraries it drives write on its behalf.
+withTenantScope(DEFAULT_TENANT_ID, main)
   .catch((e) => { console.error(e instanceof Error ? e.message : e); process.exit(1); })
   .finally(() => void prisma.$disconnect());

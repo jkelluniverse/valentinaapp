@@ -1,11 +1,23 @@
 # PSYCHEFOLIO BUILD STATE
 
-## Active track: (none — C23-ENGAGE accepted by the Architect 2026-09-05.
+## Active track: (none — C24.1-TENANT-SCOPE built and reported 2026-09-05, awaiting Architect
+## review; C23-ENGAGE accepted by the Architect 2026-09-05.
 ## ALL FOUR C23 EVENT SURFACES ARE BUILT AND VERIFIED: signup 37/37 · capture 59/59 ·
 ## referral 68/68 · engage 172/172. Remaining work before Sept 23 is deployment + Jacob's
-## decisions, not features — see "Before the event (Jacob)" below.)
+## decisions, not features — see "Before the event (Jacob)" below.
+## THE TENANCY WALL: task #75 is CLOSED (withTenantScope landed; stamp audit exit 0 after a
+## 23-gate sweep). Two open ARCHITECT-REQUESTs from C24.1, one of them a PRE-EXISTING defect —
+## no non-default tenant can write a PracticeSetting. Read that one before practice #2 ships.)
 
 ## Queue (dependency order):
+0. (Architect review) C24.1-TENANT-SCOPE — report in docs/reports/outbox/BUILD-REPORT-C24.1-TENANT-SCOPE.md.
+   Status PARTIAL. Ruling 24 implemented and gated (`withTenantScope`, tenant-scope-verify 48/48;
+   stamp audit exit 0 after a 23-gate sweep). **Assumption 3 was FALSE:** `audits/amd06/verify.ts`
+   was a SECOND live producer (+8 null rows / 5 tables per run), missed because it is in no
+   regression list — found, wrapped, verified. Two ARCHITECT-REQUESTs open: the three
+   `audits/c12x-ai-pass/run*.ts` scripts (same shape, unrunnable — task #80), and a PRE-EXISTING
+   tenancy defect this build discovered: no non-default tenant can write a `PracticeSetting`.
+   Task #75 recommended CLOSED (ruling 27's stated condition is met).
 1. (Architect review) C24-NESTED-STAMP — report in docs/reports/outbox/BUILD-REPORT-C24-NESTED-STAMP.md.
    Status PARTIAL. **The spec's central diagnosis was FALSE** (ruling 12/18 pattern, third time):
    the null-tenant rows were never nested relation writes — they are the scoped client's
@@ -154,6 +166,53 @@ PM starts with the true ledger, not an empty one.
   (opt-in AsyncLocalStorage; no existing behaviour changes) over implicitly stamping out-of-request
   creates, which would trade a loud defect for a quiet one.
 
+- C24.1-TENANT-SCOPE — the CLI seam closed, and the class with it: `lib/tenancy/tenant-scope.ts`
+  (`withTenantScope(tenantId, fn)` + `ambientTenantId()`, AsyncLocalStorage) consulted by
+  `lib/prisma.ts` ONLY in the `headers()` catch — so the REQUEST'S TENANT ALWAYS WINS (proved four
+  ways round, reads included) and ABSENCE is still plain passthrough, unstamped and LOUD to the
+  audit (no implicit default stamping anywhere — ruling 24's rejected option, kept rejected by a
+  gate check that watches the audit exit non-zero). Adopted one line each in
+  `prisma/fixtures/c12x-verify.ts` · **`audits/amd06/verify.ts`** · `audits/password-reset/verify.ts`
+  · `scripts/smoke-writes.ts` · `audits/remarkable-recording/verify.ts`.
+  `audits/tenant-scope-verify.ts` **48/48** (self-cleaning, writes its own VERIFY-LOG.md, runs the
+  request-path checks through the REAL scoped client inside a simulated request scope) — 2026-09-05;
+  report in docs/reports/outbox/. `audits/tenant-stamp-audit.ts` **exit 0 after a 23-gate sweep**;
+  `audits/platform/verify.ts` ALL CHECKS PASS (79 tables).
+  THE FINDING THAT MATTERS: **assumption 3 was FALSE.** `audits/amd06/verify.ts` was a SECOND live
+  producer — `+8 null rows across 5 tables every run` (package 1, priceBook 1, charge 2,
+  assistGrant 2, auditEvent 2) — invisible to C24 because it is in NO regression list, so no
+  per-gate attribution ever ran it. Now wrapped and null-clean. A static scan in the new gate
+  enumerates all 11 CLI files that write scoped rows through the scoped client and FAILS if a
+  future one is neither wrapped nor named with a reason.
+  `audits/remarkable-recording/verify.ts` is **NOT VERIFIED — vendor credential required**: it dies
+  at R.2 on a 403 from ANTHROPIC (the handwriting transcription; AssemblyAI is needed later still),
+  so the spec's "needs AssemblyAI" was imprecise. Diagnostic evidence only, stated as such: the two
+  rows it creates before dying (`handwrittenNote`, `appointment`) are now STAMPED, and the audit
+  reads 0 after a run where it used to read +2.
+  ALSO BUILT (§4 housekeeping): task #79 — `audits/referral/verify.ts` writes its own VERIFY-LOG.md
+  (68/68, log written by the gate); task #78 — `/practitioner/settings` i18n via
+  `messages/{en,es}/practitionerSettings.json` (85 keys each) + `lib/practitioner-settings-copy.ts`,
+  with `audits/settings-i18n-verify.ts` **10/10** proving all 85 English strings are byte-identical
+  to `HEAD:app/practitioner/settings/page.tsx` (an i18n MOVE, not a copy rewrite) and both locales
+  rendering; `STRUCTURE.md` brought current on C23/C24/C24.1 + `lib/tenancy/*` + migrations to 48 +
+  the audits/scripts/messages/docs trees (ruling 6 discharged).
+  DECISIONS TAKEN (pending Architect ratification, see report): (a) §2 adoption extended beyond the
+  two known violators to `amd06` (a proven producer) and to `password-reset` + `smoke-writes` (CLI
+  scoped writers that only stay clean because they self-delete) — all four verified by running them;
+  (b) the three `audits/c12x-ai-pass/run*.ts` scripts were NOT edited (unrunnable; ruling 27) and are
+  filed as task #80 with a recommendation to wrap them; (c) `prisma/fixtures/seed-staging.ts` and the
+  multi-tenant platform harnesses are named exceptions in the gate rather than wrapped — an ambient
+  scope would break the cross-tenant reads they exist to make; (d) one scanner exclusion in
+  `audits/nested-stamp-verify.ts` widened from one acceptance harness to two (both write nested
+  payloads deliberately as positive controls) — disclosed, and the product-code claim still runs
+  over the other ~465 files.
+  ARCHITECT-REQUEST filed on a PRE-EXISTING defect found by this build: the scoped client's
+  fail-closed pre-check selects `{ id: true }`, and `PracticeSetting` is the one scoped model whose
+  PK is `key` — so for ANY non-default tenant every `practiceSetting` upsert/update/delete throws a
+  Prisma validation error, IN A REQUEST, across ~10 product paths. Fails in the safe direction, but
+  practice #2 cannot save a practice setting. Not fixed here (not in the build order; wrong subsystem
+  to touch unasked).
+
 ## Architect rulings — 2026-09-05 (C23-SIGNUP review, gates independently re-run: signup 37/37,
 ## c21 58/58, phase5 17/17, smoke + write smoke PASS, wall/guard/tsc clean, build clean)
 1. **Public locale = `?lang=` + `Accept-Language` fallback + on-screen EN/ES toggle. RATIFIED
@@ -187,7 +246,9 @@ PM starts with the true ledger, not an empty one.
 
 ## Standing gate numbers added since (PM-maintained, not part of the rulings above):
    signup-verify 37/37 · capture-verify 59/59 · referral-verify 68/68 · engage-verify 172/172 ·
-   platform/phase5-verify 17/17 · nested-stamp-verify 43/43
+   platform/phase5-verify 17/17 · nested-stamp-verify 43/43 · tenant-scope-verify 48/48 ·
+   settings-i18n-verify 10/10 (needs `npm run build`; drives the built app on :3131) ·
+   amd06 ALL CHECKS PASS (now null-clean — it was a producer until C24.1)
 ## Standing gate set, with numbers (C24-NESTED-STAMP §4 — the stamp audit is now a REAL gate:
 ## it exits 0 today and exits non-zero on any null-tenant row in any of the 79 scoped tables):
    tenant-stamp audit **exit 0 / no number — pass is "zero rows"** · nested-stamp-verify 43/43 ·
@@ -329,6 +390,50 @@ PM starts with the true ledger, not an empty one.
     correctly left alone rather than blind-edited. A gate that cannot be run must not be edited on
     faith. #75 closes when `withTenantScope` lands and both harnesses use it.
 
+## Architect rulings — 2026-09-05 (C24.1-TENANT-SCOPE review. Independently re-run: tenant-scope
+## 48/48 · settings-i18n 10/10 · amd06 ALL CHECKS PASS (now null-clean) · nested-stamp 43/43 ·
+## c12x 23 passed · STAMP AUDIT EXIT 0 after running both former producers · build clean.
+## ARCHITECT-REQUEST 2 reproduced by the Architect directly — see ruling 32.)
+28. **Assumption 3 was FALSE, and the reason is structural, not careless.** A second live producer
+    existed: `audits/amd06/verify.ts`, +8 null rows across 5 tables every run. C24 missed it because
+    **it is in no regression list** — so no per-gate attribution sweep ever ran it. The regression
+    list silently defines the program's attribution surface, and anything outside that list is
+    invisible to exactly the sweeps meant to find it. **Corrective, binding:** the standing gate set
+    now includes every runnable gate, `amd06` included, and the new static scanner that enumerates
+    all 11 CLI files writing scoped rows — failing when a future one appears in neither the wrapped
+    nor the named list — is RATIFIED as the durable form of this fix. A scanner that fails on new
+    unknowns is worth more than a list someone must remember to update.
+29. **ARCHITECT-REQUEST 1 — option 1 RATIFIED: wrap all three `audits/c12x-ai-pass/run*.ts`.** The
+    spec named one file; the correct unit is the class. Mark them `NOT VERIFIED — vendor credential
+    required`, exactly as `remarkable-recording` was handled: a mechanical application of a proven
+    pattern, honestly labelled, is different from a blind edit of an unverified gate (ruling 27).
+30. **Task #75 is CLOSED.** Ruling 27's own condition is met: `withTenantScope` landed, both known
+    harnesses adopted it, and the audit exits 0 after a 23-gate sweep. The residue is filed as
+    **task #80** (the three `c12x-ai-pass` files, unrunnable here) rather than left to blur #75.
+31. **Ratified as disclosed:** `withTenantScope` throws on an empty tenant rather than degrading to
+    passthrough; `nested-stamp-verify`'s self-exclusion widening to a named two-file
+    `PROBE_HARNESSES` list (both are acceptance harnesses that write nested payloads as positive
+    controls, and the product-code claim still runs over the other ~465 files); adopting a
+    non-default scope turns `upsert`-of-a-new-row into a fail-closed refusal on the CLI path, which
+    is pre-existing request behaviour now merely reachable from the CLI.
+32. **ARCHITECT-REQUEST 2 — CONFIRMED BY DIRECT REPRODUCTION, AND IT IS EVENT-CRITICAL. Fixing it
+    is the program's new top priority (spec C25).** The Architect reproduced it independently:
+    creating a non-default tenant and writing a `PracticeSetting` inside its scope fails at
+    `lib/prisma.ts:139` in the fail-closed pre-check's `findFirst()`, because `PracticeSetting` is
+    the one scoped model with no `id` column (its PK is `key`). **And the reproduction surfaced a
+    second defect in the same model:** `PracticeSetting_pkey` is a UNIQUE index on `key` **globally**,
+    so even with the pre-check fixed, two practices could never hold the same setting key.
+    **Why this is event-critical rather than a multi-tenant-program concern:** C23-SIGNUP now creates
+    ACTIVE non-default tenants, and it does so *self-serve, at the event*. Every founding practitioner
+    who signs up on September 23 is a non-default tenant, `practiceSetting.upsert` appears in ~10
+    product paths, and none of them can succeed for those practitioners. A practitioner who signs up
+    in the room and then cannot save a setting is the demo failing in front of the exact audience it
+    was built for. It fails safe (nothing crosses tenants), which is why it went unnoticed — the
+    portal simply refuses. Direction: derive the pre-check's key from the DMMF rather than hardcoding
+    `id`, and rescope the model's uniqueness to `(tenantId, key)` with a migration. Both get their
+    own spec and their own gate, because this is the most security-critical line in the codebase and
+    a founding practitioner's settings are the first thing they touch.
+
 ## Before the event (Jacob) — everything the four event surfaces need that engineering cannot do
 Consolidated 2026-09-05 by the Architect. Nothing here is a feature gap; all four surfaces are built
 and gated green. These are deploys, secrets, and decisions that are Jacob's by right.
@@ -381,17 +486,18 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 - (ops) `RESEND_API_KEY` + `NOTIFY_FROM_EMAIL` are both required by `emailConfigured()`. Until
   both exist, every due step records `UNCONFIGURED` and stays re-sendable — nothing is lost, but
   nothing arrives either.
-- (code, deferred) `STRUCTURE.md` also stale now on `lib/engage*.ts`, `messages/*/engage.json`,
-  `app/(public)/unsubscribe`, `audits/engage/` (ruling 6).
-- (code, low priority) task #79 — `audits/referral/verify.ts` should self-write its VERIFY-LOG.md as
-  its sibling gates do; until then its evidence lives only in its build report.
-- (code, low priority) task #78 — `/practitioner/settings` has no message catalog, so its labels
-  (including the new referrals link row) are inline English. Needs a settings-page i18n pass; every
-  string this program ADDED is in both catalogs.
+- (code, deferred) ~~`STRUCTURE.md` stale on `lib/engage*.ts`, `messages/*/engage.json`,
+  `app/(public)/unsubscribe`, `audits/engage/`~~ — DONE in C24.1 §4 (ruling 6 discharged).
+- (code, low priority) ~~task #79~~ — DONE in C24.1 §4: `audits/referral/verify.ts` writes its own
+  VERIFY-LOG.md (verified by running it, 68/68).
+- (code, low priority) ~~task #78~~ — DONE in C24.1 §4: `messages/{en,es}/practitionerSettings.json`
+  + `lib/practitioner-settings-copy.ts`; all 85 English strings proven byte-identical to the
+  pre-pass page (`audits/settings-i18n-verify.ts` 10/10).
 - (ops, before Sept 23) migration `46_referral_index` must be deployed before the referral surfaces,
   or every referral count is a sequential scan.
-- (code, deferred) `STRUCTURE.md` now also stale on `/practitioner/referrals`,
-  `lib/referral{s,-config,-copy}.ts`, `messages/*/referral.json`, `audits/referral/` (ruling 6).
+- (code, deferred) ~~`STRUCTURE.md` stale on `/practitioner/referrals`,
+  `lib/referral{s,-config,-copy}.ts`, `messages/*/referral.json`, `audits/referral/`~~ — DONE in
+  C24.1 §4.
 - (code, low priority) task #77 — capture/signup rate limiting is in-memory per instance; a shared
   store (or a single-instance guarantee) is needed before the caps mean anything under horizontal
   scale. Not event-blocking at expected volumes.
@@ -409,16 +515,28 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 - (Jacob go-ahead, no spec needed) C22 phase 2 — uploaded-PDF render-and-fill (pdf.js + pdf-lib,
   drag-drop field placement, coordinate stamping)
 - (Jacob acceptance) PLATFORM Phase 6 canvas-v1 — spec held; gated on acceptance of Phases 0–5
-- (code) task #75 — **the nested-write half is DONE and the audit is GREEN** (exit 0 after a full
-  19-gate sweep on a freshly-seeded DB; `audits/nested-stamp-verify.ts` 43/43). NOT closed, for one
-  honest reason: the spec's diagnosis was false and the audit's rows never came from nested writes.
-  They come from the scoped client's out-of-request passthrough, and while
-  `prisma/fixtures/c12x-verify.ts` is fixed, `audits/remarkable-recording/verify.ts` STILL produces
-  `handwrittenNote: 1` + `appointment: 1` (unrunnable in the scratch env — no ANTHROPIC_API_KEY — so
-  it was deliberately not edited). If anyone runs that gate on Jacob's environment the audit goes
-  red again. Blocked on the ARCHITECT-REQUEST in BUILD-REPORT-C24-NESTED-STAMP.md: recommended
-  remedy is `withTenantScope(tenantId, fn)` (opt-in AsyncLocalStorage, no existing behaviour
-  changes), NOT implicitly stamping out-of-request creates.
+- (code) task #75 — **CLOSED 2026-09-05 by C24.1-TENANT-SCOPE, on ruling 27's own stated
+  condition** ("#75 closes when `withTenantScope` lands and both harnesses use it"). The mechanism
+  landed and is gated (tenant-scope-verify 48/48); all known producers are wrapped
+  (`c12x-verify`, `amd06`, `remarkable-recording`) or named with a reason; the stamp audit exits 0
+  after a 23-gate sweep and `platform/verify` passes. The one honest residue is NOT #75 and is
+  filed separately as task #80: `audits/remarkable-recording/verify.ts` still cannot be RUN here
+  (vendor credentials — it dies at R.2 on an Anthropic 403), so its wrap is a mechanical
+  application of a proven pattern; diagnostically, the two rows it writes before dying are now
+  stamped and the audit reads 0 after it.
+- (code, low priority) task #80 — `audits/c12x-ai-pass/run.ts`, `run2-fixes.ts`, `run3-patch01.ts`
+  write scoped rows through the scoped client from the CLI without stating a tenant, so they are
+  the same shape as the two fixed producers. They need a REAL `ANTHROPIC_API_KEY`, so C24.1 could
+  neither run nor edit them (ruling 27) and named them as UNRESOLVED in the new gate's scan — which
+  fails if any NEW unwrapped CLI writer appears. ARCHITECT-REQUEST 1 recommends wrapping all three
+  (3 lines).
+- (code, ARCHITECT-REQUEST, found by C24.1) the scoped client's fail-closed pre-check on unique
+  writes selects `{ id: true }`; `PracticeSetting`'s PK is `key` and it has no `id`. So for any
+  NON-DEFAULT tenant, `practiceSetting.upsert/update/delete` throws a Prisma validation error —
+  inside a request, across ~10 product paths (settings, away note, schedule, notes inbox, patterns,
+  design, agreements signature, Square). Fails closed (nothing crosses tenants) but practice #2
+  cannot save a practice setting. Recommended fix: derive the PK from the DMMF instead of
+  hardcoding `id`. Asserted in `audits/tenant-scope-verify.ts` so it cannot be forgotten.
 - (ops, before the next deploy) migration `48_stamp_null_tenants_nested` — stamps any remaining
   null-tenant rows across all 79 scoped tables to the default tenant. Idempotent, reversible via
   `_TenantStampBackfill48`, and it RAISE NOTICEs its per-table and total counts. Read those counts

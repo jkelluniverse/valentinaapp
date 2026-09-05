@@ -5,6 +5,8 @@ import { join } from "path";
 import { prisma } from "../../lib/prisma";
 import { audit } from "../../lib/audit";
 import { setChargeStatus } from "../../lib/billing";
+import { DEFAULT_TENANT_ID } from "../../lib/tenancy/scope";
+import { withTenantScope } from "../../lib/tenancy/tenant-scope";
 
 // AMD-06 §4 — the mechanics layer, verified live against the fixture roster:
 // temp-password state machine, phone-purchase settlement paths (charge →
@@ -190,6 +192,11 @@ async function main() {
   if (failed > 0) process.exit(1);
 }
 
-main()
+// C24.1-TENANT-SCOPE §2 — this harness runs from the CLI, where the scoped
+// client has no request to resolve a tenant from, so it would write NULL
+// tenantIds (and fail the null-tenant invariant audit). withTenantScope
+// states the tenant ONCE for everything beneath it, including rows the
+// product libraries it drives write on its behalf.
+withTenantScope(DEFAULT_TENANT_ID, main)
   .catch((e) => { console.error(e); process.exit(1); })
   .finally(() => prisma.$disconnect());

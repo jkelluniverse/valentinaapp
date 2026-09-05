@@ -85,7 +85,15 @@ valentinaapp/
 │   ├── human-design/                #   in-house HD engine: engine, ephemeris, wheel, meaning, index
 │   ├── auth-guards.ts               #   requireClient / requirePractitioner — the real authz boundary
 │   ├── consent.ts                   #   AMENDMENT-01 single gate: hasConsent(userId)
-│   ├── prisma.ts, base-url.ts, roles.ts, notify.ts
+│   ├── prisma.ts                    #   THE tenant-scoped client (request tenant from headers();
+│   │                                #   nested writes stamped at any depth; outside a request it
+│   │                                #   consults withTenantScope, else passthrough)
+│   ├── prisma-internal.ts           #   the RAW client — import allowlisted (scripts/guard-prisma.ts)
+│   ├── tenancy/                     #   PLATFORM: index.ts (host→tenant), scope.ts (SCOPED_MODELS,
+│   │                                #   scopeFilter), db.ts (explicit-tenant DAL), stamp.ts (nested
+│   │                                #   tenant stamping), stamp-audit.ts (null-tenant invariant),
+│   │                                #   tenant-scope.ts (withTenantScope — the CLI seam, C24.1)
+│   ├── base-url.ts, roles.ts, notify.ts
 │   ├── record.ts, record-meta.ts, client-record.ts, attention.ts   # C4 unified record
 │   ├── psyche.ts, psyche-extract.ts, pattern-library.ts            # C16 graph + extraction + cross-client library
 │   ├── deepening.ts                 #   C17 adaptive-inquiry engine (safety-first)
@@ -105,9 +113,24 @@ valentinaapp/
 │   │   5_c5_session_prep, 6_c6_courses, 7_c9_worksheets, 8_c10_scheduling, 9_c11_profile_hd,
 │   │   10_c12_integrative, 11_c13_stages_billing, 12_c14_notes, 13_c12r_reading,
 │   │   14_c15_messaging, 15_amendment01_consent, 16_amendment03_library,
-│   │   17_c16_constellation, 18_c17_deepening
+│   │   17_c16_constellation, 18_c17_deepening, … through
+│   │   45_practitioner_prospect, 46_referral_index, 47_prospect_message,
+│   │   48_stamp_null_tenants_nested  (48 also creates `_TenantStampBackfill48`, a
+│   │   reversal ledger deliberately OUTSIDE schema.prisma — see ruling 26:
+│   │   this repo uses `prisma migrate deploy` only, NEVER `migrate dev`)
 │   ├── seed.ts, backfill-record.ts
 ├── public/                          # PWA assets: icon.svg, icon-192.png, icon-512.png, apple-touch-icon.png, sw.js
+├── audits/                          # acceptance harnesses — one dir per build, each writing its
+│                                    # own VERIFY-LOG.md (ruling 17). Standing gates include
+│                                    # tenant-stamp-audit.ts (null-tenant invariant, exit 0 = pass),
+│                                    # nested-stamp-verify.ts, tenant-scope-verify.ts, platform/*,
+│                                    # signup, capture, referral, engage, onboarding/*, agreements/*
+├── scripts/                         # smoke.ts, smoke-writes.ts, guard-prisma.ts (prebuild tenant-scope
+│                                    # guard), baseline.ts (16-screen visual baseline), check-public-wall.mjs
+├── messages/{en,es}/                # namespaced catalogs: common, nav, settings, sessions, signup,
+│                                    # capture, referral, engage, practitionerSettings
+├── docs/                            # BUILD-STATE.md (the ledger), specs/{inbox,accepted}/,
+│                                    # reports/outbox/, PRISMA-ALLOWLIST.md, baseline/
 ├── auth.ts, auth.config.ts          # NextAuth (credentials)
 ├── middleware.ts                    # coarse signed-in gate + sets x-pathname header (consent redirect)
 ├── next.config.mjs, tailwind.config.ts, postcss.config.js, tsconfig.json
@@ -175,6 +198,11 @@ valentinaapp/
 | AMENDMENT-03 Library folders | `lib/library.ts`, `app/practitioner/library/*` |
 | C23-SIGNUP Public front door | `app/(public)/signup/*`, `app/api/signup/slug`, `lib/signup.ts`, `lib/signup-config.ts`, `lib/signup-copy.ts`, `messages/{en,es}/signup.json`, `audits/signup/verify.ts` |
 | C23-CAPTURE Event capture + prospect ledger | `app/(public)/join/*`, `app/admin/prospects/*` (list · `export` CSV · `qr`), `lib/prospect-capture.ts`, `lib/prospects.ts`, `lib/capture-config.ts`, `lib/capture-copy.ts`, `lib/platform-admin.ts`, `messages/{en,es}/capture.json`, `audits/capture/verify.ts` |
+| C23-REFERRAL Attribution + sharing | `app/practitioner/referrals`, `lib/referrals.ts`, `lib/referral-config.ts`, `lib/referral-copy.ts`, `messages/{en,es}/referral.json`, migration `46_referral_index`, top-referrers on `app/admin/prospects`, `audits/referral/verify.ts` |
+| C23-ENGAGE Prospect follow-up | `lib/engage.ts`, `lib/engage-config.ts`, `lib/engage-sequences.ts`, `lib/engage-templates.ts`, `messages/{en,es}/engage.json`, `app/(public)/unsubscribe/[token]`, step 6f of `app/api/jobs/tick`, migration `47_prospect_message`, `audits/engage/verify.ts` |
+| C24-NESTED-STAMP Tenant stamping | `lib/tenancy/stamp.ts` (nested create/createMany/connectOrCreate/upsert at any depth), both write paths of `lib/prisma.ts`, migration `48_stamp_null_tenants_nested` (+ `_TenantStampBackfill48` reversal ledger), `audits/nested-stamp-verify.ts` |
+| C24.1-TENANT-SCOPE Out-of-request tenant | `lib/tenancy/tenant-scope.ts` (`withTenantScope`), the fallback consult in `lib/prisma.ts`, one-line adoption in `prisma/fixtures/c12x-verify.ts` · `audits/amd06/verify.ts` · `audits/password-reset/verify.ts` · `scripts/smoke-writes.ts` · `audits/remarkable-recording/verify.ts`, `audits/tenant-scope-verify.ts` |
+| Task #78 Practitioner settings i18n | `app/practitioner/settings/page.tsx`, `lib/practitioner-settings-copy.ts`, `messages/{en,es}/practitionerSettings.json` |
 
 ## Getting started (for a new agent)
 

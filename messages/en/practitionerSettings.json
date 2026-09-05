@@ -1,0 +1,103 @@
+{
+  "practitionerSettings": {
+    "eyebrow": "Your practice",
+    "title": "Settings",
+    "intro": "Your account, your language, and the policies your practice runs on.",
+    "open": "Open →",
+    "saved": {
+      "password": "Password changed. Every other session has been signed out.",
+      "email": "Check the new address for a confirmation link — nothing changes until it's confirmed.",
+      "language": "Language saved.",
+      "policy": "Session-change policy saved.",
+      "assist": "Assist notification preference saved.",
+      "deletion": "Updated."
+    },
+    "errors": {
+      "pw-rate": "Too many attempts — give it fifteen minutes and try again.",
+      "pw-short": "The new password needs at least 8 characters.",
+      "pw-match": "The new passwords didn't match.",
+      "pw-current": "That current password isn't right.",
+      "email-rate": "Too many requests — try again in an hour.",
+      "email-format": "That doesn't look like an email address.",
+      "email-same": "That's already your address.",
+      "email-taken": "That address can't be used.",
+      "policy": "Those policy numbers didn't look right — nothing was changed."
+    },
+    "account": {
+      "heading": "Account",
+      "emailLabel": "Email",
+      "emailChange": "Change email",
+      "emailNewLabel": "New email address",
+      "emailNote": "Nothing changes until you confirm from the new address — a link (valid 24 hours) goes there, and a notice goes to your current address.",
+      "emailSend": "Send confirmation link",
+      "passwordLabel": "Password",
+      "passwordChange": "Change password",
+      "passwordCurrent": "Current password",
+      "passwordNew": "New password",
+      "passwordConfirm": "Confirm new password",
+      "passwordHint": "At least 8 characters. Changing it signs you out on every other device.",
+      "passwordSubmit": "Change password",
+      "signoutLabel": "Sign out everywhere",
+      "signoutHint": "Ends every session on every device, including this one — sign in again after.",
+      "signoutButton": "Sign out everywhere"
+    },
+    "language": {
+      "heading": "Language & appearance",
+      "label": "Language",
+      "hint": "Your portal language — AI-drafted output will follow it too.",
+      "en": "English",
+      "es": "Español",
+      "save": "Save",
+      "theme": "Theme",
+      "themeHint": "Daylight or Dusk — remembered on this device."
+    },
+    "practice": {
+      "heading": "Practice",
+      "billingLabel": "Rates & billing",
+      "billingHint": "Your price book, packages, and the ledger.",
+      "availabilityLabel": "Availability & session config",
+      "availabilityHint": "Hours, session length, buffers, and video links.",
+      "paymentsLabel": "Getting paid",
+      "paymentsHint": "Your payment connection — money goes directly to you.",
+      "planLabel": "Plan & billing",
+      "planHint": "Your platform plan — card, invoices, and receipts.",
+      "toolsLabel": "Session & research tools",
+      "toolsHint": "Draw tools and lookups for work in the moment.",
+      "agreementsLabel": "Agreements",
+      "agreementsHint": "Send, sign, and keep the sealed record — for both of you.",
+      "signatureLabel": "Your signature",
+      "signatureHint": "Draw it once — or upload a photo or scan of your real signature — and it's applied automatically, with the date, whenever you sign or countersign a document.",
+      "intakePreviewLabel": "Preview intake",
+      "intakePreviewHint": "See the intake exactly as your client will — nothing is saved.",
+      "referralsLabel": "Your referral code",
+      "referralsHint": "Your founding-partner code, and who has come in through it.",
+      "messagesLabel": "Response rhythm & away note",
+      "messagesHint": "How the Open Line sets expectations.",
+      "assistLabel": "Email clients after an assist session",
+      "assistHint": "A quiet note — “Valentina helped with your account today” — each time you enter their portal to help. Recommended on; the visible line in their settings stays either way.",
+      "assistOn": "On",
+      "assistSave": "Save"
+    },
+    "policy": {
+      "heading": "Session-change policy",
+      "cutoffLabel": "Free-change cutoff",
+      "cutoffUnit": "hours before the session",
+      "feeLabel": "Late fee",
+      "feeUnit": "dollars",
+      "proportionality": "Heads-up: the late fee is higher than the current session rate — counsel flagged that a late-change fee should stay a reasonable proportion of the session price.",
+      "autoLabel": "Apply the fee automatically",
+      "autoHint": "Unchecked, you'll be prompted each time instead.",
+      "summary": "More than {hours}h notice → free. Less → {fee}. No-shows → {fee}.",
+      "save": "Save policy"
+    },
+    "deletion": {
+      "heading": "Deletion requests",
+      "none": "None — all quiet.",
+      "statusOpen": "Open",
+      "statusAcknowledged": "Acknowledged",
+      "promise": "The promise: a response within 7 days, deletion completed within 30 days of confirmation.",
+      "acknowledge": "Acknowledge",
+      "close": "Mark closed"
+    }
+  }
+}

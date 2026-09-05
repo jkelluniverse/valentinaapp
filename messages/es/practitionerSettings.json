@@ -1,0 +1,103 @@
+{
+  "practitionerSettings": {
+    "eyebrow": "Tu práctica",
+    "title": "Ajustes",
+    "intro": "Tu cuenta, tu idioma y las políticas con las que funciona tu práctica.",
+    "open": "Abrir →",
+    "saved": {
+      "password": "Contraseña cambiada. Todas las demás sesiones se cerraron.",
+      "email": "Revisa la nueva dirección: te enviamos un enlace de confirmación. Nada cambia hasta confirmarlo.",
+      "language": "Idioma guardado.",
+      "policy": "Política de cambios de sesión guardada.",
+      "assist": "Preferencia de aviso de sesión asistida guardada.",
+      "deletion": "Actualizado."
+    },
+    "errors": {
+      "pw-rate": "Demasiados intentos — espera quince minutos e inténtalo de nuevo.",
+      "pw-short": "La nueva contraseña necesita al menos 8 caracteres.",
+      "pw-match": "Las nuevas contraseñas no coinciden.",
+      "pw-current": "La contraseña actual no es correcta.",
+      "email-rate": "Demasiadas solicitudes — inténtalo de nuevo en una hora.",
+      "email-format": "Eso no parece una dirección de correo.",
+      "email-same": "Esa ya es tu dirección.",
+      "email-taken": "Esa dirección no se puede usar.",
+      "policy": "Esos números de la política no se veían bien — no se cambió nada."
+    },
+    "account": {
+      "heading": "Cuenta",
+      "emailLabel": "Correo",
+      "emailChange": "Cambiar correo",
+      "emailNewLabel": "Nueva dirección de correo",
+      "emailNote": "Nada cambia hasta que confirmes desde la nueva dirección — allí llega un enlace (válido 24 horas) y un aviso llega a tu dirección actual.",
+      "emailSend": "Enviar enlace de confirmación",
+      "passwordLabel": "Contraseña",
+      "passwordChange": "Cambiar contraseña",
+      "passwordCurrent": "Contraseña actual",
+      "passwordNew": "Nueva contraseña",
+      "passwordConfirm": "Confirmar nueva contraseña",
+      "passwordHint": "Al menos 8 caracteres. Cambiarla cierra tu sesión en todos los demás dispositivos.",
+      "passwordSubmit": "Cambiar contraseña",
+      "signoutLabel": "Cerrar sesión en todos lados",
+      "signoutHint": "Termina cada sesión en cada dispositivo, incluido este — después vuelves a entrar.",
+      "signoutButton": "Cerrar sesión en todos lados"
+    },
+    "language": {
+      "heading": "Idioma y apariencia",
+      "label": "Idioma",
+      "hint": "El idioma de tu portal — lo que la IA redacte también lo seguirá.",
+      "en": "English",
+      "es": "Español",
+      "save": "Guardar",
+      "theme": "Tema",
+      "themeHint": "Luz de día o Atardecer — se recuerda en este dispositivo."
+    },
+    "practice": {
+      "heading": "Práctica",
+      "billingLabel": "Tarifas y cobros",
+      "billingHint": "Tu lista de precios, tus paquetes y el registro de cobros.",
+      "availabilityLabel": "Disponibilidad y configuración de sesiones",
+      "availabilityHint": "Horarios, duración de la sesión, margen entre sesiones y enlaces de video.",
+      "paymentsLabel": "Cómo recibes pagos",
+      "paymentsHint": "Tu conexión de pagos — el dinero llega directamente a ti.",
+      "planLabel": "Plan y facturación",
+      "planHint": "Tu plan de la plataforma — tarjeta, facturas y recibos.",
+      "toolsLabel": "Herramientas de sesión e investigación",
+      "toolsHint": "Tiradas y consultas para el trabajo en el momento.",
+      "agreementsLabel": "Acuerdos",
+      "agreementsHint": "Envía, firma y conserva el registro sellado — para las dos partes.",
+      "signatureLabel": "Tu firma",
+      "signatureHint": "Dibújala una vez — o sube una foto o un escaneo de tu firma real — y se aplica automáticamente, con la fecha, cada vez que firmas o refrendas un documento.",
+      "intakePreviewLabel": "Ver la entrevista inicial",
+      "intakePreviewHint": "Mira la entrevista inicial tal como la verá tu cliente — no se guarda nada.",
+      "referralsLabel": "Tu código de referencia",
+      "referralsHint": "Tu código de socia fundadora, y quiénes han llegado con él.",
+      "messagesLabel": "Ritmo de respuesta y nota de ausencia",
+      "messagesHint": "Cómo la Línea Abierta establece las expectativas.",
+      "assistLabel": "Avisar por correo a los clientes después de una sesión asistida",
+      "assistHint": "Una nota discreta — “Valentina te ayudó con tu cuenta hoy” — cada vez que entras a su portal para ayudar. Se recomienda activada; la línea visible en sus ajustes queda de todos modos.",
+      "assistOn": "Activado",
+      "assistSave": "Guardar"
+    },
+    "policy": {
+      "heading": "Política de cambios de sesión",
+      "cutoffLabel": "Límite para cambios sin costo",
+      "cutoffUnit": "horas antes de la sesión",
+      "feeLabel": "Cargo por cambio tardío",
+      "feeUnit": "dólares",
+      "proportionality": "Aviso: el cargo por cambio tardío es mayor que la tarifa actual de la sesión — el equipo legal señaló que un cargo por cambio tardío debe mantenerse en una proporción razonable del precio de la sesión.",
+      "autoLabel": "Aplicar el cargo automáticamente",
+      "autoHint": "Sin marcar, se te preguntará cada vez.",
+      "summary": "Más de {hours}h de aviso → sin costo. Menos → {fee}. Ausencias → {fee}.",
+      "save": "Guardar política"
+    },
+    "deletion": {
+      "heading": "Solicitudes de eliminación",
+      "none": "Ninguna — todo tranquilo.",
+      "statusOpen": "Abierta",
+      "statusAcknowledged": "Recibida",
+      "promise": "La promesa: una respuesta dentro de 7 días, y la eliminación completada dentro de 30 días desde la confirmación.",
+      "acknowledge": "Marcar como recibida",
+      "close": "Cerrar"
+    }
+  }
+}

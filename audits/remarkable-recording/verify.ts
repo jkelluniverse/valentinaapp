@@ -11,6 +11,8 @@ import { ingestInboundEmail } from "../../lib/remarkable";
 import { ingestRecording, applyRecordingCore, type PulledRecording } from "../../lib/recording";
 import { runPsycheExtraction } from "../../lib/psyche-extract";
 import { RECORDING_CONSENT_TEXT, RECORDING_CONSENT_VERSION } from "../../lib/recording";
+import { DEFAULT_TENANT_ID } from "../../lib/tenancy/scope";
+import { withTenantScope } from "../../lib/tenancy/tenant-scope";
 
 const report: string[] = [];
 const log = (s: string) => {
@@ -276,7 +278,16 @@ async function main() {
   if (failed > 0) process.exit(1);
 }
 
-main()
+// C24.1-TENANT-SCOPE §3 — CLI harness: state the tenant once, for this file
+// AND for the rows lib/remarkable.ts + lib/recording.ts write on its behalf.
+// Before this wrap, a run left `handwrittenNote: 1` + `appointment: 1` with
+// NULL tenantIds — the exact signature that kept the null-tenant invariant
+// audit red. NOT VERIFIED HERE: this gate cannot pass in the build
+// environment (vendor credentials — the handwriting transcription needs a
+// real ANTHROPIC_API_KEY, the recording half needs ASSEMBLYAI_API_KEY), so
+// this is a mechanical application of a pattern proven on harnesses that can
+// be run, not a verified pass. See BUILD-REPORT-C24.1-TENANT-SCOPE.md.
+withTenantScope(DEFAULT_TENANT_ID, main)
   .catch((e) => {
     console.error(e);
     process.exit(1);

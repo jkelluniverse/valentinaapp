@@ -1,4 +1,6 @@
 import { spawn, execSync, type ChildProcess } from "child_process";
+import { writeFileSync, mkdirSync } from "fs";
+import { join } from "path";
 import bcrypt from "bcryptjs";
 import { chromium, type Browser, type BrowserContext } from "playwright";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
@@ -83,9 +85,15 @@ const PROBE_EMAILS = [
 const PROBE_SLUGS = [A.slug, B.slug, SELF_SIGNUP.slug, FIRST.slug, UNKNOWN.slug];
 
 const results: { name: string; pass: boolean; note?: string }[] = [];
+// Task #79 (ruling 17): this gate writes its OWN VERIFY-LOG.md, as its
+// siblings do. A verify log is evidence produced by the run, never
+// hand-authored — so every check line is collected here as it is printed.
+const report: string[] = [];
 function check(name: string, pass: boolean, note?: string) {
   results.push({ name, pass, note });
-  console.log(`- ${pass ? "✓" : "✗"} ${name}${note ? ` — ${note}` : ""}`);
+  const line = `- ${pass ? "✓" : "✗"} ${name}${note ? ` — ${note}` : ""}`;
+  report.push(line);
+  console.log(line);
 }
 
 async function dropTenant(slug: string) {
@@ -551,7 +559,30 @@ async function main() {
   }
 
   const failed = results.filter((r) => !r.pass).length;
-  console.log(failed === 0 ? `\nREFERRAL VERIFY PASS — ${results.length}/${results.length}` : `\n${failed} CHECK(S) FAILED`);
+  const summary =
+    failed === 0
+      ? `\nREFERRAL VERIFY PASS — ${results.length}/${results.length}`
+      : `\n${failed} CHECK(S) FAILED — ${results.length - failed}/${results.length}`;
+  console.log(summary);
+
+  // Ruling 17 / task #79 — the log is written BY the gate that produced it.
+  mkdirSync(join(__dirname), { recursive: true });
+  writeFileSync(
+    join(__dirname, "VERIFY-LOG.md"),
+    [
+      "# C23-REFERRAL — acceptance log",
+      "",
+      `Run: ${new Date().toISOString()} · \`npx tsx audits/referral/verify.ts\` against the BUILT app on :${PORT}`,
+      `Database: ${(process.env.DATABASE_URL ?? "").replace(/:[^:@/]*@/, ":***@")}`,
+      "",
+      "Browser-driven (Playwright, headless Chromium) over two throwaway tenants;",
+      "self-cleaning — probe tenants, practitioners and prospects are removed on the way out.",
+      "",
+      ...report,
+      summary,
+      "",
+    ].join("\n"),
+  );
   if (failed > 0) process.exit(1);
 }
 

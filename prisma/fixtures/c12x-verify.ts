@@ -19,6 +19,7 @@ import { lintReadingLanguage, type StructuredReading } from "../../ai/integrativ
 import { lintStatement } from "../../lib/belief-statements";
 import { aggregatePatterns } from "../../lib/pattern-library";
 import { DEFAULT_TENANT_ID } from "../../lib/tenancy/scope";
+import { withTenantScope } from "../../lib/tenancy/tenant-scope";
 
 // C24-NESTED-STAMP §1 — this harness was the source of the permanently-failing
 // null-tenant audit. It imports the SCOPED client but runs from the CLI, where
@@ -228,7 +229,12 @@ async function main() {
   if (failed > 0) process.exit(1);
 }
 
-main()
+// C24.1-TENANT-SCOPE §2 — this harness runs from the CLI, where the scoped
+// client has no request to resolve a tenant from, so it would write NULL
+// tenantIds (and fail the null-tenant invariant audit). withTenantScope
+// states the tenant ONCE for everything beneath it, including rows the
+// product libraries it drives write on its behalf.
+withTenantScope(DEFAULT_TENANT_ID, main)
   .catch((e) => {
     console.error(e);
     process.exit(1);

@@ -114,6 +114,13 @@ async function installRequestScope(): Promise<boolean> {
 // cannot drift from the schema.
 // ---------------------------------------------------------------------------
 const SELF = "audits/nested-stamp-verify.ts";
+// The acceptance harnesses that write nested relation payloads ON PURPOSE, to
+// prove the stamper handles them. They are the scanner's positive control, not
+// its subject: the claim under test is that no PRODUCT code performs a nested
+// relation write on a scoped model. Nothing about the scan over the other ~465
+// files is weakened by naming them (C24.1 added the second one).
+const PROBE_HARNESSES = [SELF, "audits/tenant-scope-verify.ts"];
+const isProbe = (hit: string) => PROBE_HARNESSES.some((f) => hit.startsWith(f));
 
 function scanNestedRelationWrites(): {
   files: number;
@@ -152,8 +159,8 @@ function scanNestedRelationWrites(): {
   const unique = [...new Set(hits)];
   return {
     files: files.length,
-    hits: unique.filter((h) => !h.startsWith(SELF)),
-    self: unique.filter((h) => h.startsWith(SELF)),
+    hits: unique.filter((h) => !isProbe(h)),
+    self: unique.filter((h) => isProbe(h)),
     relationFields: relField.size,
   };
 }
@@ -234,12 +241,12 @@ async function main() {
   // --- Assumption 1: "the nulls come from nested relation writes" ---
   const scan = scanNestedRelationWrites();
   check(
-    "the nested-write scanner is not blind — it finds the ones THIS harness writes deliberately",
+    "the nested-write scanner is not blind — it finds the ones the acceptance harnesses write deliberately",
     scan.self.length > 0,
-    `${scan.self.length} in ${SELF}`,
+    `${scan.self.length} in ${PROBE_HARNESSES.join(" + ")}`,
   );
   check(
-    "A1 CORRECTED: outside this harness the repo contains ZERO nested relation writes on scoped models",
+    "A1 CORRECTED: outside the acceptance harnesses the repo contains ZERO nested relation writes on scoped models",
     scan.hits.length === 0,
     `${scan.files} files scanned against ${scan.relationFields} schema relation fields · hits=${scan.hits.length}${
       scan.hits.length ? ` (${scan.hits.slice(0, 5).join(", ")})` : ""

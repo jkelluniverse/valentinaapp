@@ -56,6 +56,7 @@ no matter what they forget.
 | `audits/signup/verify.ts` | C23-SIGNUP acceptance harness — browser-driven; throwaway tenants + prospects; self-cleaning. |
 | `audits/capture/verify.ts` | C23-CAPTURE acceptance harness — browser-driven; throwaway prospects + practitioners; self-cleaning. |
 | `audits/referral/verify.ts` | C23-REFERRAL acceptance harness — browser-driven; seeds a referral fan-out across TWO throwaway tenants (cross-tenant isolation cannot be proven from inside one tenant's scope); self-cleaning. |
+| `audits/tenant-scope-verify.ts` | C24.1-TENANT-SCOPE acceptance harness — CLI-only. It must read `tenantId` columns RAW, must write a deliberately foreign `tenantId` to prove the out-of-request scope never overrides a stated value, and must prove that WITHOUT a scope the same write still lands NULL (ruling 24's rejected option, kept rejected); self-cleaning. |
 | `audits/nested-stamp-verify.ts` | C24-NESTED-STAMP acceptance harness — CLI-only. It must read `tenantId` columns RAW (a scoped read would hide the very rows it exists to see) and must WRITE a deliberately foreign `tenantId` to prove the client leaves it alone; self-cleaning. |
 | `audits/engage/verify.ts` | C23-ENGAGE acceptance harness — seeds throwaway prospects, drives `/api/jobs/tick`, and inspects the `ProspectMessage` send ledger and `AuditEvent` rows directly (an idempotency proof that read through the scoped client would be proving the wrong thing); self-cleaning. Note that C23-ENGAGE's own product code needed NO entry: `ProspectMessage` is platform-level like `PractitionerProspect`, so the scoped client passes it through. |
 
@@ -91,12 +92,24 @@ no matter what they forget.
   Outside an HTTP request the scoped client is unscoped by design, so a CLI
   script or gate harness that imports `@/lib/prisma` and creates a scoped row
   WITHOUT stating a `tenantId` writes a null one. The contract is that ops
-  tooling states its own tenant — `lib/pattern-library.ts` shows the pattern
-  (`(await getTenant()).id`). Two harnesses were violating it:
-  `prisma/fixtures/c12x-verify.ts` (fixed — 11 rows across 6 tables per run)
-  and `audits/remarkable-recording/verify.ts` (NOT fixed — still produces
-  `handwrittenNote: 1` + `appointment: 1`; see
-  docs/reports/outbox/BUILD-REPORT-C24-NESTED-STAMP.md). SAFETY NET unchanged:
+  tooling states its own tenant — `lib/pattern-library.ts` shows the call-site
+  pattern (`(await getTenant()).id`), and since C24.1-TENANT-SCOPE there is a
+  one-line way to say it for a whole script: **`withTenantScope(tenantId, fn)`**
+  (`lib/tenancy/tenant-scope.ts`). The client consults that scope ONLY when
+  `headers()` is unavailable, so **the request's tenant always wins** and
+  absence of a scope is still plain passthrough — deliberately loud, never an
+  implicit default-tenant stamp (ruling 24 rejected that). Adopted by
+  `prisma/fixtures/c12x-verify.ts`, `audits/amd06/verify.ts`,
+  `audits/password-reset/verify.ts`, `scripts/smoke-writes.ts` and
+  `audits/remarkable-recording/verify.ts`. Known violators found by per-gate
+  attribution: `prisma/fixtures/c12x-verify.ts` (11 rows / 6 tables per run —
+  fixed in C24), `audits/amd06/verify.ts` (8 rows / 5 tables per run — found
+  and fixed in C24.1; it is not in any regression list, which is why it went
+  unseen) and `audits/remarkable-recording/verify.ts` (`handwrittenNote: 1` +
+  `appointment: 1` — now wrapped, but UNVERIFIABLE without vendor
+  credentials). `audits/c12x-ai-pass/run*.ts` are unresolved candidates of the
+  same shape; see docs/reports/outbox/BUILD-REPORT-C24.1-TENANT-SCOPE.md.
+  SAFETY NET unchanged:
   migration 36 and migration 48 converged historical nulls, and the
   null-tenant invariant audit (nightly in the jobs tick +
   `audits/tenant-stamp-audit.ts` + the platform verify) fails loudly on any

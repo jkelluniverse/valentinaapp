@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { rawPrisma } from "./prisma-internal";
 import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG, SCOPED_MODEL_SET, scopeFilter } from "./tenancy/scope";
 import { stampCreateInput, stampUpdateInput } from "./tenancy/stamp";
+import { ambientTenantId } from "./tenancy/tenant-scope";
 import { slugFromHost, tenantBySlug } from "./tenancy";
 
 // THE tenant-scoped Prisma client. Same import path, same call surface, same
@@ -16,8 +17,12 @@ import { slugFromHost, tenantBySlug } from "./tenancy";
 //     scope = { tenantId | null } (legacy rows are hers); any other tenant is
 //     strict { tenantId }.
 //   - Outside a request (scripts, seeds, audits, jobs run from the CLI):
-//     headers() throws → passthrough, unscoped. Ops tooling states its own
-//     intentions; the request path is the security boundary.
+//     headers() throws → the OPT-IN out-of-request scope is consulted
+//     (lib/tenancy/tenant-scope.ts: withTenantScope(tenantId, fn)), and if
+//     the caller is not inside one, passthrough, unscoped — exactly as
+//     before. Ops tooling states its own intentions; the request path is the
+//     security boundary. THE REQUEST'S TENANT ALWAYS WINS: the scope is
+//     never consulted when headers() resolved.
 //
 // Per-method behavior on scoped models:
 //   - where-filter reads/writes (findMany, findFirst[OrThrow], count,
@@ -38,11 +43,14 @@ import { slugFromHost, tenantBySlug } from "./tenancy";
 //
 // Known honest limits (documented, revisit when a non-default tenant gets
 // real feature traffic): $queryRaw/$executeRaw bypass scoping (build-guarded
-// to the allowlist), and OUTSIDE a request this client is a passthrough by
-// design — so a CLI script that creates a scoped row without stating a
-// tenantId writes a NULL one. That is the deliberate ops-tooling seam, not a
-// gap in the request path, and it is what the null-tenant audit is actually
-// catching (C24-NESTED-STAMP §1). Ops tooling states its own tenant.
+// to the allowlist), and OUTSIDE a request AND OUTSIDE withTenantScope this
+// client is still a passthrough by design — so a CLI script that neither
+// states a tenantId nor wraps itself in a scope writes a NULL row. That
+// remains deliberate and, crucially, LOUD: the null-tenant audit sees it.
+// Implicitly stamping such writes with the default tenant was considered and
+// REJECTED (ruling 24) — it would hide a second practice's forgotten rows
+// inside Valentina's. Ops tooling states its own tenant, now with one line
+// instead of one per call site (C24.1-TENANT-SCOPE §1).
 
 type Op = { model: string; method: string; args: Record<string, unknown> };
 
@@ -58,7 +66,11 @@ async function requestTenantId(): Promise<string | null> {
     const h = headers();
     host = h.get("x-forwarded-host")?.split(",")[0]?.trim() || h.get("host");
   } catch {
-    return null; // outside a request — passthrough
+    // Outside a request. The request path NEVER reaches here, so nothing a
+    // caller does can override a request's tenant (C24.1 §1 precedence 2/3).
+    // Inside withTenantScope(T, …): T. Otherwise null — passthrough,
+    // unstamped, visible to the null-tenant audit, exactly as before.
+    return ambientTenantId();
   }
   const slug = slugFromHost(host);
   if (slug === DEFAULT_TENANT_SLUG) return DEFAULT_TENANT_ID;
