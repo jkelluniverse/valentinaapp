@@ -10,6 +10,7 @@ import {
   prospectSources,
   PROSPECT_STATUSES,
 } from "@/lib/prospects";
+import { topReferrers } from "@/lib/referrals";
 
 // C23-CAPTURE §3 — the list Jacob works the week after the event. Gated on the
 // PLATFORM_ADMIN_EMAILS allowlist exactly as /admin/tenants/new is: renders for
@@ -28,10 +29,14 @@ export default async function ProspectsPage({
   if (!isPlatformAdmin(user.email)) notFound();
 
   const filter = normalizeFilter(searchParams);
-  const [rows, counts, sources] = await Promise.all([
+  const [rows, counts, sources, referrers] = await Promise.all([
     listProspects(filter),
     prospectCounts(filter),
     prospectSources(),
+    // C23-REFERRAL §4 — deliberately NOT filter-scoped (unlike the counts,
+    // ruling 10): "which founding partner is carrying the network" is a
+    // question about the whole ledger, and the heading says so.
+    topReferrers(),
   ]);
 
   const exportQs = new URLSearchParams();
@@ -174,6 +179,49 @@ export default async function ProspectsPage({
           </tbody>
         </table>
       </div>
+
+      {/* C23-REFERRAL §4 — top referrers: who is actually carrying the network.
+          Same PLATFORM_ADMIN_EMAILS gate as the rest of this page (404 for
+          everyone else, no new role). This is the ONE surface that pairs a code
+          with its owner's name — Jacob's own screen, never a practitioner's. */}
+      <section className="mt-12">
+        <h2 className="font-headline text-2xl font-semibold text-ink-strong">Top referrers</h2>
+        <p className="mt-1 text-[13px] text-slate">
+          Across the whole ledger, not the filter above. Ordered by conversions, then by prospects
+          referred.
+        </p>
+        <div className="mt-4 overflow-x-auto rounded-card border border-line bg-surface">
+          <table className="min-w-full border-collapse">
+            <thead className="border-b border-line bg-blush/40">
+              <tr>
+                <th className={th}>Code</th>
+                <th className={th}>Owner</th>
+                <th className={th}>Owner email</th>
+                <th className={th}>Prospects referred</th>
+                <th className={th}>Conversions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {referrers.length === 0 && (
+                <tr>
+                  <td className={`${td} text-slate`} colSpan={5}>
+                    No code has brought anyone in yet.
+                  </td>
+                </tr>
+              )}
+              {referrers.map((r) => (
+                <tr key={r.code} className="border-b border-line/60 last:border-0">
+                  <td className={`${td} font-mono`}>{r.code}</td>
+                  <td className={`${td} font-medium text-ink-strong`}>{r.ownerName ?? "—"}</td>
+                  <td className={td}>{r.ownerEmail ?? "—"}</td>
+                  <td className={td}>{r.referred}</td>
+                  <td className={td}>{r.conversions}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
   );
 }

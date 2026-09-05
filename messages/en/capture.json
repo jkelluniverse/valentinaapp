@@ -21,6 +21,7 @@
     "submitting": "Sending…",
     "footnote": "Founding partners are set up as a comped practice. Nothing to enter here but your details.",
     "referredBy": "Referred by {code}",
+    "invitedBy": "Invited by a founding partner",
     "errors": {
       "missing": "We need a name to know who you are.",
       "email": "That email address does not look right.",

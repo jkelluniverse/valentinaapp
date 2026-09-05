@@ -308,6 +308,13 @@ export default async function PractitionerSettingsPage({
           label="Preview intake"
           hint="See the intake exactly as your client will — nothing is saved."
         />
+        {/* C23-REFERRAL §3 — the referrer's own view lives on its own route,
+            reachable from here and from nowhere in the navigation. */}
+        <LinkRow
+          href="/practitioner/referrals"
+          label="Your referral code"
+          hint="Your founding-partner code, and who has come in through it."
+        />
         <LinkRow
           href="/practitioner/messages"
           label="Response rhythm & away note"

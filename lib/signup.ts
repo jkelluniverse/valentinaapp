@@ -13,6 +13,7 @@ import { provisionTenant, type TenantConfigFile } from "@/lib/provisioning";
 import { sendEmail, emailConfigured } from "@/lib/notify";
 import { SLUG_RE, PASSWORD_MIN, RESERVED_SLUGS, STANDARD_MODULES, portalHostFor } from "@/lib/signup-config";
 import { signupCopy, fill, type SignupLocale } from "@/lib/signup-copy";
+import { isSelfReferral } from "@/lib/referral-config";
 
 export { SLUG_RE, PASSWORD_MIN, RESERVED_SLUGS, STANDARD_MODULES, slugify, portalHostFor } from "@/lib/signup-config";
 
@@ -128,6 +129,19 @@ export async function signUpPractitioner(input: SignupInput): Promise<SignupResu
   // referral code from the moment it is created (C23-REFERRAL will use it;
   // attribution logic is explicitly not this build's job).
   const referralCode = priorProspect?.referralCode ?? (await issueReferralCode());
+
+  // C23-REFERRAL §1 — the same two integrity rules the capture path enforces,
+  // enforced here too because /signup is a second front door:
+  //   · SELF-REFERRAL REFUSED — a prospect's own code attributes to nobody, and
+  //     a self-referential value already on the row is cleared.
+  //   · FIRST TOUCH IS IMMUTABLE — a code captured on an earlier visit is NOT
+  //     overwritten by the `?ref=` on this one. (Before this build the signup
+  //     path overwrote it; capture already got this right.)
+  const submittedRef = input.referredByCode?.slice(0, 64) || null;
+  const referredByCode = isSelfReferral(submittedRef, referralCode) ? null : submittedRef;
+  const priorIsSelf = isSelfReferral(priorProspect?.referredByCode, referralCode);
+  const keptFirstTouch = Boolean(priorProspect?.referredByCode) && !priorIsSelf;
+
   const prospect = await prisma.practitionerProspect.upsert({
     where: { email },
     create: {
@@ -136,14 +150,13 @@ export async function signUpPractitioner(input: SignupInput): Promise<SignupResu
       practiceName,
       status: "LEAD",
       source: input.source?.slice(0, 120) || "web",
-      referredByCode: input.referredByCode?.slice(0, 64) || null,
+      referredByCode,
       referralCode,
     },
     update: {
       name,
       practiceName,
-      // A code already captured is not overwritten by a later empty visit.
-      ...(input.referredByCode ? { referredByCode: input.referredByCode.slice(0, 64) } : {}),
+      ...(keptFirstTouch ? {} : priorIsSelf ? { referredByCode } : referredByCode ? { referredByCode } : {}),
       ...(input.source ? { source: input.source.slice(0, 120) } : {}),
     },
   });

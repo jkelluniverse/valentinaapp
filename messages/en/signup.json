@@ -35,6 +35,7 @@
     "submitting": "Setting up your portal…",
     "footnote": "Founding partners are set up as a comped practice — there is nothing to enter here but your details.",
     "referredBy": "Referred by {code}",
+    "invitedBy": "Invited by a founding partner",
     "errors": {
       "missing": "A few fields still need an answer.",
       "email": "That email address does not look right.",

@@ -55,6 +55,7 @@ no matter what they forget.
 | `lib/signup.ts` | C23-SIGNUP tenant-creation ingress — a public request whose host belongs to ANOTHER tenant creates a NEW one. Cross-tenant by nature (same shape as the webhook ingresses): the platform-level `PractitionerProspect` ledger, the GLOBAL `User.email` uniqueness check (a request-scoped read would miss another practice's owner and turn a clean refusal into a mid-provision P2002), the audit row belonging to the NEW tenant, and the rollback that guarantees no half-built practice survives a failure. |
 | `audits/signup/verify.ts` | C23-SIGNUP acceptance harness — browser-driven; throwaway tenants + prospects; self-cleaning. |
 | `audits/capture/verify.ts` | C23-CAPTURE acceptance harness — browser-driven; throwaway prospects + practitioners; self-cleaning. |
+| `audits/referral/verify.ts` | C23-REFERRAL acceptance harness — browser-driven; seeds a referral fan-out across TWO throwaway tenants (cross-tenant isolation cannot be proven from inside one tenant's scope); self-cleaning. |
 
 ## Allowlist — own PrismaClient construction
 

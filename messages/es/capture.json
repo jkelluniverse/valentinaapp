@@ -21,6 +21,7 @@
     "submitting": "Enviando…",
     "footnote": "Los socios fundadores quedan configurados como práctica de cortesía. Aquí no hay nada que ingresar más que tus datos.",
     "referredBy": "Te refirió {code}",
+    "invitedBy": "Te invitó un socio fundador",
     "errors": {
       "missing": "Necesitamos un nombre para saber quién eres.",
       "email": "Ese correo electrónico no parece correcto.",

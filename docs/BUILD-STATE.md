@@ -1,14 +1,12 @@
 # PSYCHEFOLIO BUILD STATE
 
-## Active track: (none — C23-CAPTURE accepted by the Architect 2026-09-05; next: C23-REFERRAL)
+## Active track: (none — C23-REFERRAL accepted by the Architect 2026-09-05;
+## next: C23-ENGAGE)
 
 ## Queue (dependency order):
-1. (awaiting spec) C23-REFERRAL — referral attribution + rewards. UNBLOCKED by C23-SIGNUP +
-   C23-CAPTURE: every `PractitionerProspect` is issued a unique `referralCode` at creation
-   (signup AND capture), `?ref=` is captured verbatim into `referredByCode` on both surfaces,
-   and the FIRST code captured is the one that survives. Attribution logic deliberately NOT built.
-2. (awaiting spec) C23-ENGAGE — follow-up sequences. Note: capture sends NO email, on purpose.
-3. (awaiting spec / Architect) C23's fourth event surface
+1. (awaiting spec) C23-ENGAGE — follow-up sequences. Note: capture sends NO email, on purpose.
+   Now has attribution to work with: `lib/referrals.ts` derives counts from `referredByCode`.
+2. (awaiting spec / Architect) C23's fourth event surface
 
 ## Built & verified: (list as completed)
 Seeded 2026-09-05 from the repo's verify logs (audits/*/VERIFY-LOG.md) so the
@@ -52,6 +50,29 @@ PM starts with the true ledger, not an empty one.
   only new dependency. `lib/prospect-capture.ts` is named that way because `lib/capture.ts` is the
   SESSION pipeline's service — untouched by this build.
 
+- C23-REFERRAL — attribution and the reason to share: NO new model (migration `46_referral_index`
+  is one index on `referredByCode`; counts are derived from `referredByCode` + `status` so there is
+  no parallel ledger to disagree with), `lib/referral-config.ts` (pure) + `lib/referrals.ts`
+  (scoped client, privacy by construction: the public resolver returns a BOOLEAN, the owner's list
+  returns FIRST NAMES only), the resolve-gated "invited by a founding partner" line on `/join` and
+  `/signup` (nothing at all when a code does not resolve), the NEW `/practitioner/referrals` route
+  (own code, `mailto:`/`sms:` share, arrived/became-practices counts, founding-partner standing,
+  honest zero state, bilingual) linked only from practitioner settings, and a top-referrers section
+  on `/admin/prospects` (2026-09-05) — `audits/referral/verify.ts` **68/68**; report in
+  docs/reports/outbox/. NO reward/credit/discount/commission mechanism exists and the money-language
+  scanner is extended with `earn·reward·commission·bonus·discount·credit` + Spanish forms.
+  DECISIONS TAKEN (pending Architect ratification, see report): (a) `lib/signup.ts` DID overwrite
+  `referredByCode` on every visit carrying `?ref=` — first touch was not in fact immutable on that
+  path; fixed, since Verify item 5 is unpassable otherwise; (b) a practitioner who was never a
+  prospect (Valentina, demo tenants) gets an honest "no code on this account" state — no row
+  invented, no code issued on a GET; (c) new-route locale = `User.locale` with `?lang=` as an
+  explicit override (`resolvePortalLocale`); (d) the settings link row is hardcoded English,
+  matching that page's existing convention (no catalog exists for it); (e) `capture.referredBy` /
+  `signup.referredBy` are now unused, left in place rather than churning shipped copy; (f) top
+  referrers is unfiltered (unlike the filter-scoped counts of ruling 10) and carries an owner-email
+  column beyond §4's literal list. `audits/referral/VERIFY-LOG.md` deliberately not written (session
+  instruction not to hand-author verify logs) — evidence is in the report.
+
 ## Architect rulings — 2026-09-05 (C23-SIGNUP review, gates independently re-run: signup 37/37,
 ## c21 58/58, phase5 17/17, smoke + write smoke PASS, wall/guard/tsc clean, build clean)
 1. **Public locale = `?lang=` + `Accept-Language` fallback + on-screen EN/ES toggle. RATIFIED
@@ -84,7 +105,7 @@ PM starts with the true ledger, not an empty one.
   16-screen visual baseline · GET/write smokes · tenant-stamp audit · platform isolation verify
 
 ## Standing gate numbers added since (PM-maintained, not part of the rulings above):
-   signup-verify 37/37 · capture-verify 59/59 · platform/phase5-verify 17/17
+   signup-verify 37/37 · capture-verify 59/59 · referral-verify 68/68 · platform/phase5-verify 17/17
 
 ## Architect rulings — 2026-09-05 (C23-CAPTURE review, gates independently re-run: capture 59/59,
 ## signup 37/37, wall/guard/tsc clean, build clean; dependency delta is exactly qrcode + @types)
@@ -114,7 +135,41 @@ PM starts with the true ledger, not an empty one.
     known-good environment, as a deliberate act. C23-SIGNUP and C23-CAPTURE touch no `/space` or
     `/login` surface, so client-visible chrome is unaffected either way.
 
+## Architect rulings — 2026-09-05 (C23-REFERRAL review, gates independently re-run: referral 68/68,
+## capture 59/59, signup 37/37, wall/guard/tsc clean, build clean; the signup.ts diff read line by line)
+12. **The attribution fix is RATIFIED, and the spec was wrong — not the builder.** C23-REFERRAL §1
+    asserted "first touch is immutable (already true)". That was true on the capture path and FALSE
+    on the signup path: `lib/signup.ts` overwrote `referredByCode` on every visit carrying `?ref=`,
+    so a prospect captured on partner A's code could be silently reattributed to partner B by the
+    link they happened to click at signup. That is precisely the unsettleable referral dispute this
+    spec's no-parallel-ledger design existed to prevent, and it would have shipped invisibly.
+    **Recorded as an Architect error:** a spec that asserts an existing property as fact, rather than
+    listing it as a property to verify, hands the builder a false premise. Future specs state such
+    assumptions as Verify items. The builder was right to fix it and right to flag it.
+13. **"No code on this account" for practitioners who were never prospects (Valentina, demo tenants)
+    RATIFIED.** Issuing a code on a GET would let a page read invent a row — a write on a read is
+    wrong however convenient the resulting UI. If founding codes for pre-existing practices are
+    wanted later, that is a deliberate backfill script, not a side effect of opening a page.
+14. **New-route locale = `User.locale` with `?lang=` override RATIFIED**, consistent with ruling 1.
+15. **Top referrers stays unfiltered and keeps the owner-email column. RATIFIED** as a deliberate
+    deviation from ruling 10: this is an admin-only view whose whole purpose is "who is carrying the
+    network, and how do I reach them." Filter-scoping it would answer a question nobody asks there.
+16. **Unused `capture.referredBy` / `signup.referredBy` catalog keys: keep.** Churning shipped copy
+    to delete two dead strings is the worse trade. Folded into a later cleanup.
+17. **`audits/referral/VERIFY-LOG.md` absence accepted, with a rule.** Verify logs are written BY the
+    gate that produced them, or not at all — a hand-authored log is a claim, not evidence, and this
+    program's ledger is worth exactly what its evidence is worth. Task #79 filed.
+
 ## Blocked / awaiting Architect:
+- (code, low priority) task #79 — `audits/referral/verify.ts` should self-write its VERIFY-LOG.md as
+  its sibling gates do; until then its evidence lives only in its build report.
+- (code, low priority) task #78 — `/practitioner/settings` has no message catalog, so its labels
+  (including the new referrals link row) are inline English. Needs a settings-page i18n pass; every
+  string this program ADDED is in both catalogs.
+- (ops, before Sept 23) migration `46_referral_index` must be deployed before the referral surfaces,
+  or every referral count is a sequential scan.
+- (code, deferred) `STRUCTURE.md` now also stale on `/practitioner/referrals`,
+  `lib/referral{s,-config,-copy}.ts`, `messages/*/referral.json`, `audits/referral/` (ruling 6).
 - (code, low priority) task #77 — capture/signup rate limiting is in-memory per instance; a shared
   store (or a single-instance guarantee) is needed before the caps mean anything under horizontal
   scale. Not event-blocking at expected volumes.

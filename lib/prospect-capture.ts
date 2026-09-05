@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { CAPS, DEFAULT_SOURCE, EMAIL_RE } from "@/lib/capture-config";
+import { isSelfReferral } from "@/lib/referral-config";
 
 // C23-CAPTURE §2 — the event floor's service layer. (Named prospect-capture
 // because lib/capture.ts is the SESSION pipeline's capture service — a
@@ -72,7 +73,7 @@ export async function captureProspect(input: CaptureInput): Promise<CaptureResul
   const practiceName = cap(input.practiceName, CAPS.practiceName);
   const note = cap(input.note, CAPS.note);
   const source = cap(input.source, CAPS.source) ?? DEFAULT_SOURCE;
-  const referredByCode = cap(input.referredByCode, CAPS.referredByCode);
+  const submittedRef = cap(input.referredByCode, CAPS.referredByCode);
 
   try {
     // 2 — upsert by lowercased email. The three invariants, in order:
@@ -83,6 +84,15 @@ export async function captureProspect(input: CaptureInput): Promise<CaptureResul
     //   · referralCode is issued once and never reissued.
     const prior = await prisma.practitionerProspect.findUnique({ where: { email } });
     const referralCode = prior?.referralCode ?? (await issueReferralCode());
+
+    // C23-REFERRAL §1 — SELF-REFERRAL REFUSED, server-side. A prospect's own
+    // code must never attribute to themselves: the submitted code is dropped
+    // (attributes to nobody), and a self-referential value already on the row
+    // is cleared, so no self-referential row survives. Clearing it does not
+    // break first-touch immutability — a self-referral was never attribution.
+    const referredByCode = isSelfReferral(submittedRef, referralCode) ? null : submittedRef;
+    const priorIsSelf = isSelfReferral(prior?.referredByCode, referralCode);
+    const keptFirstTouch = Boolean(prior?.referredByCode) && !priorIsSelf;
 
     const prospect = await prisma.practitionerProspect.upsert({
       where: { email },
@@ -105,7 +115,9 @@ export async function captureProspect(input: CaptureInput): Promise<CaptureResul
         ...(practiceName ? { practiceName } : {}),
         ...(note ? { note } : {}),
         ...(input.source ? { source } : {}),
-        ...(prior?.referredByCode ? {} : referredByCode ? { referredByCode } : {}),
+        // First touch wins; a self-referential value is not a first touch and
+        // is replaced (with null if this submission carried nothing usable).
+        ...(keptFirstTouch ? {} : priorIsSelf ? { referredByCode } : referredByCode ? { referredByCode } : {}),
         // status / tenantId / convertedAt / referralCode: deliberately absent.
       },
     });

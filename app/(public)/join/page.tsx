@@ -1,9 +1,11 @@
+// wall-allow: resolves a referral code to a BOOLEAN only — no identity, no client data
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { SignatureRule, Eyebrow } from "@/components/brand";
-import { captureCopy, resolvePublicLocale, fill } from "@/lib/capture-copy";
+import { captureCopy, resolvePublicLocale } from "@/lib/capture-copy";
 import { CAPS, DEFAULT_SOURCE } from "@/lib/capture-config";
+import { referralCodeResolves } from "@/lib/referrals";
 import { submitCapture } from "./actions";
 
 // C23-CAPTURE §1 — the event floor. One screen, phone-first, thumb-reachable.
@@ -26,7 +28,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function JoinPage({
+export default async function JoinPage({
   searchParams,
 }: {
   searchParams: {
@@ -49,6 +51,14 @@ export default function JoinPage({
   // of whoever handed them the link.
   const refCode = (searchParams.ref ?? "").trim().slice(0, CAPS.referredByCode);
   const src = (searchParams.src ?? "").trim().slice(0, CAPS.source) || DEFAULT_SOURCE;
+
+  // C23-REFERRAL §2 — the ONLY thing this screen learns about the code is
+  // whether it exists. A visitor arriving on someone's code is told they were
+  // invited by "a founding partner" and never by a named individual who did
+  // not consent to being named to strangers. An unknown or malformed code
+  // renders NOTHING AT ALL — no error, no warning: a visitor should never be
+  // made to feel they arrived wrongly.
+  const invited = refCode ? await referralCodeResolves(refCode) : false;
 
   const carry = new URLSearchParams();
   if (refCode) carry.set("ref", refCode);
@@ -89,9 +99,9 @@ export default function JoinPage({
       <SignatureRule className="mt-4" />
       <p className="mt-4 text-lg leading-relaxed text-slate">{t.lede}</p>
 
-      {refCode && (
+      {invited && (
         <p className="mt-5 inline-flex items-center gap-2 rounded-pill bg-blush px-4 py-1.5 text-[13px] font-medium text-wine">
-          ✦ {fill(t.referredBy, { code: refCode })}
+          ✦ {t.invitedBy}
         </p>
       )}
 

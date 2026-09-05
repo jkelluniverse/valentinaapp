@@ -1,9 +1,11 @@
+// wall-allow: resolves a referral code to a BOOLEAN only — no identity, no client data
 import type { Metadata } from "next";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { signupCopy, resolvePublicLocale, fill } from "@/lib/signup-copy";
 import { PASSWORD_MIN } from "@/lib/signup-config";
+import { referralCodeResolves } from "@/lib/referrals";
 import { SignupForm } from "./SignupForm";
 import { submitSignup } from "./actions";
 
@@ -22,7 +24,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function SignupPage({
+export default async function SignupPage({
   searchParams,
 }: {
   searchParams: {
@@ -43,6 +45,11 @@ export default function SignupPage({
   // C23-CAPTURE §1 — a visitor handed off from /join arrives carrying ?src=;
   // it must reach the prospect row, or attribution dies at the handoff.
   const src = (searchParams.src ?? "").trim().slice(0, 120) || undefined;
+
+  // C23-REFERRAL §2 — same rule as /join: the screen learns only WHETHER the
+  // code resolves. No name, no practice, no email of the referrer, and an
+  // unresolvable code renders nothing rather than an error.
+  const invited = refCode ? await referralCodeResolves(refCode) : false;
 
   const errorKey = searchParams.error ?? "";
   const errors = t.errors as Record<string, string>;
@@ -67,9 +74,9 @@ export default function SignupPage({
       <SignatureRule className="mt-4" />
       <p className="mt-4 max-w-lg text-lg leading-relaxed text-slate">{t.lede}</p>
 
-      {refCode && (
+      {invited && (
         <p className="mt-5 inline-flex items-center gap-2 rounded-pill bg-blush px-4 py-1.5 text-[13px] font-medium text-wine">
-          ✦ {fill(t.referredBy, { code: refCode })}
+          ✦ {t.invitedBy}
         </p>
       )}
 

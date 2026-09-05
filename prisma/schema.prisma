@@ -1045,6 +1045,9 @@ model PractitionerProspect {
   updatedAt      DateTime       @updatedAt
 
   @@index([status, createdAt])
+  // C23-REFERRAL §1 — attribution is DERIVED from this column (no parallel
+  // ledger), so every referral count is a lookup by the referrer's code.
+  @@index([referredByCode])
 }
 
 // AMD-06 §3 — the audit spine: append-only, attributable, metadata only
