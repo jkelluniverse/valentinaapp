@@ -123,6 +123,21 @@ Notes · Settings (+ Search; mobile More-sheet adds Worksheets, Patterns, Availa
 
 ---
 
+## 4b. Public front door (no login — the marketing & growth surfaces)
+
+| Screen | Purpose & key components |
+|---|---|
+| **Landing one-pager** (/) | The practice's ad: banded editorial layout, her brand assets, static and fast. |
+| **Discovery booking** (/book, /book/confirmed) | Prospect books a free discovery call: live open slots, simple form, warm confirmation; /discovery/[token] is the no-login reschedule/cancel page from the confirmation email. |
+| **Join** (/join, /join/thanks) | The "event floor" capture: ONE phone-first, thumb-reachable screen (name + contact, optional referral code) for signing up interest in seconds at a live event; thanks screen. |
+| **Practitioner signup** (/signup, /signup/welcome) | Self-serve practitioner onboarding: one bilingual phone-first screen (practice name, subdomain with live availability probe, email, password, optional referral) → a real working portal on their own subdomain; welcome screen hands them their door. |
+| **Referral** | Referral codes thread through /join and /signup (attribution chips, share moments). |
+| **Privacy** (/privacy) · **Unsubscribe** (/unsubscribe/[token]) | Plain document page; one-click calm unsubscribe for prospect emails. |
+
+Prospect-facing **engagement emails** (C23-ENGAGE) use the same branded envelope.
+Practitioner-side counterparts to render: a **Prospects/capture review** surface in The
+Study (captured leads from events, engagement status).
+
 ## 5. Platform & admin (light-touch, worth one rendering each)
 
 - **/admin/tenants/new** — platform-owner provisioning: create a practitioner tenant
