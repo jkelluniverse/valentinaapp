@@ -27,6 +27,16 @@
    8 items for ratification, incl. a spec assertion that was false (see below).
 3. (awaiting spec / Architect) whatever follows the four event surfaces. Standing candidates
    already filed under Blocked: PUBLIC-I18N, C19 pipeline Phase 3+, PLATFORM Phase 6.
+4. (INTAKE 2026-09-08, awaiting Architect spec) **PSYCHEFOLIO-BRAND-WEB** — the
+   Psychefolio-branded website. Jacob delivered the brand system v1.1; assets are SAVED
+   (`/BRAND_HANDOFF.md` root, logo files in `/public/brand/`, eight reference renderings in
+   `/docs/brand/renderings/`). Intake note with manifest, hard constraints, dependencies and
+   suggested spec cuts: `docs/specs/inbox/PSYCHEFOLIO-BRAND-WEB.md`. HARD LAW from Jacob:
+   **tenant #1's Veritas/Warm Stone design schemes are untouched** — this track brands the
+   PLATFORM'S surfaces, never hers. Sequencing: C25 outranks it (and the white-label
+   "powered by" whisper setting genuinely depends on C25's PracticeSetting fix); note the
+   Psychefolio USPTO check is still outstanding (ruling 22) before the mark goes on a
+   public marketing page. NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
 Seeded 2026-09-05 from the repo's verify logs (audits/*/VERIFY-LOG.md) so the
@@ -553,3 +563,6 @@ Additional standing decisions already in force (from prior builds):
 - No PAN/CVV/bank-account capture anywhere — instruments live in Square (PCI)
 - Client-visible chrome changes require explicit acceptance; 16-screen byte baseline enforces it
 - Every raw-prisma access is allowlisted with justification (scripts/guard-prisma.ts, prebuild gate)
+- Psychefolio brand v1.1 (`/BRAND_HANDOFF.md`) is the platform's visual identity source of
+  truth; tenant #1 keeps Warm Stone wine/mocha untouched, and wine/mocha never appears on
+  Psychefolio-branded surfaces (Jacob, 2026-09-08)
