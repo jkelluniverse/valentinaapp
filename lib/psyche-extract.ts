@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources/messages";
 import type { NodeKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { hasConsent } from "@/lib/consent";
 import { massFromEvidence, RELATIONS } from "@/lib/psyche";
 import {
@@ -102,7 +103,7 @@ export async function runPsycheExtraction(
       where: { userId: clientId },
       select: { type: true, profile: true, authority: true },
     }),
-    prisma.practiceSetting.findUnique({ where: { key: NOTES_SOURCE_KEY } }),
+    readPracticeSetting(NOTES_SOURCE_KEY),
   ]);
 
   // Her notes as CONTEXT only (no ids — they are never evidence), if enabled.

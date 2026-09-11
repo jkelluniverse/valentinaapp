@@ -12,6 +12,7 @@
 //   · the 8-criteria statement lint rejects negation/future/absolutes
 
 import { prisma } from "../../lib/prisma";
+import { writePracticeSetting } from "../../lib/practice-settings";
 import { seedChartHypotheses } from "../../lib/chart-seeds";
 import { markResonance } from "../../lib/resonance";
 import { nodeConfidence } from "../../lib/confidence";
@@ -179,11 +180,7 @@ async function main() {
   );
 
   // ---- X.4: Pattern Library exclusion ----
-  await prisma.practiceSetting.upsert({
-    where: { key: "patternLibraryEnabled" },
-    create: { tenantId: DEFAULT_TENANT_ID, key: "patternLibraryEnabled", value: "true" },
-    update: { value: "true" },
-  });
+  await writePracticeSetting("patternLibraryEnabled", "true", { tenantId: DEFAULT_TENANT_ID });
   await aggregatePatterns();
   const leaked = await prisma.patternArchetype.findMany({
     where: { label: { in: seeds.map((s) => s.label) } },

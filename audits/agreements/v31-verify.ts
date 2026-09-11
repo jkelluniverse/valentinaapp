@@ -125,7 +125,7 @@ async function main() {
 
   const maria = await prisma.user.findUnique({ where: { email: "maria@fixture.test" } });
   if (!maria) throw new Error("seed the scratch DB first");
-  const priorLibSetting = await prisma.practiceSetting.findUnique({ where: { key: "patternLibraryEnabled" } });
+  const priorLibSetting = await prisma.practiceSetting.findFirst({ where: { key: "patternLibraryEnabled" } });
 
   const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(APP_PORT)], {
     env: { ...process.env, AUTH_SECRET: process.env.AUTH_SECRET || "baseline-secret", PORT: String(APP_PORT) },
@@ -268,7 +268,11 @@ async function main() {
 
     // ---- 4. Addendum P: the election really changes the aggregation ----
     const { aggregatePatterns, setPatternElection, K_FLOOR } = await import("../../lib/pattern-library");
-    await prisma.practiceSetting.upsert({ where: { key: "patternLibraryEnabled" }, create: { key: "patternLibraryEnabled", value: "true" }, update: { value: "true" } });
+    await prisma.practiceSetting.upsert({
+      where: { tenantId_key: { tenantId: TENANT, key: "patternLibraryEnabled" } },
+      create: { tenantId: TENANT, key: "patternLibraryEnabled", value: "true" },
+      update: { value: "true" },
+    });
     const probeClients: string[] = [];
     for (let i = 0; i < K_FLOOR; i++) {
       const u = await prisma.user.create({
@@ -306,7 +310,11 @@ async function main() {
     server.kill();
     // restore the practice-level switch exactly as found
     if (priorLibSetting) {
-      await prisma.practiceSetting.update({ where: { key: "patternLibraryEnabled" }, data: { value: priorLibSetting.value } }).catch(() => {});
+      await prisma.practiceSetting.upsert({
+        where: { tenantId_key: { tenantId: TENANT, key: "patternLibraryEnabled" } },
+        create: { tenantId: TENANT, key: "patternLibraryEnabled", value: priorLibSetting.value },
+        update: { value: priorLibSetting.value },
+      }).catch(() => {});
     } else {
       await prisma.practiceSetting.deleteMany({ where: { key: "patternLibraryEnabled" } }).catch(() => {});
     }

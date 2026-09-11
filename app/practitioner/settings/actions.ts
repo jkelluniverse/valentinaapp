@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { writePracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { getPractitioner, getOrCreateConfig } from "@/lib/schedule";
 
@@ -51,11 +52,7 @@ export async function savePolicy(formData: FormData) {
 export async function setAssistNotify(formData: FormData) {
   const user = await requirePractitioner();
   const on = formData.get("assistNotify") === "on";
-  await prisma.practiceSetting.upsert({
-    where: { key: "assistNotifyEmail" },
-    create: { key: "assistNotifyEmail", value: on ? "on" : "off" },
-    update: { value: on ? "on" : "off" },
-  });
+  await writePracticeSetting("assistNotifyEmail", on ? "on" : "off");
   console.info(`[settings] assist notify ${on ? "on" : "off"} by=${user.id}`);
   revalidatePath(PATH);
   redirect(`${PATH}?saved=assist`);

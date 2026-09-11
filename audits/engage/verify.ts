@@ -118,8 +118,8 @@ async function cleanup() {
 
 async function setSwitch(key: string, value: "on" | "off") {
   await prisma.practiceSetting.upsert({
-    where: { key },
-    create: { key, value, tenantId: DEFAULT_TENANT_ID },
+    where: { tenantId_key: { tenantId: DEFAULT_TENANT_ID, key } },
+    create: { tenantId: DEFAULT_TENANT_ID, key, value },
     update: { value },
   });
 }

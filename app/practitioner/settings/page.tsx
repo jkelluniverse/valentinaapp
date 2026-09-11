@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -102,9 +103,7 @@ export default async function PractitionerSettingsPage({
   });
   const dateFmt = new Intl.DateTimeFormat("en-US", { dateStyle: "long" });
 
-  const assistNotifyRow = await prisma.practiceSetting.findUnique({
-    where: { key: "assistNotifyEmail" },
-  });
+  const assistNotifyRow = await readPracticeSetting("assistNotifyEmail");
   const assistNotifyOn = assistNotifyRow?.value !== "off";
 
   return (

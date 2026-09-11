@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { writePracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import {
   getOrCreateConversation,
@@ -75,11 +76,7 @@ export async function saveAwayNote(formData: FormData) {
   await requirePractitioner();
   const value = String(formData.get("awayNote") ?? "").trim();
   if (value) {
-    await prisma.practiceSetting.upsert({
-      where: { key: AWAY_NOTE_KEY },
-      create: { key: AWAY_NOTE_KEY, value },
-      update: { value },
-    });
+    await writePracticeSetting(AWAY_NOTE_KEY, value);
   } else {
     await prisma.practiceSetting.deleteMany({ where: { key: AWAY_NOTE_KEY } });
   }

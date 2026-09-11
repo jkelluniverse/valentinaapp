@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
+import { writePracticeSetting } from "@/lib/practice-settings";
 import {
   completeAppointment,
   markNoShow,
@@ -52,11 +53,7 @@ export async function setCalendarSyncDone(done: boolean) {
   await requirePractitioner();
   const { prisma } = await import("@/lib/prisma");
   if (done) {
-    await prisma.practiceSetting.upsert({
-      where: { key: "calendarSyncDone" },
-      update: { value: "on" },
-      create: { key: "calendarSyncDone", value: "on" },
-    });
+    await writePracticeSetting("calendarSyncDone", "on");
   } else {
     await prisma.practiceSetting.deleteMany({ where: { key: "calendarSyncDone" } });
   }

@@ -60,17 +60,17 @@ d. **Signing experience `/agree/[token]`** — already built (C22); the handoff'
 4. Gold is the ONLY action color on Psychefolio surfaces; one primary action per signing screen.
 5. Language rails (handoff §0): no therapy/treatment/patients/EHR/clinical/diagnosis/
    "HIPAA-compliant" wording; verbatim legal text; "AI proposes. You decide."
-6. **Naming caution (ruling 22 note):** the "Psychefolio" USPTO check (Classes 042 + 044) is
-   recorded as OUTSTANDING. Publishing a Psychefolio-branded public marketing site asserts
-   the mark far louder than an email sender name — the Architect should sequence this
-   against clearance, or Jacob should accept the risk explicitly.
+6. ~~Naming caution (ruling 22 note): the "Psychefolio" USPTO check (Classes 042 + 044) is
+   recorded as OUTSTANDING…~~ **RESOLVED 2026-09-11: the Psychefolio USPTO mark is APPROVED**
+   (Jacob, relayed via the Architect's C25 handoff). The mark may appear on public pages and
+   in a platform sender identity. `psychefolio.com` and `psychefolio.app` are purchased —
+   relevant to `PLATFORM_DOMAIN` and the marketing-homepage routing decision below.
 
 ## Dependencies / sequencing notes for the Architect
-- **C25 (PracticeSetting PK + global-unique defect, ruling 32) outranks this** — it is
-  event-critical; this track is not tied to Sept 23.
-- The "powered by" whisper must be a tenant-controllable setting (handoff §4) — i.e. a
-  `PracticeSetting` write for non-default tenants, which TODAY CANNOT WORK until C25 lands.
-  Real dependency, not just priority ordering.
+- ~~C25 (PracticeSetting PK + global-unique defect, ruling 32) outranks this~~ — **C25 LANDED
+  2026-09-11** (migration 49; practice-setting-verify green). The "powered by" whisper's
+  dependency is met: non-default tenants can now hold their own `PracticeSetting` rows.
+  This track is still not tied to Sept 23.
 - PUBLIC-I18N (ruling 1) intersects: the marketing homepage wants the EN/ES toggle; the
   handoff's §7 demands externalized strings. Cutting the homepage spec after (or with)
   PUBLIC-I18N avoids building it twice.

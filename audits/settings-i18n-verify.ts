@@ -123,8 +123,14 @@ async function main() {
   );
 
   // ---- 2. the English wording is what shipped before the pass ----
+  // Pinned to the last commit whose page still carried the raw strings
+  // (939a663, C24-NESTED-STAMP): the gate was written against an uncommitted
+  // tree where HEAD *was* the pre-pass page; once the i18n pass was committed
+  // a HEAD reference would compare the catalog against the very page the
+  // strings were moved OUT of, failing forever.
+  const PRE_PASS_COMMIT = "939a663";
   const shipped = norm(
-    execFileSync("git", ["show", "HEAD:app/practitioner/settings/page.tsx"], {
+    execFileSync("git", ["show", `${PRE_PASS_COMMIT}:app/practitioner/settings/page.tsx`], {
       encoding: "utf8",
       cwd: process.cwd(),
     }),

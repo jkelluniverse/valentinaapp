@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { aggregatePatterns, PATTERN_LIBRARY_KEY, K_FLOOR } from "../../lib/pattern-library";
+import { DEFAULT_TENANT_ID } from "../../lib/tenancy/scope";
 
 // FIXTURES-SPEC §4 / §10.6 — the Pattern-Library k-floor test. Seeds distinct
 // fixture clients carrying the archetype matrix, runs the REAL aggregation
@@ -50,9 +51,9 @@ async function main() {
   }
 
   await prisma.practiceSetting.upsert({
-    where: { key: PATTERN_LIBRARY_KEY },
+    where: { tenantId_key: { tenantId: DEFAULT_TENANT_ID, key: PATTERN_LIBRARY_KEY } },
     update: { value: "true" },
-    create: { key: PATTERN_LIBRARY_KEY, value: "true" },
+    create: { tenantId: DEFAULT_TENANT_ID, key: PATTERN_LIBRARY_KEY, value: "true" },
   });
 
   const result = await aggregatePatterns();

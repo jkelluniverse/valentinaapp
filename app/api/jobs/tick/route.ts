@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { completeAppointment, clientLabel } from "@/lib/appointments";
 import { packageCounters, activatePackageForCharge } from "@/lib/packages";
 import { getPaymentOrderId, getOrderReferenceId } from "@/lib/square";
@@ -256,7 +257,7 @@ async function handle(req: NextRequest) {
   //    at dueAt, once more +7 days, then stop. Per-client mute respected.
   //    EMAIL-SPEC §5 quiet hours: money nudges only 9:00–19:00 her time.
   try {
-    const setting = await prisma.practiceSetting.findUnique({ where: { key: "autoPayReminders" } });
+    const setting = await readPracticeSetting("autoPayReminders");
     const practitionerUser = await getPractitioner();
     const config = practitionerUser ? await getOrCreateConfig(practitionerUser.id) : null;
     const hour = config ? Number(formatInZone(now, config.timezone, { hour: "numeric", hour12: false })) : 12;

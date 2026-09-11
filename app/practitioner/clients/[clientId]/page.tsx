@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { RecordKind } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
@@ -791,7 +792,7 @@ async function MapTab({ clientId }: { clientId: string }) {
       orderBy: { createdAt: "desc" },
       select: { createdAt: true, referralFlag: true },
     }),
-    prisma.practiceSetting.findUnique({ where: { key: NOTES_SOURCE_KEY } }),
+    readPracticeSetting(NOTES_SOURCE_KEY),
   ]);
 
   return (

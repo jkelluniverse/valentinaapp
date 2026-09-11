@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { writePracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { aggregatePatterns, PATTERN_LIBRARY_KEY } from "@/lib/pattern-library";
 
@@ -10,11 +11,7 @@ const PATH = "/practitioner/patterns";
 
 export async function setLibraryEnabled(on: boolean) {
   await requirePractitioner();
-  await prisma.practiceSetting.upsert({
-    where: { key: PATTERN_LIBRARY_KEY },
-    create: { key: PATTERN_LIBRARY_KEY, value: on ? "true" : "false" },
-    update: { value: on ? "true" : "false" },
-  });
+  await writePracticeSetting(PATTERN_LIBRARY_KEY, on ? "true" : "false");
   revalidatePath(PATH);
   redirect(PATH);
 }

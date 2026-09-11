@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting, writePracticeSetting } from "@/lib/practice-settings";
 
 // Square, via plain REST (no SDK dependency — same posture as Resend). Square
 // owns money movement; we hold only tokens, ids, and statuses. The access
@@ -67,7 +68,7 @@ export async function resolveLocationId(): Promise<string | null> {
   if (!squareConfigured()) return null;
   const settingKey = isProduction() ? "squareLocationId" : "squareSandboxLocationId";
   try {
-    const stored = await prisma.practiceSetting.findUnique({ where: { key: settingKey } });
+    const stored = await readPracticeSetting(settingKey);
     if (stored?.value) {
       locationCache = stored.value;
       return stored.value;
@@ -81,11 +82,7 @@ export async function resolveLocationId(): Promise<string | null> {
     const loc = data.locations?.find((l) => l.status === "ACTIVE") ?? data.locations?.[0];
     if (!loc) return null;
     locationCache = loc.id;
-    await prisma.practiceSetting.upsert({
-      where: { key: settingKey },
-      update: { value: loc.id },
-      create: { key: settingKey, value: loc.id },
-    });
+    await writePracticeSetting(settingKey, loc.id);
     return loc.id;
   } catch {
     console.error("[square] location resolution error");

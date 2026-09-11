@@ -3,6 +3,12 @@ import { createHash } from "crypto";
 import { readFileSync } from "fs";
 import { deflateSync } from "zlib";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
+// C24.1-TENANT-SCOPE §1 / C25 §2: this harness drives PRODUCT libs from the
+// CLI, and a practice-setting write with no tenant in scope now FAILS CLOSED
+// instead of writing an unowned row. One wrap states the tenant for every
+// scoped-client write beneath it; this file's own writes use the RAW client
+// and are untouched by an ambient scope.
+import { withTenantScope } from "../../lib/tenancy/tenant-scope";
 
 // C21-DOCSIGN acceptance:
 //   1. dispute packet installs (2 fillable TEXT + 2 branded-PDF FILES
@@ -113,7 +119,7 @@ async function main() {
 
   const maria = await prisma.user.findUnique({ where: { email: "maria@fixture.test" } });
   if (!maria) throw new Error("seed the scratch DB first");
-  const priorSig = await prisma.practiceSetting.findUnique({ where: { key: "practitionerSignatureDrawn" } });
+  const priorSig = await prisma.practiceSetting.findFirst({ where: { key: "practitionerSignatureDrawn" } });
 
   const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(APP_PORT)], {
     env: { ...process.env, AUTH_SECRET: process.env.AUTH_SECRET || "baseline-secret", PORT: String(APP_PORT) },
@@ -480,7 +486,11 @@ async function main() {
   } finally {
     server.kill();
     if (priorSig) {
-      await prisma.practiceSetting.upsert({ where: { key: "practitionerSignatureDrawn" }, create: { key: "practitionerSignatureDrawn", value: priorSig.value }, update: { value: priorSig.value } }).catch(() => {});
+      await prisma.practiceSetting.upsert({
+        where: { tenantId_key: { tenantId: TENANT, key: "practitionerSignatureDrawn" } },
+        create: { tenantId: TENANT, key: "practitionerSignatureDrawn", value: priorSig.value },
+        update: { value: priorSig.value },
+      }).catch(() => {});
     } else {
       await prisma.practiceSetting.deleteMany({ where: { key: "practitionerSignatureDrawn" } }).catch(() => {});
     }
@@ -493,7 +503,7 @@ async function main() {
   if (failed > 0) process.exit(1);
 }
 
-main()
+withTenantScope(TENANT, main)
   .catch((e) => { console.error(e); process.exit(1); })
   .finally(() => {
     void prisma.$disconnect();

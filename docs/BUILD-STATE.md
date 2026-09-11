@@ -6,10 +6,17 @@
 ## referral 68/68 · engage 172/172. Remaining work before Sept 23 is deployment + Jacob's
 ## decisions, not features — see "Before the event (Jacob)" below.
 ## THE TENANCY WALL: task #75 is CLOSED (withTenantScope landed; stamp audit exit 0 after a
-## 23-gate sweep). Two open ARCHITECT-REQUESTs from C24.1, one of them a PRE-EXISTING defect —
-## no non-default tenant can write a PracticeSetting. Read that one before practice #2 ships.)
+## 23-gate sweep). C25 CLOSED 2026-09-11: non-default tenants can now write PracticeSettings
+## (migration 49 must be in the production deploy — see the Jacob deploy list).
+## 2026-09-11 facts: Psychefolio USPTO mark APPROVED (ruling 22 unblocked, engage gate still
+## CLOSED pending Jacob's sender decision); psychefolio.com/.app purchased.)
 
 ## Queue (dependency order):
+-1. (Architect review) C25-PRACTICE-SETTING-TENANCY — BUILT AND MERGED 2026-09-11 (was the
+   program's top priority per ruling 32). Report in
+   docs/reports/outbox/BUILD-REPORT-C25-PRACTICE-SETTING-TENANCY.md; three decisions for
+   ratification (tenancy-cache error handling, archaeology pin, spec moved to accepted/).
+   Migration 49 is now in the "Before the event (Jacob)" deploy list.
 0. (Architect review) C24.1-TENANT-SCOPE — report in docs/reports/outbox/BUILD-REPORT-C24.1-TENANT-SCOPE.md.
    Status PARTIAL. Ruling 24 implemented and gated (`withTenantScope`, tenant-scope-verify 48/48;
    stamp audit exit 0 after a 23-gate sweep). **Assumption 3 was FALSE:** `audits/amd06/verify.ts`
@@ -34,11 +41,27 @@
    suggested spec cuts: `docs/specs/inbox/PSYCHEFOLIO-BRAND-WEB.md`. HARD LAW from Jacob:
    **tenant #1's Veritas/Warm Stone design schemes are untouched** — this track brands the
    PLATFORM'S surfaces, never hers. Sequencing: C25 outranks it (and the white-label
-   "powered by" whisper setting genuinely depends on C25's PracticeSetting fix); note the
-   Psychefolio USPTO check is still outstanding (ruling 22) before the mark goes on a
-   public marketing page. NOT tied to Sept 23.
+   "powered by" whisper setting genuinely depends on C25's PracticeSetting fix — landed
+   2026-09-11, so that dependency is now met); the Psychefolio USPTO mark is APPROVED
+   (2026-09-11), so the ruling-22 objection to putting the mark on a public page is lifted.
+   NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C25-PRACTICE-SETTING-TENANCY — the event-critical defect (ruling 32) CLOSED: DMMF-derived
+  model identity in the fail-closed pre-check (`lib/tenancy/model-identity.ts`, fail-closed,
+  79/79 scoped models covered), `PracticeSetting` re-keyed to `id` PK + UNIQUE (tenantId, key)
+  via migration `49_practice_setting_tenancy` (counted, idempotent, reversible via
+  `_PracticeSettingTenancy49`), `lib/practice-settings.ts` service (a write with no tenant in
+  scope THROWS), all bare-`key` call sites converted (2026-09-11) —
+  `audits/practice-setting-verify.ts` **47/47**; report in docs/reports/outbox/.
+  Built across two sessions: handed off at 40/41 (see HANDOFF-C25.md), finished here.
+  THE 41st CHECK'S ROOT CAUSE, proven live and fixed: `tenantBySlug` cached a DB ERROR as
+  "no such tenant" for its 60s TTL, so one transient blip resolved an existing practice's
+  host to the default tenant and locked its practitioner out at /login. Errors no longer
+  enter the cache (stale-if-available, else per-request null); the check was NOT relaxed.
+  Also: the gate's five "BEFORE" archaeology checks pinned to the pre-fix commit `a6c8bd8`
+  instead of HEAD (they were unpassable once the fix was committed; no assertion changed).
+  Engage kill-switch verified intact (172/172; gate still defaults CLOSED).
 Seeded 2026-09-05 from the repo's verify logs (audits/*/VERIFY-LOG.md) so the
 PM starts with the true ledger, not an empty one.
 - C1–C15, UI-1..3, P-1..3, AMD-05/06 — core product through messaging (2026-06/07)
@@ -450,8 +473,13 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 
 **Deploy, in this order**
 1. `prisma migrate deploy` — migrations `45_practitioner_prospect`, `46_referral_index`,
-   `47_prospect_message`. The referral index is what keeps counts off a sequential scan; the
-   ProspectMessage unique constraint is what makes double-sending structurally impossible.
+   `47_prospect_message`, `48_stamp_null_tenants_nested`, and **`49_practice_setting_tenancy`
+   (C25 — schema change, must deploy in this order)**. The referral index is what keeps counts
+   off a sequential scan; the ProspectMessage unique constraint is what makes double-sending
+   structurally impossible; migration 49 re-keys `PracticeSetting` (adds `id` PK, rescopes
+   uniqueness to `(tenantId, key)`, stamps null-tenant rows) — without it no event-signup
+   practitioner can save a setting. It RAISE NOTICEs its counts; read them on the production
+   run. Idempotent, reversible via `_PracticeSettingTenancy49`.
 2. Deploy the branch. `npm run prebuild` runs the tenant-scope guard, so a scoping regression fails
    the deploy rather than reaching production.
 
@@ -459,17 +487,21 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 - `PLATFORM_ADMIN_EMAILS` must contain Jacob's production address, or `/admin/prospects` 404s for him
   at the event. This is the page that answers "how many did we get."
 - `PLATFORM_DOMAIN` must be set, or every signup / portal / unsubscribe link degrades to a relative
-  path — which means broken links in the one email sequence that matters.
+  path — which means broken links in the one email sequence that matters. **`psychefolio.com` and
+  `psychefolio.app` are purchased (2026-09-11)** — candidates for this value; which one (and DNS)
+  is Jacob's call.
 - `RESEND_API_KEY` — until it exists, follow-up ticks record `UNCONFIGURED` (harmlessly, and
   re-sendably). No key means no follow-up, not a crash.
 - `JOBS_SECRET` — already in use by C13-PACKAGES; the engage step rides the existing tick.
 
 **Decisions only Jacob can make**
-- **Sender identity for practitioner follow-up (ruling 22).** Currently signed "Valentina" over the
-  Veritas Consulting footer, which puts her practice's identity behind a software pitch to her
-  professional peers. Must be settled BEFORE opening the engage gate. Architect recommends a platform
-  sender with her as a named voice only by her consent; note the Psychefolio USPTO check is still
-  outstanding, so the sender name should not assert that mark yet.
+- **Sender identity for practitioner follow-up (ruling 22) — NOW UNBLOCKED (2026-09-11): the
+  Psychefolio USPTO mark is APPROVED**, so a Psychefolio-identity sender is available. The
+  question itself is still Jacob's: the follow-up mailer currently signs "Valentina" over the
+  Veritas Consulting footer, and those messages go to the platform's prospective customers, not
+  her clients. Architect's standing recommendation: a Psychefolio platform sender, with Valentina
+  as a named voice inside the copy only by her consent. Must be settled BEFORE opening the engage
+  gate — which still defaults CLOSED, so nothing sends until this is decided.
 - **Opening the engage gate.** It defaults CLOSED by design. Read `/admin/prospects` → the queue and
   the dry-run first (the dry-run writes nothing), then set `engageEnabled="on"`. `engagePaused="on"`
   stops everything with no deploy.
@@ -540,13 +572,10 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
   neither run nor edit them (ruling 27) and named them as UNRESOLVED in the new gate's scan — which
   fails if any NEW unwrapped CLI writer appears. ARCHITECT-REQUEST 1 recommends wrapping all three
   (3 lines).
-- (code, ARCHITECT-REQUEST, found by C24.1) the scoped client's fail-closed pre-check on unique
-  writes selects `{ id: true }`; `PracticeSetting`'s PK is `key` and it has no `id`. So for any
-  NON-DEFAULT tenant, `practiceSetting.upsert/update/delete` throws a Prisma validation error —
-  inside a request, across ~10 product paths (settings, away note, schedule, notes inbox, patterns,
-  design, agreements signature, Square). Fails closed (nothing crosses tenants) but practice #2
-  cannot save a practice setting. Recommended fix: derive the PK from the DMMF instead of
-  hardcoding `id`. Asserted in `audits/tenant-scope-verify.ts` so it cannot be forgotten.
+- ~~(code, ARCHITECT-REQUEST, found by C24.1) the scoped client's fail-closed pre-check
+  selects `{ id: true }` / `PracticeSetting` globally unique on `key`~~ — **CLOSED 2026-09-11
+  by C25-PRACTICE-SETTING-TENANCY** (ruling 32's spec): DMMF-derived identity + migration 49.
+  practice-setting-verify 47/47; report in outbox. Migration 49 added to the deploy list above.
 - (ops, before the next deploy) migration `48_stamp_null_tenants_nested` — stamps any remaining
   null-tenant rows across all 79 scoped tables to the default tenant. Idempotent, reversible via
   `_TenantStampBackfill48`, and it RAISE NOTICEs its per-table and total counts. Read those counts
@@ -565,4 +594,6 @@ Additional standing decisions already in force (from prior builds):
 - Every raw-prisma access is allowlisted with justification (scripts/guard-prisma.ts, prebuild gate)
 - Psychefolio brand v1.1 (`/BRAND_HANDOFF.md`) is the platform's visual identity source of
   truth; tenant #1 keeps Warm Stone wine/mocha untouched, and wine/mocha never appears on
-  Psychefolio-branded surfaces (Jacob, 2026-09-08)
+  Psychefolio-branded surfaces (Jacob, 2026-09-08). Veritas is Valentina's branded TENANCY
+  of Psychefolio, not a separate product layer — docs that read otherwise are stale
+  (2026-09-11, via the C25 handoff)

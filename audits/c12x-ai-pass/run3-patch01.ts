@@ -5,6 +5,8 @@
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { prisma } from "../../lib/prisma";
+import { DEFAULT_TENANT_ID } from "../../lib/tenancy/scope";
+import { writePracticeSetting } from "../../lib/practice-settings";
 import { ensureReading, assembleCharts, chartInputHash } from "../../lib/integrative-reading";
 import {
   lintReadingLanguage,
@@ -75,11 +77,7 @@ async function main() {
     "spiral",
   ];
 
-  await prisma.practiceSetting.upsert({
-    where: { key: METHOD_SETTING_KEY },
-    create: { key: METHOD_SETTING_KEY, value: METHOD_V1 },
-    update: { value: METHOD_V1 },
-  });
+  await writePracticeSetting(METHOD_SETTING_KEY, METHOD_V1);
 
   // ---- Check 1: María WITHOUT values — everything still generates ----
   log(`\n## 1 · María without the values assessment`);
@@ -166,10 +164,11 @@ async function main() {
 
   // ---- Check 4: method text edit ----
   log(`\n## 4 · Her method text changes`);
-  await prisma.practiceSetting.update({
-    where: { key: METHOD_SETTING_KEY },
-    data: { value: METHOD_V1 + " Revised: name the tension between belonging and sovereignty explicitly." },
-  });
+  await writePracticeSetting(
+    METHOD_SETTING_KEY,
+    METHOD_V1 + " Revised: name the tension between belonging and sovereignty explicitly.",
+    { tenantId: DEFAULT_TENANT_ID },
+  );
   const gs4 = await guideStale(maria.id);
   check("Guide stale on method edit", gs4.stale && gs4.reasons.some((r) => r.includes("method")), gs4.reasons.join("; "));
   const fs4 = await formulationStale(maria.id);

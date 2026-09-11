@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { rawPrisma } from "./prisma-internal";
 import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG, SCOPED_MODEL_SET, scopeFilter } from "./tenancy/scope";
 import { stampCreateInput, stampUpdateInput } from "./tenancy/stamp";
+import { identitySelect } from "./tenancy/model-identity";
 import { ambientTenantId } from "./tenancy/tenant-scope";
 import { slugFromHost, tenantBySlug } from "./tenancy";
 
@@ -36,7 +37,10 @@ import { slugFromHost, tenantBySlug } from "./tenancy";
 //   - update/delete/upsert (unique where): for NON-default tenants an
 //     ownership pre-check runs first (fail-closed); the default tenant
 //     passes through — every legacy row is already hers, and her hot paths
-//     stay at zero extra queries.
+//     stay at zero extra queries. The field(s) the pre-check selects come
+//     from the Prisma DMMF (lib/tenancy/model-identity.ts), not from an
+//     assumption that every model has `id`; a model whose identity cannot be
+//     derived makes the write THROW, never skip the check (C25 §1).
 //   - $transaction(fn): the callback's tx client is wrapped the same way.
 //   - $transaction([...]): wrapped calls carry their op description; the
 //     array form rebuilds real Prisma promises with the filter injected.
@@ -121,6 +125,61 @@ function stampUpsert(model: string, args: Record<string, unknown>, tenantId: str
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// THE FAIL-CLOSED OWNERSHIP PRE-CHECK (C25-PRACTICE-SETTING-TENANCY §1)
+//
+// Before a NON-default tenant touches a row by unique key, prove the row is
+// not somebody else's. Two things changed here in C25, both of them because
+// the old shape refused writes it should have allowed while proving less than
+// it appeared to:
+//
+//   1. The select comes from the DMMF, per model, instead of being hardcoded
+//      to `{ id: true }`. `PracticeSetting` had no `id` column, so the old
+//      pre-check threw a Prisma VALIDATION error before it could check
+//      anything — a functional wall for every non-default tenant across ~10
+//      product paths (ruling 32). If the identity cannot be derived,
+//      `identitySelect` THROWS: the check is never skipped for any model.
+//
+//   2. `upsert` is checked for the right thing. An upsert means "update it if
+//      it exists, otherwise create it". What must be refused is TOUCHING
+//      SOMEONE ELSE'S ROW — not the row's absence, which is simply the create
+//      branch, and the create branch is tenant-stamped (lib/tenancy/stamp.ts)
+//      so it cannot land in another tenant. The old check conflated the two
+//      and therefore refused every first-ever upsert by any non-default
+//      tenant — on `PracticeSetting` and on 40+ other product call sites.
+//      The refusal that mattered is kept and is now explicit: the target is
+//      looked up WITHOUT the tenant filter, and a row owned by another tenant
+//      is refused. Nothing that was refused for safety is now allowed.
+// ---------------------------------------------------------------------------
+type Delegate = Record<string, (a?: unknown) => Promise<unknown>>;
+
+async function assertUniqueWriteAllowed(
+  d: Delegate,
+  model: string,
+  method: string,
+  args: Record<string, unknown>,
+  tenantId: string,
+): Promise<void> {
+  // Throws for a model whose identifying field(s) cannot be derived. That is
+  // the fail-closed outcome and must never be turned into a skip.
+  const select = identitySelect(model);
+  const target = expandUniqueWhere(args.where as Record<string, unknown>);
+
+  if (method === "upsert") {
+    const existing = (await d.findFirst({
+      where: target,
+      select: { ...select, tenantId: true },
+    })) as { tenantId?: string | null } | null;
+    if (existing && existing.tenantId !== tenantId) {
+      throw new Error(`tenant-scope: ${model}.upsert target belongs to another tenant`);
+    }
+    return;
+  }
+
+  const owned = await d.findFirst({ where: { AND: [scopeFilter(tenantId), target] }, select });
+  if (!owned) throw new Error(`tenant-scope: ${model}.${method} target not found in tenant scope`);
+}
+
 // Resolve one op against a client (rawPrisma or a transaction client),
 // with the tenant filter applied. tenantId null = passthrough.
 async function runOp(client: unknown, op: Op, tenantId: string | null): Promise<unknown> {
@@ -135,14 +194,7 @@ async function runOp(client: unknown, op: Op, tenantId: string | null): Promise<
   if (WRITE_WHERE.has(method)) return d[method](withScope(stampUpdate(op.model, args, tenantId), tenantId));
   if (UNIQUE_WRITE.has(method)) {
     if (tenantId !== DEFAULT_TENANT_ID) {
-      // Fail-closed ownership check before touching a row by unique key.
-      const owned = await d.findFirst({
-        where: { AND: [scopeFilter(tenantId), expandUniqueWhere(args.where as Record<string, unknown>)] },
-        select: { id: true },
-      });
-      if (!owned) {
-        throw new Error(`tenant-scope: ${op.model}.${method} target not found in tenant scope`);
-      }
+      await assertUniqueWriteAllowed(d, op.model, method, args, tenantId);
     }
     if (method === "upsert") return d.upsert(stampUpsert(op.model, args, tenantId));
     if (method === "update") return d.update(stampUpdate(op.model, args, tenantId));
@@ -200,12 +252,8 @@ function wrapClient(base: object): PrismaClient {
             for (const item of items) {
               const op = item?.__veritasOp;
               if (op && UNIQUE_WRITE.has(op.method)) {
-                const d = (target as Record<string, Record<string, (a: unknown) => Promise<unknown>>>)[op.model];
-                const owned = await d.findFirst({
-                  where: { AND: [scopeFilter(tid), expandUniqueWhere(op.args.where as Record<string, unknown>)] },
-                  select: { id: true },
-                });
-                if (!owned) throw new Error(`tenant-scope: ${op.model}.${op.method} target not found in tenant scope`);
+                const d = (target as Record<string, Delegate>)[op.model];
+                await assertUniqueWriteAllowed(d, op.model, op.method, op.args ?? {}, tid);
               }
             }
           }
@@ -266,3 +314,18 @@ function buildTxCall(client: object, op: Op, tenantId: string | null): unknown {
 }
 
 export const prisma = wrapClient(rawPrisma);
+
+/**
+ * The tenant this call would be scoped to, by the SAME precedence the client
+ * itself uses (request headers → withTenantScope → null). Exported for the
+ * one case a caller genuinely cannot avoid knowing its own tenant: addressing
+ * a row whose unique key INCLUDES tenantId, which TypeScript will not let a
+ * call site express otherwise (lib/practice-settings.ts).
+ *
+ * `null` means "no request and no scope". Callers must FAIL, not fall back to
+ * the default tenant — ruling 24 rejected implicit default-tenant stamping,
+ * and this resolver is not a back door to it.
+ */
+export function scopeTenantId(): Promise<string | null> {
+  return requestTenantId();
+}

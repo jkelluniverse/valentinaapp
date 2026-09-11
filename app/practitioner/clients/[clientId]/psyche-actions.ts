@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { NodeKind, NodeState } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { writePracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { runPsycheExtraction } from "@/lib/psyche-extract";
 import { massFromEvidence, RELATIONS } from "@/lib/psyche";
@@ -268,11 +269,7 @@ export async function nodeToNote(clientId: string, nodeId: string): Promise<Res>
 // (default off; flagged decision §11.1).
 export async function setNotesSource(clientId: string, on: boolean): Promise<Res> {
   await requirePractitioner();
-  await prisma.practiceSetting.upsert({
-    where: { key: "psycheIncludeNotes" },
-    create: { key: "psycheIncludeNotes", value: on ? "true" : "false" },
-    update: { value: on ? "true" : "false" },
-  });
+  await writePracticeSetting("psycheIncludeNotes", on ? "true" : "false");
   revalidate(clientId);
   return { ok: true };
 }

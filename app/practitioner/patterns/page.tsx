@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { PATTERN_LIBRARY_KEY, K_FLOOR } from "@/lib/pattern-library";
@@ -20,7 +21,7 @@ export default async function PatternsPage({
   await requirePractitioner();
 
   const [enabled, archetypes, links] = await Promise.all([
-    prisma.practiceSetting.findUnique({ where: { key: PATTERN_LIBRARY_KEY } }),
+    readPracticeSetting(PATTERN_LIBRARY_KEY),
     prisma.patternArchetype.findMany({ orderBy: [{ clientCount: "desc" }, { label: "asc" }] }),
     prisma.patternLink.findMany({ where: { clientCount: { gte: K_FLOOR } }, orderBy: { clientCount: "desc" }, take: 30 }),
   ]);

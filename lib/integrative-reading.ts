@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import type { IntegrativeReading } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import type { SpherePosition } from "@/lib/gene-keys";
 import {
   buildSystemPrompt,
@@ -117,7 +118,7 @@ export function chartInputHash(payload: ChartPayload, locale: ReadingLocale = "e
 }
 
 async function holdForReview(): Promise<boolean> {
-  const row = await prisma.practiceSetting.findUnique({ where: { key: READING_HOLD_KEY } });
+  const row = await readPracticeSetting(READING_HOLD_KEY);
   return row?.value === "1";
 }
 
