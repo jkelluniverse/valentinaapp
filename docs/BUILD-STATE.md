@@ -12,11 +12,12 @@
 ## CLOSED pending Jacob's sender decision); psychefolio.com/.app purchased.)
 
 ## Queue (dependency order):
--1. (Architect review) C25-PRACTICE-SETTING-TENANCY — BUILT AND MERGED 2026-09-11 (was the
-   program's top priority per ruling 32). Report in
-   docs/reports/outbox/BUILD-REPORT-C25-PRACTICE-SETTING-TENANCY.md; three decisions for
-   ratification (tenancy-cache error handling, archaeology pin, spec moved to accepted/).
-   Migration 49 is now in the "Before the event (Jacob)" deploy list.
+-1. ~~(Architect review) C25-PRACTICE-SETTING-TENANCY~~ — **REVIEWED AND CLOSED 2026-09-11
+   (rulings 33–35 below): all three flagged decisions RATIFIED.** Report in
+   docs/reports/outbox/BUILD-REPORT-C25-PRACTICE-SETTING-TENANCY.md. One follow-up ticket
+   filed from the review: task #81 (public-surface writes under failed tenant resolution —
+   an untested hypothesis to REPRODUCE before any code changes; see Blocked list).
+   Migration 49 is deployed in both environments.
 0. (Architect review) C24.1-TENANT-SCOPE — report in docs/reports/outbox/BUILD-REPORT-C24.1-TENANT-SCOPE.md.
    Status PARTIAL. Ruling 24 implemented and gated (`withTenantScope`, tenant-scope-verify 48/48;
    stamp audit exit 0 after a 23-gate sweep). **Assumption 3 was FALSE:** `audits/amd06/verify.ts`
@@ -573,6 +574,27 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
   neither run nor edit them (ruling 27) and named them as UNRESOLVED in the new gate's scan — which
   fails if any NEW unwrapped CLI writer appears. ARCHITECT-REQUEST 1 recommends wrapping all three
   (3 lines).
+- (code, investigate-first) task #81 — filed from the C25 review, and the Architect flags it
+  as an UNTESTED HYPOTHESIS, not a finding (rulings 12/18 discipline): `getTenant()` still
+  resolves a failed lookup to the default tenant for that request
+  (`tenantBySlug(slug) ?? tenantBySlug(DEFAULT_TENANT_SLUG)`). Authenticated surfaces are
+  protected by the cross-tenant door in `lib/auth-guards.ts`; PUBLIC surfaces have no such
+  check — and C18's booking action writes `Lead`/`Appointment`, which are tenant-scoped. The
+  hypothesis: a client booking on practice B's public site during a request where resolution
+  fails could land that lead in Valentina's practice — CORRECTLY STAMPED, so no audit would
+  flag it. The ruling-33 cache fix shrinks the window from 60s to a single request (most of
+  the risk). **REPRODUCED 2026-09-11, same day, 3/3 with a clean control**
+  (`audits/t81-booking-tenant-repro.ts` — manual repro harness, NOT a standing gate): with
+  SELECT on "Tenant" revoked from the server's DB role (deterministic "known host,
+  resolution failed"), the REAL booking form on practice B's own host completed end-to-end
+  and the Lead landed in `tnt_valentina_000000001`; the control run (healthy role, same host,
+  same form) stamped tenant B. Two aggravations observed: B's /book page renders VALENTINA'S
+  availability under the failure, and the booking notification goes to HER practice. The
+  hypothesis is now a CONFIRMED defect awaiting an Architect spec on the open design
+  question: distinguish "unknown slug, legitimately the default" from "known host,
+  resolution failed" and fail closed on the second, at least for scoped writes on public
+  surfaces. NO code changed (investigate-first discipline held). Not reachable before
+  self-serve signup existed; it is now.
 - ~~(code, ARCHITECT-REQUEST, found by C24.1) the scoped client's fail-closed pre-check
   selects `{ id: true }` / `PracticeSetting` globally unique on `key`~~ — **CLOSED 2026-09-11
   by C25-PRACTICE-SETTING-TENANCY** (ruling 32's spec): DMMF-derived identity + migration 49.
@@ -584,6 +606,19 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
   running there. Note `_TenantStampBackfill48` is a real table outside `schema.prisma` — harmless
   under `migrate deploy` (the only command this repo uses), drift under `migrate dev`.
 - (Jacob decision) Cloudflare R2 storage cutover (local driver live; config swap)
+
+## Architect rulings — 2026-09-11 (C25-PRACTICE-SETTING-TENANCY review)
+33. **The tenancy-cache fix RATIFIED.** Caching a failed query as "no such tenant" is the
+    quiet-defect pattern: a transient blip becomes a minute of wrong answers with nothing
+    logged as wrong. Serving the last known value on error, and never letting a failure
+    enter the cache, is right.
+34. **The commit pins (`a6c8bd8`, `939a663`) RATIFIED, and the proposed standing rule
+    adopted in stronger form, binding on every gate in this program: a gate must NEVER
+    reference a moving pointer (HEAD, a branch name) for a before/after claim.** `HEAD`
+    means something different tomorrow, so the gate silently starts testing a different
+    assertion than the one it was written to test — and it will usually still PASS, which
+    is worse than failing. Pin the commit.
+35. **The spec move to `accepted/` RATIFIED. C25 is closed.**
 
 ## Standing laws: specs are law; verbatim legal text; evidence-mandatory AI; no invented features;
    kill-switches & gates per spec; report discrepancies, never silently resolve them.
