@@ -1,0 +1,83 @@
+{
+  "schedule": {
+    "eyebrow": "Sessions",
+    "title": "Book a session",
+    "notSetUp": "Scheduling isn't set up yet.",
+    "noConsent": "Your consent isn't on record yet, so booking isn't open. Please reach out to Valentina.",
+    "banner": {
+      "booked": "You're booked — a confirmation is on its way, and it's on the calendar below.",
+      "cancelled": "That session was cancelled.",
+      "cancelledFee": "That session was cancelled. The late-change fee is below, whenever you're ready.",
+      "rescheduled": "Your session has a new time — a confirmation is on its way.",
+      "rescheduledFee": "Your session has a new time — a confirmation is on its way. The late-change fee is below, whenever you're ready.",
+      "paid": "Paid — thank you. The receipt is with your card statement.",
+      "package": "Thank you — your package is active. Sessions you book now draw from it.",
+      "taken": "That time was just taken — please pick another."
+    },
+    "upcoming": "Your upcoming sessions",
+    "join": "Join",
+    "reschedule": "Reschedule",
+    "cancel": "Cancel",
+    "topic": "Topic: {note}",
+    "covered": "Covered by your package",
+    "paid": "Paid",
+    "pending": "Payment on its way",
+    "due": "When you're ready before the session",
+    "settle": "Settle this session",
+    "openTimes": "Open times",
+    "back": "Back to your space",
+    "addToCalendar": "Add to calendar:"
+  },
+  "package": {
+    "title": "Your package",
+    "remaining": "{count, plural, =0 {No sessions remaining} =1 {One session remaining} =2 {Two sessions remaining} =3 {Three sessions remaining} =4 {Four sessions remaining} =5 {Five sessions remaining} =6 {Six sessions remaining} =7 {Seven sessions remaining} =8 {Eight sessions remaining} =9 {Nine sessions remaining} other {# sessions remaining}}",
+    "pipsLabel": "{used} used, {reserved} booked, {available} open",
+    "detail": "{used} of {total} used · {reserved, plural, =0 {none booked yet} =1 {one booked} other {# booked}}",
+    "through": "yours through {date}",
+    "allComplete": "Your package is complete — every session in it has been held.",
+    "history": "Package history",
+    "historyItem": "{total}-session package · began {date}"
+  },
+  "continue": {
+    "title": "Continue our work",
+    "lede": "Session packages, when you're ready for the next stretch of the work.",
+    "sessions": "{count, plural, =1 {one session} other {# sessions}}"
+  },
+  "purchase": {
+    "note": "Once it's settled, your package is active right away — sessions you book draw from it, one by one.",
+    "offline": "Online payment isn't set up here yet — please arrange this with Valentina directly, and it will appear on this page once it's in place.",
+    "back": "Back to your sessions"
+  },
+  "fees": {
+    "title": "Something to settle",
+    "reason": {
+      "LATE_RESCHEDULE": "Late reschedule",
+      "LATE_CANCEL": "Late cancellation",
+      "NO_SHOW": "Missed session"
+    },
+    "settle": "Settle"
+  },
+  "cancel": {
+    "title": "Cancel this session",
+    "goneTitle": "That session isn't here",
+    "goneBody": "It may have already been cancelled or moved. Your sessions page has the current picture.",
+    "freeBody": "Life happens — if this time no longer works, you can let it go here and pick another whenever you're ready.",
+    "confirm": "Cancel this session",
+    "keep": "Keep my session",
+    "lateBody": "This session is less than {hours} hours away, so a {amount} late-change fee applies. If something urgent has come up, you can also message Valentina.",
+    "anyway": "Cancel anyway ({amount})",
+    "message": "Message Valentina"
+  },
+  "reschedule": {
+    "title": "Move your session",
+    "current": "Currently {when}.",
+    "lateNotice": "Because this session is less than {hours} hours away, moving it comes with a {amount} late-change fee. If something urgent has come up, you can also message Valentina.",
+    "pick": "Pick a new time",
+    "from": "From {when}",
+    "to": "To {when}",
+    "confirm": "Move my session",
+    "confirmFee": "Move anyway ({amount})",
+    "another": "Pick another time",
+    "taken": "That time was just taken — please pick another."
+  }
+}

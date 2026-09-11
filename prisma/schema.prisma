@@ -13,11 +13,1877 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id           String     @id @default(cuid())
+  email        String     @unique
   name         String?
   passwordHash String?
-  role         Role     @default(CLIENT)
+  role         Role       @default(CLIENT)
+  active       Boolean    @default(true) // deactivation gate for login
+  locale       String     @default("en") // AMD-05 — UI chrome + client-facing AI + email ("en" | "es")
+  sessionVersion Int      @default(0) // AMD-05 B2 — stamped into the JWT; bump revokes all sessions
+  mustChangePassword Boolean @default(false) // AMD-06 — temp password forces a new one at next sign-in
+  notifyPrefs  Json? // AMD-05 — per-kind email prefs (e.g. {"booking":true,"messages":true,"quietStart":22,"quietEnd":7})
+  consentAt    DateTime? // legacy account consent (kept for back-compat; AMENDMENT-01)
+  aiConsentAt  DateTime? // legacy AI-review opt-in — folded into unified consent (AMENDMENT-01)
+  consentGrants ConsentGrant[]
+  emailChanges EmailChangeRequest[]
+  passwordResets PasswordResetToken[]
+  deletionRequests DeletionRequest[]
+  pushSubscriptions PushSubscription[]
+  entries      LogEntry[]
+  assignments  Assignment[]  @relation("ClientAssignments")
+  record       RecordItem[]  @relation("ClientRecord")
+  preps        SessionPrep[] @relation("ClientPreps")
+  enrollments  Enrollment[]  @relation("ClientEnrollments")
+  worksheets   WorksheetAssignment[] @relation("ClientWorksheets")
+  appointments Appointment[] @relation("ClientAppointments")
+  profile      ClientProfile?
+  humanDesign  HumanDesignChart?
+  birthCore    BirthChartCore?
+  lensResults  LensResult[]  @relation("ClientLenses")
+  integrativeProfile IntegrativeProfile?
+  integrativeReading IntegrativeReading?
+  conversation Conversation? @relation("ClientConversation")
+  notes        Note[]        @relation("ClientNotes")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// AMENDMENT-01 — Unified Consent. One versioned global grant covers the whole
+// portal scope (storage, practitioner review, AI-assisted processing, charts,
+// messages-as-record). lib/consent.ts is the single gate; a version bump is the
+// only thing that ever re-asks. Card-on-file and session recording stay
+// separate in-context opt-ins and are NOT represented here.
+model ConsentGrant {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id        String   @id @default(cuid())
+  userId    String
+  version   String // e.g. "2026-07"
+  grantedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, version])
+}
+
+// Web Push (per device). One row per browser/device subscription; dead
+// endpoints are pruned when a push bounces. Payloads never carry message
+// content — only "you have something waiting" plus a destination.
+model PushSubscription {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// AMD-05 B2 — verified email change. The address switches ONLY when the link
+// sent to the NEW address is confirmed; the old address is notified on request
+// (account-takeover tripwire). Tokens stored hashed, single-use, expiring.
+model EmailChangeRequest {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  newEmail   String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Password reset — the self-serve way back in. Single-use hashed token, short
+// expiry; consuming it bumps sessionVersion so every open session dies.
+model PasswordResetToken {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// AMD-05 B3 — "request deletion" is a REQUEST, not a self-serve nuke: it opens
+// a flagged task for the practitioner and gets honored on a defined timeline.
+model DeletionRequest {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note        String?
+  status      String    @default("OPEN") // OPEN | ACKNOWLEDGED | CLOSED
+  handledById String?
+  handledAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, createdAt])
+}
+
+// C17 — The Deepening. After a reflection is kept, an async safety-first pass
+// may offer ONE gentle, optional "door" to go a little further. Answers become
+// record items (feeding C16) and self-map stars. A skip is signal, never a nag;
+// crisis suppresses deepening and flags Valentina. No entry content is logged.
+model EntryDeepening {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                 String    @id @default(cuid())
+  entryId            String    @unique // one deepening per kept entry
+  clientId           String
+  door               String? // somatic | recurrence | belief | temporal | origin | protection | resource | connection
+  question           String?
+  pacing             String    @default("settled") // settled | tender | raw | crisis
+  routeToSession     Boolean   @default(false) // significant material → hand to the room
+  groundingNote      String? // shown when raw/flooded instead of a probe
+  connectionItemId   String? // an echo to the client's OWN earlier record item
+  connectionLine     String?
+  answer             String? // the client's answer (if they walk through the door)
+  answeredNodeId     String? // SELF_REPORTED node the answer became
+  dismissed          Boolean   @default(false)
+  crisis             Boolean   @default(false)
+  crisisCleared      Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  answeredAt         DateTime?
+
+  @@index([clientId, createdAt])
+}
+
+// C16 — The Constellation: the visual psyche map. PRACTITIONER-ONLY (the
+// app's most sensitive artifact); every AI node/edge carries evidence links to
+// the client's actual record items; language is experiential, never diagnostic.
+enum NodeKind {
+  WOUND
+  SHADOW
+  CORE_BELIEF
+  PROTECTION
+  PATTERN
+  BEHAVIOR
+  TRAIT
+  RESOURCE
+  GIFT
+}
+
+enum NodeSource {
+  AI_EXTRACTED
+  PRACTITIONER
+  SELF_REPORTED
+  CHART_DERIVED // C12X §4 — the chart proposes; the record confirms
+}
+
+enum NodeState {
+  ACTIVE
+  LOOSENING
+  INTEGRATED
+  ARCHIVED
+  CONTRADICTED // C12X §5/§6 — retired from surfacing, kept in history
+}
+
+model PsycheNode {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                    String     @id @default(cuid())
+  clientId              String
+  kind                  NodeKind
+  label                 String // short, human ("Not enough as I am")
+  description           String? // one paragraph, plain language
+  source                NodeSource
+  state                 NodeState  @default(ACTIVE)
+  weight                Float      @default(1) // computed from evidence count/recency — drives size
+  evidenceRecordItemIds String[] // every node traces to the client's actual material
+  chartRefs             Json? // optional resonance: gate/key/center/stage this echoes
+  giftLabel             String? // the Gene Keys-style transmutation target ("Sovereign worth")
+  suggestedState        NodeState? // AI-suggested transition, Valentina-confirmed (§5)
+  suggestedReason       String?
+  selfX                 Float? // the client's own star placement (Your First Map)
+  selfY                 Float?
+  promptKey             String? // which First Map prompt birthed a self-reported node
+  chartBasis            String? // C12X §4 — which chart feature proposed this (CHART_DERIVED only)
+  blockKey              String? // C12X — reading placement key this hypothesis mirrors ("center:head")
+  evidenceNoteIds       String[] // C14-REMARKABLE — her session notes as first-class evidence (practitioner-only surface)
+  evidenceTranscriptRefs String[] // C19 — spoken moments: "t:<transcriptId>#<segmentIndex>"
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  @@index([clientId, kind, state])
+}
+
+model PsycheEdge {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                    String   @id @default(cuid())
+  clientId              String
+  fromId                String // e.g. the wound
+  toId                  String // e.g. the protection it drives
+  relation              String // DRIVES | PROTECTS_FROM | EXPRESSES_AS | ROOTED_IN | REINFORCES | SOFTENED_BY
+  weight                Float    @default(1)
+  evidenceRecordItemIds String[]
+  createdAt             DateTime @default(now())
+
+  @@unique([fromId, toId, relation])
+  @@index([clientId])
+}
+
+// Metadata-only audit of extraction runs (C5-grade handling).
+model PsycheExtraction {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id            String    @id @default(cuid())
+  clientId      String
+  requestedById String
+  deep          Boolean   @default(false) // full-record re-read vs incremental
+  scopeFrom     DateTime?
+  scopeTo       DateTime
+  model         String
+  nodesCreated  Int       @default(0)
+  nodesUpdated  Int       @default(0)
+  edgesCreated  Int       @default(0)
+  referralFlag  Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+
+  @@index([clientId, createdAt])
+}
+
+// Every curation action Valentina takes on a map, audited.
+model PsycheAudit {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id        String   @id @default(cuid())
+  clientId  String
+  actorId   String
+  action    String // ADD_NODE | EDIT_NODE | SET_STATE | MERGE | ARCHIVE | ADD_EDGE | DELETE_EDGE | TO_NOTE
+  detail    String
+  createdAt DateTime @default(now())
+
+  @@index([clientId, createdAt])
+}
+
+// C16.8 — the Pattern Library: the practice ontology. NO client references, by
+// design — the schema cannot hold client content, IDs, or text from records.
+model PatternArchetype {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id          String   @id @default(cuid())
+  kind        NodeKind
+  label       String   @unique // "Not-enoughness"
+  definition  String
+  clientCount Int      @default(0) // k-floored (k >= 5) before any use
+  updatedAt   DateTime @updatedAt
+}
+
+model PatternLink {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id          String @id @default(cuid())
+  fromId      String
+  toId        String
+  relation    String
+  strength    Float // aggregate, k-floored
+  clientCount Int
+
+  @@unique([fromId, toId, relation])
+}
+
+// AMENDMENT-03 — The Library, as Folders. Folders nest without limit; items are
+// POINTERS to existing C9 worksheets / C3 prompts / C6 courses (refId), or
+// storage-free docs (body) and links (url). Deleting moves to trash (deletedAt),
+// never silent loss.
+model LibraryFolder {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id             String   @id @default(cuid())
+  practitionerId String
+  name           String
+  parentId       String? // null = top level; nesting unlimited
+  isDefault      Boolean  @default(false) // the seeded four (renameable, not deletable)
+  order          Int      @default(0)
+  deletedAt      DateTime? // trashed
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([practitionerId, parentId, order])
+}
+
+model LibraryItem {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id        String   @id @default(cuid())
+  folderId  String
+  kind      String // WORKSHEET | PROMPT | COURSE | FILE | LINK | DOC
+  refId     String? // points at the C9 Worksheet / C3 Prompt / C6 Course (no duplication)
+  fileKey   String? // object-storage key for uploads (when storage is configured)
+  url       String? // LINK target
+  body      String? // DOC text content
+  name      String
+  order     Int      @default(0)
+  deletedAt DateTime? // trashed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([folderId, order])
+}
+
+// C11 — client profile. DOB, birth time, and birthplace are sensitive PII:
+// stored to the app's high standard, never logged, and (with the in-house HD
+// engine) never sent to any external service — only the place NAME goes to a
+// geocoder, with no identity or date attached.
+model ClientProfile {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredName    String?
+  pronouns         String?
+  phone            String?
+  // birth data (drives Human Design)
+  birthDate        DateTime? // civil date, stored midnight UTC
+  birthTime        String? // "HH:MM" local; exact if known
+  birthTimeUnknown Boolean   @default(false)
+  birthTimePrecision String? // AMD-05 B5.3 — EXACT | APPROXIMATE | UNKNOWN (null = legacy, derive from birthTimeUnknown)
+  paymentRemindersMuted Boolean @default(false) // C13-PKG §9 — per-client auto-reminder mute
+  renewalMessagesMuted  Boolean @default(false) // C13-PKG §6 — suppress the automatic client renewal message
+  // Payee — a different person who covers this client's bills (a parent, a
+  // partner, an employer). When set, invoice emails and payment reminders are
+  // also sent to them, with the PDF invoice attached.
+  payeeName        String?
+  payeeEmail       String?
+  birthPlace       String? // as entered by the client
+  birthLat         Float? // geocoded
+  birthLng         Float?
+  birthTz          String? // IANA tz for that place (historical rules applied by tz db)
+  intakeCompletedAt DateTime?
+  firstMapCompletedAt DateTime? // C16.5 — "Your First Map" self-mapping exercise
+  stage            String? // current program stage (C13); history in StageChange
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// The generated Human Design chart. Computed fully in-house (astronomy-engine
+// ephemeris + HD mechanics) — provider records engine + version for audit;
+// raw keeps the full computation so a provider switch needs no schema change.
+model HumanDesignChart {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider     String
+  type         String?
+  strategy     String?
+  authority    String?
+  profile      String? // e.g. "1/3"
+  definition   String?
+  centers      Json? // { centerName: "defined" | "open" }
+  channels     Json? // active channel list
+  gates        Json? // personality/design activations
+  variables    Json?
+  bodygraphSvg String? // reserved: the app renders from `centers`/`channels` live
+  raw          Json?
+  inputHash    String? // hash of birth inputs → detect change → regenerate
+  generatedAt  DateTime @default(now())
+  accuracyNote String? // set when birth time was estimated
+}
+
+// C12 — the Integrative Profile Engine. One birth-data computation (the core)
+// feeds every birth-data lens; assessment lenses plug in beside them; the
+// synthesis on top is Valentina's method — elicited from her, never invented.
+
+model BirthChartCore {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personality      Json // 13 gate/line activations at birth
+  design           Json // activations at 88° solar arc before birth
+  incarnationCross String? // the four cross gates, e.g. "12/11 · 36/6"
+  spheres          Json? // Gene Keys sphere positions derived from the core
+  provider         String // engine + version (audit)
+  inputHash        String
+  computedAt       DateTime @default(now())
+}
+
+model LensResult {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation("ClientLenses", fields: [userId], references: [id], onDelete: Cascade)
+  lens                 String // HUMAN_DESIGN | GENE_KEYS | SPIRAL
+  sourceType           String // BIRTH_DATA | ASSESSMENT
+  result               Json // structured interpretation for this lens
+  contentRef           String? // content version (original-voice / licensed)
+  practitionerReviewed Boolean  @default(false) // assessment lenses need her sign-off
+  generatedAt          DateTime @default(now())
+
+  @@unique([userId, lens])
+}
+
+model IntegrativeProfile {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  synthesis   Json // cross-lens map (structured, per her method)
+  narrative   String? // AI-drafted integrative summary — practitioner-facing
+  version     String // method + prompt version (audit)
+  fingerprint Json? // C12X-PATCH-01 §2 — inputs fingerprint (staleness, not schedules)
+  generatedAt DateTime @default(now())
+}
+
+// C12X-PATCH-01 §2 — prior versions of generated artifacts append here on
+// regeneration; her artifacts are part of the record's history.
+model ArtifactVersion {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String   @id @default(cuid())
+  clientId     String
+  artifactType String // READING | FORMULATION | GUIDE
+  content      Json // the superseded artifact, whole
+  model        String
+  generatedAt  DateTime // when the superseded version was originally generated
   createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+
+  @@index([clientId, artifactType, createdAt])
+}
+
+// C12 reading addendum — "What It All Means to You". The ONE client-facing AI
+// output. Generated from the three CHARTS ONLY (HD + Gene Keys + Spiral) —
+// never the private record. A reflective reading of their design, not a
+// formulation of their blocks (which stays practitioner-only, C5).
+model IntegrativeReading {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content              String // the reading (markdown)
+  model                String // model + prompt version (audit)
+  inputHash            String // hash of the 3 charts → detect change → regenerate
+  status               String   @default("PUBLISHED") // PUBLISHED | PENDING_REVIEW
+  editedByPractitioner Boolean  @default(false)
+  structured           Json? // C12X §2 — the structured reading (sections + expandable placement blocks)
+  clientNotifiedAt     DateTime? // last "your reading is ready" send (one-tap from the full-page view)
+  generatedAt          DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// C12X — The Client Intelligence Layer. One enrichment, three consumers, and
+// the client-correction system that keeps every interpretation honest.
+
+// §5 — resonance marks. Append-only, first-class evidence events: who marked
+// which interpretation, when, and what it said before. The latest mark per
+// subject is its current resonance; history is never rewritten.
+model ResonanceMark {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String   @id @default(cuid())
+  clientId     String
+  subjectType  String // READING_BLOCK | GUIDE_CLAIM | NODE
+  subjectKey   String // placement blockKey · guide claim key · node id
+  value        String // FEELS_TRUE | PARTLY | DOESNT_FIT | NOT_YET | NO_LONGER
+  priorValue   String? // what the previous mark said (state transition audit)
+  markedById   String
+  markedByRole String // CLIENT | PRACTITIONER
+  createdAt    DateTime @default(now())
+
+  @@index([clientId, subjectType, subjectKey, createdAt])
+}
+
+// §3 — the Practitioner Integration Guide: chart × the full record, HER eyes
+// only. Regenerated on demand; the heaviest AI call in the app by design.
+model IntegrationGuide {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id          String   @id @default(cuid())
+  clientId    String   @unique
+  model       String // model + prompt version (audit)
+  inputHash   String
+  output      Json // components[] — 15-point blocks, cross-refs, cautions, confidence
+  fingerprint Json? // C12X-PATCH-01 §2 — inputs fingerprint (staleness, not schedules)
+  generatedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// §7 domain B — Goals: the client's goal in their ORIGINAL wording (sacred,
+// never paraphrased away). statement is immutable after creation by design —
+// there is no update path for it in the actions.
+model ClientGoal {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                    String   @id @default(cuid())
+  clientId              String
+  statement             String // their words, verbatim — never edited
+  whyItMatters          String?
+  obstacles             String?
+  relatedNodeIds        String[] // linked Constellation beliefs/patterns
+  progressRecordItemIds String[] // evidence of movement
+  status                String   @default("ACTIVE") // ACTIVE | PROGRESSING | ACHIEVED | RETIRED
+  createdById           String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([clientId, status])
+}
+
+// §7 domain K — Belief Work: each limiting belief with its evidence on both
+// sides, generated statement OPTIONS (never pre-approved), and the client-
+// approved final wording. A statement is unusable until approvedAt is set.
+model BeliefWork {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                       String    @id @default(cuid())
+  clientId                 String
+  belief                   String // the client's wording, verbatim first
+  nodeId                   String? // linked CORE_BELIEF node on the map
+  supportingRecordItemIds  String[]
+  contradictingRecordItemIds String[]
+  statementOptions         Json? // [{ text, criteria: {...} }] — options only
+  approvedStatement        String? // the client-approved final wording
+  approvedAt               DateTime?
+  balanceUsed              String? // which balance/process was used
+  subjectiveResponse       String? // how it felt, in their words
+  followUpRecordItemIds    String[] // behavioral evidence after the work
+  status                   String    @default("ACTIVE") // ACTIVE | REVISED | RETIRED
+  createdById              String
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@index([clientId, status])
+}
+
+// §7 domain L — Intervention outcomes: what each assignment was FOR and what
+// it actually produced, feeding "which interventions helped?".
+model InterventionOutcome {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                    String   @id @default(cuid())
+  clientId              String
+  assignmentId          String?  @unique // prompt assignment
+  worksheetAssignmentId String?  @unique // worksheet assignment
+  purpose               String?
+  linkedNodeId          String? // the theme it addressed
+  clientResponse        String? // how they experienced it
+  insights              String?
+  difficulties          String?
+  decision              String? // REPEAT | ADAPT | DISCONTINUE
+  createdById           String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([clientId])
+}
+
+// §8 — Ask the Record: longitudinal queries with cite-or-decline answers.
+// Kept (practitioner-only) because yesterday's answer is session gold.
+model AskRecordAnswer {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id        String   @id @default(cuid())
+  clientId  String
+  question  String
+  model     String
+  output    Json // { findings: [{statement, evidenceIds, confidence}], notEstablished: [] }
+  askedById String
+  createdAt DateTime @default(now())
+
+  @@index([clientId, createdAt])
+}
+
+// Small practice-wide key/value settings (e.g. her synthesis-method text).
+// C25 — a practice setting belongs to a PRACTICE. `key` used to be the global
+// primary key, which made the model structurally incapable of holding more
+// than one practice's settings (ruling 32). Identity is now `id` + a
+// tenant-scoped unique on (tenantId, key), matching every other scoped model.
+// No setting's meaning, default or value changed — only how a row is
+// addressed. Never address a row by `key` alone: use lib/practice-settings.ts.
+model PracticeSetting {
+  tenantId  String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id        String   @id @default(cuid())
+  key       String
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, key])
+}
+
+// C14 — The Margins. Valentina's private notes: her thinking, NEVER client-
+// visible and never written to the C4 record. A jot and a note are the same
+// row at different depths. The strictest boundary in the app — every read is
+// practitioner-scoped and no note content ever reaches logs.
+
+enum NoteDepth {
+  JOT
+  NOTE
+}
+
+enum NoteStatus {
+  OPEN
+  ELABORATED
+  ARCHIVED
+}
+
+model Note {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                  String     @id @default(cuid())
+  authorId            String // practitioner (always)
+  clientId            String? // null = free-floating idea (unfiled notebook)
+  client              User?      @relation("ClientNotes", fields: [clientId], references: [id], onDelete: Cascade)
+  appointmentId       String? // optional link to a session (C10)
+  depth               NoteDepth  @default(JOT)
+  status              NoteStatus @default(OPEN)
+  title               String?
+  body                String
+  tags                String[] // theme/belief areas (same vocabulary as client themes)
+  linkedRecordItemIds String[] // record items she tied this to (C4)
+  parentNoteId        String? // a note elaborated FROM another (thread)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  scans               NoteScan[]
+
+  @@index([clientId, createdAt])
+  @@index([authorId, depth, status])
+}
+
+// C14-REMARKABLE — a handwritten page emailed from her reMarkable, awaiting
+// the 10-second review. The original PDF is part of the record she may want
+// to see again — stored whole, never auto-deleted. Same privacy class as
+// Notes (strictest in the app; never client-visible; no content in logs).
+model HandwrittenNote {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                   String    @id @default(cuid())
+  status               String    @default("DRAFT") // DRAFT | APPLIED | DISMISSED
+  source               String    @default("EMAIL") // EMAIL | DRIVE | CLOUD
+  fromAddress          String
+  subject              String?
+  pdf                  Bytes // the original handwriting
+  transcript           String? // verbatim, emphasis markers kept, [?] never guessed
+  transcriptModel      String?
+  matchedClientId      String? // SUGGESTION only — Apply requires explicit confirm (§3 gate)
+  matchedAppointmentId String?
+  matchConfidence      String? // CONFIDENT | AMBIGUOUS | NONE
+  appliedNoteId        String?   @unique // the C14 Note it became
+  appliedAt            DateTime?
+  appliedById          String?
+  receivedAt           DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status, receivedAt])
+}
+
+// C19 §0 — recording consent: its own in-context opt-in (AMENDMENT-01 kept it
+// OUTSIDE the global consent). Names the vendor cloud; versioned; revocable.
+// No consent → the feature is invisible for that client.
+model RecordingConsent {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String    @id @default(cuid())
+  clientId     String    @unique
+  version      String
+  textSnapshot String // the exact wording they agreed to
+  grantedAt    DateTime  @default(now())
+  revokedAt    DateTime?
+}
+
+// C19 — a processed recording awaiting review (parallel to HandwrittenNote).
+model RecordingDraft {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                   String    @id @default(cuid())
+  status               String    @default("DRAFT") // DRAFT | APPLIED | DISMISSED
+  provider             String // "pocket" | "fixture"
+  providerRef          String    @unique // recording id on the provider
+  payload              Json // {summary, segments[], tags[], language, audioUrl?}
+  matchedClientId      String?
+  matchedAppointmentId String?
+  matchConfidence      String?
+  appliedTranscriptId  String?   @unique
+  receivedAt           DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status, receivedAt])
+}
+
+// C19 §4 — the session transcript: speaker-attributed, redactions applied
+// BEFORE persistence (struck passages never persist). C14-grade privacy.
+model SessionTranscript {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id            String   @id @default(cuid())
+  clientId      String
+  appointmentId String?  @unique
+  provider      String
+  providerRef   String?
+  audioRef      String? // our custody pointer — own the audio (§5)
+  summary       String?
+  segments      Json // [{speaker: CLIENT|PRACTITIONER|UNKNOWN, text, startMs?}]
+  redactedCount Int      @default(0)
+  language      String?
+  noteId        String?  @unique // the C14 session note carrying the summary
+  crisisFlag    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([clientId, createdAt])
+}
+
+model NoteScan {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String   @id @default(cuid())
+  noteId       String
+  note         Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  model        String
+  connections  Json // [{ area, link, evidenceRecordItemIds[], suggestion, confidence }]
+  referralFlag Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([noteId, createdAt])
+}
+
+// C15 — The Open Line. One calm async 1:1 thread per client. Message content is
+// among the most sensitive data in the app: practitioner-scoped reads, never in
+// logs, consent governs record-feeding. Client messages (unless off-record)
+// become RecordItem(MESSAGE) and feed the psyche net; hers are context only.
+
+enum SenderRole {
+  PRACTITIONER
+  CLIENT
+}
+
+enum ConvoStatus {
+  ACTIVE
+  PAUSED
+}
+
+model Conversation {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id             String      @id @default(cuid())
+  clientId       String      @unique // single practitioner: one thread per client
+  client         User        @relation("ClientConversation", fields: [clientId], references: [id], onDelete: Cascade)
+  practitionerId String
+  status         ConvoStatus @default(ACTIVE)
+  lastMessageAt  DateTime?
+  createdAt      DateTime    @default(now())
+  messages       Message[]
+}
+
+model Message {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                 String       @id @default(cuid())
+  conversationId     String
+  conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId           String
+  senderRole         SenderRole
+  body               String
+  references         Json? // [{ type, id }] — ASSIGNMENT|WORKSHEET|COURSE|LESSON|READING|REFLECTION
+  excludedFromRecord Boolean      @default(false) // the "just between us" toggle
+  safetyFlag         Boolean      @default(false) // crisis signal detected on a client message
+  safetyCleared      Boolean      @default(false) // practitioner acknowledged the flag
+  deliveredAt        DateTime?
+  readAt             DateTime?
+  deletedAt          DateTime? // soft delete (audited)
+  createdAt          DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// C13 — program stages, billing ledger, and the Square rail. The app owns the
+// ledger and dashboard; Square owns moving money. Card data NEVER touches this
+// server (Web Payments SDK tokenizes in the browser); money actions carry an
+// actor id; logs stay metadata-only.
+
+model StageChange {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id          String   @id @default(cuid())
+  clientId    String
+  fromStage   String?
+  toStage     String
+  changedById String // practitioner
+  note        String?
+  changedAt   DateTime @default(now())
+
+  @@index([clientId, changedAt])
+}
+
+enum ChargeStatus {
+  DUE
+  PENDING
+  PAID
+  REFUNDED
+  WAIVED
+  CANCELED
+  COVERED // C13-PKG — covered by a package credit; no money due for this session
+}
+
+// C13-PACKAGES — session packages with an append-only credit ledger. Counters
+// are DERIVED, never stored: used = CONSUMED, reserved = RESERVED,
+// available = sessionsTotal − used − reserved. The ledger decides.
+enum PackageStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+  REFUNDED
+}
+
+enum CreditState {
+  RESERVED
+  CONSUMED
+  RELEASED
+}
+
+model Package {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                  String        @id @default(cuid())
+  clientId            String
+  priceBookId         String // the 3/6/9 SKU
+  sessionsTotal       Int
+  status              PackageStatus @default(ACTIVE)
+  chargeId            String        @unique // the payment that bought it
+  purchasedAt         DateTime      @default(now())
+  expiresAt           DateTime? // policy — hers (C13-PKG §12)
+  lastSessionNoticeAt DateTime? // "next session is her last" notice sent (dedup)
+  completedNoticeAt   DateTime? // completion notices sent (dedup)
+  renewalEmailSentAt  DateTime? // BILLING-DASH — her one-tap renewal email
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  credits             SessionCredit[]
+
+  @@index([clientId, status])
+}
+
+model SessionCredit {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id            String      @id @default(cuid())
+  packageId     String
+  package       Package     @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  appointmentId String      @unique // the session it covers
+  state         CreditState @default(RESERVED)
+  reservedAt    DateTime    @default(now())
+  consumedAt    DateTime?
+  releasedAt    DateTime?
+  reason        String? // COMPLETED | LATE_CANCEL | NO_SHOW | MANUAL | CANCELLED
+  actorId       String? // who caused the transition (attributable)
+
+  @@index([packageId, state])
+}
+
+model PriceBook {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id               String  @id @default(cuid())
+  name             String // "Standard session", "Stage-2 rate"
+  amountCents      Int
+  currency         String  @default("USD")
+  stage            String? // optional stage-specific rate
+  kind             String  @default("SESSION") // SESSION | PACKAGE
+  sessionsIncluded Int? // for packages (fast-follow; columns ship now)
+  active           Boolean @default(true)
+  createdAt        DateTime @default(now())
+}
+
+model Charge {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id              String       @id @default(cuid())
+  clientId        String
+  appointmentId   String? // the session it bills (null for custom/package charges)
+  kind            String       @default("SESSION") // SESSION | PACKAGE | LATE_FEE | CUSTOM
+  packageId       String? // C13-PKG — the package that covered this session
+  priceBookId     String?
+  description     String
+  amountCents     Int
+  currency        String       @default("USD")
+  status          ChargeStatus @default(DUE)
+  dueAt           DateTime?
+  paidAt          DateTime?
+  paidVia         String? // "portal-card" | "in-person" | "square-external" | "waived"
+  feeReason       String? // C10-POLICY — LATE_RESCHEDULE | LATE_CANCEL | NO_SHOW
+  lastRemindedAt  DateTime? // C13-PKG §9 — no accidental double-nudging
+  remindCount     Int          @default(0) // auto-reminders: dueAt, +7d, stop
+  squarePaymentId String?      @unique
+  squareInvoiceId String?      @unique
+  squareInvoiceUrl String? // the hosted pay page — OUR branded email carries it
+  lastActionById  String? // who moved the status (audit)
+  channel         String? // AMD-06 — PRACTITIONER_ASSISTED for phone/in-person purchases
+  channelNote     String? // AMD-06 — required authorization note ("authorized by phone, Jul 20")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // One charge per appointment per kind — a session bill and a late fee can
+  // coexist; a late fee can never stack twice on the same appointment.
+  @@unique([appointmentId, kind])
+  @@index([clientId, status])
+  @@index([status, dueAt])
+}
+
+model SquareCustomerLink {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id               String  @id @default(cuid())
+  clientId         String  @unique
+  squareCustomerId String  @unique
+  cardOnFile       Boolean @default(false)
+  // AMD-06/AMD-01 — the CLIENT's standing authorization to charge the stored
+  // card for what they owe. Practitioner-assisted charge paths require this;
+  // without it the card option simply isn't shown.
+  cardConsentAt        DateTime?
+  cardConsentRevokedAt DateTime?
+}
+
+// Square payments seen by webhook that don't reference one of our charges —
+// e.g. taken on her POS/reader — surfaced in the ledger for one-tap matching.
+model ExternalPayment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id               String    @id @default(cuid())
+  squarePaymentId  String    @unique
+  squareCustomerId String?
+  amountCents      Int
+  currency         String    @default("USD")
+  status           String // Square status, e.g. COMPLETED
+  receivedAt       DateTime  @default(now())
+  matchedChargeId  String? // set when matched to a Charge
+  dismissedAt      DateTime? // she reviewed it — not a session payment
+}
+
+// C9 — Worksheet Studio. The field schema lives as JSON (ordered typed
+// fields), so any worksheet shape works with no migrations. Parallels C3's
+// Assignment/Response on purpose — C4 unifies them in the record.
+model Worksheet {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id          String                @id @default(cuid())
+  title       String
+  intro       String?
+  schema      Json // ordered array of typed fields (lib/worksheet-meta.ts)
+  active      Boolean               @default(true)
+  isIntake    Boolean               @default(false) // the practice intake (C11) — at most one
+  isSpiral    Boolean               @default(false) // the values-spiral assessment (C12) — at most one
+  locale          String            @default("en") // AMD-05 A5 — content language
+  translationOfId String? // AMD-05 A5 — sibling locale version; serve by preference, fall back to origin
+  createdById String
+  sourceNote  String? // where the idea came from (practitioner's own note)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  assignments WorksheetAssignment[]
+}
+
+model WorksheetAssignment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String             @id @default(cuid())
+  worksheetId  String
+  worksheet    Worksheet          @relation(fields: [worksheetId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       User               @relation("ClientWorksheets", fields: [clientId], references: [id], onDelete: Cascade)
+  assignedById String
+  status       String             @default("PENDING") // PENDING | COMPLETED | DISMISSED
+  dueAt        DateTime?
+  fromNoteId   String? // C14 — the practitioner note this grew from
+  createdAt    DateTime           @default(now())
+  response     WorksheetResponse?
+
+  @@index([clientId, status])
+}
+
+model WorksheetResponse {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String              @id @default(cuid())
+  assignmentId String              @unique
+  assignment   WorksheetAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  answers      Json // { fieldId: value } — structured, keyed to the schema
+  assistedById String? // AMD-06 — entered with Valentina's help (dictation is legitimate; the label is honest)
+  completedAt  DateTime            @default(now())
+}
+
+// AMD-06 §2 — the bounded act-as. One active grant per practitioner at a time
+// (cookie-scoped); 30 minutes, then re-entry with a fresh reason.
+model AssistGrant {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id             String    @id @default(cuid())
+  practitionerId String
+  clientId       String
+  reason         String // picklist value
+  note           String? // free text
+  createdAt      DateTime  @default(now())
+  expiresAt      DateTime
+  endedAt        DateTime?
+
+  @@index([clientId, createdAt])
+}
+
+// PLATFORM v1.0 §2 — the tenant config: one codebase, many practices. A new
+// practitioner is a row + a config object + a subdomain, never a fork. All
+// customization is data (Rule 0.3); module keys stay generic and trademark-
+// free (Rule 0.4) — branded names live in tenant-entered settings only.
+model Tenant {
+  id           String   @id @default(cuid())
+  slug         String   @unique // subdomain
+  displayName  String
+  status       String   @default("ACTIVE") // ACTIVE | DEMO | PROVISIONING | SUSPENDED
+  layoutKey    String   @default("journey-v1")
+  skinKey      String   @default("warm-clay")
+  branding     Json? // { logoKey?, accentOverride?, portalTitle, welcomeCopy }
+  featureFlags Json? // { sessionPipeline: true, ... }
+  createdAt    DateTime @default(now())
+  modules      TenantModule[]
+}
+
+model TenantModule {
+  id        String  @id @default(cuid())
+  tenantId  String
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  moduleKey String // registry key, e.g. "values-spiral"
+  enabled   Boolean @default(true)
+  position  Int // display order on client maps
+  settings  Json? // module knobs incl. the practitioner's displayLabel
+
+  @@unique([tenantId, moduleKey])
+}
+
+enum ProspectStatus {
+  LEAD
+  SIGNED_UP
+  DECLINED
+}
+
+// C23-SIGNUP §1 — the practitioner-prospect ledger (the event's people list).
+// PLATFORM-LEVEL, deliberately NOT practice-scoped: a prospect belongs to the
+// platform, not to any one practice — so it sits outside SCOPED_MODELS exactly
+// like Tenant/TenantModule/WebhookEvent, has NO tenantId scope column (its
+// `tenantId` is the tenant they came to OWN, set on conversion), and is
+// therefore outside the null-tenant stamp audit by construction.
+//
+// Kept separate from `Lead` on purpose: a Lead is a prospective CLIENT of a
+// practice and owns the invite-as-client conversion bridge (C18); overloading
+// it would corrupt that bridge.
+model PractitionerProspect {
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique // always stored lowercased; unique = the upsert key + its index
+  phone          String?
+  practiceName   String?
+  note           String?
+  status         ProspectStatus @default(LEAD)
+  source         String? // free text: "event-sept23", "web", UTM
+  referredByCode String? // raw code as captured; attribution logic is C23-REFERRAL's job
+  referralCode   String         @unique // issued at creation so the code exists before the program does
+  tenantId       String? // the tenant they now OWN (set on conversion) — not a scope column
+  convertedAt    DateTime?
+  // C23-ENGAGE §1 — follow-up consent + language.
+  // `unsubscribedAt` is PERMANENT suppression: set once, honoured server-side
+  // before any send, by every sequence present or future.
+  unsubscribedAt DateTime?
+  // The language they actually used when they gave us their name — a property
+  // of the prospect, not of the sender's convenience (law #7).
+  locale         String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([status, createdAt])
+  // C23-REFERRAL §1 — attribution is DERIVED from this column (no parallel
+  // ledger), so every referral count is a lookup by the referrer's code.
+  @@index([referredByCode])
+}
+
+// C23-ENGAGE §1 — the send ledger: one row per (prospect, sequence step),
+// append-only in spirit. Platform-level for exactly the reasons
+// PractitionerProspect is (no tenant scope column, outside SCOPED_MODELS,
+// outside the null-tenant stamp audit).
+//
+// The UNIQUE constraint below — not application care — is what makes
+// double-sending impossible: the engine CLAIMS a step by inserting its row,
+// and a second tick's insert is refused by the database.
+//
+// Status vocabulary, and which values are terminal (this distinction is the
+// whole point of the no-credential seam):
+//   SENT / SUPPRESSED  — terminal. Never reconsidered.
+//   PENDING            — in flight (a tick holds the claim).
+//   SKIPPED            — gate closed or paused: reconsidered on a later tick.
+//   UNCONFIGURED       — no email credential existed: reconsidered on a later
+//                        tick, so a tick that never sent anything can NEVER
+//                        permanently mark a prospect as messaged.
+enum ProspectMessageStatus {
+  PENDING
+  SENT
+  SKIPPED
+  SUPPRESSED
+  UNCONFIGURED
+}
+
+model ProspectMessage {
+  id           String                @id @default(cuid())
+  prospectId   String
+  sequenceKey  String
+  stepKey      String
+  locale       String
+  status       ProspectMessageStatus @default(PENDING)
+  reason       String?
+  scheduledFor DateTime
+  sentAt       DateTime?
+  createdAt    DateTime              @default(now())
+
+  @@unique([prospectId, sequenceKey, stepKey])
+  @@index([status, scheduledFor])
+  @@index([prospectId, createdAt])
+}
+
+// AMD-06 §3 — the audit spine: append-only, attributable, metadata only
+// (never note bodies, answers, tokens, or card data). actorId is who ACTED;
+// onBehalfOfId is whose account it touched.
+model AuditEvent {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String   @id @default(cuid())
+  actorId      String
+  onBehalfOfId String?
+  action       String // slug: "temp-password", "assist-enter", "assisted-purchase", …
+  reason       String?
+  meta         Json? // small metadata: charge id, settlement path — never content
+  createdAt    DateTime @default(now())
+
+  @@index([onBehalfOfId, createdAt])
+  @@index([actorId, createdAt])
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum LessonType {
+  VIDEO
+  TEXT
+  EXERCISE
+}
+
+enum VideoSource {
+  YOUTUBE
+  VIMEO
+  UPLOAD
+}
+
+model Course {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  coverKey    String? // object-storage key (upload deferred)
+  status      CourseStatus @default(DRAFT)
+  locale          String   @default("en") // AMD-05 A5 — content language
+  translationOfId String? // AMD-05 A5 — sibling locale version
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  chapters    Chapter[]
+  enrollments Enrollment[]
+}
+
+model Chapter {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String?
+  order       Int
+  releaseRule String? // NULLABLE now; drip deferred
+  lessons     Lesson[]
+
+  @@index([courseId, order])
+}
+
+model Lesson {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id        String     @id @default(cuid())
+  chapterId String
+  chapter   Chapter    @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  title     String
+  order     Int
+  type      LessonType @default(TEXT)
+  // video
+  videoSource VideoSource?
+  videoUrl    String? // for YOUTUBE/VIMEO embeds
+  videoKey    String? // for UPLOAD (deferred)
+  // text
+  content Json? // {text: string} for now; rich-text upgrade later
+  // exercise (reuse existing content)
+  promptId    String?
+  worksheetId String? // C9 hook; worksheets not built yet
+
+  @@index([chapterId, order])
+}
+
+model Enrollment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id         String           @id @default(cuid())
+  courseId   String
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     User             @relation("ClientEnrollments", fields: [clientId], references: [id], onDelete: Cascade)
+  enrolledAt DateTime         @default(now())
+  progress   LessonProgress[]
+
+  @@unique([courseId, clientId])
+}
+
+model LessonProgress {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String     @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  lessonId     String
+  completedAt  DateTime?
+
+  @@unique([enrollmentId, lessonId])
+}
+
+// C5 — a stored session-prep formulation. Practitioner-only, doubles as the
+// audit record (who/when/client/model/flag). Content never goes to app logs.
+model SessionPrep {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id                String   @id @default(cuid())
+  clientId          String
+  client            User     @relation("ClientPreps", fields: [clientId], references: [id], onDelete: Cascade)
+  requestedById     String // practitioner
+  createdAt         DateTime @default(now())
+  scopeFrom         DateTime?
+  scopeTo           DateTime?
+  model             String // model + prompt version (audit)
+  referralFlag      Boolean  @default(false)
+  output            Json // structured formulation — sensitive, practitioner-only
+  practitionerNotes String? // her annotations
+
+  @@index([clientId, createdAt])
+}
+
+enum RecordKind {
+  LOG_ENTRY
+  PROMPT_RESPONSE
+  WORKSHEET_RESPONSE
+  COURSE_ACTIVITY
+  NOTE
+  MESSAGE
+}
+
+// The unified longitudinal record (C4): every feature appends here through
+// lib/record.ts — the single write path. title/summary/mood/tags are
+// denormalized snapshots for fast timelines and C5's input; the source row
+// (sourceType/sourceId) stays the full-fidelity truth.
+model RecordItem {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id         String     @id @default(cuid())
+  clientId   String
+  client     User       @relation("ClientRecord", fields: [clientId], references: [id], onDelete: Cascade)
+  kind       RecordKind
+  occurredAt DateTime // canonical timeline time
+  title      String? // short label for the timeline
+  summary    String? // short text snapshot
+  mood       Int? // normalized mood, if the source had one
+  tags       String[] // normalized theme tags
+  sourceType String // "LogEntry" | "PromptResponse" | "WorksheetResponse" | "LessonProgress"
+  sourceId   String // reference-by-convention to the detail row
+  detectedLanguage String? // AMD-05 A2 — optional signal ("en" | "es" | "mixed"); never a gate
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@unique([sourceType, sourceId]) // one record item per source row (idempotent writes)
+  @@index([clientId, occurredAt])
+  @@index([clientId, kind])
+}
+
+enum PromptKind {
+  PROMPT
+  EXERCISE
+  CHECK_IN
+}
+
+enum AssignmentStatus {
+  PENDING
+  COMPLETED
+  DISMISSED
+}
+
+model Prompt {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id          String       @id @default(cuid())
+  kind        PromptKind   @default(PROMPT)
+  title       String
+  body        String // the prompt / exercise text
+  active      Boolean      @default(true) // archive without deleting
+  locale          String   @default("en") // AMD-05 A5 — content language
+  translationOfId String? // AMD-05 A5 — sibling locale version
+  createdById String // practitioner
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  assignments Assignment[]
+}
+
+model Assignment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String           @id @default(cuid())
+  promptId     String
+  prompt       Prompt           @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       User             @relation("ClientAssignments", fields: [clientId], references: [id], onDelete: Cascade)
+  assignedById String // practitioner
+  status       AssignmentStatus @default(PENDING)
+  dueAt        DateTime?
+  scheduleRule String? // NULLABLE now; recurring cadence deferred (spec §3)
+  fromNoteId   String? // C14 — the practitioner note this grew from
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  response     PromptResponse?
+
+  @@index([clientId, status])
+}
+
+model PromptResponse {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id           String     @id @default(cuid())
+  assignmentId String     @unique
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  body         String? // reflection text (optional for check-ins)
+  mood         Int? // for check-ins / optional
+  completedAt  DateTime   @default(now())
+}
+
+enum EntryType {
+  TRIGGER
+  INSIGHT
+  PROGRESS
+  REFLECTION
+}
+
+model LogEntry {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id         String    @id @default(cuid())
+  clientId   String
+  client     User      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type       EntryType @default(REFLECTION)
+  occurredAt DateTime  @default(now()) // when the moment happened (editable)
+  body       String // the core reflection — the ONLY required field
+  trigger    String? // what prompted it (optional)
+  mood       Int? // 1..5, optional
+  tags       String[] // optional; seeds later pattern-mapping (C5)
+  createdAt  DateTime  @default(now()) // when it was logged
+  updatedAt  DateTime  @updatedAt
+
+  @@index([clientId, occurredAt])
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+model Invite {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id             String       @id @default(cuid())
+  email          String
+  name           String?
+  tokenHash      String       @unique // store the SHA-256 hash, NEVER the raw token
+  status         InviteStatus @default(PENDING)
+  expiresAt      DateTime
+  invitedById    String // practitioner User id
+  acceptedUserId String? // set on acceptance
+  personalNote   String? // EMAIL-SPEC §4 — her optional line inside the invite email
+  locale         String       @default("en") // the invite email's language; copied to the account on acceptance
+  emailSentAt    DateTime? // last successful auto-send
+  emailError     Boolean      @default(false) // failure is loud, not silent
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([email])
+}
+
+// C10 — Scheduling & Sessions. Bookings reveal who is a client and when, so
+// everything is PRACTITIONER-gated server-side and clients see only their own.
+// Times are stored in UTC; the practitioner's tz lives in SchedulingConfig and
+// slot generation is DST-correct (lib/schedule.ts). Everything keys by
+// practitionerId so a second practitioner needs no schema change.
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// C18 — sessions belong to clients; discovery calls belong to leads (prospects).
+enum AppointmentKind {
+  SESSION
+  DISCOVERY
+}
+
+// C18 — discovery hours are set separately from session hours, so availability
+// rules are tagged by which kind of booking they open.
+enum AvailabilityKind {
+  SESSION
+  DISCOVERY
+}
+
+// C18 — a prospect's journey: stranger → lead → discovery → invited → client.
+enum LeadStatus {
+  NEW
+  SCHEDULED
+  COMPLETED
+  CONVERTED
+  CLOSED
+}
+
+enum SessionLocation {
+  VIRTUAL
+  IN_PERSON
+}
+
+enum ExceptionType {
+  BLOCK // a one-off closure inside normal hours
+  OPEN // a one-off opening outside normal hours
+}
+
+model SchedulingConfig {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id                String @id @default(cuid())
+  practitionerId    String @unique
+  timezone          String // IANA, e.g. "America/New_York"
+  sessionMinutes    Int    @default(50)
+  bufferMinutes     Int    @default(10)
+  minNoticeHours    Int    @default(12)
+  maxAdvanceDays    Int    @default(60)
+  cancelCutoffHours Int    @default(24) // C10-POLICY — the fee boundary (>= cutoff is free)
+  lateFeeCents      Int    @default(5000) // C10-POLICY — the $50; hers to change
+  lateFeeAutoApply  Boolean @default(true) // C10-POLICY — auto-create the fee, or prompt her each time
+  noShowConsumesCredit Boolean @default(false) // C10-POLICY §5 — stricter alternative, shipped off
+  discoveryMinutes  Int    @default(20) // C18 — free discovery call length
+  discoveryVideoUrl String? // C18 — standing room for discovery calls (falls back to defaultVideoUrl)
+  defaultVideoUrl   String? // standing room link used when an appointment has none
+  calendarFeedSecret String @unique // unguessable token for the ICS feed (rotatable)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model AvailabilityRule {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id             String           @id @default(cuid())
+  practitionerId String
+  kind           AvailabilityKind @default(SESSION) // C18 — SESSION or DISCOVERY hours
+  weekday        Int // 0-6 (Sunday..Saturday), practitioner tz
+  startMinute    Int // minutes from midnight
+  endMinute      Int
+  active         Boolean          @default(true)
+
+  @@index([practitionerId, weekday])
+}
+
+model AvailabilityException {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id             String        @id @default(cuid())
+  practitionerId String
+  date           DateTime // the civil date (midnight UTC) this applies to
+  type           ExceptionType
+  startMinute    Int? // required for OPEN; ignored for full-day BLOCK
+  endMinute      Int?
+  reason         String?
+
+  @@index([practitionerId, date])
+}
+
+model Appointment {
+  tenantId String? // PLATFORM Phase 0.5 — direct tenant scope (null = default tenant, legacy rows)
+  id             String            @id @default(cuid())
+  practitionerId String
+  // Nullable because a DISCOVERY appointment belongs to a Lead (a prospect), not
+  // a client User (C18). Exactly one of client / lead is set — enforced in the
+  // service layer (lib/appointments.ts, lib/discovery.ts).
+  clientId       String?
+  client         User?             @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  kind           AppointmentKind   @default(SESSION)
+  lead           Lead?             @relation("LeadAppointment") // set for DISCOVERY (C18)
+  startAt        DateTime // UTC
+  endAt          DateTime // UTC
+  status         AppointmentStatus @default(SCHEDULED)
+  location       SessionLocation   @default(VIRTUAL)
+  videoProvider  String? // ZOOM | MEET | WHEREBY | DAILY | null
+  videoUrl       String? // join link
+  videoRoomId    String?
+  bookedBy       String // "practitioner" | "client"
+  clientNote     String? // optional topic
+  reminderSentAt DateTime? // EMAIL-SPEC #10 — the 24h reminder fired (tick dedup)
+  recordingConfirmed Boolean? // C19 §0 — per-session "Recording today?" (null = not asked)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([practitionerId, startAt])
+  @@index([clientId, startAt])
+}
+
+// C18 — a prospect from the public site. Becomes a client via the conversion
+// bridge ("Invite as client"), which pre-fills the C1 invite and links back here.
+model Lead {
+  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id              String      @id @default(cuid())
+  name            String
+  email           String
+  phone           String?
+  note            String? // "what brings you?"
+  status          LeadStatus  @default(NEW)
+  appointmentId   String?     @unique // the discovery call
+  appointment     Appointment? @relation("LeadAppointment", fields: [appointmentId], references: [id], onDelete: SetNull)
+  convertedUserId String? // set when she invites them as a client
+  source          String? // page/UTM, for later
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([status, createdAt])
+}
+
+// ---------- CLAUDE-BILLING Phase B1 — Layer 1 foundation (Square OAuth) ----------
+// Layer 1 = practitioners collecting from THEIR clients via THEIR processor
+// account. We store references and statuses, never balances (Rule 0.2).
+
+enum ConnAccountStatus {
+  CONNECTED
+  NEEDS_RECONNECT
+  REVOKED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  REFUNDED
+  FAILED
+}
+
+model ConnectedPaymentAccount {
+  id              String            @id @default(cuid())
+  tenantId        String?           @unique // one connected account per tenant (v1); nullable per platform scope rule
+  provider        String // "square" ("stripe-connect" future)
+  merchantId      String
+  merchantName    String?
+  locationId      String?
+  accessTokenEnc  String // AES-GCM at rest; never plaintext, never logged, never to the browser
+  refreshTokenEnc String?
+  scopes          String[]
+  status          ConnAccountStatus
+  connectedAt     DateTime
+  lastVerifiedAt  DateTime? // daily token health check
+  expiresAt       DateTime? // access-token expiry, for proactive refresh
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  tenantId          String? // nullable per platform scope rule (null = default tenant)
+  clientId          String?
+  provider          String
+  providerPaymentId String        @unique
+  amountCents       Int // integer cents, always (Rule 0.9)
+  currency          String        @default("USD")
+  purpose           String // "session" | "package" | tenant-defined
+  status            PaymentStatus
+  occurredAt        DateTime
+  raw               Json // provider payload, archived
+
+  @@index([tenantId, clientId])
+}
+
+model WebhookEvent {
+  id          String    @id // provider event id — idempotency for BOTH layers
+  layer       String // "square" | "stripe"
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+}
+
+// ---------- BILLING Layer 2 (Phase B3) — tenant subscriptions ----------
+// Root-tenant table like ConnectedPaymentAccount. Valentina/DEMO tenants are
+// FOUNDING_COMP: pinned ACTIVE, no Stripe objects ever (stripeCustomerId
+// stays null); everyone else maps 1:1 to a Stripe Customer + Subscription.
+
+enum BillingStatus {
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  CANCELED
+}
+
+model TenantBilling {
+  id                   String        @id @default(cuid())
+  tenantId             String?       @unique // nullable per platform scope rule
+  stripeCustomerId     String?       @unique // null for FOUNDING_COMP / DEMO
+  stripeSubscriptionId String?
+  plan                 String // "CARE_99" | "CARE_125" | "CARE_149" | "FOUNDING_COMP"
+  status               BillingStatus
+  graceUntil           DateTime? // set on PAST_DUE (14 days, Rule 0.7)
+  currentPeriodEnd     DateTime?
+}
+
+// ---------- PLATFORM Phase 3 — computed readings (ReadingProvider) ----------
+// One row per (client, kind, inputsHash): the cache IS the table (Rule 0.6 —
+// the provider free tier is 50 calls/month, so identical inputs must never
+// recompute). Failures park as PENDING_RETRY and the tick retries them;
+// intake completion is never blocked by a provider.
+
+enum ReadingStatus {
+  COMPLETE
+  PENDING_RETRY
+  FAILED
+}
+
+model Reading {
+  id         String        @id @default(cuid())
+  tenantId   String? // nullable per platform scope rule (null = default tenant)
+  clientId   String
+  sessionId  String? // set for SESSION-class readings (draws, Phase 4)
+  moduleKey  String
+  kind       String // "natal-positions" | "natal-houses" | "numerology-core" | ...
+  inputsHash String
+  payload    Json
+  raw        Json? // full provider response, archived
+  status     ReadingStatus
+  computedAt DateTime
+
+  @@unique([tenantId, clientId, kind, inputsHash])
+  @@index([tenantId, clientId])
+  @@index([status])
+}
+
+// ---------- C20-AGREEMENTS — contracts, e-signatures, sealed records ----------
+// The consent pattern generalized (AMD-01): versioned tenant templates with
+// merge variables; a sent Agreement pins the EXACT text forever
+// (bodySnapshot); every touch lands in an append-only event trail
+// (money-grade audit). ESIGN/UETA elements are explicit columns: signer
+// attribution (name/ip/agent + authenticated session or verified signed
+// link), intent (signedAt via the one unambiguous tap), e-records
+// disclosure (disclosureShownAt), tamper-evident retention (sealedSha256).
+
+enum AgreementStatus {
+  DRAFT
+  SENT
+  VIEWED
+  SIGNED
+  DECLINED
+  EXPIRED
+  VOIDED
+}
+
+model AgreementTemplate {
+  id                     String   @id @default(cuid())
+  tenantId               String? // nullable per platform scope rule
+  slug                   String // "client-services" | "scope-of-work" | "recording-addendum" | custom
+  // C21 — TEXT templates carry their document in `body` (merge vars +
+  // {{fill:*}} markers); FILES templates carry uploaded document files
+  // (AgreementFile rows) and `body` is the request message shown beside them.
+  kind                   String   @default("TEXT") // TEXT | FILES
+  version                Int
+  versionLabel           String? // human label when the Int can't carry it ("3.1")
+  locale                 String   @default("en") // en/es siblings per AMD-05
+  title                  String
+  body                   String // rich text with {{merge_vars}}
+  // v3.1 — per-item acknowledgments on the signature page: array of
+  // { id, text, kind: "initials"|"checkbox", required }. Each capture gets
+  // the signature's attribution stack and renders on the sealed PDF.
+  initialItems           Json?
+  requiresCountersign    Boolean  @default(false)
+  status                 String   @default("ACTIVE") // DRAFT (not sendable) | ACTIVE | RETIRED
+  // §2 — per-template automatic triggers (tenant settings, stored as data)
+  sendOnInviteAccept     Boolean  @default(false)
+  requireBeforeBooking   Boolean  @default(false)
+  sendOnPackagePurchase  Boolean  @default(false)
+  sendOnRecordingConsent Boolean  @default(false)
+  placeholder            Boolean  @default(true) // fixture-grade until the attorney pass (§6.1)
+  createdAt              DateTime @default(now())
+
+  @@unique([tenantId, slug, version, locale])
+}
+
+model Agreement {
+  id                   String          @id @default(cuid())
+  tenantId             String?
+  templateId           String // the pinned template row (exact version + locale)
+  clientId             String? // portal client — exactly one of client/lead/recipient
+  leadId               String? // pre-portal lead (C18 signed-link pattern)
+  // C21 — one-off external signer: any email address, no enrollment.
+  // General business use (vendors, past clients, prospective clients).
+  recipientEmail       String?
+  recipientName        String?
+  locale               String          @default("en")
+  status               AgreementStatus @default(DRAFT)
+  titleSnapshot        String
+  bodySnapshot         String // the exact merged text sent — pinned forever
+  mergeData            Json // the variables as resolved at send time
+  tokenHash            String?         @unique // signed no-login link (hashed at rest)
+  expiresAt            DateTime?
+  sentAt               DateTime?
+  viewedAt             DateTime? // full scroll recorded (§3.1)
+  disclosureShownAt    DateTime? // ESIGN consumer-consent line shown (§3.2)
+  signedAt             DateTime?
+  signerName           String? // typed full legal name (attribution)
+  signerDrawn          String? // canvas strokes data-url — warmth, not legality
+  signerIp             String?
+  signerAgent          String?
+  // v3.1 — captured acknowledgments: [{ id, value, at }] matching the
+  // template's initialItems, recorded at signing under the same attribution.
+  initialsCaptured     Json?
+  countersignRequired  Boolean         @default(false)
+  countersignedAt      DateTime?
+  countersignName      String?
+  countersignDrawn     String? // C21 — her stored signature mark, applied at countersign
+  declinedAt           DateTime?
+  voidedAt             DateTime? // hers, attributed, never deletes history
+  voidReason           String?
+  paperSignedAt        DateTime? // §6.2 escape hatch: "signed on paper" (upload scan)
+  sealedKey            String? // storage key of the sealed PDF (§4)
+  sealedSha256         String? // tamper-evidence hash of the sealed bytes
+  remindedAt           DateTime?
+  createdAt            DateTime        @default(now())
+
+  @@index([tenantId, clientId])
+  @@index([tenantId, status])
+}
+
+// C21 — an uploaded document file attached to a FILES template (reusable)
+// or frozen onto a specific agreement at send. Bytes live in the storage
+// adapter; sha256 makes every download tamper-evident, and the signature
+// certificate seals the hash of every file in the request.
+model AgreementFile {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  templateId  String? // reusable template attachment
+  agreementId String? // frozen onto a sent request
+  filename    String
+  contentType String
+  size        Int
+  sha256      String
+  key         String // storage key
+  createdAt   DateTime @default(now())
+
+  @@index([templateId])
+  @@index([agreementId])
+}
+
+// ADDENDUM P — the Pattern-Library participation election: recorded like
+// consent (versioned, revocable), read by the ONLY cross-client aggregation
+// (lib/pattern-library.ts) to exclude non-participants before the k-floor.
+model PatternElection {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  clientId  String   @unique
+  participate Boolean
+  version   String // the Addendum P version elected under
+  decidedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Append-only. Rows are never updated or deleted — the trail IS the
+// audit certificate's source (§4).
+model AgreementEvent {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  agreementId String
+  at          DateTime @default(now())
+  kind        String // created|sent|reminded|viewed|disclosure|signed|countersigned|declined|voided|sealed|downloaded|paper-signed
+  actor       String // "practitioner" | "client" | "lead" | "system"
+  meta        Json?
+
+  @@index([agreementId, at])
+}
+
+// ---------- SESSION-PIPELINE Phase 1 — the capture job ----------
+// One row per recorded/uploaded session moving through the pipeline. The
+// transcript itself lands in SessionTranscript at APPROVAL (C19 privacy:
+// redactions before persistence); the draft payload carries it until then.
+
+enum CaptureSource {
+  UPLOAD
+  PORTAL_RECORDER
+  EMAIL_IN
+  SHARE
+}
+
+enum CaptureStatus {
+  AWAITING_CLIENT
+  AWAITING_CONSENT
+  TRANSCRIBING
+  EXTRACTING
+  REVIEW
+  MERGED
+  DISCARDED
+  ERROR
+}
+
+model SessionCapture {
+  tenantId       String? // null = default tenant (platform scope rule)
+  id             String        @id @default(cuid())
+  practitionerId String
+  clientId       String?
+  source         CaptureSource
+  status         CaptureStatus
+  recordedAt     DateTime
+  audioKey       String? // object-storage key (adapter)
+  audioMime      String?
+  audioBytes     Int?
+  audioDeletedAt DateTime? // retention job (spec Phase 3) sets this
+  providerJobId  String?       @unique
+  draftId        String?       @unique // RecordingDraft carrying the review payload
+  errorMessage   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([tenantId, status, createdAt])
+}
+
+// ---------- CLIENT-ONBOARDING v1.1 — intake engine + quiet discovery ----------
+// The intake is GENERATED from the tenant's enabled modules (lib/intake/schema),
+// resumable, and never loses an answer. Answers snapshot the question text as
+// rendered (Rule 0.8) so they stay meaningful forever.
+
+enum IntakePurpose {
+  INITIAL
+  UPDATE
+  REASSESSMENT
+}
+
+enum IntakeStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+  ABANDONED
+}
+
+enum HintStatus {
+  UNSEEN
+  SEEN
+  DISMISSED
+}
+
+model IntakeFlow {
+  tenantId    String? // null = default tenant (platform scope rule)
+  id          String        @id @default(cuid())
+  clientId    String
+  purpose     IntakePurpose @default(INITIAL)
+  status      IntakeStatus  @default(IN_PROGRESS)
+  schemaHash  String // hash of the generated schema at start (drift guard, §4.3)
+  currentStep String
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  answers     IntakeAnswer[]
+
+  @@index([tenantId, clientId])
+}
+
+model IntakeAnswer {
+  id                   String   @id @default(cuid())
+  flowId               String
+  flow                 IntakeFlow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  fieldKey             String // "identity.fullName", "birth.time", "values.q7"
+  value                Json
+  questionTextSnapshot String // the question EXACTLY as rendered to this client (Rule 0.8)
+  savedAt              DateTime @updatedAt
+
+  @@unique([flowId, fieldKey])
+}
+
+model ClientHintState {
+  tenantId  String?
+  id        String     @id @default(cuid())
+  clientId  String
+  hintKey   String
+  status    HintStatus @default(UNSEEN)
+  updatedAt DateTime   @updatedAt
+
+  @@unique([clientId, hintKey])
+}
+
+model ActivityEvent {
+  tenantId  String?
+  id        String   @id @default(cuid())
+  clientId  String?
+  actor     String // "client" | "practitioner" | "system"
+  eventKey  String // "intake.started", "intake.step_completed", ...
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, eventKey, createdAt])
 }

@@ -1,0 +1,94 @@
+{
+  "reflections": [
+    {
+      "day": -58,
+      "body": "Marisol suggested this. I told her I don't have a problem, I have a scheduling conflict. Two of them, actually, both on Thursdays. If the app can flag double-bookings, fine. That's the extent of what I need.",
+      "mood": 3,
+      "tags": [
+        "logistics",
+        "skeptical"
+      ]
+    },
+    {
+      "day": -44,
+      "body": "1:14am. Off a fourteen-hour day. Tibial plateau, then an unscheduled hip that couldn't wait, then charting until the building emptied. The work itself was clean. I trust my hands more than almost anything. That part is not the problem.\n\nCame home. Marisol was already asleep. There's a plate in the fridge with a note that says 'sorry I missed you.' She's sorry. I'm the one who wasn't here. I ate standing at the counter and couldn't have told you what it was.\n\nHere's the thing I keep circling. Everyone at the hospital assumes I'll take the extra case. And I do. I always do. And then some part of me is quietly furious that no one offered to take it off me — nobody I would have let, anyway. I don't ask. Asking is how you signal you can't handle it. My father asked, at the end, when the business went under. Watched what it cost him to say the words. I decided a long time ago I wouldn't be the one who needed the words.\n\nSo I don't. I just carry it. And apparently I carry it home and set it down between me and my wife and pretend it isn't there.\n\nI'll delete this in the morning. Es tarde. I don't know why I'm typing.",
+      "mood": 2,
+      "tags": [
+        "late",
+        "exhausted",
+        "father"
+      ]
+    },
+    {
+      "day": -31,
+      "body": "Ran before dawn. Best forty minutes of the week — nobody needs anything from me at 5am, the road doesn't have a chart. Called Esteban after, my old roommate. We didn't talk about anything. That's the point of him. He asked how I was and I said 'busy' and he laughed because he knows that's my answer for everything. Fine. It is my answer for everything.",
+      "mood": 3,
+      "tags": [
+        "running",
+        "esteban"
+      ]
+    },
+    {
+      "day": -18,
+      "body": "Marisol said the sentence again — that I'm 'never here even when I'm here.' I wanted to argue the premise. Instead I noticed I couldn't remember the last conversation we had that wasn't logistics. Who picks up Sofía, what's for the weekend, did I confirm the trip. All calendar. She married a man and got a scheduling assistant. I keep telling myself I'm doing all this for them. But when I picture stopping — actually stopping — there's just static. Like the signal cuts out.",
+      "mood": 2,
+      "tags": [
+        "marisol",
+        "static"
+      ]
+    },
+    {
+      "day": -5,
+      "body": "2:40am. Couldn't sleep, so: honesty, before I talk myself out of it. I don't actually know who I'd be if I weren't useful. There. That's the whole thing under the thing.\n\n— And that's dramatic. It's 3am and I'm sleep-deprived, which is a known cause of catastrophic thinking, I've told a hundred patients as much. I'm a surgeon. I do around 300 cases a year. That's who I am. That's not nothing, that's measurable. I'll read this tomorrow and it'll look overwrought. Voy a dormir.",
+      "mood": 1,
+      "tags": [
+        "late",
+        "the-thing",
+        "walked-back"
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "from": "CLIENT",
+      "day": -46,
+      "body": "Realize I've gone quiet. Two brutal weeks on service. I write when I can't sleep, which is inefficient but seems to be the pattern. Not avoiding — just triaging.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -45,
+      "body": "No apology needed, Daniel. The 1am entries are doing real work — I read the one from Thursday. When you're rested, I'd like to sit with one line from it, no rush. Rest is also a case worth doing well.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -4,
+      "body": "Wrote something at 3am I'd normally delete. Left it up. Not sure that's progress but I noticed the impulse to erase it. Can we talk before the next session.",
+      "unread": true
+    }
+  ],
+  "notes": [
+    {
+      "day": -57,
+      "body": "Intake. Came in framing this as a calendar problem — 'I don't have a problem, I have a calendar.' Wife's phrase, 'never here even when he's here,' clearly the actual referral. He's precise, controlled, translates everything emotional into logistics. Not resistance exactly — it's the only language he trusts. Meet him there for now."
+    },
+    {
+      "day": -43,
+      "body": "That 1am entry. Enormous under the surface. Father's business failure, the cost of watching a man ask for help — this is where 'needing help is weakness' was forged, and he became the steady eldest son at what, thirteen, fourteen. Note the pattern he named without naming it: won't ask, then resents that no one offered. Declines support, resents its absence. Classic I-must-not-need. He'll walk this back by morning. Don't chase it."
+    },
+    {
+      "day": -30,
+      "body": "Resources are real and load-bearing: pre-dawn runs, the roommate Esteban, and the surgical work he genuinely trusts. Interesting that his safest relationship (Esteban) is the one that asks nothing of him. Worth gently connecting that to what feels impossible with Marisol."
+    },
+    {
+      "day": -6,
+      "body": "The -5 entry: 'I don't actually know who I'd be if I weren't useful.' The core belief, stated plainly — 'if I stop performing, I disappear' — then immediately intellectualized away (sleep deprivation, case count). He left it up though, and messaged me. That's movement."
+    },
+    {
+      "day": -1,
+      "body": "SESSION PREP — REFERRAL PANEL, not a formulation. Flagging depletion that reads beyond coaching scope: chronic sleep deficit, 1–3am rumination, working through exhaustion as baseline, worth-measured-entirely-in-output, flat/static response when imagining rest. Recommend he see his PCP and a psychiatric/psychological evaluation for possible depression and burnout — this needs a clinical eye alongside our work, not instead of it. Frame it in his language: this is triage, not weakness; you refer a case out when it needs a specialist. Continue coaching in parallel if cleared."
+    }
+  ],
+  "id": "daniel"
+}

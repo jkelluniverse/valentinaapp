@@ -1,0 +1,186 @@
+{
+  "reflections": [
+    {
+      "day": -178,
+      "body": "Six worksheets done this week. The structured ones are easy — clear question, clear answer. The open box at the bottom I left blank again. Not sure what goes there that a checklist doesn't already cover.",
+      "mood": 3,
+      "tags": [
+        "worksheets",
+        "structure"
+      ]
+    },
+    {
+      "day": -170,
+      "body": "Prompt: what does a full day look like? Answer: I took the extra patient when Rina got slammed. Logged it, closed the chart, went home. That's the day. That's most days.",
+      "mood": 3,
+      "tags": [
+        "work",
+        "reliable"
+      ]
+    },
+    {
+      "day": -150,
+      "body": "Worksheet asked for 'a time you asked for help.' I wrote: I don't, usually.",
+      "mood": 2,
+      "tags": [
+        "asking"
+      ]
+    },
+    {
+      "day": -150,
+      "body": "Adding to the earlier one, hours later. It's not that I don't. It's that when I do, I'm already calculating what I owe back. Mi mamá worked doubles and never asked anyone for anything. I learned that asking is a line of credit. So I don't open the account.",
+      "mood": 2,
+      "tags": [
+        "asking",
+        "mamá",
+        "debt"
+      ]
+    },
+    {
+      "day": -132,
+      "body": "The reflection box is still where I stall. Give me a prompt with edges and I'll fill it. Give me white space and I go quiet. Interesting that I notice this and still don't write anything real here.",
+      "mood": 3,
+      "tags": [
+        "structure",
+        "noticing"
+      ]
+    },
+    {
+      "day": -112,
+      "body": "Worksheet: describe a recent symptom you ignored. I worked a full shift last Tuesday with a migraine. Aura in the morning, took nothing, triaged twelve patients. Wrote it down like a data point.",
+      "mood": 2,
+      "tags": [
+        "migraine",
+        "shift"
+      ]
+    },
+    {
+      "day": -110,
+      "body": "Coming back to Tuesday. It wasn't one bad day. I did it in March too, and last fall. I triage everyone's pain and mark mine 'stable' so no one has to worry. That's not stoicism, that's a pattern with a name I'm starting to see.",
+      "mood": 2,
+      "tags": [
+        "pattern",
+        "migraine"
+      ]
+    },
+    {
+      "day": -84,
+      "body": "Course module on boundaries. The idea that saying no doesn't create a debt is genuinely new information to me. I keep looking for the catch. There has to be a catch.",
+      "mood": 3,
+      "tags": [
+        "course",
+        "boundaries"
+      ]
+    },
+    {
+      "day": -55,
+      "body": "Ran with the group Saturday. Told Priya I was tired and walked the last mile. She said 'okay' and that was it. No ledger. Nothing owed. Small, but I filed it as evidence.",
+      "mood": 4,
+      "tags": [
+        "running",
+        "evidence"
+      ]
+    },
+    {
+      "day": -20,
+      "body": "Valentina, my mentor, is retiring. She's the one who once told me I'm allowed to be a patient too. I want to be at her thing. Which means I'd have to ask someone to cover. I'm designing it as an experiment so I can actually do it.",
+      "mood": 3,
+      "tags": [
+        "mentor",
+        "experiment",
+        "asking"
+      ]
+    },
+    {
+      "day": -4,
+      "body": "I asked Marcos to cover Friday. Wrote out exactly what I'd say so I wouldn't hedge. He said yes in four seconds. I went to the retirement. I stood in the room and didn't triage anyone. The open box doesn't scare me the way it did — I'm writing this in it. Necesitaba estar ahí y estuve.",
+      "mood": 4,
+      "tags": [
+        "experiment",
+        "mentor",
+        "won"
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "from": "CLIENT",
+      "day": -177,
+      "body": "I'd rather answer specific questions than free-write. Tell me the prompt and I'll do the work.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -176,
+      "body": "That works. I'll keep sending structured prompts. But I'll leave the open box on each one — no obligation. Consider it a spare lane.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -149,
+      "body": "You saw the 'asking for help' one. I edited it later. Didn't mean to write that much.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -148,
+      "body": "The part you added is the part I'd keep. The debt framing — that's worth sitting with. Where did you first learn asking costs something?",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -147,
+      "body": "My mother, I think. Not from anything she said. From how she never did it.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -111,
+      "body": "Logged the migraine shift on the worksheet. I realize now it's happened before. Can you send me the one on recurring patterns?",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -110,
+      "body": "Sending it. Notice you asked me for a tool the same week you spotted the pattern — that's not a coincidence. Good work.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -19,
+      "body": "My mentor's retiring. I want to go. It would mean asking a coworker to cover. Can we treat this as a worksheet experiment? I need it to have a structure or I won't do it.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -18,
+      "body": "Yes — let's design it. Define the ask, the script, and what 'success' means regardless of the answer. The experiment succeeds when you ask, not when they say yes.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -3,
+      "body": "Experiment complete. Asked Marcos, he covered, I went. Nothing collapsed. I'll write it up properly, but I wanted to tell you first.",
+      "unread": true
+    }
+  ],
+  "notes": [
+    {
+      "day": -175,
+      "body": "First week: six worksheets, all thorough, reflection box empty every time. She's not avoiding the work — she's avoiding the unstructured space where feeling lives. The map will have to be built from her answers, so I'll write prompts with edges she trusts and quietly leave the door open. Don't push the door. She'll walk through when it's her idea."
+    },
+    {
+      "day": -146,
+      "body": "The 'asking for help' worksheet came back as one clipped line, then a fuller paragraph added hours later. That's her whole nervous system in one gesture: the first draft is the defense, the edit is the truth. 'Asking is a line of credit.' There it is — I-must-not-need, learned from a mother who modeled it without ever naming it. Being no trouble was how she loved her back."
+    },
+    {
+      "day": -108,
+      "body": "The migraine shift is a turning point. She reported it as data, then returned unprompted to reframe it as a recurring pattern — and in the same week she asked me for a tool. She's beginning to metabolize her own care as legitimate. Note she still needs it packaged as a checklist. Fine. Meet the structure, not fight it."
+    },
+    {
+      "day": -2,
+      "body": "She asked a coworker to cover so she could attend Valentina's retirement — framed and logged as an experiment, which is exactly how she can let herself do a frightening thing. She wrote it up in the open reflection box, in Spanish at the end, which she never used to touch. The belief is loosening: asking happened, no debt was incurred, and she noticed. Next: help her let a want exist without an experimental protocol wrapped around it. Slowly."
+    }
+  ],
+  "id": "adriana"
+}
