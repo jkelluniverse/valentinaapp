@@ -281,7 +281,8 @@ PM starts with the true ledger, not an empty one.
    signup-verify 37/37 · capture-verify 59/59 · referral-verify 68/68 · engage-verify 172/172 ·
    platform/phase5-verify 17/17 · nested-stamp-verify 43/43 · tenant-scope-verify 48/48 ·
    settings-i18n-verify 10/10 (needs `npm run build`; drives the built app on :3131) ·
-   amd06 ALL CHECKS PASS (now null-clean — it was a producer until C24.1)
+   amd06 ALL CHECKS PASS (now null-clean — it was a producer until C24.1) ·
+   practice-setting-verify 47/47 (C25; needs `npm run build`; drives the built app on :3141)
 ## Standing gate set, with numbers (C24-NESTED-STAMP §4 — the stamp audit is now a REAL gate:
 ## it exits 0 today and exits non-zero on any null-tenant row in any of the 79 scoped tables):
    tenant-stamp audit **exit 0 / no number — pass is "zero rows"** · nested-stamp-verify 43/43 ·
