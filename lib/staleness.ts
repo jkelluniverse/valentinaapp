@@ -7,6 +7,7 @@
 
 import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { METHOD_SETTING_KEY } from "@/lib/integrative";
 
 export type InputsFingerprint = {
@@ -28,7 +29,7 @@ export async function currentFingerprint(clientId: string): Promise<InputsFinger
       where: { userId: clientId },
       select: { lens: true, practitionerReviewed: true },
     }),
-    prisma.practiceSetting.findUnique({ where: { key: METHOD_SETTING_KEY } }),
+    readPracticeSetting(METHOD_SETTING_KEY),
     prisma.recordItem.count({ where: { clientId } }),
     prisma.recordItem.findFirst({
       where: { clientId },

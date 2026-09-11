@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { audit } from "@/lib/audit";
 import { sendEmail } from "@/lib/notify";
@@ -245,7 +246,7 @@ export async function enterAssist(clientId: string, formData: FormData) {
   await startAssist({ practitionerId: me.id, clientId: client.id, reason, note });
 
   // Transparency default ON — her conscious setting, not a silent choice.
-  const pref = await prisma.practiceSetting.findUnique({ where: { key: "assistNotifyEmail" } });
+  const pref = await readPracticeSetting("assistNotifyEmail");
   if (pref?.value !== "off") {
     const mail = assistSessionEmail(pickLocale(client.locale));
     await sendEmail({ to: client.email, subject: mail.subject, text: mail.text });

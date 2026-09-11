@@ -7,6 +7,7 @@
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { prisma } from "../../lib/prisma";
+import { writePracticeSetting } from "../../lib/practice-settings";
 import { ingestInboundEmail } from "../../lib/remarkable";
 import { ingestRecording, applyRecordingCore, type PulledRecording } from "../../lib/recording";
 import { runPsycheExtraction } from "../../lib/psyche-extract";
@@ -143,11 +144,7 @@ async function main() {
     where: { id: draft!.id },
     data: { status: "APPLIED", appliedNoteId: note.id, appliedAt: new Date(), appliedById: practitioner.id },
   });
-  await prisma.practiceSetting.upsert({
-    where: { key: "psycheIncludeNotes" },
-    create: { key: "psycheIncludeNotes", value: "true" },
-    update: { value: "true" },
-  });
+  await writePracticeSetting("psycheIncludeNotes", "true");
 
   // ---- REC.1: consent machinery ----
   log(`\n## REC.1 · Consent`);

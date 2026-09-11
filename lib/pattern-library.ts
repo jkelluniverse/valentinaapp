@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 
 // C16.8 — the Pattern Library aggregation job: THE ONLY code in the app that
 // reads psyche data across clients, and it emits abstractions only. The wall:
@@ -48,7 +49,7 @@ function norm(label: string): string {
 }
 
 export async function aggregatePatterns(): Promise<AggregateResult> {
-  const enabled = await prisma.practiceSetting.findUnique({ where: { key: PATTERN_LIBRARY_KEY } });
+  const enabled = await readPracticeSetting(PATTERN_LIBRARY_KEY);
   if (enabled?.value !== "true") return { ok: false, error: "disabled" };
 
   // Stamp aggregates with the practice tenant explicitly: this job also

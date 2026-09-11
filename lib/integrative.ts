@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { hasConsent } from "@/lib/consent";
 import { getClientRecord } from "@/lib/client-record";
 import {
@@ -23,7 +24,7 @@ export type SynthesisResult =
   | { ok: false; error: "consent" | "config" | "method" | "lenses" | "api" };
 
 export async function getMethodText(): Promise<string | null> {
-  const row = await prisma.practiceSetting.findUnique({ where: { key: METHOD_SETTING_KEY } });
+  const row = await readPracticeSetting(METHOD_SETTING_KEY);
   const value = row?.value.trim();
   return value ? value : null;
 }

@@ -581,11 +581,20 @@ model AskRecordAnswer {
 }
 
 // Small practice-wide key/value settings (e.g. her synthesis-method text).
+// C25 — a practice setting belongs to a PRACTICE. `key` used to be the global
+// primary key, which made the model structurally incapable of holding more
+// than one practice's settings (ruling 32). Identity is now `id` + a
+// tenant-scoped unique on (tenantId, key), matching every other scoped model.
+// No setting's meaning, default or value changed — only how a row is
+// addressed. Never address a row by `key` alone: use lib/practice-settings.ts.
 model PracticeSetting {
-  tenantId     String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
-  key       String   @id
+  tenantId  String? // PLATFORM Phase 0 — tenant scope (null = default tenant, legacy rows)
+  id        String   @id @default(cuid())
+  key       String
   value     String
   updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, key])
 }
 
 // C14 — The Margins. Valentina's private notes: her thinking, NEVER client-

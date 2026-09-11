@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { HdChartView } from "@/components/HdChartView";
@@ -81,7 +82,7 @@ export default async function ClientDesignPage({
   // C12r — the client-facing reading and its controls.
   const [reading, holdRow, readerRow] = await Promise.all([
     prisma.integrativeReading.findUnique({ where: { userId: client.id } }),
-    prisma.practiceSetting.findUnique({ where: { key: READING_HOLD_KEY } }),
+    readPracticeSetting(READING_HOLD_KEY),
     prisma.user.findUnique({ where: { id: client.id }, select: { locale: true } }),
   ]);
   const holdForReview = holdRow?.value === "1";

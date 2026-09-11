@@ -1,12 +1,12 @@
 # C24.1-TENANT-SCOPE — acceptance log
 
-Run: 2026-09-05T22:45:23.713Z · `npx tsx audits/tenant-scope-verify.ts`
+Run: 2026-09-05T23:32:18.621Z · `npx tsx audits/tenant-scope-verify.ts`
 Database: postgresql://postgres@localhost:5432/valentina_scratch?host=/tmp
 
 Requests are simulated in-process via Next's request async storage, so every
 request-path check runs through the real scoped client against the real database.
 
-# C24.1-TENANT-SCOPE verify — 2026-09-05T22:45:20.554Z
+# C24.1-TENANT-SCOPE verify — 2026-09-05T23:32:15.388Z
 - ✓ simulated request scope is real (next/headers resolves inside it)
 
 ## Verify 1 — the five assumptions
@@ -18,14 +18,14 @@ request-path check runs through the real scoped client against the real database
 - ✓ A1 CONFIRMED: middleware.ts (the one edge-by-default context) does not touch the prisma client
 - ✓ A1 CONFIRMED: the job tick route is a Node route handler (no edge runtime export) and runs inside a request — tick writes are request-scoped anyway — headers() resolves there, so precedence 1 applies
 - ✓ A2 CONFIRMED (with a correction): ONE resolver, ONE headers() call, ONE fallback consult… — headers()×1 · ambientTenantId()×1 · requestTenantId defs×1
-- ✓ A2 CORRECTED: …but that resolver is CALLED from two write paths (runOp and the array-form $transaction) — requestTenantId() call sites: 2 — one fallback consult still covers both, because it lives in the resolver
+- ✓ A2 CORRECTED: …but that resolver is CALLED from two write paths (runOp and the array-form $transaction) — and, since C25, re-exported once as scopeTenantId() — requestTenantId() call sites: 3 — the two write paths plus the C25 export scopeTenantId() (lib/practice-settings.ts, which must address a row by a unique key that INCLUDES tenantId). One fallback consult still covers all three, because it lives in the resolver
 - ✓ A3: prisma/fixtures/c12x-verify.ts now leaves the null-tenant invariant intact (wrapped in withTenantScope) — exit=0 · nulls before=0 after=0 {}
 - ✓ A3: audits/amd06/verify.ts now leaves the null-tenant invariant intact (wrapped in withTenantScope) — exit=0 · nulls before=0 after=0 {}
 - ✓ A3 CORRECTED: every CLI file that writes scoped rows through the scoped client is accounted for — 12 scanned · 6 wrapped (audits/amd06/verify.ts, audits/password-reset/verify.ts, audits/remarkable-recording/verify.ts, audits/settings-i18n-verify.ts, scripts/smoke-writes.ts, prisma/fixtures/c12x-verify.ts) · 6 stated another way · unexplained=none
 - ✓ A3 CORRECTED: audits/amd06/verify.ts was a SECOND live producer (+8 rows / 5 tables), missed by C24's sweep — it is not in the spec's regression list, so the per-gate attribution never ran it
 - ✓ A4: audits/remarkable-recording/verify.ts carries the wrap (mechanical application, NOT a verified pass)
   · credential state at this run: ANTHROPIC_API_KEY=placeholder (not a real key) · ASSEMBLYAI_API_KEY=absent — informational, not a check: this gate must not fail on an environment that HAS the credentials.
-- ✓ A5 CONFIRMED: the call sites that stamp explicitly are still there and unchanged in number — 12 file(s): lib/engage.ts, audits/capture/verify.ts, audits/engage/verify.ts, audits/nested-stamp-verify.ts, audits/platform/verify.ts, audits/referral/verify.ts, prisma/fixtures/c12x-verify.ts, app/invite/[token]/actions.ts, app/practitioner/clients/actions.ts, lib/packages.ts, lib/pattern-library.ts, audits/nested-stamp-verify.ts
+- ✓ A5 CONFIRMED: the call sites that stamp explicitly are still there and unchanged in number — 15 file(s): lib/engage.ts, audits/c12x-ai-pass/run3-patch01.ts, audits/capture/verify.ts, audits/engage/verify.ts, audits/nested-stamp-verify.ts, audits/platform/verify.ts, audits/practice-setting-verify.ts, audits/referral/verify.ts, prisma/fixtures/c12x-verify.ts, prisma/fixtures/kfloor-verify.ts, app/invite/[token]/actions.ts, app/practitioner/clients/actions.ts, lib/packages.ts, lib/pattern-library.ts, audits/nested-stamp-verify.ts
 - ✓ A5 CONFIRMED: lib/pattern-library.ts still resolves and states its own tenant (the CLI-seam precedent)
 
 ## Verify 2 — a CLI write inside withTenantScope is stamped (the case that never worked)
@@ -34,9 +34,9 @@ request-path check runs through the real scoped client against the real database
 - ✓ $transaction(fn) inside the scope stamps — tenantId=tnt_valentina_000000001
 - ✓ $transaction([...]) — the separate array-form builder — stamps too — tenantId=tnt_valentina_000000001
 - ✓ a write several async frames below the wrap (as a driven product lib is) is stamped — tenantId=tnt_valentina_000000001
-- ✓ FLAGGED (pre-existing, not changed): a NON-default scope's upsert of a not-yet-existing row fails closed — tenant-scope: course.upsert target not found in tenant scope · adoption note: wrapping a harness in a NON-default scope turns its upserts-of-new-rows from passthrough into this refusal
-- ✓ FINDING (pre-existing, ARCHITECT-REQUEST 2): practiceSetting.upsert is REFUSED for any non-default tenant — in a CLI scope AND in a REQUEST — pre-check selects {id:true} and PracticeSetting's PK is `key` → Prisma validation error; fails closed, but a second practice cannot save a setting
-- ✓ …and the DEFAULT tenant is unaffected (it skips the pre-check), so this build breaks nothing that works today — tenantId=tnt_valentina_000000001
+- ✓ a NON-default scope's upsert of a not-yet-existing row now SUCCEEDS and is stamped (C25 §1 corrected this; ruling 31 revisited) — tenantId=tnt_tcv_probe_b_00001
+- ✓ FIXED (was ARCHITECT-REQUEST 2, now C25): practiceSetting writes SUCCEED for a non-default tenant — in a CLI scope AND in a REQUEST — scope=b-scope · request=b-request
+- ✓ …and the DEFAULT tenant holds the SAME key independently (the model is no longer single-practice) — tenantId=tnt_valentina_000000001 · rows with that key=2
 
 ## Verify 3 — nested children and grandchildren inside a CLI scope
 - ✓ parent, children and grandchildren are ALL stamped from a CLI scope (create + createMany) — parent=tnt_valentina_000000001 · 2 children · 3 grandchildren
@@ -67,7 +67,7 @@ request-path check runs through the real scoped client against the real database
 ## Verify 7 — the ~10 explicit call sites keep their exact values
 - ✓ a product lib that states its tenant at the call site (lib/pattern-library) keeps its EXACT value under a scope — tenantId=tnt_tcv_foreign_00001 (scope was tnt_valentina_000000001)
 - ✓ an explicit stamp with no scope at all still lands exactly as stated (these files are unaffected by this build)
-- ✓ every explicit tenant-stamping LINE in those files is identical to HEAD — no value was changed by this build — 11 files compared line-by-line against HEAD
+- ✓ every explicit tenant VALUE in those files is unchanged from HEAD — no file lost a stamp, and none gained one for any tenant but the default — 14 files compared value-by-value against HEAD · 4 changed the SHAPE of a stamping line for C25 (audits/c12x-ai-pass/run3-patch01.ts, audits/engage/verify.ts, prisma/fixtures/c12x-verify.ts, prisma/fixtures/kfloor-verify.ts), stamping the same tenant
 ~ probe tenant, courses, chapters, lessons, log entries and users removed
 - ✓ SELF-CLEANING: this harness leaves zero null-tenant rows behind — {}
 - ✓ the audit still covers every scoped table (79 tables, nothing narrowed) — 79 tables

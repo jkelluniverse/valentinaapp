@@ -6,6 +6,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting, writePracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { transcribeHandwrittenNote } from "@/lib/remarkable";
 import { runPsycheExtraction } from "@/lib/psyche-extract";
@@ -17,13 +18,9 @@ const INBOX = "/practitioner/notes/inbox";
 async function ensureNotesSource(practitionerId: string) {
   // §8 flag 4 — notes-as-extraction-source turns on with this feature (her
   // consent line lives in the inbox empty-state copy).
-  const row = await prisma.practiceSetting.findUnique({ where: { key: NOTES_SOURCE_KEY } });
+  const row = await readPracticeSetting(NOTES_SOURCE_KEY);
   if (row?.value !== "true") {
-    await prisma.practiceSetting.upsert({
-      where: { key: NOTES_SOURCE_KEY },
-      create: { key: NOTES_SOURCE_KEY, value: "true" },
-      update: { value: "true" },
-    });
+    await writePracticeSetting(NOTES_SOURCE_KEY, "true");
     console.log(`[margins-inbox] notes-as-source enabled by=${practitionerId}`);
   }
 }

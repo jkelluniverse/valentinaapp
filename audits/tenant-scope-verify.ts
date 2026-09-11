@@ -73,6 +73,10 @@ const p: any = rawPrisma;
 // ---------------------------------------------------------------------------
 let runInRequest: (host: string, fn: () => Promise<void>) => Promise<void>;
 
+// Assigned in main() by dynamic import: lib/practice-settings imports
+// lib/prisma, which reaches next/headers, so it must not load at module time.
+let writePracticeSetting: (key: string, value: string, opts?: { tenantId?: string }) => Promise<unknown>;
+
 async function installRequestScope(): Promise<boolean> {
   try {
     const { requestAsyncStorage } = (await import(
@@ -207,6 +211,7 @@ async function main() {
   if (!scopedOk) throw new Error("cannot simulate a request scope — every request-path check would be vacuous");
 
   const { prisma } = (await import("../lib/prisma")) as any;
+  ({ writePracticeSetting } = (await import("../lib/practice-settings")) as any);
   process.env.PLATFORM_DOMAIN = PLATFORM_DOMAIN;
   await p.tenant.create({
     data: { id: TENANT_B, slug: TENANT_B_SLUG, displayName: "Tenant-scope probe B", status: "DEMO" },
@@ -312,9 +317,9 @@ async function main() {
     `headers()×${headerCalls} · ambientTenantId()×${ambientCalls} · requestTenantId defs×${resolverDefs}`,
   );
   check(
-    "A2 CORRECTED: …but that resolver is CALLED from two write paths (runOp and the array-form $transaction)",
-    resolverCalls === 2,
-    `requestTenantId() call sites: ${resolverCalls} — one fallback consult still covers both, because it lives in the resolver`,
+    "A2 CORRECTED: …but that resolver is CALLED from two write paths (runOp and the array-form $transaction) — and, since C25, re-exported once as scopeTenantId()",
+    resolverCalls === 3 && /export function scopeTenantId\(\)/.test(prismaCode),
+    `requestTenantId() call sites: ${resolverCalls} — the two write paths plus the C25 export scopeTenantId() (lib/practice-settings.ts, which must address a row by a unique key that INCLUDES tenantId). One fallback consult still covers all three, because it lives in the resolver`,
   );
 
   // --- A3: the remaining producers of null-tenant rows ---
@@ -435,12 +440,14 @@ async function main() {
     (await tid("course", "tcv_lib_course")) === DEFAULT_TENANT_ID,
     `tenantId=${String(await tid("course", "tcv_lib_course"))}`,
   );
-  // HONEST LIMIT of adopting a NON-DEFAULT scope, found while building this:
-  // the scoped client's pre-existing fail-closed pre-check on unique writes
-  // applies to `upsert` too, so a non-default tenant upserting a row that
-  // does not exist yet throws. That is pre-existing request-path behaviour
-  // (unchanged by this build), now also reachable from a CLI scope. Recorded
-  // rather than smoothed over — see the build report.
+  // SUPERSEDED BY C25-PRACTICE-SETTING-TENANCY §1, and this is the check that
+  // used to record the defect. C24.1 flagged, and ruling 31 ratified, that a
+  // non-default tenant's upsert of a not-yet-existing row was REFUSED. C25
+  // established that this was not a safety property at all: it conflated "the
+  // row is somebody else's" (which must be refused) with "there is no row"
+  // (which is simply the create branch, and the create branch is
+  // tenant-stamped, so it cannot land in another tenant). The refusal that
+  // matters is asserted immediately below.
   let upsertErr = "";
   await withTenantScope(TENANT_B, async () => {
     try {
@@ -454,61 +461,47 @@ async function main() {
     }
   });
   check(
-    "FLAGGED (pre-existing, not changed): a NON-default scope's upsert of a not-yet-existing row fails closed",
-    upsertErr.includes("not found in tenant scope"),
-    (upsertErr.split("\n")[0] || "no error — the pre-check did not fire") +
-      " · adoption note: wrapping a harness in a NON-default scope turns its upserts-of-new-rows from passthrough into this refusal",
+    "a NON-default scope's upsert of a not-yet-existing row now SUCCEEDS and is stamped (C25 §1 corrected this; ruling 31 revisited)",
+    upsertErr === "" && (await tid("course", "tcv_b_upsert_new")) === TENANT_B,
+    upsertErr ? `unexpected refusal: ${upsertErr.split("\n")[0]}` : `tenantId=${String(await tid("course", "tcv_b_upsert_new"))}`,
   );
-  // FINDING, pre-existing and NOT introduced here: the fail-closed pre-check
-  // selects `{ id: true }`, and PracticeSetting is the one scoped model whose
-  // primary key is `key`, not `id`. So for ANY non-default tenant, every
-  // practiceSetting upsert/update/delete-by-key throws a Prisma VALIDATION
-  // error before the ownership check can run — in a request, not just here.
-  // It fails in the safe direction (nothing crosses tenants) but it means a
-  // second practice cannot save a practice setting. ARCHITECT-REQUEST 2.
+  // FIXED BY C25 §1+§2, and the check that recorded it as ARCHITECT-REQUEST 2
+  // now asserts the fix: the pre-check's select comes from the DMMF, and
+  // PracticeSetting is identified by (tenantId, key). A non-default tenant can
+  // write its own settings — from a CLI scope AND, the part that matters, in a
+  // REQUEST on its own host.
   let psScopeErr = "";
   await withTenantScope(TENANT_B, async () => {
     try {
-      await prisma.practiceSetting.upsert({
-        where: { key: "tcvProbeSetting" },
-        create: { key: "tcvProbeSetting", value: "1" },
-        update: { value: "1" },
-      });
+      await writePracticeSetting("tcvProbeSetting", "b-scope");
     } catch (e: any) {
       psScopeErr = e?.message ?? "";
     }
   });
+  const psScopeTenant = (await p.practiceSetting.findFirst({ where: { key: "tcvProbeSetting", tenantId: TENANT_B } }))?.value;
   let psReqErr = "";
   await runInRequest(B_HOST, async () => {
     try {
-      await prisma.practiceSetting.upsert({
-        where: { key: "tcvProbeSetting" },
-        create: { key: "tcvProbeSetting", value: "1" },
-        update: { value: "1" },
-      });
+      await writePracticeSetting("tcvProbeSetting", "b-request");
     } catch (e: any) {
       psReqErr = e?.message ?? "";
     }
   });
+  const psReqValue = (await p.practiceSetting.findFirst({ where: { key: "tcvProbeSetting", tenantId: TENANT_B } }))?.value;
   check(
-    "FINDING (pre-existing, ARCHITECT-REQUEST 2): practiceSetting.upsert is REFUSED for any non-default tenant — in a CLI scope AND in a REQUEST",
-    psScopeErr.length > 0 && psReqErr.length > 0,
-    `pre-check selects {id:true} and PracticeSetting's PK is \`key\` → ${
-      /Unknown field .id./.test(psReqErr) ? "Prisma validation error" : psReqErr.split("\n")[0]
-    }; fails closed, but a second practice cannot save a setting`,
+    "FIXED (was ARCHITECT-REQUEST 2, now C25): practiceSetting writes SUCCEED for a non-default tenant — in a CLI scope AND in a REQUEST",
+    psScopeErr === "" && psReqErr === "" && psScopeTenant === "b-scope" && psReqValue === "b-request",
+    `scope=${psScopeErr || psScopeTenant} · request=${psReqErr || psReqValue}`,
   );
   const psDefault = await withTenantScope(DEFAULT_TENANT_ID, async () => {
-    await prisma.practiceSetting.upsert({
-      where: { key: "tcvProbeSetting" },
-      create: { key: "tcvProbeSetting", value: "1" },
-      update: { value: "1" },
-    });
-    return (await p.practiceSetting.findUnique({ where: { key: "tcvProbeSetting" } }))?.tenantId;
+    await writePracticeSetting("tcvProbeSetting", "1");
+    return (await p.practiceSetting.findFirst({ where: { key: "tcvProbeSetting", tenantId: DEFAULT_TENANT_ID } }))?.tenantId;
   });
   check(
-    "…and the DEFAULT tenant is unaffected (it skips the pre-check), so this build breaks nothing that works today",
-    psDefault === DEFAULT_TENANT_ID,
-    `tenantId=${String(psDefault)}`,
+    "…and the DEFAULT tenant holds the SAME key independently (the model is no longer single-practice)",
+    psDefault === DEFAULT_TENANT_ID &&
+      (await p.practiceSetting.count({ where: { key: "tcvProbeSetting" } })) === 2,
+    `tenantId=${String(psDefault)} · rows with that key=${await p.practiceSetting.count({ where: { key: "tcvProbeSetting" } })}`,
   );
 
   // =========================================================================
@@ -792,17 +785,32 @@ async function main() {
     "an explicit stamp with no scope at all still lands exactly as stated (these files are unaffected by this build)",
     (await tid("logEntry", "tcv_explicit_noscope")) === DEFAULT_TENANT_ID,
   );
-  // Stronger than "these files were not touched": compare the explicit-stamp
-  // LINES themselves against HEAD. Two of these files were edited by this
-  // build (the one-line wrap; the referral gate's own VERIFY-LOG write), so
-  // file identity would prove nothing — the VALUES are what must be intact.
+  // Stronger than "these files were not touched", and stronger than comparing
+  // line TEXT: compare the tenant VALUES each file stamps, against HEAD.
+  //
+  // Line text is the wrong ruler and C25 proved it. C25 moved every
+  // PracticeSetting write onto lib/practice-settings.ts and onto the
+  // tenant-qualified (tenantId, key), so four of these files legitimately
+  // changed the SHAPE of a stamping line while stamping the very same tenant.
+  // What must be intact is the VALUE — so that is what is compared: every
+  // tenant a file stamped at HEAD it must still stamp, and it may not have
+  // acquired a stamp for any tenant other than the default one.
   const stampLines = (src: string) =>
     src
       .split("\n")
       .map((l) => l.trim())
       .filter((l) => l.includes("tenantId: DEFAULT_TENANT_ID") || l.includes("await getTenant()).id"))
       .sort();
-  const drifted: string[] = [];
+  const stampValues = (src: string) =>
+    [
+      ...new Set(
+        [...src.matchAll(/tenantId:\s*([A-Za-z_$][\w.$]*|"[^"]*"|null)/g)]
+          .map((m) => m[1])
+          .concat((src.match(/await getTenant\(\)\)\.id/g) ?? []).map(() => "getTenant().id")),
+      ),
+    ].sort();
+  const valueDrift: string[] = [];
+  const shapeChanged: string[] = [];
   for (const f of [...new Set(explicitSites)]) {
     let head = "";
     try {
@@ -810,14 +818,24 @@ async function main() {
     } catch {
       continue; // new file in this build (this harness itself)
     }
-    const before = stampLines(head);
-    const after = stampLines(readFileSync(join(process.cwd(), f), "utf8"));
-    if (JSON.stringify(before) !== JSON.stringify(after)) drifted.push(f);
+    const now = readFileSync(join(process.cwd(), f), "utf8");
+    const before = stampValues(head);
+    const after = stampValues(now);
+    // No value may be LOST, and nothing but the default tenant may be GAINED.
+    const lost = before.filter((v) => !after.includes(v));
+    const gained = after.filter((v) => !before.includes(v) && v !== "DEFAULT_TENANT_ID" && v !== "TENANT");
+    if (lost.length || gained.length) {
+      valueDrift.push(`${f} (lost: ${lost.join(",") || "none"} · gained: ${gained.join(",") || "none"})`);
+    }
+    if (JSON.stringify(stampLines(head)) !== JSON.stringify(stampLines(now))) shapeChanged.push(f);
   }
   check(
-    "every explicit tenant-stamping LINE in those files is identical to HEAD — no value was changed by this build",
-    drifted.length === 0,
-    drifted.join(", ") || `${[...new Set(explicitSites)].length} files compared line-by-line against HEAD`,
+    "every explicit tenant VALUE in those files is unchanged from HEAD — no file lost a stamp, and none gained one for any tenant but the default",
+    valueDrift.length === 0,
+    valueDrift.join(" · ") ||
+      `${[...new Set(explicitSites)].length} files compared value-by-value against HEAD · ${
+        shapeChanged.length
+      } changed the SHAPE of a stamping line for C25 (${shapeChanged.join(", ") || "none"}), stamping the same tenant`,
   );
 
   // =========================================================================

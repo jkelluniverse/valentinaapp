@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { writePracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { METHOD_SETTING_KEY, runIntegrativeSynthesis } from "@/lib/integrative";
 import { ensureReading, READING_HOLD_KEY } from "@/lib/integrative-reading";
@@ -16,11 +17,7 @@ export async function saveMethodText(clientId: string, formData: FormData) {
   await requirePractitioner();
   const value = String(formData.get("method") ?? "").trim();
   if (value) {
-    await prisma.practiceSetting.upsert({
-      where: { key: METHOD_SETTING_KEY },
-      create: { key: METHOD_SETTING_KEY, value },
-      update: { value },
-    });
+    await writePracticeSetting(METHOD_SETTING_KEY, value);
   } else {
     await prisma.practiceSetting.deleteMany({ where: { key: METHOD_SETTING_KEY } });
   }
@@ -146,11 +143,7 @@ export async function sendReadingToClient(clientId: string) {
 export async function setReadingHold(clientId: string, on: boolean) {
   await requirePractitioner();
   if (on) {
-    await prisma.practiceSetting.upsert({
-      where: { key: READING_HOLD_KEY },
-      create: { key: READING_HOLD_KEY, value: "1" },
-      update: { value: "1" },
-    });
+    await writePracticeSetting(READING_HOLD_KEY, "1");
   } else {
     await prisma.practiceSetting.deleteMany({ where: { key: READING_HOLD_KEY } });
   }

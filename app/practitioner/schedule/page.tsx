@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { getBaseUrl } from "@/lib/base-url";
 import { SignatureRule, Eyebrow } from "@/components/brand";
@@ -100,9 +101,7 @@ export default async function PractitionerSchedulePage({
   const base = getBaseUrl();
   const httpsFeed = `${base}/api/calendar/${config.calendarFeedSecret}.ics`;
   const webcalFeed = httpsFeed.replace(/^https?:/, "webcal:");
-  const calendarSyncDone =
-    (await prisma.practiceSetting.findUnique({ where: { key: "calendarSyncDone" } }))?.value ===
-    "on";
+  const calendarSyncDone = (await readPracticeSetting("calendarSyncDone"))?.value === "on";
 
   return (
     <div className="flex flex-col gap-8">

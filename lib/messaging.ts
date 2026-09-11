@@ -1,5 +1,6 @@
 import type { SenderRole, ConvoStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting } from "@/lib/practice-settings";
 import { record, snapshot } from "@/lib/record";
 import { sendEmail } from "@/lib/notify";
 import { sendPushToUser } from "@/lib/push";
@@ -73,7 +74,7 @@ export async function getOrCreateConversation(clientId: string) {
 }
 
 export async function getAwayNote(): Promise<string | null> {
-  const row = await prisma.practiceSetting.findUnique({ where: { key: AWAY_NOTE_KEY } });
+  const row = await readPracticeSetting(AWAY_NOTE_KEY);
   return row?.value?.trim() || null;
 }
 

@@ -1,6 +1,6 @@
 # C23-REFERRAL — acceptance log
 
-Run: 2026-09-05T22:34:14.018Z · `npx tsx audits/referral/verify.ts` against the BUILT app on :3127
+Run: 2026-09-05T23:17:43.430Z · `npx tsx audits/referral/verify.ts` against the BUILT app on :3127
 Database: postgresql://postgres@localhost:5432/valentina_scratch?host=/tmp
 
 Browser-driven (Playwright, headless Chromium) over two throwaway tenants;
@@ -10,7 +10,7 @@ self-cleaning — probe tenants, practitioners and prospects are removed on the 
 - ✓ the resolver returns NO identity (id + code + status only) — id,referralCode,status
 - ✓ a lowercase code still resolves
 - ✓ counts split LEAD vs SIGNED_UP across the fan-out — total 3 / leads 2 / signedUp 1
-- ✓ the owner's list carries FIRST NAMES ONLY — Helena,Gustavo,Fiona
+- ✓ the owner's list carries FIRST NAMES ONLY — Gustavo,Helena,Fiona
 - ✓ an unknown code counts to zero, not an error
 - ✓ a malformed code counts to zero, not an error
 - ✓ /join en shows the invited-by line — status 200

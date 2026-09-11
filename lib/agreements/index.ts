@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { readPracticeSetting, writePracticeSetting } from "@/lib/practice-settings";
 import { generateInviteToken, hashToken } from "@/lib/invites";
 import type { Prisma } from "@prisma/client";
 
@@ -470,7 +471,7 @@ export async function declineAgreement(agreementId: string, actor: string): Prom
 export const PRACTITIONER_SIGNATURE_KEY = "practitionerSignatureDrawn";
 
 export async function getPractitionerSignature(): Promise<string | null> {
-  const row = await prisma.practiceSetting.findUnique({ where: { key: PRACTITIONER_SIGNATURE_KEY } });
+  const row = await readPracticeSetting(PRACTITIONER_SIGNATURE_KEY);
   return row?.value || null;
 }
 
@@ -482,11 +483,7 @@ export async function setPractitionerSignature(dataUrl: string | null): Promise<
   // Uploaded scans run larger than pad drawings; the client normalizes to
   // a bounded PNG, this cap is the server-side backstop.
   if (!dataUrl.startsWith("data:image/png;base64,") || dataUrl.length > 500_000) return;
-  await prisma.practiceSetting.upsert({
-    where: { key: PRACTITIONER_SIGNATURE_KEY },
-    create: { key: PRACTITIONER_SIGNATURE_KEY, value: dataUrl },
-    update: { value: dataUrl },
-  });
+  await writePracticeSetting(PRACTITIONER_SIGNATURE_KEY, dataUrl);
 }
 
 export async function countersignAgreement(args: { agreementId: string; name: string }): Promise<{ ok: boolean }> {
