@@ -91,3 +91,10 @@ changed; the checks prove the same facts, now reproducibly forever.
     60-second lockout at the event.
 (b) The archaeology pin (`PRE_FIX_COMMIT = "a6c8bd8"`), reasoning above.
 (c) The C25 spec moved `docs/specs/inbox/` → `docs/specs/accepted/` (built and gated).
+(d) `audits/settings-i18n-verify.ts` had the SAME moving-target disease: its "byte-identical
+    to the pre-pass page" check read `git show HEAD:app/practitioner/settings/page.tsx`,
+    which stopped being the pre-pass page the moment C24.1's i18n pass was committed — the
+    check compared the catalog against the very page the strings were moved OUT of, and
+    failed in the regression sweep (9/10). Pinned to `939a663` (the last commit whose page
+    carries the raw strings); 10/10 after, no assertion changed. **Recommend a standing
+    rule: a gate must never reference `HEAD` for a before/after claim — pin the commit.**

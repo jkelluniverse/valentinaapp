@@ -1,6 +1,6 @@
 # C23-ENGAGE — acceptance log
 
-Run: 2026-09-11T17:22:47.946Z · `npx tsx audits/engage/verify.ts` against the BUILT app on :3129
+Run: 2026-09-11T17:48:39.795Z · `npx tsx audits/engage/verify.ts` against the BUILT app on :3129
 RESEND_API_KEY present: no — the seam is the path under test
 
 
@@ -89,16 +89,16 @@ RESEND_API_KEY present: no — the seam is the path under test
 
 ## 9. kill-switch and global pause (over HTTP, real tick)
 - ✓ the tick refuses an unauthenticated caller — status 401
-- ✓ with NO switch row at all the gate is CLOSED by default — {"ok":true,"at":"2026-09-11T17:22:47.080Z","only":"engage","engage":"considered=7 sent=0 skipped=6 suppressed=1 unconfigured=0 gate=closed paused=false configured=false"}
+- ✓ with NO switch row at all the gate is CLOSED by default — {"ok":true,"at":"2026-09-11T17:48:38.459Z","only":"engage","engage":"considered=7 sent=0 skipped=6 suppressed=1 unconfigured=0 gate=closed paused=false configured=false"}
 - ✓ with the gate closed a full tick SENDS NOTHING — event-lead/thanks=SKIPPED event-lead/thanks=SKIPPED event-lead/thanks=SKIPPED event-lead/thanks=SUPPRESSED founding-welcome/welcome=SKIPPED event-lead/thanks=SKIPPED event-lead/thanks=SKIPPED
 - ✓ …and records SKIPPED with a reason for every due step — 6 rows, reason engine-gate-closed
 - ✓ …and the unsubscribed prospect is SUPPRESSED even with the gate closed — event-lead/thanks=SUPPRESSED
-- ✓ with the gate OPEN but the global pause ON the tick still sends nothing — {"ok":true,"at":"2026-09-11T17:22:47.129Z","only":"engage","engage":"considered=6 sent=0 skipped=6 suppressed=0 unconfigured=0 gate=open paused=true configured=false"}
+- ✓ with the gate OPEN but the global pause ON the tick still sends nothing — {"ok":true,"at":"2026-09-11T17:48:38.555Z","only":"engage","engage":"considered=6 sent=0 skipped=6 suppressed=0 unconfigured=0 gate=open paused=true configured=false"}
 - ✓ …and records SKIPPED with the pause as its reason — event-lead/thanks=SKIPPED
 - ✓ …re-deciding a step did NOT create a second ledger row — 1 row(s)
 
 ## 10. no-credential behaviour (the seam)
-- ✓ a full tick with no email credential returns 200 and throws nothing — {"ok":true,"at":"2026-09-11T17:22:47.187Z","only":"engage","engage":"considered=6 sent=0 skipped=0 suppressed=0 unconfigured=6 gate=open paused=false configured=false"}
+- ✓ a full tick with no email credential returns 200 and throws nothing — {"ok":true,"at":"2026-09-11T17:48:38.613Z","only":"engage","engage":"considered=6 sent=0 skipped=0 suppressed=0 unconfigured=6 gate=open paused=false configured=false"}
 - ✓ the tick reports itself as unconfigured
 - ✓ EVERY due step for EVERY eligible prospect records UNCONFIGURED — 6 prospects, all UNCONFIGURED
 - ✓ no UNCONFIGURED row claims a sentAt
@@ -136,7 +136,7 @@ RESEND_API_KEY present: no — the seam is the path under test
 - ✓ after signup NO further event-lead step is ever created — event-lead/thanks=SENT founding-welcome/welcome=SENT
 - ✓ no 'still thinking it over' message reached the transport after signup — Thank you for leaving your name | Your practice is set up
 - ✓ they DO pick up founding-welcome instead — event-lead/thanks=SENT founding-welcome/welcome=SENT
-- ✓ the welcome was anchored on conversion, not on capture — 2026-09-12T17:21:45.705Z
+- ✓ the welcome was anchored on conversion, not on capture — 2026-09-12T17:47:36.871Z
 - ✓ the still-LEAD prospect DID advance to step 2 at T0+3d — event-lead/thanks=SENT event-lead/what-it-does=SENT
 - ✓ the tick at T0+3d reported its work — SENT 5
 - ✓ at T0+10d the last note goes out, and the sequence then stops — event-lead/thanks=SENT event-lead/what-it-does=SENT event-lead/last-note=SENT
@@ -146,7 +146,7 @@ RESEND_API_KEY present: no — the seam is the path under test
 ## 8. the unsubscribe route
 - ✓ the token is unguessable (id + a 32-char HMAC) and single-purpose — 58 chars
 - ✓ a token minted for one prospect does not verify for another
-- ✓ one click sets unsubscribedAt — status 200, unsubscribedAt 2026-09-11T17:22:47.375Z
+- ✓ one click sets unsubscribedAt — status 200, unsubscribedAt 2026-09-11T17:48:38.969Z
 - ✓ …and says so plainly in English — Done — you are unsubscribed
 - ✓ a second click is idempotent — it changes nothing and says so — status 200, timestamp unchanged: true
 - ✓ the route renders in Spanish too — Ya estabas dado de baja
@@ -177,7 +177,7 @@ RESEND_API_KEY present: no — the seam is the path under test
 - ✓ /admin/prospects renders for an allowlisted email — status 200
 - ✓ the follow-up section renders
 - ✓ the kill-switch and pause state are shown — Feature gate OPEN — sending allowed engageEnabled Global pause not paused
-- ✓ the queue view renders what is due next (due now AND upcoming) — due now engage-queue-probe@fixture.test event-lead / thanks en 2026-09-11 17:21 nothing yet upcoming engage-queue-probe@fixture
+- ✓ the queue view renders what is due next (due now AND upcoming) — due now engage-queue-probe@fixture.test event-lead / thanks en 2026-09-11 17:47 nothing yet upcoming engage-queue-probe@fixture
 - ✓ per-prospect message history renders with status and reason — event-lead / thanks SENT · delivered-to-transport
 - ✓ /admin/prospects 404s for a signed-in practitioner who is not allowlisted — status 404
 - ✓ …and does not render for a signed-out visitor — status 307

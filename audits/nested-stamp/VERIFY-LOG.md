@@ -1,17 +1,17 @@
 # C24-NESTED-STAMP — acceptance log
 
-Run: 2026-09-05T23:21:55.331Z · `npx tsx audits/nested-stamp-verify.ts`
-Database: postgresql://postgres@localhost:5432/valentina_scratch?host=/tmp
+Run: 2026-09-11T17:48:50.780Z · `npx tsx audits/nested-stamp-verify.ts`
+Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Requests are simulated in-process via Next's request async storage, so every
 request-path check runs through the real scoped client against the real database.
 
-# C24-NESTED-STAMP verify — 2026-09-05T23:21:53.085Z
+# C24-NESTED-STAMP verify — 2026-09-11T17:48:46.950Z
 - ✓ simulated request scope is real (next/headers resolves inside it)
 
 ## Verify 1 — the five assumptions
 - ✓ the nested-write scanner is not blind — it finds the ones the acceptance harnesses write deliberately — 24 in audits/nested-stamp-verify.ts + audits/tenant-scope-verify.ts
-- ✓ A1 CORRECTED: outside the acceptance harnesses the repo contains ZERO nested relation writes on scoped models — 473 files scanned against 43 schema relation fields · hits=0
+- ✓ A1 CORRECTED: outside the acceptance harnesses the repo contains ZERO nested relation writes on scoped models — 474 files scanned against 43 schema relation fields · hits=0
 - ✓ A1 CORRECTED: the REAL mechanism — a scoped-client create OUTSIDE a request writes tenantId NULL — tenantId=null
 - ✓ A1 CORRECTED: the SAME create INSIDE a request is stamped (so the request path was never the leak) — tenantId=tnt_valentina_000000001
 - ✓ A2 CONFIRMED for the request path: the nested-stamp walker is used by lib/prisma.ts and nothing else — lib/prisma.ts
