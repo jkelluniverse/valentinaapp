@@ -44,7 +44,17 @@ export function slugFromHost(host: string | null): string {
 export async function tenantBySlug(slug: string): Promise<TenantConfig | null> {
   const hit = cache.get(slug);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.tenant;
-  const row = await prisma.tenant.findUnique({ where: { slug } }).catch(() => null);
+  // A FAILED query must never enter the cache: caching an error as "no such
+  // tenant" makes one transient DB blip resolve an existing practice's host
+  // to the default tenant for a full TTL, locking its practitioner out
+  // (login filters users by the resolved tenant). Errors serve the last
+  // known value if there is one, else null for THIS request only.
+  let row;
+  try {
+    row = await prisma.tenant.findUnique({ where: { slug } });
+  } catch {
+    return hit?.tenant ?? null;
+  }
   const tenant = row
     ? ({
         id: row.id,

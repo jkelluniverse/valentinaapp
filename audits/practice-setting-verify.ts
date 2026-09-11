@@ -111,7 +111,14 @@ function check(name: string, pass: boolean, note?: string) {
 }
 
 const p: any = prisma;
-const gitShow = (path: string) => execFileSync("git", ["show", `HEAD:${path}`], { encoding: "utf8", cwd: process.cwd() });
+// The "BEFORE" archaeology is pinned to the last pre-fix commit, not HEAD:
+// this gate was written against an uncommitted working tree (where HEAD *was*
+// the pre-fix state), and once the fix is committed a HEAD reference would
+// make every BEFORE check permanently unpassable. a6c8bd8 is the commit the
+// header names — the defect's documented resting place.
+const PRE_FIX_COMMIT = "a6c8bd8";
+const gitShow = (path: string) =>
+  execFileSync("git", ["show", `${PRE_FIX_COMMIT}:${path}`], { encoding: "utf8", cwd: process.cwd() });
 const psql = (sql: string): string =>
   execFileSync("psql", [process.env.DATABASE_URL ?? "", "-v", "ON_ERROR_STOP=1", "-tAc", sql], {
     encoding: "utf8",
