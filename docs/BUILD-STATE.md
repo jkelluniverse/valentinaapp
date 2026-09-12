@@ -634,7 +634,13 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
   question: distinguish "unknown slug, legitimately the default" from "known host,
   resolution failed" and fail closed on the second, at least for scoped writes on public
   surfaces. NO code changed (investigate-first discipline held). Not reachable before
-  self-serve signup existed; it is now.
+  self-serve signup existed; it is now. **The spec exists: C26-FAIL-CLOSED-TENANCY in the
+  inbox, awaiting dispatch. Live sighting 2026-09-12 strengthening its case: during a gate
+  sweep right after a postgres restart, practice-setting-verify reproduced the Architect's
+  original 41st-check symptom ONCE (practitioner B → /login; the ruling-33 fix keeps errors
+  out of the cache, but a single-request resolution failure still resolves to the default
+  tenant and the login is not retried), then passed 47/47 on a quiet re-run. Intermittent,
+  environmental, and exactly the failure class C26 exists to close.**
 - ~~(code, ARCHITECT-REQUEST, found by C24.1) the scoped client's fail-closed pre-check
   selects `{ id: true }` / `PracticeSetting` globally unique on `key`~~ — **CLOSED 2026-09-11
   by C25-PRACTICE-SETTING-TENANCY** (ruling 32's spec): DMMF-derived identity + migration 49.

@@ -1,12 +1,12 @@
 # C24.1-TENANT-SCOPE — acceptance log
 
-Run: 2026-09-12T20:26:41.686Z · `npx tsx audits/tenant-scope-verify.ts`
+Run: 2026-09-12T20:44:50.049Z · `npx tsx audits/tenant-scope-verify.ts`
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Requests are simulated in-process via Next's request async storage, so every
 request-path check runs through the real scoped client against the real database.
 
-# C24.1-TENANT-SCOPE verify — 2026-09-12T20:26:36.108Z
+# C24.1-TENANT-SCOPE verify — 2026-09-12T20:44:44.261Z
 - ✓ simulated request scope is real (next/headers resolves inside it)
 
 ## Verify 1 — the five assumptions
@@ -67,7 +67,7 @@ request-path check runs through the real scoped client against the real database
 ## Verify 7 — the ~10 explicit call sites keep their exact values
 - ✓ a product lib that states its tenant at the call site (lib/pattern-library) keeps its EXACT value under a scope — tenantId=tnt_tcv_foreign_00001 (scope was tnt_valentina_000000001)
 - ✓ an explicit stamp with no scope at all still lands exactly as stated (these files are unaffected by this build)
-- ✓ every explicit tenant VALUE in those files is unchanged from HEAD — no file lost a stamp, and none gained one for any tenant but the default — 14 files compared value-by-value against HEAD · 0 changed the SHAPE of a stamping line for C25 (none), stamping the same tenant
+- ✓ every explicit tenant VALUE in those files is unchanged across C24.1's sweep (939a663 → a6c8bd8, pinned per ruling 34) — no file lost a stamp, and none gained one for any tenant but the default — 14 files compared value-by-value across the pinned sweep · 0 changed the SHAPE of a stamping line (none), stamping the same tenant
 ~ probe tenant, courses, chapters, lessons, log entries and users removed
 - ✓ SELF-CLEANING: this harness leaves zero null-tenant rows behind — {}
 - ✓ the audit still covers every scoped table (79 tables, nothing narrowed) — 79 tables
