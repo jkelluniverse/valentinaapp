@@ -5,7 +5,24 @@ import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG, SCOPED_MODEL_SET, scopeFilter }
 import { stampCreateInput, stampUpdateInput } from "./tenancy/stamp";
 import { identitySelect } from "./tenancy/model-identity";
 import { ambientTenantId } from "./tenancy/tenant-scope";
-import { slugFromHost, tenantBySlug } from "./tenancy";
+import { slugFromHost, tenantBySlugChecked } from "./tenancy";
+
+// C26-FAIL-CLOSED-TENANCY §2 — thrown when a request's host cannot be
+// resolved to a tenant (the lookup ERRORED with nothing cached). Under that
+// condition no tenant-scoped read or write may proceed: not a default-tenant
+// fallback, not a best guess — a refusal. This is the invariant that stops
+// one practice's data being read on, written from, or mailed about another
+// practice's domain (task #81, reproduced). The next request usually succeeds
+// (ruling 33 keeps errors out of the cache), so this is a brief, loud
+// interruption rather than a quiet misattribution.
+export class TenantUnresolvedError extends Error {
+  constructor() {
+    super(
+      "tenant-scope: this request's host could not be resolved to a tenant (lookup failed) — scoped data access refused",
+    );
+    this.name = "TenantUnresolvedError";
+  }
+}
 
 // THE tenant-scoped Prisma client. Same import path, same call surface, same
 // types as before — but inside an HTTP request every query on a scoped model
@@ -78,8 +95,16 @@ async function requestTenantId(): Promise<string | null> {
   }
   const slug = slugFromHost(host);
   if (slug === DEFAULT_TENANT_SLUG) return DEFAULT_TENANT_ID;
-  const t = await tenantBySlug(slug);
-  return t?.id ?? DEFAULT_TENANT_ID; // unknown slug behaves like the default host (matches getTenant)
+  const r = await tenantBySlugChecked(slug);
+  if (!r.ok) {
+    // C26 §2 — a stale-but-known identity is a KNOWN identity; anything else
+    // is a refusal. "Unknown slug" (a successful lookup finding nothing) and
+    // "lookup failed" are different answers and only the first may default.
+    if (r.stale) return r.stale.id;
+    console.error(`[tenant-scope] refusing scoped access: host slug "${slug}" unresolved (lookup failed)`);
+    throw new TenantUnresolvedError();
+  }
+  return r.tenant?.id ?? DEFAULT_TENANT_ID; // unknown slug behaves like the default host (matches getTenant)
 }
 
 function withScope(args: Record<string, unknown>, tenantId: string): Record<string, unknown> {

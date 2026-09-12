@@ -26,7 +26,16 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  // C26-FAIL-CLOSED-TENANCY §3 — if this request's HOST cannot be resolved to
+  // a tenant (the lookup errored, nothing cached), no public page may render
+  // under anyone's identity, and no form may be offered that cannot be safely
+  // submitted. The visitor gets the neutral 503 instead; the data layer
+  // refuses scoped access independently (lib/prisma.ts), so this is the
+  // honest face on a refusal that happens regardless.
+  const { getTenantResolution } = await import("@/lib/tenancy");
+  const { redirect } = await import("next/navigation");
+  if ((await getTenantResolution()).kind === "unresolved") redirect("/unavailable");
   return (
     <div data-portal="public" className="flex min-h-dvh flex-col bg-canvas text-ink">
       <PublicHeader />

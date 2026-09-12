@@ -17,6 +17,14 @@ export const metadata: Metadata = {
 };
 
 export default async function BookPage({ searchParams }: { searchParams: { error?: string } }) {
+  // C26 §3 — checked here as well as in the public layout: this page's slot
+  // read races the layout's redirect, and rendering ANOTHER practice's
+  // availability on this host is the exact defect task #81 reproduced.
+  const { getTenantResolution } = await import("@/lib/tenancy");
+  if ((await getTenantResolution()).kind === "unresolved") {
+    const { redirect } = await import("next/navigation");
+    redirect("/unavailable");
+  }
   const { days, timezone } = await getDiscoverySlots();
 
   return (

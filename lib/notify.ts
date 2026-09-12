@@ -149,7 +149,10 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; skipped?
 
     const from = args.identity ? args.identity.from : process.env.NOTIFY_FROM_EMAIL;
     const replyTo = args.identity ? args.identity.replyTo : process.env.REPLY_TO_EMAIL || null;
-    const res = await fetch("https://api.resend.com/emails", {
+    // RESEND_API_URL — testability affordance only (same class as the tick's
+    // `asOf`): acceptance gates point it at a local sink to assert AT THE
+    // TRANSPORT BOUNDARY from a spawned server. Unset in production.
+    const res = await fetch(process.env.RESEND_API_URL || "https://api.resend.com/emails", {
       method: "POST",
       headers: {
         // Per-identity credential (assumption-4 correction): platform mail

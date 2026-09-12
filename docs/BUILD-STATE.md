@@ -17,8 +17,12 @@
    decisions for ratification; THREE footer blanks await the decision memo (see Jacob's env
    list below). **Phase 2 (per-practice identity) NOT BUILT — next dispatch candidate; spec
    says before any founding practitioner invites a client.**
--1.5. (in inbox, NOT dispatched) C26-FAIL-CLOSED-TENANCY (the task-#81 fix) and
-   C28-TENANT-CONSOLE arrived 2026-09-12 — awaiting dispatch order from Jacob/Architect.
+-3. (Architect review) C26-FAIL-CLOSED-TENANCY — BUILT 2026-09-12 same day as its dispatch
+   (ruling 39 item 1). Report in outbox; gate 18/18 standing; task #81 closed.
+   **NEXT DISPATCH (ruling 39): C27 Phase 2** (per-practice identity, freeze deadline Sept 18);
+   then C28-TENANT-CONSOLE (demoted, only if green by Sept 19).
+-1.5. (in inbox, NOT dispatched) C28-TENANT-CONSOLE — demoted per ruling 39, builds only if
+   green by Sept 19 (ruling 40 freeze).
 -1. ~~(Architect review) C25-PRACTICE-SETTING-TENANCY~~ — **REVIEWED AND CLOSED 2026-09-11
    (rulings 33–35 below): all three flagged decisions RATIFIED.** Report in
    docs/reports/outbox/BUILD-REPORT-C25-PRACTICE-SETTING-TENANCY.md. One follow-up ticket
@@ -55,6 +59,22 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C26-FAIL-CLOSED-TENANCY — a host that cannot be resolved is not Valentina's (2026-09-12,
+  dispatched by the Architect as the program's next-now item, ruling 39): discriminated
+  resolution (`tenantBySlugChecked` → `resolveTenant`: tenant / unknown-slug / unresolved),
+  `getTenant()` keeps never-throw but returns a NEUTRAL practice-less shell on unresolved
+  (never Valentina's identity), the DATA LAYER refuses (`TenantUnresolvedError` in
+  lib/prisma.ts — no scoped read/write proceeds under unresolved, every model, no call site
+  involved), a neutral bilingual 503 (`/unavailable`, Retry-After 10, names no practice), and
+  the layer-3 literal preserved ONLY for its fresh-database purpose. Unknown-slug behaviour
+  unchanged; default slug short-circuits so Valentina's hosts cannot be affected.
+  `audits/fail-closed-tenancy-verify.ts` **18/18** — PROMOTED from the task-#81 repro,
+  STANDING (fitness argued in the report): the reproduction now fails to reproduce (no rows
+  in ANY tenant, zero transport-sink emails), recovery on the very next request, healthy
+  control still books and stamps tenant B. Report:
+  docs/reports/outbox/BUILD-REPORT-C26-FAIL-CLOSED-TENANCY.md (five decisions for
+  ratification, incl. the static front door's byte-identity invariant and the RESEND_API_URL
+  sink affordance). Task #81 CLOSED by this build.
 - C27-EMAIL-IDENTITY **Phase 1 only** — the platform sending identity (2026-09-12):
   `emails/platform-envelope.ts` (second envelope; signs as the display name of
   `PLATFORM_FROM_EMAIL`, footer = `PLATFORM_LEGAL_ENTITY · PLATFORM_POSTAL_ADDRESS`
@@ -315,7 +335,9 @@ PM starts with the true ledger, not an empty one.
    amd06 ALL CHECKS PASS (now null-clean — it was a producer until C24.1) ·
    practice-setting-verify 47/47 (C25; needs `npm run build`; drives the built app on :3141) ·
    email-identity-verify 22/22 (C27 P1; no build or key needed; wire via mocked fetch) ·
-   gate-hygiene-verify PASS (ruling 37 scanner; static, instant — no gate references a moving git ref)
+   gate-hygiene-verify PASS (ruling 37 scanner; static, instant — no gate references a moving git ref) ·
+   fail-closed-tenancy-verify 18/18 (C26; needs `npm run build`; drives the built app on :3152 with
+   a failure-injection DB role; transport sink on :3153)
 ## Standing gate set, with numbers (C24-NESTED-STAMP §4 — the stamp audit is now a REAL gate:
 ## it exits 0 today and exits non-zero on any null-tenant row in any of the 79 scoped tables):
    tenant-stamp audit **exit 0 / no number — pass is "zero rows"** · nested-stamp-verify 43/43 ·
@@ -614,6 +636,10 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
   neither run nor edit them (ruling 27) and named them as UNRESOLVED in the new gate's scan — which
   fails if any NEW unwrapped CLI writer appears. ARCHITECT-REQUEST 1 recommends wrapping all three
   (3 lines).
+- ~~(code, investigate-first) task #81~~ — **CLOSED 2026-09-12 by C26-FAIL-CLOSED-TENANCY**
+  (gate 18/18: the reproduction fails to reproduce; the repro harness was PROMOTED into
+  `audits/fail-closed-tenancy-verify.ts` and the old `t81-booking-tenant-repro.ts` filename is
+  gone). History below kept as filed:
 - (code, investigate-first) task #81 — filed from the C25 review, and the Architect flags it
   as an UNTESTED HYPOTHESIS, not a finding (rulings 12/18 discipline): `getTenant()` still
   resolves a failed lookup to the default tenant for that request
@@ -684,6 +710,26 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     moves, the report must say exactly which check changed and why. C27's move was 172 → 173:
     ONE added check ("platformEmailConfigured() now reports true for this process"), zero
     existing assertions changed or removed, disclosed in the build report and commit message.
+
+## Architect rulings — 2026-09-12 (second follow-up: ratifications, dispatch order, freeze)
+- Rulings 36/37/38 RATIFIED as recorded. On 37, the Architect's addition for the ledger: the
+  tenant-scope tautology was worse than a missing gate — a gate that CANNOT FAIL reports
+  confidence while telling you nothing; after pinning it still passes 48/48, so the behaviour
+  was correct all along and what was missing was any PROOF of it. Fixing the lying "at HEAD"
+  labels instead of excepting them was also correct — a label that lies about its baseline is
+  a smaller version of the same defect. The practice-setting sighting is accepted as live
+  corroboration that the resolution-failure class is real and intermittent.
+39. **DISPATCH ORDER: C26 now → C27 Phase 2 next → C28 last (DEMOTED, and why is recorded):**
+    C26 is the only remaining item with an EVENT-DAY failure mode (sign up in the room, log in
+    on your own subdomain; a DB blip in that window bounces you to /login on stage — the sweep
+    reproduced exactly this). C27 Phase 2 is week-one (a founding practitioner's first client
+    invite must not arrive from Valentina Vélez of Veritas Consulting). C28 is demoted:
+    /admin/prospects already answers what Jacob will ask on the 23rd (SIGNED_UP prospects +
+    tenant links), and self-chosen passwords (C23-SIGNUP) make "reissue a temp password" a
+    rarer support need than the spec assumed. Real operational value, no event-day dependency.
+40. **FREEZE:** C26 and C27 Phase 2 merged by Sept 18. C28 only if green by Sept 19. After
+    Sept 20, NOTHING merges to the deploy branch except a fix for something that breaks the
+    demo — including docs-only pushes, because every push redeploys the site Jacob presents.
 
 ## Standing laws: specs are law; verbatim legal text; evidence-mandatory AI; no invented features;
    kill-switches & gates per spec; report discrepancies, never silently resolve them.
