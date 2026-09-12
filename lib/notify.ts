@@ -27,10 +27,52 @@ type SendArgs = {
   /** Rich branded layout; when omitted, a default Envelope wraps the text. */
   envelope?: Omit<EnvelopeInput, "heading" | "paragraphs"> &
     Partial<Pick<EnvelopeInput, "heading" | "paragraphs">>;
+  /**
+   * C27-EMAIL-IDENTITY §Phase 1 — an EXPLICIT sending identity. Omitted, the
+   * send behaves exactly as it always has (practice envelope, NOTIFY_FROM_EMAIL,
+   * REPLY_TO_EMAIL). Passed, the message goes out from that identity and is
+   * composed by the PLATFORM envelope — never the practice letterhead.
+   */
+  identity?: PlatformIdentity;
 };
 
 export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY && process.env.NOTIFY_FROM_EMAIL);
+}
+
+// ---------------------------------------------------------------------------
+// C27-EMAIL-IDENTITY §Phase 1 — the platform's own sending identity, entirely
+// from platform-level config. FAIL-CLOSED: unless every value needed for an
+// honest message exists (a from, a legal entity, a postal address — law #8, a
+// footer must name the party that actually sent the message — AND, per the
+// Architect's 2026-09-12 correction of assumption 4, the platform's OWN
+// credential: psychefolio.com lives in a SEPARATE Resend account, so the
+// identity carries PLATFORM_RESEND_API_KEY), there is NO platform identity and
+// platform mail records UNCONFIGURED rather than borrowing a practice's
+// letterhead or the other account's key. Falling back to Valentina is the bug.
+// ---------------------------------------------------------------------------
+export type PlatformIdentity = {
+  kind: "platform";
+  /** The platform Resend account's key — a DIFFERENT account from RESEND_API_KEY. */
+  apiKey: string;
+  /** RFC 5322 from — display name + address, e.g. `Name <notifications@domain>`. */
+  from: string;
+  replyTo: string | null;
+  legalEntity: string;
+  postalAddress: string;
+};
+
+export function platformIdentity(): PlatformIdentity | null {
+  const apiKey = process.env.PLATFORM_RESEND_API_KEY;
+  const from = process.env.PLATFORM_FROM_EMAIL;
+  const legalEntity = process.env.PLATFORM_LEGAL_ENTITY;
+  const postalAddress = process.env.PLATFORM_POSTAL_ADDRESS;
+  if (!apiKey || !from || !legalEntity || !postalAddress) return null;
+  return { kind: "platform", apiKey, from, replyTo: process.env.PLATFORM_REPLY_TO ?? null, legalEntity, postalAddress };
+}
+
+export function platformEmailConfigured(): boolean {
+  return platformIdentity() !== null;
 }
 
 // PLATFORM §7 — DEMO tenants are excluded from ANY real notification send:
@@ -61,7 +103,11 @@ function allowedInThisEnvironment(to: string): boolean {
 }
 
 export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; skipped?: boolean }> {
-  if (!emailConfigured()) {
+  // An identity is complete by construction (it carries its OWN account's
+  // credential); the default path needs exactly what it always did. Neither
+  // path ever borrows the other account's key.
+  const configured = args.identity ? true : emailConfigured();
+  if (!configured) {
     console.info("[notify] email not configured — skipping send");
     return { ok: false, skipped: true };
   }
@@ -94,17 +140,27 @@ export async function sendEmail(args: SendArgs): Promise<{ ok: boolean; skipped?
       // transactional mail passes nothing here and renders exactly as before.
       unsubscribe: args.envelope?.unsubscribe,
     };
-    const rendered = renderEnvelope(envelope);
+    // C27 §Phase 1 — the identity picks the ENVELOPE as well as the addresses:
+    // platform mail is composed by the platform envelope, practice mail renders
+    // byte-identically to before (no identity → the exact pre-C27 path).
+    const rendered = args.identity
+      ? (await import("@/emails/platform-envelope")).renderPlatformEnvelope(envelope, args.identity)
+      : renderEnvelope(envelope);
 
+    const from = args.identity ? args.identity.from : process.env.NOTIFY_FROM_EMAIL;
+    const replyTo = args.identity ? args.identity.replyTo : process.env.REPLY_TO_EMAIL || null;
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        // Per-identity credential (assumption-4 correction): platform mail
+        // authenticates with the platform account's key, practice mail with
+        // the practice account's — never each other's.
+        Authorization: `Bearer ${args.identity ? args.identity.apiKey : process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: process.env.NOTIFY_FROM_EMAIL,
-        ...(process.env.REPLY_TO_EMAIL ? { reply_to: process.env.REPLY_TO_EMAIL } : {}),
+        from,
+        ...(replyTo ? { reply_to: replyTo } : {}),
         to: args.to,
         subject: args.subject,
         text: args.envelope ? rendered.text : args.text,

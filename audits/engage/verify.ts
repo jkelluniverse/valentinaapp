@@ -215,16 +215,22 @@ async function main() {
     PLATFORM_ADMIN_EMAILS: ADMIN_EMAIL,
     JOBS_SECRET,
   };
-  delete (env as Record<string, unknown>).RESEND_API_KEY;
-  delete (env as Record<string, unknown>).NOTIFY_FROM_EMAIL;
-  delete (env as Record<string, unknown>).ENGAGE_ENABLED;
-  delete (env as Record<string, unknown>).ENGAGE_PAUSED;
+  for (const k of [
+    "RESEND_API_KEY", "NOTIFY_FROM_EMAIL", "ENGAGE_ENABLED", "ENGAGE_PAUSED",
+    // C27 — the platform identity is config too; the no-credential run proves
+    // the seam with NEITHER identity configured.
+    "PLATFORM_RESEND_API_KEY", "PLATFORM_FROM_EMAIL", "PLATFORM_REPLY_TO", "PLATFORM_LEGAL_ENTITY", "PLATFORM_POSTAL_ADDRESS",
+  ]) {
+    delete (env as Record<string, unknown>)[k];
+  }
   const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(PORT)], { env, stdio: "ignore" });
   for (const [k, v] of Object.entries(env)) process.env[k] = v as string;
-  delete process.env.RESEND_API_KEY;
-  delete process.env.NOTIFY_FROM_EMAIL;
-  delete process.env.ENGAGE_ENABLED;
-  delete process.env.ENGAGE_PAUSED;
+  for (const k of [
+    "RESEND_API_KEY", "NOTIFY_FROM_EMAIL", "ENGAGE_ENABLED", "ENGAGE_PAUSED",
+    "PLATFORM_RESEND_API_KEY", "PLATFORM_FROM_EMAIL", "PLATFORM_REPLY_TO", "PLATFORM_LEGAL_ENTITY", "PLATFORM_POSTAL_ADDRESS",
+  ]) {
+    delete process.env[k];
+  }
 
   try {
     for (let i = 0; i < 60; i++) {
@@ -435,7 +441,20 @@ async function main() {
     // suppression assertion is made at the boundary itself.
     process.env.RESEND_API_KEY = "engage-verify-not-a-real-key";
     process.env.NOTIFY_FROM_EMAIL = "engage-verify@fixture.test";
+    // C27-EMAIL-IDENTITY §Phase 1 — engage mail is PLATFORM mail: the engine's
+    // "configured" now requires the platform identity (from + legal entity +
+    // postal address), and every send carries it. Same throwaway-fixture
+    // pattern as the credential above; nothing leaves this process.
+    process.env.PLATFORM_RESEND_API_KEY = "engage-verify-platform-not-a-real-key";
+    process.env.PLATFORM_FROM_EMAIL = "Engage Verify Platform <engage-verify-platform@fixture.test>";
+    process.env.PLATFORM_REPLY_TO = "engage-verify-platform-reply@fixture.test";
+    process.env.PLATFORM_LEGAL_ENTITY = "Engage Verify Entity";
+    process.env.PLATFORM_POSTAL_ADDRESS = "1 Fixture Way, Testville";
     check("emailConfigured() now reports true for this process", emailConfigured() === true);
+    {
+      const { platformEmailConfigured } = await import("../../lib/notify");
+      check("platformEmailConfigured() now reports true for this process (C27: the engine gates on THIS)", platformEmailConfigured() === true);
+    }
 
     const outbox: SentMail[] = [];
     const spy = (async (args: { to: string; subject: string; text: string; envelope?: unknown }) => {
@@ -552,6 +571,11 @@ async function main() {
     check("event-lead never produces a fourth step", lastTick.steps.every((s) => ["thanks", "what-it-does", "last-note", "welcome", "check-in"].includes(s.stepKey)));
     delete process.env.RESEND_API_KEY;
     delete process.env.NOTIFY_FROM_EMAIL;
+    delete process.env.PLATFORM_RESEND_API_KEY;
+    delete process.env.PLATFORM_FROM_EMAIL;
+    delete process.env.PLATFORM_REPLY_TO;
+    delete process.env.PLATFORM_LEGAL_ENTITY;
+    delete process.env.PLATFORM_POSTAL_ADDRESS;
     check("the harness returned to the no-credential state for the remaining items", emailConfigured() === false);
 
     // ---------------------------------------------------------------- 8 ----

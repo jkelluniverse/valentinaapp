@@ -12,6 +12,13 @@
 ## CLOSED pending Jacob's sender decision); psychefolio.com/.app purchased.)
 
 ## Queue (dependency order):
+-2. (Architect review) C27-EMAIL-IDENTITY Phase 1 — BUILT 2026-09-12, dispatched by Jacob as
+   Phase 1 only. Report in docs/reports/outbox/BUILD-REPORT-C27-EMAIL-IDENTITY-P1.md; five
+   decisions for ratification; THREE footer blanks await the decision memo (see Jacob's env
+   list below). **Phase 2 (per-practice identity) NOT BUILT — next dispatch candidate; spec
+   says before any founding practitioner invites a client.**
+-1.5. (in inbox, NOT dispatched) C26-FAIL-CLOSED-TENANCY (the task-#81 fix) and
+   C28-TENANT-CONSOLE arrived 2026-09-12 — awaiting dispatch order from Jacob/Architect.
 -1. ~~(Architect review) C25-PRACTICE-SETTING-TENANCY~~ — **REVIEWED AND CLOSED 2026-09-11
    (rulings 33–35 below): all three flagged decisions RATIFIED.** Report in
    docs/reports/outbox/BUILD-REPORT-C25-PRACTICE-SETTING-TENANCY.md. One follow-up ticket
@@ -48,6 +55,29 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C27-EMAIL-IDENTITY **Phase 1 only** — the platform sending identity (2026-09-12):
+  `emails/platform-envelope.ts` (second envelope; signs as the display name of
+  `PLATFORM_FROM_EMAIL`, footer = `PLATFORM_LEGAL_ENTITY · PLATFORM_POSTAL_ADDRESS`
+  verbatim, no practice letterhead/credential/wordmark), `sendEmail` gains an explicit
+  `identity` (no identity → byte-identical pre-C27 behaviour), engage gates on
+  `platformEmailConfigured()` and every engage send carries the platform identity
+  (re-read at the send moment; fail-closed to UNCONFIGURED — falling back to
+  Valentina is structurally unreachable). Built against the CORRECTED spec: the
+  Architect's assumption-4 correction (2026-09-12, mid-build) means psychefolio.com
+  is a SEPARATE Resend account, so the identity carries its own
+  `PLATFORM_RESEND_API_KEY` and the wire's Authorization is per-identity — no
+  cross-account borrowing in either direction, asserted behaviorally.
+  `audits/email-identity-verify.ts` **22/22**
+  incl. the BLOCKING byte-identity of the default practice's booking emails against
+  the fixture pinned at commit `8a3f960` (ruling 35). ENGAGE GATE STILL CLOSED,
+  asserted. **THREE FOOTER BLANKS AWAIT THE DECISION MEMO (Jacob/Architect):**
+  `PLATFORM_FROM_EMAIL` (sender name + address on the verified platform domain),
+  `PLATFORM_LEGAL_ENTITY`, `PLATFORM_POSTAL_ADDRESS` — plus the credential
+  `PLATFORM_RESEND_API_KEY` (the psychefolio.com Resend account) — until all four
+  are set in production, engage records UNCONFIGURED and nothing sends. **Phase 2 NOT BUILT**
+  (per-practice identity — urgent-after-event, before any founding practitioner
+  invites a client). Report: docs/reports/outbox/BUILD-REPORT-C27-EMAIL-IDENTITY-P1.md
+  (five decisions for ratification).
 - C25-PRACTICE-SETTING-TENANCY — the event-critical defect (ruling 32) CLOSED: DMMF-derived
   model identity in the fail-closed pre-check (`lib/tenancy/model-identity.ts`, fail-closed,
   79/79 scoped models covered), `PracticeSetting` re-keyed to `id` PK + UNIQUE (tenantId, key)
@@ -494,6 +524,14 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
   is Jacob's call.
 - `RESEND_API_KEY` — until it exists, follow-up ticks record `UNCONFIGURED` (harmlessly, and
   re-sendably). No key means no follow-up, not a crash.
+- **(C27 Phase 1, 2026-09-12) `PLATFORM_RESEND_API_KEY` + `PLATFORM_FROM_EMAIL` +
+  `PLATFORM_LEGAL_ENTITY` + `PLATFORM_POSTAL_ADDRESS`** — the three decision-memo blanks plus
+  the platform account's credential (assumption-4 correction: psychefolio.com is a SEPARATE
+  Resend account; its domain is already verified — send.psychefolio.com SPF/MX, DKIM, DMARC
+  p=none; Zoho runs the apex and NEVER add a second v=spf1 there). Follow-up mail now sends
+  ONLY under this platform identity; until all four are set, engage records `UNCONFIGURED` —
+  the practice `RESEND_API_KEY` neither suffices nor is ever borrowed. The from's display name
+  is also the signature on every platform message. `PLATFORM_REPLY_TO` optional.
 - `JOBS_SECRET` — already in use by C13-PACKAGES; the engage step rides the existing tick.
 
 **Decisions only Jacob can make**

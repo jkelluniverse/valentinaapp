@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { emailConfigured, sendEmail } from "@/lib/notify";
+import { platformEmailConfigured, platformIdentity, sendEmail } from "@/lib/notify";
 import { DEFAULT_TENANT_ID } from "@/lib/tenancy/scope";
 import {
   ENGAGE_ENABLED_KEY,
@@ -182,7 +182,11 @@ export async function planEngage(opts: PlanOptions = {}): Promise<{
   const asOf = opts.asOf ?? new Date();
   const limit = opts.limit ?? DEFAULT_LIMIT;
   const [switches, prospects] = await Promise.all([engageSwitches(), eligibleProspects(limit)]);
-  const configured = emailConfigured();
+  // C27-EMAIL-IDENTITY §Phase 1 — engage mail is PLATFORM mail: "configured"
+  // means the platform identity exists (from + legal entity + postal address),
+  // not merely that a practice can send. Without it every due step records
+  // UNCONFIGURED and stays re-sendable — never a send under a practice's name.
+  const configured = platformEmailConfigured();
 
   const ledger = await prisma.prospectMessage.findMany({
     where: { prospectId: { in: prospects.map((p) => p.id) } },
@@ -359,11 +363,19 @@ async function actOnStep(
     } else {
       outcome = decide(p, sequence, switches, configured);
       if (outcome.status === "SENT") {
+        // Re-read at the send moment: if the platform identity vanished between
+        // planning and acting, record UNCONFIGURED (re-sendable) rather than
+        // letting the transport fall back to a practice's identity.
+        const identity = platformIdentity();
+        if (!identity) {
+          outcome = { status: "UNCONFIGURED", reason: REASONS.unconfigured };
+        } else {
         const rendered = renderEngageMessage(step.locale, step.templateKey, await mergeVarsFor(p));
         const res = await send({
           to: p.email,
           subject: rendered.subject,
           text: rendered.text,
+          identity,
           envelope: {
             locale: step.locale,
             preheader: rendered.preheader,
@@ -378,6 +390,7 @@ async function actOnStep(
           // Left re-sendable on purpose: a transport that refused is not a
           // delivery, and pretending otherwise loses the follow-up.
           outcome = { status: "SKIPPED", reason: REASONS.sendFailed };
+        }
         }
       }
     }

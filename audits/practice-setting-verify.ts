@@ -295,15 +295,22 @@ async function main() {
       remaining.map((r) => `${r.file}:${r.method}`).join(", "),
   );
 
-  // A4 — the engage switches really do live in PracticeSetting.
+  // A4 — the engage switches really do live in PracticeSetting. Two claims,
+  // separated per ruling 34: the LIVE claim (the switches are filter-form
+  // findFirst reads, which the scoped client scopes) runs against the working
+  // tree and must hold forever; the HISTORICAL claim ("the C25 build changed
+  // zero lines of lib/engage.ts") is pinned commit-to-commit — pre-fix a6c8bd8
+  // vs the C25 merge b23d8d2 — because later builds (C27 changed this file,
+  // legitimately) must not repaint a fact about THIS build.
+  const C25_MERGE_COMMIT = "b23d8d2";
   const engageSrc = readFileSync("lib/engage.ts", "utf8");
-  const engageHead = gitShow("lib/engage.ts");
+  const engageAtC25 = execFileSync("git", ["show", `${C25_MERGE_COMMIT}:lib/engage.ts`], { encoding: "utf8", cwd: process.cwd() });
   check(
-    "A4 — CONFIRMED: the engage kill-switch and pause are `PracticeSetting` rows, read by `findFirst({ where: { key } })`, and lib/engage.ts is BYTE-IDENTICAL to HEAD",
+    "A4 — CONFIRMED: the engage kill-switch and pause are `PracticeSetting` rows, read by `findFirst({ where: { key } })`, and C25 changed zero lines of lib/engage.ts (pre-fix commit vs C25 merge, byte-identical)",
     /practiceSetting\.findFirst\(\{ where: \{ key: ENGAGE_ENABLED_KEY \} \}\)/.test(engageSrc) &&
       /practiceSetting\.findFirst\(\{ where: \{ key: ENGAGE_PAUSED_KEY \} \}\)/.test(engageSrc) &&
-      engageSrc === engageHead,
-    "both switches read through a filter-form findFirst, which the scoped client already scopes — so this build changed zero lines of lib/engage.ts",
+      gitShow("lib/engage.ts") === engageAtC25,
+    "both switches still read through a filter-form findFirst in the LIVE file, and a6c8bd8:lib/engage.ts === b23d8d2:lib/engage.ts",
   );
 
   // A5 — the default-tenant path, and what actually exists today.
