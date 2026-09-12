@@ -42,8 +42,16 @@ rather than set it.
 2. All outbound mail funnels through `sendEmail` in `lib/notify.ts` — roughly 63 call sites, no direct
    Resend calls elsewhere. **Grep for direct API use**; a bypass would escape both phases.
 3. `emails/envelope.ts` is the single place the practice footer is composed.
-4. A single Resend API key can send from any domain verified in that Resend account, so **no second API key
-   is needed** — only a second verified sending domain and a different `from`.
+4. ~~A single Resend API key can send from any domain verified in that Resend account, so no second API key
+   is needed.~~ **CORRECTED BY THE ARCHITECT 2026-09-12 — this was false, and it changes Phase 1's shape.**
+   Jacob has set up `psychefolio.com` in a **separate Resend account** from the one behind the existing
+   `RESEND_API_KEY`. Two accounts means **two API keys**, so the identity that `sendEmail` takes must carry
+   its own credential, not just its own `from` address. `lib/notify.ts:102` reads
+   `process.env.RESEND_API_KEY` directly and `emailConfigured()` (line 33) tests that one key — **both
+   become per-identity.** Platform mail uses `PLATFORM_RESEND_API_KEY`; practice mail keeps
+   `RESEND_API_KEY` exactly as it is. Verify that a missing platform key degrades the way a missing
+   practice key does today — recorded `UNCONFIGURED`, never an exception, never a fallback to the other
+   account's credential.
 5. `EMAIL_TEAM_ALLOWLIST` + `RAILWAY_ENVIRONMENT_NAME` are what stop staging emailing real people. Whatever
    you change must keep that guard intact for both identities.
 
@@ -65,10 +73,20 @@ practice-identity mail (everything Valentina sends her clients) are different ki
 composed by different code paths.
 
 1. Platform envelope: sender name, footer entity, postal address and unsubscribe line come from
-   platform-level config — `PLATFORM_FROM_EMAIL`, `PLATFORM_REPLY_TO`, `PLATFORM_LEGAL_ENTITY`,
-   `PLATFORM_POSTAL_ADDRESS`. **No practice letterhead, no practitioner credential, no borrowed wordmark.**
-2. `sendEmail` accepts an explicit identity rather than reading a single global `from`. Default behaviour
-   with no identity passed must be exactly today's behaviour.
+   platform-level config — `PLATFORM_RESEND_API_KEY`, `PLATFORM_FROM_EMAIL`, `PLATFORM_REPLY_TO`,
+   `PLATFORM_LEGAL_ENTITY`, `PLATFORM_POSTAL_ADDRESS`. **No practice letterhead, no practitioner
+   credential, no borrowed wordmark.**
+2. `sendEmail` accepts an explicit identity — **credential, from-address and reply-to together** — rather
+   than reading a single global key and `from`. Default behaviour with no identity passed must be exactly
+   today's behaviour, on the existing `RESEND_API_KEY`.
+   **Infrastructure already in place (verified by the Architect over DNS, 2026-09-12), so do not ask Jacob
+   to redo it:** `psychefolio.com` is verified in its own Resend account — `send.psychefolio.com` carries
+   Resend's SPF and MX, `resend._domainkey.psychefolio.com` carries the DKIM key, and
+   `_dmarc.psychefolio.com` is published at `p=none`. The apex also runs **Zoho Mail**
+   (`v=spf1 include:zohomail.com ~all`), which is the reply mailbox and must not be disturbed: Resend's
+   SPF lives on the `send.` subdomain and DMARC aligns via DKIM, so sending and receiving coexist.
+   **Never add a second `v=spf1` record to the apex** — one SPF record per name, and a second one breaks
+   both.
 3. The engage sequences use the platform identity. Nothing else changes.
 4. Exact copy — signature block, footer, EN and ES — comes from the approved decision memo. **Do not invent
    footer wording**; if the memo's `[ENTITY]` or `[POSTAL ADDRESS]` blanks are still unfilled, stop and raise
