@@ -15,8 +15,8 @@ import es from "../messages/es/practitionerSettings.json";
 //   · /practitioner/settings renders in BOTH locales (User.locale, `?lang=`
 //     override per ruling 14) — every catalog string actually appears
 //   · the wording is IDENTICAL to what shipped before the pass: each English
-//     string is matched against `git show HEAD:app/practitioner/settings/
-//     page.tsx`, so this is provably an i18n MOVE, not a copy rewrite
+//     string is matched against the pre-pass commit (939a663, see below) —
+//     git show 939a663:app/practitioner/settings/page.tsx — provably an i18n MOVE
 //   · the two catalogs have identical key sets
 //
 // It uses the SCOPED client from a CLI context wrapped in withTenantScope —
@@ -144,7 +144,7 @@ async function main() {
   check(
     "EVERY English string is byte-identical (whitespace-normalised) to the pre-pass page — an i18n MOVE, not a copy rewrite",
     missing.length === 0,
-    missing.length ? missing.slice(0, 6).join(" · ") : `${enLeaves.length} strings matched against HEAD`,
+    missing.length ? missing.slice(0, 6).join(" · ") : `${enLeaves.length} strings matched against the pre-pass commit (939a663)`,
   );
 
   // ---- 3. both locales actually render ----

@@ -45,8 +45,8 @@ import { auditNullTenantRows } from "../lib/tenancy/stamp-audit";
 // cannot be re-run in this process: the pre-fix behaviour was reproduced live
 // at HEAD (a6c8bd8) before any edit, and the exact error is quoted in the
 // build report. What this gate can and does prove mechanically is that the
-// two ingredients of that failure are gone — HEAD's pre-check hardcoded
-// `select: { id: true }` and HEAD's PracticeSetting had `key String @id` with
+// two ingredients of that failure are gone — a6c8bd8's pre-check hardcoded
+// `select: { id: true }` and a6c8bd8's PracticeSetting had `key String @id` with
 // no `id` column (both read out of git here) — that a select of a column a
 // model does not have is still a Prisma VALIDATION error (demonstrated live),
 // and that the same write now succeeds.
@@ -197,25 +197,25 @@ async function main() {
     .filter((m) => !/^\s*id\s+/m.test(m.body))
     .map((m) => m.name);
   check(
-    "A1 — CONFIRMED at HEAD too: `PracticeSetting` was the ONLY scoped model with no `id` column, so the blast radius was exactly as the spec assumed",
+    "A1 — CONFIRMED at the pre-fix commit (a6c8bd8) too: `PracticeSetting` was the ONLY scoped model with no `id` column, so the blast radius was exactly as the spec assumed",
     headNoId.length === 1 && headNoId[0] === "PracticeSetting",
-    `HEAD scoped models with no id column: ${headNoId.join(", ") || "none"}`,
+    `pre-fix (a6c8bd8) scoped models with no id column: ${headNoId.join(", ") || "none"}`,
   );
   check(
-    "A1 — and the pre-check no longer hardcodes a key: HEAD selected `{ id: true }`, the current file derives it from the DMMF and cannot skip the check",
+    "A1 — and the pre-check no longer hardcodes a key: the pre-fix commit (a6c8bd8) selected `{ id: true }`, the current file derives it from the DMMF and cannot skip the check",
     /select:\s*\{\s*id:\s*true\s*\}/.test(gitShow("lib/prisma.ts")) &&
       !/select:\s*\{\s*id:\s*true\s*\}/.test(readFileSync("lib/prisma.ts", "utf8")) &&
       readFileSync("lib/prisma.ts", "utf8").includes("identitySelect(model)"),
-    "HEAD: `select: { id: true }` present · now: identitySelect(model), which THROWS when it cannot derive one",
+    "a6c8bd8: `select: { id: true }` present · now: identitySelect(model), which THROWS when it cannot derive one",
   );
 
   // A2 — the PK and the uniqueness constraints, read from the live catalog.
   const headPs = headModels.find((m) => m.name === "PracticeSetting")!;
   const headUniques = (headPs.body.match(/@unique|@@unique|@id|@@id/g) ?? []).sort().join(",");
   check(
-    "A2 — CONFIRMED: at HEAD `key` was the primary key AND the only uniqueness constraint on the table (no @unique, no @@unique, no @@id)",
+    "A2 — CONFIRMED: at the pre-fix commit (a6c8bd8) `key` was the primary key AND the only uniqueness constraint on the table (no @unique, no @@unique, no @@id)",
     headUniques === "@id",
-    `HEAD constraint annotations on PracticeSetting: ${headUniques}`,
+    `a6c8bd8 constraint annotations on PracticeSetting: ${headUniques}`,
   );
   const liveIdx = psql(
     `select string_agg(i.indexname, ' | ' order by i.indexname) from pg_indexes i where i.tablename = 'PracticeSetting'`,
@@ -266,7 +266,7 @@ async function main() {
   check(
     "A3 — CORRECTED, and upward: the spec's \"roughly ten\" write paths is right for `upsert` alone, but the unique-key surface is larger",
     headUpserts >= 9 && headByKey > headUpserts,
-    `at HEAD: ${headUpserts} \`upsert\` sites and ${headByKey} unique-key call sites in total (upsert/update/delete/findUnique) across ${headTouching.size} files — every one of them addressed the row by \`key\` alone`,
+    `at a6c8bd8: ${headUpserts} \`upsert\` sites and ${headByKey} unique-key call sites in total (upsert/update/delete/findUnique) across ${headTouching.size} files — every one of them addressed the row by \`key\` alone`,
   );
   // Where the unique-key surface lives NOW. Two claims, and both matter:
   // no PRODUCT code addresses a setting by unique key at all, and every
@@ -328,9 +328,9 @@ async function main() {
   // The "before" ingredients, read out of git (see the header note on how the
   // pre-fix behaviour itself was demonstrated).
   check(
-    "BEFORE — both ingredients of the failure are documented at HEAD: a hardcoded `{ id: true }` select, and a model with no `id` column",
+    "BEFORE — both ingredients of the failure are documented at the pre-fix commit (a6c8bd8): a hardcoded `{ id: true }` select, and a model with no `id` column",
     /select:\s*\{\s*id:\s*true\s*\}/.test(gitShow("lib/prisma.ts")) && headNoId[0] === "PracticeSetting",
-    "reproduced live at HEAD before any edit: `PrismaClientValidationError: Invalid d.findFirst() invocation in lib/prisma.ts:139` — quoted in full in the build report",
+    "reproduced live at a6c8bd8 before any edit: `PrismaClientValidationError: Invalid d.findFirst() invocation in lib/prisma.ts:139` — quoted in full in the build report",
   );
   // The failure MODE, demonstrated live rather than asserted: selecting a
   // column a model does not have is a Prisma VALIDATION error, which is why

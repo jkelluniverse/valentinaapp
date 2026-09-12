@@ -786,15 +786,16 @@ async function main() {
     (await tid("logEntry", "tcv_explicit_noscope")) === DEFAULT_TENANT_ID,
   );
   // Stronger than "these files were not touched", and stronger than comparing
-  // line TEXT: compare the tenant VALUES each file stamps, against HEAD.
+  // line TEXT: compare the tenant VALUES each file stamps.
   //
-  // Line text is the wrong ruler and C25 proved it. C25 moved every
-  // PracticeSetting write onto lib/practice-settings.ts and onto the
-  // tenant-qualified (tenantId, key), so four of these files legitimately
-  // changed the SHAPE of a stamping line while stamping the very same tenant.
-  // What must be intact is the VALUE — so that is what is compared: every
-  // tenant a file stamped at HEAD it must still stamp, and it may not have
-  // acquired a stamp for any tenant other than the default one.
+  // Line text is the wrong ruler and C25 proved it (four files legitimately
+  // changed the SHAPE of a stamping line while stamping the very same tenant).
+  // And a MOVING ref is the wrong baseline and C27 proved it (ruling 34): this
+  // check originally compared against HEAD, which is a tautology on any clean
+  // tree — after the C24.1 commit it could never fail, so it silently stopped
+  // testing its claim. The claim is HISTORICAL — "C24.1's adoption sweep did
+  // not change what tenant any CLI file stamps" — so both sides are PINNED:
+  // pre-C24.1 (939a663) vs the C24.1 commit (a6c8bd8), true forever.
   const stampLines = (src: string) =>
     src
       .split("\n")
@@ -809,16 +810,19 @@ async function main() {
           .concat((src.match(/await getTenant\(\)\)\.id/g) ?? []).map(() => "getTenant().id")),
       ),
     ].sort();
+  const PRE_C241_COMMIT = "939a663"; // C24-NESTED-STAMP, the commit before C24.1's sweep
+  const C241_COMMIT = "a6c8bd8"; // C24.1-TENANT-SCOPE, the sweep itself
   const valueDrift: string[] = [];
   const shapeChanged: string[] = [];
   for (const f of [...new Set(explicitSites)]) {
     let head = "";
+    let now = "";
     try {
-      head = execFileSync("git", ["show", `HEAD:${f}`], { encoding: "utf8", cwd: process.cwd() });
+      head = execFileSync("git", ["show", `${PRE_C241_COMMIT}:${f}`], { encoding: "utf8", cwd: process.cwd() });
+      now = execFileSync("git", ["show", `${C241_COMMIT}:${f}`], { encoding: "utf8", cwd: process.cwd() });
     } catch {
-      continue; // new file in this build (this harness itself)
+      continue; // file absent at one of the pinned commits (new since the sweep)
     }
-    const now = readFileSync(join(process.cwd(), f), "utf8");
     const before = stampValues(head);
     const after = stampValues(now);
     // No value may be LOST, and nothing but the default tenant may be GAINED.
@@ -830,12 +834,12 @@ async function main() {
     if (JSON.stringify(stampLines(head)) !== JSON.stringify(stampLines(now))) shapeChanged.push(f);
   }
   check(
-    "every explicit tenant VALUE in those files is unchanged from HEAD — no file lost a stamp, and none gained one for any tenant but the default",
+    "every explicit tenant VALUE in those files is unchanged across C24.1's sweep (939a663 → a6c8bd8, pinned per ruling 34) — no file lost a stamp, and none gained one for any tenant but the default",
     valueDrift.length === 0,
     valueDrift.join(" · ") ||
-      `${[...new Set(explicitSites)].length} files compared value-by-value against HEAD · ${
+      `${[...new Set(explicitSites)].length} files compared value-by-value across the pinned sweep · ${
         shapeChanged.length
-      } changed the SHAPE of a stamping line for C25 (${shapeChanged.join(", ") || "none"}), stamping the same tenant`,
+      } changed the SHAPE of a stamping line (${shapeChanged.join(", ") || "none"}), stamping the same tenant`,
   );
 
   // =========================================================================

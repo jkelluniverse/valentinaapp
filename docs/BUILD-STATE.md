@@ -313,7 +313,9 @@ PM starts with the true ledger, not an empty one.
    platform/phase5-verify 17/17 · nested-stamp-verify 43/43 · tenant-scope-verify 48/48 ·
    settings-i18n-verify 10/10 (needs `npm run build`; drives the built app on :3131) ·
    amd06 ALL CHECKS PASS (now null-clean — it was a producer until C24.1) ·
-   practice-setting-verify 47/47 (C25; needs `npm run build`; drives the built app on :3141)
+   practice-setting-verify 47/47 (C25; needs `npm run build`; drives the built app on :3141) ·
+   email-identity-verify 22/22 (C27 P1; no build or key needed; wire via mocked fetch) ·
+   gate-hygiene-verify PASS (ruling 37 scanner; static, instant — no gate references a moving git ref)
 ## Standing gate set, with numbers (C24-NESTED-STAMP §4 — the stamp audit is now a REAL gate:
 ## it exits 0 today and exits non-zero on any null-tenant row in any of the 79 scoped tables):
    tenant-stamp audit **exit 0 / no number — pass is "zero rows"** · nested-stamp-verify 43/43 ·
@@ -657,6 +659,25 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     assertion than the one it was written to test — and it will usually still PASS, which
     is worse than failing. Pin the commit.
 35. **The spec move to `accepted/` RATIFIED. C25 is closed.**
+
+## Architect rulings — 2026-09-12 (post-C27 follow-up, applied same day)
+36. **CHECKPOINT-BRANCH PROTOCOL, standing ops rule:** substantial in-flight work is pushed to
+    a non-deploying checkpoint branch (`claude/<track>-wip`) AS THE BUILD GOES, so a session
+    ending mid-sweep loses nothing (C25 survived only because its sandbox happened to). The
+    auto-deploying branch still receives only gate-green merges — both rules hold, no tension.
+37. **GATE HYGIENE gets a machine (ruling 28's pattern, authorized in the C27 follow-up and
+    folded in):** `audits/gate-hygiene-verify.ts` fails when any gate references a MOVING git
+    ref (HEAD/@{...}/origin/...) — pin a commit instead. Named-exception list with
+    justifications (currently one: email-identity's provenance stamp in capture mode).
+    Ruling 34 was recorded and then violated three times (settings-i18n, practice-setting A4,
+    tenant-scope's value-drift check — the last a TAUTOLOGY since C24.1 merged: on a clean
+    tree HEAD equals the disk file, so it could never fail). Three recurrences = the rule
+    needed a machine, not a fourth ruling. The scanner found and forced the fix of the
+    tenant-scope instance (pinned 939a663 vs a6c8bd8) and the stale "at HEAD" check labels.
+38. **Engage count discipline (Architect):** the gate's number is part of its identity — if it
+    moves, the report must say exactly which check changed and why. C27's move was 172 → 173:
+    ONE added check ("platformEmailConfigured() now reports true for this process"), zero
+    existing assertions changed or removed, disclosed in the build report and commit message.
 
 ## Standing laws: specs are law; verbatim legal text; evidence-mandatory AI; no invented features;
    kill-switches & gates per spec; report discrepancies, never silently resolve them.
