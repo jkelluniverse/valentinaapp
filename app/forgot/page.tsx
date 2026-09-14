@@ -1,4 +1,9 @@
 import Link from "next/link";
+import { tenantAuthMetadata } from "@/lib/auth-metadata";
+
+// C29 — tab chrome (title/app-name) resolves from the request's tenant.
+export const generateMetadata = tenantAuthMetadata;
+import { AuthWordmark } from "@/components/AuthWordmark";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { PendingButton } from "@/components/PendingButton";
 import { requestPasswordReset } from "./actions";
@@ -15,9 +20,7 @@ export default function ForgotPasswordPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-8 px-6">
       <div className="flex flex-col gap-3">
-        <span className="font-headline text-lg font-semibold text-wine">
-          veritas <span className="text-mocha">✧</span>
-        </span>
+        <AuthWordmark />
         <Eyebrow>Password reset</Eyebrow>
         <h1 className="text-[2.25rem] font-semibold">Forgot your password?</h1>
         <SignatureRule />

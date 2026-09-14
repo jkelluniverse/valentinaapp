@@ -1,4 +1,9 @@
 import { redirect } from "next/navigation";
+import { tenantAuthMetadata } from "@/lib/auth-metadata";
+
+// C29 — tab chrome (title/app-name) resolves from the request's tenant.
+export const generateMetadata = tenantAuthMetadata;
+import { AuthWordmark } from "@/components/AuthWordmark";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
@@ -25,9 +30,7 @@ export default async function MustChangePage({
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-8 px-6">
       <div className="flex flex-col gap-3">
-        <span className="font-headline text-lg font-semibold text-wine">
-          veritas <span className="text-mocha">✧</span>
-        </span>
+        <AuthWordmark />
         <Eyebrow>Almost there</Eyebrow>
         <h1 className="text-[2.25rem] font-semibold">Choose your own password</h1>
         <SignatureRule />

@@ -59,6 +59,23 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C29-EVENT-CHROME — a founding practitioner never sees someone else's brand
+  (2026-09-14, dispatched same day on the escalated F2 finding; merged ahead of the
+  Sept 18 freeze): the four auth screens resolve wordmark AND tab metadata from the
+  request's tenant (`components/AuthWordmark.tsx`, `lib/auth-metadata.ts`) — the default
+  tenant renders BYTE-IDENTICAL (fixture pinned at `f07a035`, 15/15, plus the 16-screen
+  screenshot baseline matching pre/post within-session per ruling 11, committed reference
+  untouched); under C26's `unresolved` the brand line renders NOTHING (no fallback
+  wordmark — the hole stays closed). A non-default tenant's public root 307s to its own
+  /book via middleware + `/api/tenant-kind` (default slug zero-cost short-circuit;
+  unknown slug unchanged; failures pass through). A5 answered-and-fixed: /book's empty
+  state named Valentina on every host — now names the visiting practice, default copy
+  byte-unchanged. LEFT deliberately (brand-web scope, documented): the platform apex's
+  chrome, /book's static Valentina copy on foreign hosts, /login's EN-only convention.
+  `audits/event-chrome-verify.ts` **15/15**; report:
+  docs/reports/outbox/BUILD-REPORT-C29-EVENT-CHROME.md (five decisions for ratification,
+  incl. two extra chrome surfaces the spec missed — tab metadata and the empty-state
+  copy — both fixed with byte-identity held).
 - C27-EMAIL-IDENTITY **Phase 2** — every practice's client hears from THAT practice
   (2026-09-14, dispatched with freeze deadline Sept 18; + F1 hardening): `sendEmail` with no
   explicit identity now RESOLVES the sender from the current scope's tenant, fresh per send —

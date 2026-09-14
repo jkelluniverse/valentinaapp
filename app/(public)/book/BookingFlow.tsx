@@ -13,11 +13,14 @@ export function BookingFlow({
   timezone,
   action,
   error,
+  practiceName,
 }: {
   days: DiscoveryDay[];
   timezone: string;
   action: (formData: FormData) => void | Promise<void>;
   error?: string;
+  /** C29 — set ONLY for non-default tenants; the default keeps its original copy. */
+  practiceName?: string;
 }) {
   const [dayKey, setDayKey] = useState(days[0]?.key ?? "");
   const [slotIso, setSlotIso] = useState<string>("");
@@ -34,7 +37,15 @@ export function BookingFlow({
   }, [days, slotIso]);
 
   if (days.length === 0) {
-    return (
+    // C29 — a non-default practice's empty state names ITS OWN practice; the
+    // default tenant keeps its exact original copy (byte-identical, and it is
+    // her page's own voice). practiceName is passed only for non-default hosts.
+    return practiceName ? (
+      <p className="rounded-card border border-line bg-surface px-6 py-5 text-[15px] text-ink shadow-soft">
+        There aren&apos;t any open times listed right now. Please reach out and {practiceName} will
+        find a time with you.
+      </p>
+    ) : (
       <p className="rounded-card border border-line bg-surface px-6 py-5 text-[15px] text-ink shadow-soft">
         There aren&apos;t any open times listed right now. Please reach out and Valentina will find a
         time with you.

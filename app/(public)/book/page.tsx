@@ -21,11 +21,20 @@ export default async function BookPage({ searchParams }: { searchParams: { error
   // read races the layout's redirect, and rendering ANOTHER practice's
   // availability on this host is the exact defect task #81 reproduced.
   const { getTenantResolution } = await import("@/lib/tenancy");
-  if ((await getTenantResolution()).kind === "unresolved") {
+  const resolution = await getTenantResolution();
+  if (resolution.kind === "unresolved") {
     const { redirect } = await import("next/navigation");
     redirect("/unavailable");
   }
   const { days, timezone } = await getDiscoverySlots();
+  // C29 — the empty-slots copy names the practice the visitor is actually
+  // booking with. Passed only for non-default tenants; the default tenant's
+  // page renders byte-identically (its copy is her page's own voice).
+  const { DEFAULT_TENANT_ID } = await import("@/lib/tenancy/scope");
+  const practiceName =
+    resolution.kind !== "unresolved" && resolution.tenant.id !== DEFAULT_TENANT_ID
+      ? resolution.tenant.displayName
+      : undefined;
 
   return (
     <main className="mx-auto max-w-2xl px-5 py-16 md:px-8">
@@ -36,7 +45,7 @@ export default async function BookPage({ searchParams }: { searchParams: { error
       <SignatureRule />
       <p className="mb-10 mt-4 max-w-lg text-lg leading-relaxed text-slate">{SITE.closing.body}</p>
 
-      <BookingFlow days={days} timezone={timezone} action={submitBooking} error={searchParams.error} />
+      <BookingFlow days={days} timezone={timezone} action={submitBooking} error={searchParams.error} practiceName={practiceName} />
     </main>
   );
 }
