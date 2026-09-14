@@ -68,7 +68,7 @@ function check(name: string, pass: boolean, note?: string) {
 }
 
 // ---- the transport sink: what actually leaves sendEmail --------------------
-const sunk: { to?: string; subject?: string }[] = [];
+const sunk: { to?: string; subject?: string; from?: string }[] = [];
 function startSink(): Server {
   const s = createServer((req, res) => {
     let body = "";
@@ -76,7 +76,7 @@ function startSink(): Server {
     req.on("end", () => {
       try {
         const b = JSON.parse(body);
-        sunk.push({ to: b.to, subject: b.subject });
+        sunk.push({ to: b.to, subject: b.subject, from: b.from });
       } catch {
         sunk.push({});
       }
@@ -127,9 +127,14 @@ function startServer(dbUrl: string): ChildProcess {
     PLATFORM_DOMAIN,
     AUTH_TRUST_HOST: "true",
     // The transport boundary: everything sendEmail emits lands in this
-    // process's sink. A fixture key so emailConfigured() is true.
+    // process's sink. Fixture keys so both identities can send: C27 §Phase 2
+    // routes a NON-default practice's mail through the platform sending
+    // domain with the practice's identity (its rig tenant gets a practice
+    // email below), so the healthy control's emails now carry tenant B's name.
     RESEND_API_KEY: "t26-not-a-real-key",
     NOTIFY_FROM_EMAIL: "T26 Practice <t26-from@fixture.test>",
+    PLATFORM_RESEND_API_KEY: "t26-platform-not-a-real-key",
+    PLATFORM_FROM_EMAIL: "T26 Platform <t26-platform-from@fixture.test>",
     RESEND_API_URL: `http://localhost:${SINK_PORT}/emails`,
   };
   return spawn("node_modules/.bin/next", ["start", "-p", String(PORT)], { env, stdio: "ignore" });
@@ -265,6 +270,14 @@ async function main() {
       );
     }
   }
+  // C27 §Phase 2 — a non-default practice's mail sends only AS ITSELF, which
+  // requires its practiceEmail setting; without it the healthy control's
+  // notifications would be HELD (the designed honest skip) and the sink check
+  // would prove the wrong thing. Written by SQL with the tenant stated.
+  psql(
+    `insert into "PracticeSetting" (id, "tenantId", key, value, "updatedAt")
+     values ('t26ps_practice_email_0001', '${tenantB}', 'practiceEmail', 't26-practice-reply@fixture.test', now())`,
+  );
   psql(`create role t26errprobe login password 'errprobe'`);
   psql(`grant usage on schema public to t26errprobe`);
   psql(`grant select, insert, update, delete on all tables in schema public to t26errprobe`);
@@ -377,9 +390,11 @@ async function main() {
       `final url ${url2.replace(`http://${HOST_B}:${PORT}`, "")} · Lead.tenantId = ${leadTenant || "(no row)"}`,
     );
     check(
-      "V5/V4 — and its two notification emails reached the SINK — proving phase 1's zero-email assertion had a working instrument",
-      sunk.length === 2 && sunk.some((s) => s.to === "t26-lead-healthy@fixture.test"),
-      `sink: ${sunk.map((s) => s.to).join(" · ")}`,
+      "V5/V4 — and its two notification emails reached the SINK carrying TENANT B'S identity (C27 §Phase 2) — proving phase 1's zero-email assertion had a working instrument",
+      sunk.length === 2 &&
+        sunk.some((s) => s.to === "t26-lead-healthy@fixture.test") &&
+        sunk.every((s) => s.from === `"T26 Practice B" <t26-platform-from@fixture.test>`),
+      `sink: ${sunk.map((s) => `${s.to} ← ${s.from?.split("<")[0].trim()}`).join(" · ")}`,
     );
     const unknown = await fetch(`http://localhost:${PORT}/book`, { headers: { Host: `${HOST_UNKNOWN}:${PORT}` }, redirect: "follow" });
     const unknownBody = await unknown.text();

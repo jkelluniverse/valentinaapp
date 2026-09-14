@@ -6,7 +6,7 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { getPractitioner, getOrCreateConfig } from "@/lib/schedule";
 import { changePassword, requestEmailChange, signOutEverywhere } from "@/app/account/actions";
-import { savePractitionerLocale, savePolicy, setDeletionStatus , setAssistNotify } from "./actions";
+import { savePractitionerLocale, savePolicy, setDeletionStatus , setAssistNotify, savePracticeContact } from "./actions";
 import { savePractitionerSignatureAction } from "@/app/practitioner/agreements/actions";
 import { SignaturePadForm } from "@/components/agreements/SignaturePadForm";
 import { PendingButton } from "@/components/PendingButton";
@@ -105,6 +105,8 @@ export default async function PractitionerSettingsPage({
 
   const assistNotifyRow = await readPracticeSetting("assistNotifyEmail");
   const assistNotifyOn = assistNotifyRow?.value !== "off";
+  const practiceEmailRow = await readPracticeSetting("practiceEmail");
+  const practicePostalRow = await readPracticeSetting("practicePostalAddress");
 
   return (
     <div className="flex flex-col gap-8">
@@ -323,6 +325,40 @@ export default async function PractitionerSettingsPage({
             </label>
             <PendingButton className="rounded-md border border-line px-3.5 py-1.5 text-sm font-medium text-slate transition-colors hover:border-mocha hover:text-wine">
               {t.practice.assistSave}
+            </PendingButton>
+          </div>
+        </form>
+      </Section>
+
+      {/* C27 §Phase 2 — the practice's own contact identity */}
+      <Section title={t.practiceContact.heading}>
+        <p className="max-w-prose pt-2 text-sm text-slate">{t.practiceContact.intro}</p>
+        <form action={savePracticeContact} className="flex flex-col gap-4 py-4">
+          <div className="grid max-w-xl gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-ink-strong">{t.practiceContact.emailLabel}</span>
+              <input
+                type="email"
+                name="practiceEmail"
+                defaultValue={practiceEmailRow?.value ?? ""}
+                className="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-wine"
+              />
+              <span className="text-xs text-slate">{t.practiceContact.emailHint}</span>
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-ink-strong">{t.practiceContact.postalLabel}</span>
+              <input
+                type="text"
+                name="practicePostalAddress"
+                defaultValue={practicePostalRow?.value ?? ""}
+                className="rounded-md border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-wine"
+              />
+              <span className="text-xs text-slate">{t.practiceContact.postalHint}</span>
+            </label>
+          </div>
+          <div>
+            <PendingButton className="rounded-md border border-line px-3.5 py-1.5 text-sm font-medium text-slate transition-colors hover:border-mocha hover:text-wine">
+              {t.practiceContact.save}
             </PendingButton>
           </div>
         </form>

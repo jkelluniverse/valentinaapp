@@ -135,16 +135,29 @@ async function main() {
       cwd: process.cwd(),
     }),
   );
+  // Keys added AFTER the i18n pass cannot appear in the pre-pass page — the
+  // historical claim ("the pass moved copy, it did not rewrite it") applies
+  // only to strings that existed then. New surfaces list themselves here WITH
+  // their build; an unlisted new key still fails, so drift stays loud.
+  const NEW_SINCE_PASS: Record<string, string> = {
+    "practiceContact.": "C27 §Phase 2 (2026-09-14) — the practice-contact section is new; both locales ship together and the render checks below cover it",
+    "saved.practiceContact": "C27 §Phase 2 — its save confirmation",
+    "errors.practiceContact": "C27 §Phase 2 — its validation error",
+  };
+  const isNew = (path: string) => Object.keys(NEW_SINCE_PASS).some((p) => path === p || path.startsWith(p));
   const missing: string[] = [];
   for (const l of enLeaves) {
+    if (isNew(l.path)) continue;
     // The one templated string: the old page interpolated the same value.
     const needle = norm(l.value).replace("{hours}", "{config.cancelCutoffHours}");
     if (!shipped.includes(needle)) missing.push(`${l.path} → "${l.value}"`);
   }
   check(
-    "EVERY English string is byte-identical (whitespace-normalised) to the pre-pass page — an i18n MOVE, not a copy rewrite",
+    "EVERY pre-pass English string is byte-identical (whitespace-normalised) to the pre-pass page — an i18n MOVE, not a copy rewrite (keys new since the pass are named, with their builds)",
     missing.length === 0,
-    missing.length ? missing.slice(0, 6).join(" · ") : `${enLeaves.length} strings matched against the pre-pass commit (939a663)`,
+    missing.length
+      ? missing.slice(0, 6).join(" · ")
+      : `${enLeaves.filter((l) => !isNew(l.path)).length} pre-pass strings matched against 939a663 · ${enLeaves.filter((l) => isNew(l.path)).length} new-since (named)`,
   );
 
   // ---- 3. both locales actually render ----
@@ -217,6 +230,8 @@ async function main() {
       "errors.email-same",
       "errors.email-taken",
       "errors.policy",
+      "saved.practiceContact", // C27 §Phase 2 — only after a save
+      "errors.practiceContact", // C27 §Phase 2 — only on a rejected save
     ]);
     const absent = (page: string, ls: Leaf[]) =>
       ls

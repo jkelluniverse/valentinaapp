@@ -10,7 +10,8 @@
       "language": "Language saved.",
       "policy": "Session-change policy saved.",
       "assist": "Assist notification preference saved.",
-      "deletion": "Updated."
+      "deletion": "Updated.",
+      "practiceContact": "Practice contact saved."
     },
     "errors": {
       "pw-rate": "Too many attempts — give it fifteen minutes and try again.",
@@ -21,7 +22,8 @@
       "email-format": "That doesn't look like an email address.",
       "email-same": "That's already your address.",
       "email-taken": "That address can't be used.",
-      "policy": "Those policy numbers didn't look right — nothing was changed."
+      "policy": "Those policy numbers didn't look right — nothing was changed.",
+      "practiceContact": "That practice email doesn't look like an email address — nothing was saved."
     },
     "account": {
       "heading": "Account",
@@ -98,6 +100,15 @@
       "promise": "The promise: a response within 7 days, deletion completed within 30 days of confirmation.",
       "acknowledge": "Acknowledge",
       "close": "Mark closed"
+    },
+    "practiceContact": {
+      "heading": "Practice contact",
+      "intro": "The email your clients reply to, and the postal address on your practice's messages. Until the email is set, mail to your clients is held rather than sent under anyone else's name.",
+      "emailLabel": "Practice email",
+      "emailHint": "Client replies go here. Also fills \"[practice email address]\" in your agreements.",
+      "postalLabel": "Postal address",
+      "postalHint": "Shown in your message footers. Optional.",
+      "save": "Save contact details"
     }
   }
 }

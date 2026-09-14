@@ -59,6 +59,23 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C27-EMAIL-IDENTITY **Phase 2** — every practice's client hears from THAT practice
+  (2026-09-14, dispatched with freeze deadline Sept 18; + F1 hardening): `sendEmail` with no
+  explicit identity now RESOLVES the sender from the current scope's tenant, fresh per send —
+  default tenant = the pre-C27 path byte-identical (item-3 fixture still green); a non-default
+  practice sends as ITSELF (`emails/practice-envelope.ts`: its display name, its reply-to =
+  per-practice `practiceEmail` setting, its footer = name · postal, platform sending domain +
+  platform account key, no per-practice DKIM); an UNCONFIGURED practice sends as NO ONE
+  (honest skip, logged — never a borrowed identity). Global `PRACTICE_EMAIL` retired:
+  lib/agreements fills "[practice email address]" from the per-practice setting, env fallback
+  reachable only for the default tenant. `/practitioner/settings` gains the Practice-contact
+  section (email + postal, EN/ES, `practiceContact.*` catalog keys). **F1:** `RESEND_API_URL`
+  is now IGNORED whenever `RAILWAY_ENVIRONMENT_NAME=production` — a stray override can never
+  redirect credentialed mail (gate-asserted). `audits/email-identity-verify.ts` **28/28**
+  (items 4/5/6 asserted at the wire incl. the A→B→A no-crossing run; item 3 byte-identity
+  fixture unchanged at `8a3f960`); settings-i18n **10/10** (new keys carried in a named
+  NEW_SINCE_PASS list — the pre-pass historical claim untouched). Report:
+  docs/reports/outbox/BUILD-REPORT-C27-EMAIL-IDENTITY-P2.md.
 - C26-FAIL-CLOSED-TENANCY — a host that cannot be resolved is not Valentina's (2026-09-12,
   dispatched by the Architect as the program's next-now item, ruling 39): discriminated
   resolution (`tenantBySlugChecked` → `resolveTenant`: tenant / unknown-slug / unresolved),
@@ -548,6 +565,12 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
   is Jacob's call.
 - `RESEND_API_KEY` — until it exists, follow-up ticks record `UNCONFIGURED` (harmlessly, and
   re-sendably). No key means no follow-up, not a crash.
+- ✅ **SET IN BOTH ENVIRONMENTS (Jacob, confirmed by variable name via the Railway API
+  2026-09-14)** — so `platformEmailConfigured()` is TRUE in production and the engage gate is
+  the only thing between the sequences and sending (it stays CLOSED until Jacob opens it).
+  **LEDGER BLANK for Jacob/the Architect to fill: `PLATFORM_LEGAL_ENTITY` = "____________"**
+  (my Railway connector lists names only, values redacted — paste the entity string here; it
+  is not a secret and it is the sender-memo ownership answer of record.)
 - **(C27 Phase 1, 2026-09-12) `PLATFORM_RESEND_API_KEY` + `PLATFORM_FROM_EMAIL` +
   `PLATFORM_LEGAL_ENTITY` + `PLATFORM_POSTAL_ADDRESS`** — the three decision-memo blanks plus
   the platform account's credential (assumption-4 correction: psychefolio.com is a SEPARATE
@@ -730,6 +753,27 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 40. **FREEZE:** C26 and C27 Phase 2 merged by Sept 18. C28 only if green by Sept 19. After
     Sept 20, NOTHING merges to the deploy branch except a fix for something that breaks the
     demo — including docs-only pushes, because every push redeploys the site Jacob presents.
+
+## Architect rulings — 2026-09-14 (C26 review: accepted; all five decisions + both corrected
+## checks RATIFIED — the resolution TYPE, the data-layer refusal, stale-counts-as-resolved
+## ("the RIGHT identity with possibly outdated config is a different and far smaller problem"),
+## the standing gate, and the byte-identity/landing-page check corrections)
+41. **Where an audit is structurally impossible, say so in the report and name the substitute
+    trace; never ship a write that cannot succeed and call it an audit.** (From C26: an audit
+    row cannot be written during the database outage that triggered the refusal — the trace is
+    the structured log line + the 503s in HTTP metrics.)
+
+## FINDING — F2 (Architect follow-up, 2026-09-14): INVESTIGATED, REAL, NOT FIXED (per
+## instruction — needs its own spec and priority call).
+**On practice B's own subdomain, under HEALTHY resolution, the marketing homepage served is
+VALENTINA'S practice marketing.** `app/(public)/page.tsx` is `force-static` over
+`content/site-content.ts` ("Valentina's public marketing copy" — her name, "Meet Valentina",
+her testimonials, her photo) with zero host/tenant awareness — identical bytes on every host.
+So every practice minted at the event serves HER marketing at their root domain. Precision that
+matters for the spec to come: the booking FLOW inside that wrapper is tenant-correct (C26's
+healthy control proved /book on B's host reads B's own slots and stamps B) — the defect is the
+static marketing WRAPPER, not the funnel's data. Scope note: /login also carries a hardcoded
+"veritas" wordmark on every host (flagged in the C25 report). Awaiting Architect spec + priority.
 
 ## Standing laws: specs are law; verbatim legal text; evidence-mandatory AI; no invented features;
    kill-switches & gates per spec; report discrepancies, never silently resolve them.

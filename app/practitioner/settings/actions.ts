@@ -74,3 +74,28 @@ export async function setDeletionStatus(
   revalidatePath(PATH);
   redirect(`${PATH}?saved=deletion`);
 }
+
+// C27 §Phase 2 — the practice's own contact identity: the email their clients
+// reply to (also fills "[practice email address]" in agreements) and the
+// postal address in their message footers. Stored per-practice (C25 made that
+// possible); until the email is set, a non-default practice's client mail is
+// HELD rather than sent under anyone else's name (lib/notify.ts).
+export async function savePracticeContact(formData: FormData) {
+  const user = await requirePractitioner();
+  const { writePracticeSetting, clearPracticeSetting } = await import("@/lib/practice-settings");
+  const { PRACTICE_EMAIL_KEY, PRACTICE_POSTAL_KEY } = await import("@/lib/notify");
+
+  const email = String(formData.get("practiceEmail") ?? "").trim();
+  const postal = String(formData.get("practicePostalAddress") ?? "").trim();
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    redirect(`${PATH}?error=practiceContact`);
+  }
+  if (email) await writePracticeSetting(PRACTICE_EMAIL_KEY, email);
+  else await clearPracticeSetting(PRACTICE_EMAIL_KEY);
+  if (postal) await writePracticeSetting(PRACTICE_POSTAL_KEY, postal);
+  else await clearPracticeSetting(PRACTICE_POSTAL_KEY);
+
+  console.info(`[settings] practice contact updated by=${user.id} email=${email ? "set" : "cleared"} postal=${postal ? "set" : "cleared"}`);
+  revalidatePath(PATH);
+  redirect(`${PATH}?saved=practiceContact`);
+}

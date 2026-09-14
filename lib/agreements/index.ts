@@ -262,8 +262,24 @@ async function resolveAgreementContent(args: AgreementContentArgs): Promise<
   return { ok: true, sibling, vars, recipientEmail: client?.email ?? lead?.email ?? args.recipient?.email ?? null };
 }
 
-function practiceEmail(): string | null {
-  return process.env.PRACTICE_EMAIL ?? process.env.NOTIFY_FROM_EMAIL ?? null;
+// C27 §Phase 2 — the practice email is a PER-PRACTICE setting, not a global.
+// The env vars survive ONLY as the DEFAULT tenant's fallback (so nothing
+// regresses for Valentina); for any other practice an unset value leaves the
+// document's "[practice email address]" placeholder visibly unfilled — honest
+// degradation, never another practice's address on this practice's legal text.
+async function practiceEmail(): Promise<string | null> {
+  const { readPracticeSetting } = await import("@/lib/practice-settings");
+  const { PRACTICE_EMAIL_KEY } = await import("@/lib/notify");
+  const row = await readPracticeSetting(PRACTICE_EMAIL_KEY).catch(() => null);
+  const configured = row?.value?.trim();
+  if (configured) return configured;
+  const { scopeTenantId } = await import("@/lib/prisma");
+  const { DEFAULT_TENANT_ID } = await import("@/lib/tenancy/scope");
+  const tid = await scopeTenantId().catch(() => null);
+  if (tid === null || tid === DEFAULT_TENANT_ID) {
+    return process.env.PRACTICE_EMAIL ?? process.env.NOTIFY_FROM_EMAIL ?? null;
+  }
+  return null;
 }
 
 // §2 — the merged preview, exactly as it would send. Persistence-free.
@@ -280,7 +296,7 @@ export async function previewAgreement(
   return {
     ok: true,
     title: resolved.sibling.title,
-    body: fillRenderPlaceholders(mergeBody(resolved.sibling.body, resolved.vars, args.mark ?? false), practiceEmail()),
+    body: fillRenderPlaceholders(mergeBody(resolved.sibling.body, resolved.vars, args.mark ?? false), await practiceEmail()),
     locale: resolved.sibling.locale,
     status: resolved.sibling.status,
     versionLabel: resolved.sibling.versionLabel,
@@ -315,7 +331,7 @@ export async function createAndSendAgreement(args: AgreementContentArgs & { acto
       locale: sibling.locale,
       status: "SENT",
       titleSnapshot: sibling.title,
-      bodySnapshot: fillRenderPlaceholders(mergeBody(sibling.body, vars), practiceEmail()),
+      bodySnapshot: fillRenderPlaceholders(mergeBody(sibling.body, vars), await practiceEmail()),
       mergeData: vars as Prisma.InputJsonValue,
       tokenHash: hash,
       expiresAt: new Date(Date.now() + AGREEMENT_LINK_TTL_DAYS * 86400_000),

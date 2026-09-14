@@ -35,6 +35,12 @@ const DEFAULT_TENANT_ID = "tnt_valentina_000000001";
 const PLATFORM_DOMAIN = "psx.test";
 
 // Fixed identifiers — every one deleted by cleanup().
+const P2_SLUG = "t27p2probeb";
+const P2_HOST = `${P2_SLUG}.${PLATFORM_DOMAIN}`;
+const P2_EMAIL = "t27-p2-owner@fixture.test";
+const P2_SLUG_C = "t27p2probec";
+const P2_HOST_C = `${P2_SLUG_C}.${PLATFORM_DOMAIN}`;
+const P2_EMAIL_C = "t27-p2-owner-c@fixture.test";
 const PRACT_ID = "t27pract000000000000000001";
 const PRACT_EMAIL = "t27-practitioner@fixture.test";
 const LEAD_ID = "t27lead0000000000000000001";
@@ -147,7 +153,18 @@ async function cleanup() {
   psql(`delete from "Appointment" where id='${APPT_ID}'`);
   psql(`delete from "SchedulingConfig" where id='${SCHED_ID}'`);
   psql(`delete from "User" where id='${PRACT_ID}'`);
+  psql(`delete from "PracticeSetting" where "tenantId"='${DEMO_TENANT_ID}'`);
   psql(`delete from "Tenant" where id='${DEMO_TENANT_ID}'`);
+  for (const slug of [P2_SLUG, P2_SLUG_C]) {
+    const t = psql(`select id from "Tenant" where slug='${slug}'`);
+    if (!t) continue;
+    psql(`delete from "PracticeSetting" where "tenantId"='${t}'`);
+    psql(`delete from "AuditEvent" where "tenantId"='${t}'`);
+    psql(`delete from "TenantModule" where "tenantId"='${t}'`);
+    psql(`delete from "User" where "tenantId"='${t}'`);
+    psql(`delete from "Tenant" where id='${t}'`);
+  }
+  psql(`delete from "PractitionerProspect" where email in ('${P2_EMAIL}','${P2_EMAIL_C}')`);
 }
 
 function seedBookingRows() {
@@ -470,6 +487,16 @@ async function main() {
     `insert into "Tenant" (id, slug, "displayName", status, "layoutKey", "skinKey")
      values ('${DEMO_TENANT_ID}', 't27demo', 'T27 Demo', 'DEMO', 'journey-v1', 'warm-clay')`,
   );
+  // Phase 2 made unconfigured non-default practices SKIP before the DEMO
+  // guard can speak — so give the demo tenant a practice email, ensuring the
+  // check below proves DEMO SUPPRESSION and not mere unconfiguredness.
+  {
+    const { withTenantScope } = (await import("../lib/tenancy/tenant-scope")) as any;
+    const { writePracticeSetting } = (await import("../lib/practice-settings")) as any;
+    await withTenantScope(DEMO_TENANT_ID, async () => {
+      await writePracticeSetting("practiceEmail", "t27-demo-practice@fixture.test");
+    });
+  }
   process.env.PLATFORM_DOMAIN = PLATFORM_DOMAIN;
   let demoPractice: any = null;
   let demoPlatform: any = null;
@@ -498,7 +525,134 @@ async function main() {
     `rows=${gateRow} · env=off (the tick above ran on an in-process env override, removed)`,
   );
 
-  log(`\n## Phase 2 — NOT BUILT HERE, honestly: items 4 (per-practice identity), 5 (silent-failure case), 6 (two practices in one process), and the per-practice half of item 7. The attorney-wording half of 7 is protected in Phase 1 by the byte-identity fixture (agreement mail rides the unchanged practice envelope).`);
+  // =========================================================================
+  log(`\n## PHASE 2 — items 4, 5, 6: the per-practice identity, the silent-failure case, and no cross-identity in one process`);
+  // =========================================================================
+  const { withTenantScope } = (await import("../lib/tenancy/tenant-scope")) as any;
+  const { writePracticeSetting } = (await import("../lib/practice-settings")) as any;
+  const { signUpPractitioner } = (await import("../lib/signup")) as any;
+  const suB = await signUpPractitioner({
+    name: "T27 P2 Owner",
+    practiceName: "T27 P2 Practice",
+    email: P2_EMAIL,
+    password: "t27-p2-pass-2026",
+    slug: P2_SLUG,
+    baseUrl: "http://localhost:3999",
+  });
+  const suC = await signUpPractitioner({
+    name: "T27 P2 Owner C",
+    practiceName: "T27 P2 Practice C",
+    email: P2_EMAIL_C,
+    password: "t27-p2-pass-2026",
+    slug: P2_SLUG_C,
+    baseUrl: "http://localhost:3999",
+  });
+  const tB = psql(`select id from "Tenant" where slug='${P2_SLUG}'`);
+  const tC = psql(`select id from "Tenant" where slug='${P2_SLUG_C}'`);
+  check("two real non-default practices exist (real signup service); B configures contact details, C deliberately does NOT", suB?.ok === true && suC?.ok === true && !!tB && !!tC, `B=${tB} · C=${tC}`);
+  await withTenantScope(tB, async () => {
+    await writePracticeSetting("practiceEmail", "t27-p2-reply@fixture.test");
+    await writePracticeSetting("practicePostalAddress", "9 Practice Row, Testville FL");
+  });
+
+  // Item 4 — B's client mail carries B's identity, at the wire, inside a real
+  // request scope on B's own host, with NO explicit identity passed.
+  const sendNoIdentity = async (host: string, to: string) => {
+    let r: any = null;
+    await runInRequest(`${host}`, async () => {
+      r = await notify.sendEmail({ to, subject: "Your booking is confirmed", text: "See you soon.\n\nWarmly," });
+    });
+    return r;
+  };
+  installWire();
+  wire.length = 0;
+  const rB = await sendNoIdentity(P2_HOST, "t27-p2-client@fixture.test");
+  uninstallWire();
+  const wB = wire[0];
+  check(
+    "ITEM 4 — practice B's client mail (no explicit identity, resolved from B's host) carries B's DISPLAY NAME, B's REPLY-TO, B's FOOTER, the platform account's key — and none of Valentina's identity strings",
+    rB?.ok === true &&
+      wire.length === 1 &&
+      wB.from === `"T27 P2 Practice" <t27-platform-from@fixture.test>` &&
+      wB.reply_to === "t27-p2-reply@fixture.test" &&
+      wB.authorization === `Bearer ${PLATFORM_ENV.PLATFORM_RESEND_API_KEY}` &&
+      wB.html.includes("T27 P2 Practice") &&
+      wB.html.includes("9 Practice Row, Testville FL") &&
+      // Envelope-less sends keep the caller's raw text part (pre-existing
+      // behaviour, same as the default path) — the footer lives in the html.
+      !forbidden.test(wB.html) &&
+      !forbidden.test(wB.text),
+    `from=${wB?.from} · reply_to=${wB?.reply_to} · auth=${wB?.authorization === `Bearer ${PLATFORM_ENV.PLATFORM_RESEND_API_KEY}` ? "platform key" : wB?.authorization} · footer=B's · forbidden strings absent`,
+  );
+
+  // Item 5 — the silent-failure case: C has no practice email. What it does
+  // instead: an HONEST SKIP (ok:false, skipped:true, a log line) — the mail is
+  // held, and no identity is borrowed. Asserted at the wire: zero calls.
+  installWire();
+  wire.length = 0;
+  const rC = await sendNoIdentity(P2_HOST_C, "t27-p2-client-c@fixture.test");
+  uninstallWire();
+  check(
+    "ITEM 5 — a practice with NO email configured sends as NO ONE: the send is skipped (ok:false, skipped:true), zero wire calls, nothing borrowed — honest degradation, same shape as a missing credential",
+    rC?.ok === false && rC?.skipped === true && wire.length === 0,
+    `result={ok:${rC?.ok}, skipped:${rC?.skipped}} · wire calls=${wire.length}`,
+  );
+
+  // Item 6 — A (default), then B, then A again, one process: no crossing.
+  installWire();
+  wire.length = 0;
+  const a1 = await notify.sendEmail({ to: "t27-a1@fixture.test", subject: "T27 A1", text: "x" }); // CLI: no scope → default
+  const b1 = await sendNoIdentity(P2_HOST, "t27-b1@fixture.test");
+  const a2 = await notify.sendEmail({ to: "t27-a2@fixture.test", subject: "T27 A2", text: "x" });
+  uninstallWire();
+  const [wA1, wB1, wA2] = wire;
+  check(
+    "ITEM 6 — A then B then A in ONE process: A's sends are byte-consistent legacy (practice key, NOTIFY_FROM_EMAIL, Veritas footer), B's is B's — no identity crosses in either direction",
+    a1?.ok === true && b1?.ok === true && a2?.ok === true && wire.length === 3 &&
+      wA1.from === FIXED_ENV.NOTIFY_FROM_EMAIL &&
+      wA2.from === FIXED_ENV.NOTIFY_FROM_EMAIL &&
+      wA1.authorization === `Bearer ${FIXED_ENV.RESEND_API_KEY}` &&
+      wA2.authorization === wA1.authorization &&
+      wA1.html.includes("Veritas Consulting") &&
+      wA2.html.includes("Veritas Consulting") &&
+      wA1.reply_to === FIXED_ENV.REPLY_TO_EMAIL &&
+      wA2.reply_to === wA1.reply_to &&
+      wB1.from === `"T27 P2 Practice" <t27-platform-from@fixture.test>` &&
+      !wB1.html.includes("Veritas") &&
+      !wA1.html.includes("T27 P2 Practice") &&
+      !wA2.html.includes("T27 P2 Practice"),
+    `A1 from=${wA1?.from?.split("<")[0]} · B from=${wB1?.from?.split("<")[0]} · A2 from=${wA2?.from?.split("<")[0]} — A1 and A2 identical, B untouched by A, A untouched by B`,
+  );
+
+  // Item 7's per-practice half — the agreements placeholder now fills from the
+  // practice setting: structural assertion that the env var survives ONLY
+  // behind the default-tenant guard (behavioral no-regress for the default
+  // tenant is carried by c20/c21/v31 in the regression set).
+  const agreementsSrc = readFileSync("lib/agreements/index.ts", "utf8");
+  check(
+    "ITEM 7 (per-practice half) — PRACTICE_EMAIL is retired as a global: lib/agreements reads the per-practice setting first, and the env fallback is reachable ONLY for the default tenant",
+    /readPracticeSetting\(PRACTICE_EMAIL_KEY\)/.test(agreementsSrc) &&
+      /tid === null \|\| tid === DEFAULT_TENANT_ID/.test(agreementsSrc) &&
+      agreementsSrc.indexOf("PRACTICE_EMAIL ??") > agreementsSrc.indexOf("tid === null || tid === DEFAULT_TENANT_ID"),
+    "setting first · env fallback behind the default-tenant guard · non-default unset leaves the placeholder visibly unfilled",
+  );
+
+  // =========================================================================
+  log(`\n## F1 — RESEND_API_URL is IGNORED on a production environment (fail-safe, not just config-safe)`);
+  // =========================================================================
+  process.env.RAILWAY_ENVIRONMENT_NAME = "production";
+  process.env.RESEND_API_URL = "http://localhost:9/never-here";
+  installWire(); // intercepts the REAL api.resend.com URL only
+  wire.length = 0;
+  const f1 = await notify.sendEmail({ to: "t27-f1@fixture.test", subject: "T27 F1", text: "x" });
+  uninstallWire();
+  delete process.env.RESEND_API_URL;
+  delete process.env.RAILWAY_ENVIRONMENT_NAME;
+  check(
+    "F1 — with RESEND_API_URL SET and RAILWAY_ENVIRONMENT_NAME=production, the send goes to the REAL endpoint: a stray override variable can never redirect credentialed production mail",
+    f1?.ok === true && wire.length === 1,
+    `send ok=${f1?.ok} · reached api.resend.com=${wire.length === 1} (the override pointed at localhost:9 and was ignored)`,
+  );
 
   await cleanup();
   restoreEnv();

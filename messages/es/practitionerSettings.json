@@ -10,7 +10,8 @@
       "language": "Idioma guardado.",
       "policy": "Política de cambios de sesión guardada.",
       "assist": "Preferencia de aviso de sesión asistida guardada.",
-      "deletion": "Actualizado."
+      "deletion": "Actualizado.",
+      "practiceContact": "Datos de contacto guardados."
     },
     "errors": {
       "pw-rate": "Demasiados intentos — espera quince minutos e inténtalo de nuevo.",
@@ -21,7 +22,8 @@
       "email-format": "Eso no parece una dirección de correo.",
       "email-same": "Esa ya es tu dirección.",
       "email-taken": "Esa dirección no se puede usar.",
-      "policy": "Esos números de la política no se veían bien — no se cambió nada."
+      "policy": "Esos números de la política no se veían bien — no se cambió nada.",
+      "practiceContact": "Ese correo de la práctica no parece una dirección válida — no se guardó nada."
     },
     "account": {
       "heading": "Cuenta",
@@ -98,6 +100,15 @@
       "promise": "La promesa: una respuesta dentro de 7 días, y la eliminación completada dentro de 30 días desde la confirmación.",
       "acknowledge": "Marcar como recibida",
       "close": "Cerrar"
+    },
+    "practiceContact": {
+      "heading": "Contacto de la práctica",
+      "intro": "El correo al que responden tus clientes y la dirección postal en los mensajes de tu práctica. Hasta que definas el correo, el correo a tus clientes se retiene en lugar de enviarse a nombre de otra persona.",
+      "emailLabel": "Correo de la práctica",
+      "emailHint": "Las respuestas de tus clientes llegan aquí. También completa \"[practice email address]\" en tus acuerdos.",
+      "postalLabel": "Dirección postal",
+      "postalHint": "Aparece al pie de tus mensajes. Opcional.",
+      "save": "Guardar datos de contacto"
     }
   }
 }
