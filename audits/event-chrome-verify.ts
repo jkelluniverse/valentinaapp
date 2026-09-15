@@ -84,6 +84,11 @@ function normalize(html: string): string {
     // absolute path, so a worktree build of the SAME source yields different
     // ids) — an opaque routing token in a hidden input, not chrome. Same
     // class as the /_next/static hashes above; normalized on both sides.
+    // RULING 47 — KNOWN BLIND SPOT, accepted cost of comparing across a
+    // worktree checkout: this erases a value that encodes the server action's
+    // module path, so a refactor that MOVES a server action to a different
+    // file changes the id and this gate will NOT see it. Do not read this
+    // gate as proving more than it does.
     .replace(/\$ACTION_ID_[0-9a-f]+/g, "$ACTION_ID_X");
 }
 /** Applied to BOTH sides at compare time: the COUNT of script stubs is build
@@ -305,6 +310,11 @@ async function main() {
     //   the string "veritas " once as slot data. Same tenant's same wordmark,
     //   relocated by the implementation — the VISIBLE half is byte-identical
     //   (the normalized check above proves it).
+    // RULING 46 (scope limit): EXPECTED_DELTAS is for structurally-explained
+    // serialization artifacts ONLY. Any future delta requires the same three
+    // things — rendered bytes unchanged, a named structural cause, and a
+    // demonstrated failure with the delta present. A delta added to make a
+    // red gate green is not permitted.
     const EXPECTED_DELTAS: Record<string, Record<string, number>> = { "/login": { veritas: 1 } };
     const hidden: string[] = [];
     for (const p of PINNED_PAGES) {

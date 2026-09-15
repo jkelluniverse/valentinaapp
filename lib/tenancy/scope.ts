@@ -4,6 +4,8 @@
 
 // The default tenant's identity is fixed by the Phase 0 migration.
 export const DEFAULT_TENANT_ID = "tnt_valentina_000000001";
+// Duplicated as a literal in middleware.ts:44 (middleware cannot load
+// lib/tenancy — raw prisma import); an edit here must edit there.
 export const DEFAULT_TENANT_SLUG = "valentina";
 
 // Every tenant-scoped Prisma delegate (all models except Tenant/TenantModule).

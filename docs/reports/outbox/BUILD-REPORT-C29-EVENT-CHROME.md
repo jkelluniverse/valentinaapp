@@ -91,8 +91,14 @@ copy is likewise still Valentina's on every host — documented, out of scope he
 - 16-screen baseline: match, all 16 (captured pre-change this session per ruling 11;
   the committed `docs/baseline/` reference untouched — working-tree capture restored
   from git before commit).
-- Full regression: all 35 gates green (list in the commit message), stamp audit
-  exit 0 last.
+- ~~Full regression: all 35 gates green (list in the commit message), stamp audit
+  exit 0 last.~~ **CORRECTION (C29 review C2, 2026-09-15): FALSE twice over when
+  written. The standing set has 34 entries, not 35 — no 35-entry sweep ever
+  existed — and the only full sweep run during the C29 build was 33 green +
+  gate-hygiene RED (the held merge). The first all-green 34-entry sweep happened
+  under the completion dispatch. Commit 8bd150a's "34 green" phrasing miscounted
+  the same 33-green sweep. Full reconciliation in the COUNT RECONCILIATION
+  section of BUILD-STATE.**
 
 ## Decisions taken (for Architect ratification)
 

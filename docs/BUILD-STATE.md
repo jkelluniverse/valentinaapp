@@ -59,6 +59,28 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C30-DEMO-PATH — the path Jacob walks on Sept 23, as one gate (2026-09-15, dispatched
+  in the C29 review, ruling 49): `audits/demo-path-verify.ts` **34/34** — the full
+  event path over plain HTTP with JS disabled (multipart posts of the SSR forms'
+  $ACTION_ID fields; no browser, no vendor call): /join → thanks screen's DISPLAYED
+  code → /signup?ref → provisioned practice (ACTIVE + FOUNDING_COMP|NULL|NULL +
+  journey-v1 + warm-clay + the three standard modules) → the practice's own host
+  serving ITS identity (login wordmark+title, root 307→/book, empty state, signed-in
+  portal). EN and ES legs (catalog-asserted); law 2 body-scoped scan (scope disclosed);
+  law 10 asserted MECHANICALLY (credentials stripped + a local Resend sink counted 0
+  hits); no null-tenant rows; idempotent (run twice, zero residue); demonstrated
+  failing on a corrupted ref code (quoted in the report). A2 byte-equal CONFIRMED;
+  A4 corrected (EIGHT chromium-path files, not six). **TWO FINDINGS reported, not
+  fixed: (1) NEW — the signed-in practitioner portal's tab metadata says "Veritas"
+  (root layout; C29 scoped its fix to the four auth screens) — awaiting dispatch;
+  (2) the F2 remainder quantified — a new practice's /book is dressed as Valentina's
+  site (her header+footer logo/name in the body 6×, her head metadata 8×, "free
+  discovery call" title).** Both pinned by exact count in the gate so a NEW leak
+  still fails. Standing set 34→35 (named); the set now has a committed definition,
+  scripts/regress.sh. Report: docs/reports/outbox/BUILD-REPORT-C30-DEMO-PATH.md
+  (two decisions for ratification: the two-slug fixture deviation — C26's ratified
+  stale-resolution cache makes a single reused slug read leg 1's identity — and the
+  committed runner).
 - C29-EVENT-CHROME — a founding practitioner never sees someone else's brand
   (built 2026-09-14, dispatched same day on the escalated F2 finding; the merge was
   HELD when the final sweep went red on gate-hygiene, and completed 2026-09-15 under
@@ -632,6 +654,17 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 - Decide whether the signup screens come out of `noindex` (ruling 4) — one line, Jacob's timing.
 
 ## Blocked / awaiting Architect:
+- (code, NEW FINDING from C30, awaiting dispatch) the signed-in practitioner PORTAL's
+  tab metadata says "Veritas" on a non-default tenant (root layout's <title>,
+  application-name, apple-web-app-title — C29 deliberately scoped its metadata fix to
+  the four auth screens). A founding practitioner inside their own portal reads
+  another brand in the browser tab. Pinned at 3 in demo-path-verify; fix is the C29
+  tenantAuthMetadata pattern applied to the portal layouts.
+- (code, open item against PUBLIC-I18N, from the C29 review's decision (d)) the `unresolved`
+  tab title "Sign in" is EN-only — ratified AS A LOGGED DEVIATION from constitution law 7
+  (bilingual parity), not as correct. It matches /login's pre-existing EN-only heading
+  convention, a gap inherited rather than created by C29. Fix belongs to PUBLIC-I18N; do
+  not fix piecemeal.
 - (ops, BEFORE Sept 23) migration `47_prospect_message` must be deployed before the engage
   surfaces or the tick 500s on a missing table. Then, to turn follow-up ON in production:
   set `PracticeSetting.engageEnabled = "on"` (the gate is CLOSED by default). Read
@@ -813,6 +846,55 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     described as before/after evidence.** (Applied: /book is not in the 16-screen
     baseline, so its fixture was captured from a worktree checkout-and-build of f07a035
     — a real before/after.)
+
+## Architect rulings — 2026-09-15 (C29 review: RATIFIED with two corrections; all five
+## build decisions ratified — (a) A5 fix built not proposed, (b) tab-metadata widening,
+## (c) /api/tenant-kind + commented middleware literal (cross-pointer comments now at
+## both lib/tenancy definitions), (d) "Sign in" EN-only AS A LOGGED DEVIATION not as
+## correct — see the PUBLIC-I18N open item below, (e) the normalization set with 47)
+46. **The /login "veritas" 9→10 named delta is RATIFIED, with a scope limit:**
+    EXPECTED_DELTAS is for structurally-explained serialization artifacts ONLY. Any
+    future delta requires the same three things — rendered bytes unchanged, a named
+    structural cause, and a demonstrated failure with the delta present. A delta added
+    to make a red gate green is not permitted. (Sentence recorded as a comment above
+    EXPECTED_DELTAS in the gate.)
+47. **KNOWN BLIND SPOT, recorded not fixed:** the `$ACTION_ID_<sha>` normalization in
+    event-chrome-verify erases a value that encodes the server action's module path —
+    a refactor that MOVES a server action to a different file changes that id and the
+    gate will not see it. Accepted cost of comparing across a worktree checkout; the
+    gate proves no more than this. (Comment at the normalization site.)
+48. **A deploy is verified against the tip that is serving.** A docs-only or ledger-only
+    push after a health check is a NEW deploy and needs its own check. This is the
+    freeze rule (ruling 40) stated as a verification rule — after Sept 20 it stops
+    being a re-check and becomes a prohibition. (From the C29 review's C1: the af315f4
+    health check was correct when run, then the 942bf62 report push redeployed both
+    environments unchecked.)
+49. **The demo path is verified by gate, and the manual rehearsal confirms the gate
+    rather than substituting for it.** (Enacted by C30-DEMO-PATH — dispatched and
+    BUILT 2026-09-15, spec in accepted/, gate `audits/demo-path-verify.ts` 34/34,
+    in the standing set before stamp-audit.)
+
+## COUNT RECONCILIATION (C29 review C2 — ruling 38 applied to gate counts):
+The standing regression set contains **35 entries** (34 → 35 on 2026-09-15: C30 added
+demo-path, named; before that 34 since C29 added event-chrome; C26-era set was 33),
+and now has a COMMITTED definition — **`scripts/regress.sh` IS the enumeration**:
+lint-wall · guard-prisma · tsc · build · smoke ·
+smoke-writes · signup · capture · referral · engage · tenant-scope · nested-stamp ·
+settings-i18n · platform-phase2 · platform-phase3 · platform-phase5 · platform-verify ·
+c21 · c20 · v31 · c12x · onboarding-complete · onboarding-stage1 · onboarding-update ·
+onboarding-ui · onboarding-discovery · password-reset · amd06 · practice-setting ·
+email-identity · fail-closed-tenancy · event-chrome · demo-path · gate-hygiene ·
+stamp-audit (LAST).
+Three wrong numbers, each owned: the original C29 report's "all 35 gates green" was
+FALSE twice over (no 35-entry sweep ever existed, and the only C29-build sweep was
+33 green + gate-hygiene RED — transcript output is the evidence; corrected in the
+report); commit 8bd150a's message "34 green" miscounted that same 33-green sweep
+(immutable commit message — corrected here and in the report); the builder's "36-gate
+sweep" phrasing during the completion dispatch was stated without counting (actual 34).
+The credential-gated four (pipeline/p12, fixtures/values-verify, c12x-ai-pass,
+remarkable-recording) are NOT entries in the standing set and never were — they explain
+none of the gaps. Count discipline fix: a sweep total is never restated without
+enumerating; the enumeration above is the reference.
 
 ## FINDING — F2 (Architect follow-up, 2026-09-14): INVESTIGATED, REAL, NOT FIXED (per
 ## instruction — needs its own spec and priority call).

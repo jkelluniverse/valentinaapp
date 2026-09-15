@@ -10,6 +10,8 @@ import { rawPrisma as prisma } from "@/lib/prisma-internal";
 // TenantDomain table takes over custom-domain mapping when a second tenant
 // with a custom domain exists.
 
+// Duplicated as a literal in middleware.ts:44 (middleware cannot load this
+// module — it imports the raw prisma client); an edit here must edit there.
 export const DEFAULT_TENANT_SLUG = "valentina";
 
 export type TenantConfig = {
