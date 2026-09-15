@@ -79,6 +79,11 @@ const ALL_EMAILS = [LEGS.en.referrer.email, LEGS.en.founder.email, LEGS.es.refer
 // every VISIBLE byte including <head> (a price in a meta tag is still a
 // price) but not inside scripts — the RSC flight payload serializes reference
 // tokens like "$10" that are routing ids, not money.
+// THE TWO SCANS HAVE DIFFERENT SCOPES ON PURPOSE (ratified with ruling 54's
+// batch): "free" is an ordinary English word that appears innocently in prose
+// metadata, so it is scanned only where law 2 means it — the screen; "$<digit>"
+// is unambiguous pricing anywhere a person or crawler can read it, so it is
+// scanned on all visible bytes. Do NOT tidy them into one scope.
 const LAW2_WORDS = /\bfree\b|\bgratis\b|\bprice\b|\bprecio\b/i;
 const LAW2_MONEY = /\$\s*\d/;
 const law2Clean = (html: string) => !LAW2_WORDS.test(bodyOnly(html)) && !LAW2_MONEY.test(visible(html));
@@ -91,11 +96,17 @@ const visible = (s: string) => s.replace(/<script\b[\s\S]*?<\/script>/g, "");
 const bodyOnly = (s: string) => visible(s.replace(/^[\s\S]*?<\/head>/, ""));
 const countCI = (hay: string, needle: string) => hay.toLowerCase().split(needle).length - 1;
 
-// The known-leak pins — every occurrence enumerated in the header comment.
-const BOOK_KNOWN_VALENTINA_HEAD = 8;
-const BOOK_KNOWN_VALENTINA_BODY = 6; // the public layout's header + footer
-const BOOK_KNOWN_VERITAS_HEAD = 2;
-const PORTAL_KNOWN_VERITAS_HEAD = 3; // root-layout tab metadata — NEW FINDING, reported
+// RULING 50 — these pins are QUARANTINE, not acceptance: each names its defect,
+// cites its tracking item, and the checks compare with exact equality so ANY
+// change in EITHER direction fails — growth is regression, shrinkage means the
+// defect was fixed and the pin must be RETIRED (not lowered) in the same
+// reviewed commit. (Distinct from event-chrome's EXPECTED_DELTAS under ruling
+// 46, which covers serialization artifacts with no defect behind them.)
+// Every occurrence is enumerated in this gate's header comment.
+const BOOK_KNOWN_VALENTINA_HEAD = 8; // defect: Valentina's metadata on a foreign tenant's /book — F2 remainder, chrome half → C31 (ruling 54)
+const BOOK_KNOWN_VALENTINA_BODY = 6; // defect: her public-layout header+footer on a foreign tenant's /book — F2 remainder, chrome half → C31 (ruling 54)
+const BOOK_KNOWN_VERITAS_HEAD = 2; // defect: root-layout app names on a foreign tenant's /book — same C31 item
+const PORTAL_KNOWN_VERITAS_HEAD = 3; // defect: root-layout tab metadata inside a foreign tenant's PORTAL — C30 finding 1, BUILD-STATE Blocked list + ruling 53 → C31
 
 const psql = (sql: string) =>
   execFileSync("psql", [DBURL, "-v", "ON_ERROR_STOP=1", "-tAc", sql], { encoding: "utf8" }).trim();

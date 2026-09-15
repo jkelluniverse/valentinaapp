@@ -147,3 +147,111 @@ gate rather than substituting for it.
 - **Out of scope, untouched**: C28, brand-web, the platform apex, the F2 remainder
   (reported above, not fixed), the chromium path (counted, not fixed), the four event
   surfaces, the default tenant, the engage gate.
+
+---
+
+# IN-FLIGHT REVIEW ADDENDUM (2026-09-15) — the stale-server answer, and the finish
+
+**Ordering disclosure first: the C30 merge (fbbaeb3) reached the deploy branch at
+17:52Z, BEFORE the in-flight review arrived.** The stop-and-answer was therefore
+answered with the merge already live. The scope answer below says why that merge's
+evidence stands; the deploy branch has been HELD since the review arrived (this
+addendum and the rulings live on claude/c30-wip pending your read).
+
+## THE STOP-AND-ANSWER — how far does the stale-server defect reach?
+
+**1. Which gates spawn servers, and with what teardown.** Sixteen gate files spawn
+`next start` (billing b1–b4, agreements c20/c21/v31, platform phase1/3/4/5, engage,
+onboarding ui/discovery, settings-i18n, referral, practice-setting, event-chrome,
+fail-closed-tenancy, plus scripts/smoke.ts and scripts/baseline.ts; the browser gates
+signup/capture spawn one too). EVERY one uses the same two-layer teardown:
+`server.kill()` (SIGTERM) plus the backstop `pkill -f "next start -p <port>"`.
+demo-path now kills by port instead. baseline.ts additionally REFUSES to start on an
+occupied port — its own comment already knew the truth: "kill the stale server first
+(pkill -f next-server)".
+
+**2. Can a prior server survive each teardown? Tested live, quoted.**
+
+The primary mechanism is SOUND, and the reason is structural: Next 14 does not fork —
+the spawned pid RENAMES ITSELF (process.title), so `server.kill()` signals the server
+directly:
+> server healthy on 3170 (cli pid 403) · PID 403 PPID 379 COMMAND next-server (v1
+> TEST A: port 3170 FREE after SIGTERM — primary mechanism kills the tree
+
+The backstop is DEAD CODE everywhere: on Linux, process.title rewrites /proc/cmdline,
+so the pattern can never match — and it CAN match the caller:
+> server healthy (pid 470, title: next-server (v1)
+> TEST B RESULT: server on 3170 SURVIVED the gates' pkill backstop (pattern matched
+> the caller's shell, not the renamed next-server)
+> TEST C: port 3170 FREE — port-based kill works regardless of process name
+
+(TEST B's run also demonstrated the caller-match hazard live: the pkill killed the
+invoking shell, twice, during this session.)
+
+So: a prior server survives into a later run only when the PRIMARY kill never fires or
+wedges — a harness process crashing hard mid-gate. That happened ONCE, observed, in
+C30's own development iterations (the ghost that served stale rate-limit counters and
+motivated this question); the backstop that should have caught it catches nothing.
+
+**3. Was the C29 pre-merge sweep exposed? NO — and here is the evidence, not the
+reasoning.** (a) Port state: after today's THREE full sweeps, all 22 gate ports have
+zero listeners and zero `next-server` processes exist — the sweep path's teardown
+demonstrably works. (b) Same-day content pins: a stale pre-build server cannot serve
+content that was written the same day, and the sweeps' gates pin exactly that —
+settings-i18n 10/10 asserts C27-P2's practiceContact keys on the day they were added;
+event-chrome ran THREE server generations on ONE port inside a single run, including a
+DB-credential-broken server whose unresolved-shell responses a healthy leftover could
+not produce — that is an in-run proof that stop→start cycled correctly on that port
+during the C29 sweep itself. (c) event-chrome's port (3154) was NEW in C29 — no prior
+run existed to leak onto it. **The C29 greens stand as evidence.**
+
+**4. Honest scope: the VULNERABILITY is wide (the backstop is dead code in all 16
+files), the EXPOSURE is narrow (one observed ghost, in C30 development, never in a
+sweep).** Per your stop clause, the other gates' teardowns are UNTOUCHED — the
+ruling-52 replacement across the 16 files awaits your word. demo-path already
+complies (kills by port, before start and at stop).
+
+## /join POST 200-vs-303 — resolved explicitly
+
+The 200 was a HARNESS content-type error, not a product behavior: this gate's first
+draft posted the action urlencoded; the SSR form declares
+`encType="multipart/form-data" method="POST"`, and Next only runs the action for the
+declared encoding. A JS-less browser reads the form tag and posts multipart — which is
+exactly what the gate now sends, and the action answers 303 every time (both legs,
+every run). The real no-JS submit works end to end. C23-CAPTURE's assertion is also
+sound and UNCHANGED: it drives real chromium with `javaScriptEnabled: false` and
+asserts the browser lands on /join/thanks ("minimum submission reaches the success
+screen with JS disabled") — a real browser honors the enctype, so the gate's assertion
+and the real behavior agree. No defect in the assertion.
+
+## The finish, confirmed
+
+- **Ruling-48 deploy check, against the SERVING tip**: Railway reports both
+  environments SUCCESS on commit `fbbaeb356195abed5273de020550321cac61b51c`
+  (production 17:58:00Z, staging 17:58:18Z; the prior 942bf62 deploys REMOVED; no
+  newer deployment pending). Against that tip: production tenant-kind 200 · health
+  200 · login 200; staging the same three 200s.
+- **Count move named (ruling 38)**: 34 → 35, the addition is demo-path, placed before
+  gate-hygiene with stamp-audit LAST; the enumeration is the committed
+  scripts/regress.sh (ruling 51) and is quoted in the merge commit.
+- **Line 94 corrected — confirmed**: the C29 report's "all 35 gates green" now carries
+  the strikethrough correction (33 PASS + 1 FAIL was the true state, transcript
+  quoted); 8bd150a's "34 green" miscount is owned in the same correction and in
+  BUILD-STATE's COUNT RECONCILIATION (a commit message is immutable — the correction
+  lives in the ledger and report).
+- **Rulings 50–54 recorded.** Ruling 50 applied: the four demo-path pins each name
+  their defect and cite their tracking item (F2-remainder chrome half → C31 per ruling
+  54; portal tab metadata → C30 finding 1 + ruling 53), and compare exact-equality so
+  both directions fail. Ruling 46's EXPECTED_DELTAS remains a separate mechanism and
+  the comments say so. The law-2 rescope is named per ruling 38 and the gate comment
+  now states WHY the two scans have different scopes.
+- **Ledger fill**: `PLATFORM_LEGAL_ENTITY = "Kell Systems Consulting, LLC"` recorded
+  verbatim (comma and period preserved). Survey: NO gate or fixture asserts a stale
+  production entity — email-identity injects its own test value ("T27 Entity, Inc.")
+  and engage its own ("Engage Verify Entity"), both by design (they test plumbing,
+  not the production value); nothing changed. The verbatim-footer verify item is
+  written into the C31 spec (V7) with its honest limit: local gates inject test
+  entities, so the verbatim assertion needs an environment where the real value is
+  set.
+- **C31 spec written to docs/specs/inbox/C31-TENANT-CHROME-REMAINDER.md.** NOT built —
+  held per the stop clause until you read the stale-server answer.

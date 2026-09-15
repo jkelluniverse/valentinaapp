@@ -618,9 +618,14 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 - ✅ **SET IN BOTH ENVIRONMENTS (Jacob, confirmed by variable name via the Railway API
   2026-09-14)** — so `platformEmailConfigured()` is TRUE in production and the engage gate is
   the only thing between the sequences and sending (it stays CLOSED until Jacob opens it).
-  **LEDGER BLANK for Jacob/the Architect to fill: `PLATFORM_LEGAL_ENTITY` = "____________"**
-  (my Railway connector lists names only, values redacted — paste the entity string here; it
-  is not a secret and it is the sender-memo ownership answer of record.)
+  **`PLATFORM_LEGAL_ENTITY` = "Kell Systems Consulting, LLC"** (confirmed by Jacob
+  2026-09-15, both environments — filled by the Architect's ledger-fill instruction; the
+  Railway connector lists names only, values redacted, so this ledger line is the value of
+  record. It is not a secret and it is the sender-memo ownership answer of record. NOTE:
+  the ledger recording the value and the rendered platform email footer printing it are
+  two different facts — a verbatim-footer verify item is queued on the next build that
+  touches platform mail chrome, and it needs an environment where the real value is set,
+  since local gates inject their own test entities by design.)
 - **(C27 Phase 1, 2026-09-12) `PLATFORM_RESEND_API_KEY` + `PLATFORM_FROM_EMAIL` +
   `PLATFORM_LEGAL_ENTITY` + `PLATFORM_POSTAL_ADDRESS`** — the three decision-memo blanks plus
   the platform account's credential (assumption-4 correction: psychefolio.com is a SEPARATE
@@ -873,6 +878,51 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     rather than substituting for it.** (Enacted by C30-DEMO-PATH — dispatched and
     BUILT 2026-09-15, spec in accepted/, gate `audits/demo-path-verify.ts` 34/34,
     in the standing set before stamp-audit.)
+
+## Architect rulings — 2026-09-15 (C30 in-flight review)
+50. **Pinning a known defect's count in a gate is QUARANTINE, not acceptance.** Every
+    such pin must name the defect, cite its tracking item, and fail on any change in
+    EITHER direction — growth is regression, shrinkage means someone fixed it and the
+    pin is now lying. Applied to demo-path's /book and portal-metadata pins (each now
+    cites its tracking item; they were already exact-equality, so both directions
+    fail). Distinct from ruling 46's EXPECTED_DELTAS, which covers serialization
+    artifacts with NO defect behind them — the two mechanisms must not blur.
+51. **The standing gate set lives in a committed runner (`scripts/regress.sh`), not an
+    uncommitted scratchpad.** RATIFIED — the scratchpad was the direct cause of the C2
+    count confusion. Any future count claim quotes the runner's own enumeration.
+52. **A harness proves the previous server is dead by checking the PORT, never by
+    matching a process name.** Process names are not a contract (Next 14 renames its
+    process to `next-server (v…)` — proven by test, quoted in the C30 report: the
+    universal `pkill -f "next start -p <port>"` backstop matched NOTHING while the
+    server survived, and the same pattern can match the CALLER instead). Every
+    pkill-pattern teardown is to be replaced with a port check — the enumerated list
+    (16 gate files + scripts/baseline.ts) is in the C30 report; replacement HELD
+    pending the Architect's read of the stale-server scope answer, per the in-flight
+    review's stop clause. demo-path already complies.
+53. **ARCHITECT ERROR, recorded:** C29 decision (b) — the tab-metadata fix — was
+    ratified as complete, but it covered the four auth pages only; the root layout
+    still prints Veritas into the PORTAL's tab on every host (C30's finding 1). The
+    ratification was incomplete; (b) does not close tab chrome.
+54. **THE SCOPE LINE, stated once:** identity CHROME — wordmark, logo, header, footer,
+    tab title, metadata — resolves per tenant and is a tenancy defect, ours to fix.
+    Editorial COPY — what a practice's marketing page actually says — is a product
+    decision and belongs to brand-web. F2's remainder splits along that line: the
+    chrome half is in scope (→ C31), the copy half is not.
+    Also ratified: C30's law-2 rescope (word scan body-only, dollar scan all visible
+    bytes) — the meta-description "break free" match was a false positive; the two
+    scans' scopes differ ON PURPOSE and the gate comment says why.
+
+## STALE-SERVER SCOPE ANSWER (C30 in-flight review, 2026-09-15 — evidence in the C30
+## report): the pkill backstop is DEAD CODE in every server-spawning gate (16 files,
+## same pattern), but the PRIMARY teardown (SIGTERM to the spawned pid) is sound —
+## Next renames the SAME pid, so the signal lands directly; proven by live test. All
+## 22 gate ports free and zero next-server processes after three full sweeps today.
+## Exposure requires a harness-process crash mid-gate (observed once, in C30's own
+## development iterations, never in a sweep). The C29 pre-merge sweep's greens STAND:
+## its gates pinned same-day content a stale server could not serve (settings-i18n's
+## C27P2-day keys; event-chrome's three server generations on one port inside one
+## run, including the DB-failure server whose unresolved-shell responses a healthy
+## ghost could not produce).
 
 ## COUNT RECONCILIATION (C29 review C2 — ruling 38 applied to gate counts):
 The standing regression set contains **35 entries** (34 → 35 on 2026-09-15: C30 added
