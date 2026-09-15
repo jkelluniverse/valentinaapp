@@ -21,7 +21,7 @@ import { refreshDueTokens } from "../../lib/payments/refresh";
 // represented with zero rows and zero behavior change. Self-cleaning.
 
 const APP_PORT = 3113;
-const MOCK_PORT = 3131;
+const MOCK_PORT = 3181; // ruling 59 — was 3131, which settings-i18n (standing set) declares; the standing-set gate keeps its port
 const BASE = `http://localhost:${APP_PORT}`;
 const DEMO_HOST = "demo.platform.test";
 const TENANT_ID = "tnt_b1_demo_000000001";

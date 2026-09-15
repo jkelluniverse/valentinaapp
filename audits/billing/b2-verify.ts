@@ -17,7 +17,7 @@ import { encryptToken } from "../../lib/payments/crypto";
 //   DATABASE_URL=...scratch npx tsx audits/billing/b2-verify.ts
 
 const APP_PORT = 3116;
-const MOCK_PORT = 3132;
+const MOCK_PORT = 3182; // ruling 59 — was 3132, which pipeline/p12 also declares; p12 is credential-gated and untouched, this one moves
 const BASE = `http://localhost:${APP_PORT}`;
 const DEMO_HOST = "demo.platform.test";
 const TENANT_ID = "tnt_b2_demo_000000001";

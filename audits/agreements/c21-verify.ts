@@ -26,7 +26,7 @@ import { withTenantScope } from "../../lib/tenancy/tenant-scope";
 //   npm run build
 //   DATABASE_URL=...scratch npx tsx audits/agreements/c21-verify.ts
 
-const APP_PORT = 3124;
+const APP_PORT = 3126; // ruling 59 — was 3124, which CAPTURE also declared; the earlier gate in the sweep keeps its port, this one moves
 const BASE = `http://localhost:${APP_PORT}`;
 const TENANT = "tnt_valentina_000000001";
 

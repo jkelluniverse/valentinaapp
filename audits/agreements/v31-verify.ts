@@ -18,7 +18,7 @@ import { rawPrisma as prisma } from "../../lib/prisma-internal";
 //   npm run build
 //   DATABASE_URL=...scratch npx tsx audits/agreements/v31-verify.ts
 
-const APP_PORT = 3123;
+const APP_PORT = 3125; // ruling 59 — was 3123, which SIGNUP also declared; the earlier gate in the sweep keeps its port, this one moves
 const BASE = `http://localhost:${APP_PORT}`;
 const TENANT = "tnt_valentina_000000001";
 const PROBE_LABEL = "V31 Probe Pattern";

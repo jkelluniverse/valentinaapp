@@ -953,6 +953,67 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     assertion was sound as written. The inverse habit is how a program talks itself
     into weakening a gate that was right.)
 
+## Architect rulings — 2026-09-15 (residual answered; root-URL incident)
+58. **ARCHITECT ERROR, recorded:** ruling 55's reasoning (b) claimed the teardown
+    vulnerability's failure mode is "LOUD, not silent" — true of the pkill backstop
+    misfiring, wrongly generalized to the whole vulnerability. The crash-before-
+    teardown path on a SHARED port is silent (v31 ran its complete suite against a
+    ghost undetected). Ruling 55's deferral of the sixteen-file teardown rewrite
+    STANDS on reasons (a), (c), (d) only; (b) is struck. Port collisions are a
+    separate, narrower defect — fixed now, not deferred.
+59. **Gate ports are unique and the uniqueness is MACHINE-ENFORCED**
+    (`audits/port-uniqueness-verify.ts`, in the standing set before stamp-audit; set
+    35 → 36, the addition named). Any new gate declares its own port; the scanner
+    catches a collision, not review. Applied: v31 3123→3125, c21 3124→3126 (the
+    earlier gate in the sweep keeps its port) — and the scanner's FIRST run found two
+    MORE collisions the manual survey missed (billing/b1's MOCK_PORT = settings-i18n's
+    3131 — a standing-set gate; billing/b2's MOCK_PORT = p12's 3132): moved to
+    3181/3182. Fourth confirmation of ruling 28's lesson: the scanner beat the list
+    on day one.
+60. **INCIDENT:** production and staging served a baked 307-to-/unavailable at "/"
+    since f988a68, 2026-09-14 ~16:35Z, through four subsequent deploys. Cause:
+    Railway's BUILD phase cannot reach DATABASE_URL (private domain), so C26's layout
+    resolution fails at build and bakes the unresolved redirect into the static root
+    (P1 reproduced it — the build EXITS 0 while baking the digest; P2 with a
+    reachable DB produced a clean 200 root). Blast radius: the static root only;
+    dynamic routes resolve at runtime and were unaffected. Not caught because every
+    deploy check probed /api/health, /login, /api/tenant-kind and never the root.
+    REMEDY (Architect ruling: option 1, ops-only): build-scoped DATABASE_URL uses
+    DATABASE_PUBLIC_URL. STAGING FIXED 2026-09-15 22:53Z (buildCommand
+    `DATABASE_URL="${DATABASE_PUBLIC_URL}" npm run build`; fresh from-source build;
+    origin HTTP/2 200, her title, ZERO digests; all seven surfaces 200; runtime
+    variables untouched — no set-variables call ever made, names identical).
+    **PRODUCTION HELD FOR JACOB** — one-action change and rollback prepared in the
+    incident report. Lesson also recorded: Railway "redeploy" REUSES the previous
+    build — a buildCommand change needs a fresh from-source deployment.
+61. **A deploy check reads the STATUS LINE before it reads anything else.** Content
+    grepped from a body whose status was never checked is not evidence — a 307 error
+    shell can contain the very title being grepped for. (The builder's own disclosed
+    error; recorded because the disclosure is what surfaced the incident. A second
+    instance was caught DURING the incident fix: the proxy's "200 Connection
+    Established" CONNECT line reads as a status line — read the LAST HTTP line.)
+62. **The ruling-48 deploy check asserts GET / returns 200, carries the expected
+    title, and contains no NEXT_REDIRECT digest, on every environment, every time.**
+    A check that never probes the page the demo opens on is not a deploy check.
+
+## ROOT-URL INCIDENT — production state (awaiting Jacob's go):
+- valentinavelez.com/ currently serves the baked 307 error shell (JS visitors land on
+  /unavailable's 503; no-JS visitors see a blank error page). Dynamic pages all 200.
+- THE ONE-ACTION FIX (staging-proven): set the production service's Build Command to
+  `DATABASE_URL="${DATABASE_PUBLIC_URL}" npm run build` and trigger a fresh
+  from-source deployment. ROLLBACK: clear the Build Command (staging's before-state
+  was unset/Railpack default) and redeploy.
+- ESCALATED WITH IT (Jacob's decision, not the builder's): PLATFORM_DOMAIN is UNSET in
+  both environments — slugFromHost resolves EVERY host to the default slug, so no
+  minted practice's subdomain reaches its own portal (the demo's last step). The code
+  expects the BARE APEX (no leading dot, no port): `clean.endsWith(`.${platformDomain}`)`
+  — i.e. `PLATFORM_DOMAIN=psychefolio.com`. Wildcard routing ALREADY WORKS live:
+  production has the custom domain `*.psychefolio.com` on the service and
+  test.psychefolio.com answered 200 (resolving default, as expected while the var is
+  unset). All gates assert subdomain resolution per-request in-process
+  (x-forwarded-host) — they prove the logic, not the deployment; setting the var is
+  the last live switch.
+
 ## STALE-SERVER SCOPE ANSWER (C30 in-flight review, 2026-09-15 — evidence in the C30
 ## report): the pkill backstop is DEAD CODE in every server-spawning gate (16 files,
 ## same pattern), but the PRIMARY teardown (SIGTERM to the spawned pid) is sound —
