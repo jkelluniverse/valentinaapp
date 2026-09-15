@@ -16,24 +16,13 @@
 // `t` renders 0 without JS (useEffect never runs), and the actions treat 0 as
 // "no reading" — so the gate is a legitimate no-JS visitor, not a bypass.
 //
-// KNOWN, NAMED EXCEPTIONS — pinned by exact count so a NEW leak still fails
-// while the known ones stay visible instead of normalized away (ruling 44's
-// spirit). A5 of the C30 spec is PARTIALLY DISPROVED by these and REPORTED,
-// not worked around; fixing any of them moves its pin to 0 in a reviewed
-// commit. Enumerated on a provisioned practice's own host:
-//   /book HEAD  — 8× "valentina": her tab title ("… · Valentina Vélez"), meta
-//     description, canonical valentinavelez.com, og:title/og:url/og:site_name,
-//     twitter:title, and the preloaded /valentina-logo.png (root layout + the
-//     page's own static metadata — the F2 remainder, brand-web scope).
-//   /book BODY  — 6× "valentina": the PUBLIC LAYOUT's header (her logo + name,
-//     3) and footer (logo + name + copyright, 3) render on every public page
-//     of every host. The C29 empty-state fix holds (the practice is named).
-//   /book HEAD  — 2× "veritas": the root layout's application-name and
-//     apple-mobile-web-app-title.
-//   portal HEAD — 3× "veritas": <title>, application-name, apple title — the
-//     ROOT LAYOUT's metadata on the signed-in practitioner's own portal (C29
-//     scoped its metadata fix to the four auth screens; NEW FINDING, reported
-//     for dispatch).
+// C31 RETIRED THE QUARANTINE PINS (ruling 50: removed, not lowered). C30
+// shipped with four exact-count pins quarantining known identity leaks on a
+// provisioned practice's surfaces (Valentina's public-layout header/footer and
+// metadata on /book: 8 head + 6 body; root-layout "Veritas" app names: 2 on
+// /book, 3 in the portal tab). C31 resolved that chrome per tenant, so every
+// identity assertion below is now ZERO on the practice's surfaces — any
+// occurrence, head or body, fails.
 //
 // Self-cleaning and idempotent: reserved fixture slugs (c30-demo-en/-es, one
 // per language leg — a single reused slug would collide with C26's ratified
@@ -96,17 +85,9 @@ const visible = (s: string) => s.replace(/<script\b[\s\S]*?<\/script>/g, "");
 const bodyOnly = (s: string) => visible(s.replace(/^[\s\S]*?<\/head>/, ""));
 const countCI = (hay: string, needle: string) => hay.toLowerCase().split(needle).length - 1;
 
-// RULING 50 — these pins are QUARANTINE, not acceptance: each names its defect,
-// cites its tracking item, and the checks compare with exact equality so ANY
-// change in EITHER direction fails — growth is regression, shrinkage means the
-// defect was fixed and the pin must be RETIRED (not lowered) in the same
-// reviewed commit. (Distinct from event-chrome's EXPECTED_DELTAS under ruling
-// 46, which covers serialization artifacts with no defect behind them.)
-// Every occurrence is enumerated in this gate's header comment.
-const BOOK_KNOWN_VALENTINA_HEAD = 8; // defect: Valentina's metadata on a foreign tenant's /book — F2 remainder, chrome half → C31 (ruling 54)
-const BOOK_KNOWN_VALENTINA_BODY = 6; // defect: her public-layout header+footer on a foreign tenant's /book — F2 remainder, chrome half → C31 (ruling 54)
-const BOOK_KNOWN_VERITAS_HEAD = 2; // defect: root-layout app names on a foreign tenant's /book — same C31 item
-const PORTAL_KNOWN_VERITAS_HEAD = 3; // defect: root-layout tab metadata inside a foreign tenant's PORTAL — C30 finding 1, BUILD-STATE Blocked list + ruling 53 → C31
+// RULING 50 — the C30 quarantine pins lived here (8/6/2/3, each naming its
+// defect and tracking item). C31 fixed the chrome they quarantined, so they
+// are RETIRED — the checks below assert ZERO, head and body, both strings.
 
 const psql = (sql: string) =>
   execFileSync("psql", [DBURL, "-v", "ON_ERROR_STOP=1", "-tAc", sql], { encoding: "utf8" }).trim();
@@ -415,34 +396,28 @@ async function walkLeg(locale: "en" | "es") {
   const book = await req("/book", HOST_NEW);
   const bookBody = bodyOnly(book.body);
   const bookVis = visible(book.body);
-  const bookHeadValentina = countCI(bookVis, "valentina") - countCI(bookBody, "valentina");
-  const bookHeadVeritas = countCI(bookVis, "veritas") - countCI(bookBody, "veritas");
   check(
-    `${label} — ${HOST_NEW}/book empty state names the practice; the KNOWN leaks pinned exactly (valentina head ${BOOK_KNOWN_VALENTINA_HEAD}/body ${BOOK_KNOWN_VALENTINA_BODY} = her public-layout header+footer and page metadata, the F2 remainder; veritas head ${BOOK_KNOWN_VERITAS_HEAD} = root-layout app names) — enumerated in this gate's header, REPORTED not accepted`,
+    `${label} — ${HOST_NEW}/book is the PRACTICE's page: header/footer/empty-state name it, tab title carries it, ZERO veritas/valentina anywhere visible (C31 — the C30 quarantine pins RETIRED, not lowered)`,
     book.status === 200 &&
       has(bookBody, L.founder.practice) &&
-      countCI(bookBody, "veritas") === 0 &&
-      countCI(bookBody, "valentina") === BOOK_KNOWN_VALENTINA_BODY &&
-      bookHeadValentina === BOOK_KNOWN_VALENTINA_HEAD &&
-      bookHeadVeritas === BOOK_KNOWN_VERITAS_HEAD,
-    `valentina head=${bookHeadValentina} body=${countCI(bookBody, "valentina")}; veritas head=${bookHeadVeritas} body=${countCI(bookBody, "veritas")}`,
+      book.body.includes(escapeHtml(`· ${L.founder.practice}`)) &&
+      countCI(bookVis, "veritas") === 0 &&
+      countCI(bookVis, "valentina") === 0,
+    `valentina=${countCI(bookVis, "valentina")}, veritas=${countCI(bookVis, "veritas")} (visible incl. head); title suffix present: ${book.body.includes(escapeHtml(`· ${L.founder.practice}`))}`,
   );
 
   // ---- 6. the founder can enter their portal on their host ----
   const cookie = await signIn(L.founder.email, PASSWORD, HOST_NEW);
   const portal = await req("/practitioner", HOST_NEW, { cookie });
   const portalVis = visible(portal.body);
-  const portalBody = bodyOnly(portal.body);
-  const portalHeadVeritas = countCI(portalVis, "veritas") - countCI(portalBody, "veritas");
   check(
-    `${label} — the founder signs in; the portal SCREEN carries THEIR practice and zero veritas/valentina; the tab metadata still says Veritas (root layout, pinned at ${PORTAL_KNOWN_VERITAS_HEAD} — NEW FINDING, reported for dispatch)`,
+    `${label} — the founder signs in; the portal — SCREEN AND TAB — is THEIR practice's: title carries it, ZERO veritas/valentina anywhere visible (C31 — the portal-metadata quarantine pin RETIRED)`,
     portal.status === 200 &&
-      has(portalBody, L.founder.practice) &&
-      countCI(portalBody, "veritas") === 0 &&
-      countCI(portalBody, "valentina") === 0 &&
-      countCI(portalVis, "valentina") === 0 &&
-      portalHeadVeritas === PORTAL_KNOWN_VERITAS_HEAD,
-    `status ${portal.status}; veritas head=${portalHeadVeritas} body=${countCI(portalBody, "veritas")}; valentina=${countCI(portalVis, "valentina")}`,
+      has(portalVis, L.founder.practice) &&
+      portal.body.includes(`<title>${escapeHtml(L.founder.practice)}`) &&
+      countCI(portalVis, "veritas") === 0 &&
+      countCI(portalVis, "valentina") === 0,
+    `status ${portal.status}; veritas=${countCI(portalVis, "veritas")}, valentina=${countCI(portalVis, "valentina")} (visible incl. head)`,
   );
 }
 

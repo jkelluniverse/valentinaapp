@@ -33,12 +33,23 @@ function Wordmark({ variant = "dark" }: { variant?: "dark" | "light" }) {
   );
 }
 
-export function PublicHeader() {
+// C31 — a NON-default practice's public pages carry ITS name, not hers. The
+// resolved practice arrives as a plain string prop from the (public) layout
+// (this module stays behind the wall: no data imports). null = the default
+// tenant's original chrome, byte-for-byte. The practice wordmark reuses the
+// logo's existing TEXT-FALLBACK styling — no logo asset is invented for a
+// practice (brand-web's), and no design is: it is the same span the default
+// renders when her image is missing.
+export function PublicHeader({ practice }: { practice?: string | null }) {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-canvas/85 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 md:px-8">
-        <Link href="/" aria-label={SITE.practitioner}>
-          <Wordmark />
+        <Link href="/" aria-label={practice ?? SITE.practitioner}>
+          {practice ? (
+            <span className="font-headline text-[22px] font-semibold text-wine">{practice}</span>
+          ) : (
+            <Wordmark />
+          )}
         </Link>
         <nav className="flex items-center gap-5 text-sm">
           <Link href="/book" className="hidden font-medium text-ink hover:text-wine sm:inline">
@@ -56,15 +67,25 @@ export function PublicHeader() {
   );
 }
 
-export function PublicFooter() {
+export function PublicFooter({ practice }: { practice?: string | null }) {
   return (
     <footer className="bg-wine-dark text-cream/70">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-11 md:flex-row md:items-center md:justify-between md:px-8">
         <div className="flex flex-col items-start gap-1.5">
-          <Wordmark variant="light" />
-          <p className="text-sm text-cream/70">{SITE.credential}</p>
+          {practice ? (
+            // C31 — the practice's name in the logo's text-fallback style; her
+            // credential line is HERS and does not render on another practice.
+            // The disclaimer sentence is generic legal copy (unchanged); only
+            // the © name — identity chrome — resolves.
+            <span className="font-headline text-[22px] font-semibold text-cream">{practice}</span>
+          ) : (
+            <>
+              <Wordmark variant="light" />
+              <p className="text-sm text-cream/70">{SITE.credential}</p>
+            </>
+          )}
           <p className="text-xs text-cream/50">
-            Coaching, not medical or psychological treatment. © {SITE.practitioner}
+            Coaching, not medical or psychological treatment. © {practice ?? SITE.practitioner}
           </p>
         </div>
         <nav className="flex flex-wrap items-center gap-6 text-sm">

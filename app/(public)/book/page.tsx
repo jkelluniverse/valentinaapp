@@ -10,11 +10,24 @@ import { submitBooking } from "./actions";
 // lib/discovery surface — no client data crosses the wall.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Book a free discovery call",
-  description:
-    "Book a free, no-pressure discovery call with Valentina Vélez to see whether this work is the right fit.",
-};
+// C31 — the description names HER, so it renders only where the request
+// resolves her tenant (byte-identical for the default host). A non-default
+// practice keeps the same page title COPY, untouched; the (public) layout's
+// resolved template supplies that practice's name as the tab suffix. No
+// description is invented for a practice (brand-web's to write).
+export async function generateMetadata(): Promise<Metadata> {
+  const { getTenantResolution } = await import("@/lib/tenancy");
+  const { DEFAULT_TENANT_ID } = await import("@/lib/tenancy/scope");
+  const r = await getTenantResolution();
+  if (r.kind === "tenant" && r.tenant.id !== DEFAULT_TENANT_ID) {
+    return { title: "Book a free discovery call" };
+  }
+  return {
+    title: "Book a free discovery call",
+    description:
+      "Book a free, no-pressure discovery call with Valentina Vélez to see whether this work is the right fit.",
+  };
+}
 
 export default async function BookPage({ searchParams }: { searchParams: { error?: string } }) {
   // C26 §3 — checked here as well as in the public layout: this page's slot

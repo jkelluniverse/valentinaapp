@@ -59,6 +59,21 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C31-TENANT-CHROME-REMAINDER — the demo's happy path no longer ends on another
+  practitioner's brand (2026-09-15, dispatched in the C30 in-flight review; ruling 54's
+  chrome half): root-layout tab identity, the public layout's metadata + title
+  template, the public header/footer wordmark/©, /book's her-naming description, and
+  BOTH portal layouts' tab metadata now resolve per tenant — a provisioned practice's
+  /book and signed-in portal read ZERO "veritas"/"valentina" (head and body; C30's
+  quarantine pins RETIRED to exact-zero, not lowered), while the default tenant is
+  BYTE-IDENTICAL (event-chrome 17/17 vs f07a035 incl. raw counts; 16-screen baseline
+  MATCH; route table diffed pre/post: IDENTICAL — zero rendering-mode changes, A3).
+  Chrome only — copy untouched (named leftovers: /book/confirmed's sentence + ICS
+  event title, /book's static intro — content, brand-web's). Demonstrated failing
+  (header resolution reverted → demo-path 32/34, valentina=4; restored → 34/34).
+  Report: docs/reports/outbox/BUILD-REPORT-C31-TENANT-CHROME-REMAINDER.md (incl. a
+  named build-environment trap: a DB-less `npm run build` bakes "/" as the unresolved
+  redirect — the sweep and Railway both build with the DB present).
 - C30-DEMO-PATH — the path Jacob walks on Sept 23, as one gate (2026-09-15, dispatched
   in the C29 review, ruling 49): `audits/demo-path-verify.ts` **34/34** — the full
   event path over plain HTTP with JS disabled (multipart posts of the SSR forms'
@@ -659,12 +674,10 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 - Decide whether the signup screens come out of `noindex` (ruling 4) — one line, Jacob's timing.
 
 ## Blocked / awaiting Architect:
-- (code, NEW FINDING from C30, awaiting dispatch) the signed-in practitioner PORTAL's
-  tab metadata says "Veritas" on a non-default tenant (root layout's <title>,
-  application-name, apple-web-app-title — C29 deliberately scoped its metadata fix to
-  the four auth screens). A founding practitioner inside their own portal reads
-  another brand in the browser tab. Pinned at 3 in demo-path-verify; fix is the C29
-  tenantAuthMetadata pattern applied to the portal layouts.
+- ~~(code, NEW FINDING from C30) the signed-in practitioner PORTAL's tab metadata says
+  "Veritas" on a non-default tenant~~ — **CLOSED by C31 2026-09-15** (both portal
+  layouts generateMetadata via tenantAuthMetadata; demo-path asserts zero, pin
+  retired).
 - (code, open item against PUBLIC-I18N, from the C29 review's decision (d)) the `unresolved`
   tab title "Sign in" is EN-only — ratified AS A LOGGED DEVIATION from constitution law 7
   (bilingual parity), not as correct. It matches /login's pre-existing EN-only heading

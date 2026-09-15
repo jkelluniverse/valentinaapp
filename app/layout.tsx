@@ -22,21 +22,40 @@ const inter = Inter({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: "Veritas",
+// C31 — the tab identity resolves from the request's tenant, the same
+// expression the portal shells and C29's auth metadata use. The default
+// tenant's portalTitle "veritas" capitalizes to exactly the "Veritas" this
+// layout has always emitted — byte-identical for her, including at build time
+// for static routes (no host resolves the default tenant, as the body's
+// getTenant call has always done). Under C26's `unresolved` the tab carries NO
+// identity (C29's principle: never a borrowed name on an unresolvable host);
+// description, manifest and icons are generic and merge through untouched.
+const METADATA_BASE: Metadata = {
   description: "A private space for reflection and progress between sessions.",
   manifest: "/manifest.webmanifest",
-  applicationName: "Veritas",
-  appleWebApp: {
-    capable: true,
-    title: "Veritas",
-    statusBarStyle: "default",
-  },
   icons: {
     icon: "/icon.svg",
     apple: "/apple-touch-icon.png",
   },
 };
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { getTenantResolution } = await import("@/lib/tenancy");
+  const r = await getTenantResolution();
+  if (r.kind === "unresolved") return METADATA_BASE;
+  const raw = (r.tenant.branding ?? {}).portalTitle || "veritas";
+  const name = raw.charAt(0).toUpperCase() + raw.slice(1);
+  return {
+    ...METADATA_BASE,
+    title: name,
+    applicationName: name,
+    appleWebApp: {
+      capable: true,
+      title: name,
+      statusBarStyle: "default",
+    },
+  };
+}
 
 // AMENDMENT-02 §2/§4 — viewport-fit=cover lets the app paint into the notch and
 // home-indicator areas (the shells then pad with env(safe-area-inset-*)).

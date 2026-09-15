@@ -6,7 +6,13 @@ import { getLayout } from "@/components/layouts";
 // tenant's layout tree (components/layouts/*); this file authenticates,
 // gathers the little data the shell needs, and selects the layout.
 // C18 §2 — the portal is private; never index it.
-export const metadata = { robots: { index: false, follow: false } };
+// C31 — the tab identity resolves from the tenant (C29's auth-metadata
+// expression: the default's "veritas" capitalizes to the exact "Veritas" the
+// root layout always emitted; a practice's tab says the practice).
+export async function generateMetadata() {
+  const { tenantAuthMetadata } = await import("@/lib/auth-metadata");
+  return { ...(await tenantAuthMetadata()), robots: { index: false, follow: false } };
+}
 
 export default async function PractitionerLayout({ children }: { children: React.ReactNode }) {
   const user = await requirePractitioner();
