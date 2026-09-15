@@ -194,9 +194,44 @@ inputs; an opaque routing token, same class as the /_next/static hashes. Found b
 the honest worktree capture exposed it (/forgot diverged at the action id and nowhere
 else — divergence bytes quoted in the gate log).
 
+## V6 — verify item 6 untouched (R3)
+
+No relaxation was needed or made: unknown-slug behavior is unchanged from C26 and the
+gate's V6 assertion is byte-for-byte the one that passed at build time (`git diff` over
+the gate shows only the additions named in V7). Ruling 43 recorded.
+
 ## V8 — the false merge line corrected (R2), at the top of this report.
+
+## V9 — rulings 42–45 recorded in BUILD-STATE
+
+42 (Architect error: four mid-flight items asserted but never sent), 43 (V6 stands as
+built), 44 (normalization requires a demonstrated-failing cannot-hide companion),
+45 (pre-change fixture never captured → recapture from the pinned commit or label
+forward-drift-guard).
+
+## V10 — full sweep, merge, deploy
+
+Full standing regression: **all 34 entries green, stamp-audit LAST, exit 0**
+(lint-wall · guard-prisma · tsc · build 72/72 · smoke · smoke-writes · signup 37/37 ·
+capture 59/59 · referral 68/68 · engage 173/173 [the established count — named +1 in
+the C27-P1 report, not a move this dispatch] · tenant-scope 48/48 · nested-stamp 43/43 ·
+settings-i18n 10/10 · platform p2 16/16, p3 11/11, p5 17/17, verify PASS · c21 58/58 ·
+c20 28/28 · v31 32/32 · c12x · onboarding 16/16, 17/17, 7/7, 10/10, 19/19 ·
+password-reset · amd06 · practice-setting 47/47 · email-identity 28/28 ·
+fail-closed-tenancy 18/18 · event-chrome **17/17** · gate-hygiene PASS (2 named
+exceptions) · stamp-audit PASS). Checkpoint protocol held: everything went to
+`claude/c29-wip` first; the deploy branch received only the green result
+(`f07a035..af315f4`). Both sites verified healthy ON THE NEW BUILD — the poll waited
+for `/api/tenant-kind` (which only the C29 build serves; the old deploy 404s it) to
+return 200 on both hosts, then health + /login 200 on both.
+
+## NOT VERIFIED — vendor credential required (unchanged)
+
+The four credential-gated checks remain NOT VERIFIED, as every report since C24.1 has
+stated: audits/pipeline/p12, prisma/fixtures/values-verify, audits/c12x-ai-pass
+(task #80), remarkable-recording. No claim is made about them.
 
 ## Also recorded
 
 Fixture regenerated at f07a035 as v2 (pages + rawCounts, /book added) from the worktree
-build; determinism re-proven. Rulings 42–45 recorded in BUILD-STATE (V9).
+build; determinism re-proven.

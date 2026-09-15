@@ -60,8 +60,11 @@
 
 ## Built & verified: (list as completed)
 - C29-EVENT-CHROME — a founding practitioner never sees someone else's brand
-  (2026-09-14, dispatched same day on the escalated F2 finding; merged ahead of the
-  Sept 18 freeze): the four auth screens resolve wordmark AND tab metadata from the
+  (built 2026-09-14, dispatched same day on the escalated F2 finding; the merge was
+  HELD when the final sweep went red on gate-hygiene, and completed 2026-09-15 under
+  the C29 completion dispatch — ahead of the Sept 18 freeze; this entry originally
+  claimed the merge a day early, corrected per R2/ruling 42's honesty standard):
+  the four auth screens resolve wordmark AND tab metadata from the
   request's tenant (`components/AuthWordmark.tsx`, `lib/auth-metadata.ts`) — the default
   tenant renders BYTE-IDENTICAL (fixture pinned at `f07a035`, 15/15, plus the 16-screen
   screenshot baseline matching pre/post within-session per ruling 11, committed reference
@@ -72,10 +75,18 @@
   state named Valentina on every host — now names the visiting practice, default copy
   byte-unchanged. LEFT deliberately (brand-web scope, documented): the platform apex's
   chrome, /book's static Valentina copy on foreign hosts, /login's EN-only convention.
-  `audits/event-chrome-verify.ts` **15/15**; report:
-  docs/reports/outbox/BUILD-REPORT-C29-EVENT-CHROME.md (five decisions for ratification,
-  incl. two extra chrome surfaces the spec missed — tab metadata and the empty-state
-  copy — both fixed with byte-identity held).
+  `audits/event-chrome-verify.ts` **17/17** (15 at build; +2 under the completion
+  dispatch: /book byte-identity from an honest worktree capture of f07a035 per ruling 45,
+  and the ruling-44 cannot-hide raw-count check, demonstrated failing by injection —
+  one NAMED delta `/login veritas 9→10`, the wordmark's RSC flight-payload serialization,
+  awaiting ratification); gate-hygiene exceptions 1→2 (event-chrome's capture-mode
+  provenance label, comparison pinned to f07a035). MERGED 2026-09-15 (af315f4) after a
+  full 34-entry green sweep, stamp-audit exit 0 last; both sites confirmed healthy on
+  the new build (/api/tenant-kind live). Report:
+  docs/reports/outbox/BUILD-REPORT-C29-EVENT-CHROME.md (five build decisions + the
+  named delta for ratification, incl. two extra chrome surfaces the spec missed — tab
+  metadata and the empty-state copy — both fixed with byte-identity held; R2 correction
+  at top, COMPLETION ADDENDUM at end).
 - C27-EMAIL-IDENTITY **Phase 2** — every practice's client hears from THAT practice
   (2026-09-14, dispatched with freeze deadline Sept 18; + F1 hardening): `sendEmail` with no
   explicit identity now RESOLVES the sender from the current scope's tenant, fresh per send —
