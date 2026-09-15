@@ -1,12 +1,12 @@
 # C24-NESTED-STAMP — acceptance log
 
-Run: 2026-09-14T19:42:37.787Z · `npx tsx audits/nested-stamp-verify.ts`
+Run: 2026-09-15T15:47:49.841Z · `npx tsx audits/nested-stamp-verify.ts`
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Requests are simulated in-process via Next's request async storage, so every
 request-path check runs through the real scoped client against the real database.
 
-# C24-NESTED-STAMP verify — 2026-09-14T19:42:34.467Z
+# C24-NESTED-STAMP verify — 2026-09-15T15:47:46.007Z
 - ✓ simulated request scope is real (next/headers resolves inside it)
 
 ## Verify 1 — the five assumptions
@@ -62,7 +62,7 @@ request-path check runs through the real scoped client against the real database
 ## Verify 9 — the backfill: counts, zero left, safe twice
 - ✓ drift seeded for the backfill to find — {"chapter":1,"logEntry":2}
 - ✓ the backfill migration runs (psql, ON_ERROR_STOP)
-- ✓ it records exactly the rows it stamped, per table (this is what makes it reversible) — Chapter=1 LogEntry=10
+- ✓ it records exactly the rows it stamped, per table (this is what makes it reversible) — Chapter=1 LogEntry=12
 - ✓ zero null-tenant rows after the backfill
 - ✓ running it twice is safe — the second pass stamps nothing and errors nothing — second pass clean
 ~ probe tenant, courses, chapters, lessons, log entries and prospects removed
