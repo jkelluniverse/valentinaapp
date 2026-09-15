@@ -780,6 +780,29 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     row cannot be written during the database outage that triggered the refusal — the trace is
     the structured log line + the 503s in HTTP metrics.)
 
+## Architect rulings — 2026-09-15 (new Architect onboarding + C29 completion dispatch)
+42. **Architect error, recorded so the same assertion is not made again:** the previous
+    Architect's handoff asserted four mid-flight C29 items as delivered; they were never
+    sent and never reached the builder. Nothing was built on them. (Two happened to hold
+    by construction — normalization-not-deletion, no prisma in middleware; one was
+    withdrawn as unwarranted — see 43; one was the real gap — /book, closed under this
+    dispatch.)
+43. **C29 verify item 6 stands as built; no relaxation was ever warranted.** Unknown-slug
+    resolves to the default tenant, so the default marketing home and the default
+    wordmark are the correct assertions, and the non-default root redirect is the
+    intended change, not a V6 violation.
+44. **A gate's normalization must carry a companion check proving the normalization
+    cannot hide the very difference the gate exists to catch, and that companion check
+    must be demonstrated failing.** (Applied to event-chrome: the raw identity-count
+    check fired on its FIRST real run — the /login wordmark's RSC-payload relocation —
+    and was then demonstrated against an injected script-only string with the normalized
+    check passing while the companion tripped; output quoted in the C29 report addendum.)
+45. **Where a pre-change fixture was never captured, the gate either re-captures from the
+    pinned commit or is labeled a forward drift guard. A post-change pin is never
+    described as before/after evidence.** (Applied: /book is not in the 16-screen
+    baseline, so its fixture was captured from a worktree checkout-and-build of f07a035
+    — a real before/after.)
+
 ## FINDING — F2 (Architect follow-up, 2026-09-14): INVESTIGATED, REAL, NOT FIXED (per
 ## instruction — needs its own spec and priority call).
 **On practice B's own subdomain, under HEALTHY resolution, the marketing homepage served is

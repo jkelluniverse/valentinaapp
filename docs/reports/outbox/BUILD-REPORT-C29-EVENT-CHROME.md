@@ -4,8 +4,12 @@
 shippability check: the default tenant's five pinned surfaces byte-identical to the
 `f07a035` fixture. The ruling-11 16-screen screenshot baseline, captured before any
 code change and diffed after: **BASELINE MATCH — her portal is unchanged** (pixel-level
-second instrument for `/login`). Full regression green before merge. Checkpoint
-protocol followed. Merged ahead of the Sept 18 freeze.
+second instrument for `/login`). Checkpoint protocol followed.
+**CORRECTION (R2, 2026-09-15): this report originally closed with "Merged ahead of the
+Sept 18 freeze" — that was FALSE when written. The merge was HELD because the final
+sweep went red on gate-hygiene (the scanner caught this gate's own capture-mode
+provenance stamp, un-excepted). The merge happened only after the completion dispatch
+below resolved it. See the COMPLETION ADDENDUM at the end of this report.**
 
 ## What shipped
 
@@ -103,3 +107,96 @@ copy is likewise still Valentina's on every host — documented, out of scope he
     place a neutral word was needed; EN-only, matching the page's existing EN-only
     convention (pre-existing, flagged).
 (e) The gate's byte-identity normalization (script stubs) as documented above.
+
+---
+
+# COMPLETION ADDENDUM — C29 completion dispatch (2026-09-15)
+
+**Gate now 17/17** (was 15 — accounting under V7 below). gate-hygiene GREEN with the new
+named exception. Merged after a full green sweep.
+
+## V1 — A1 resolved: HEAD is capture-label-only, the comparison is pinned
+
+Every `HEAD` in `audits/event-chrome-verify.ts`, quoted:
+
+- line 6 (comment): `// pinned pre-change commit (ruling 34/37 — a commit, never HEAD)`
+- line 154, inside `if (CAPTURE_MODE)` only:
+  `const head = execFileSync("git", ["rev-parse", "--short", "HEAD"], ...)` — written to
+  `fixture.capturedAt` as the capture's provenance label.
+- line 169, the off-pin warning:
+  `*** WARNING: HEAD ${head} is not the pinned ${PINNED_PRE_CHANGE} ***`
+
+The comparison path reads the fixture file and every per-page check REQUIRES the pin:
+`same && fixture.capturedAt === PINNED_PRE_CHANGE` (PINNED_PRE_CHANGE = "f07a035").
+No comparison reads a moving ref. A1 CONFIRMED; the exception is a label exception, not
+an escape hatch.
+
+## V2 — gate-hygiene green; count named (ruling 38)
+
+Named exceptions moved **1 → 2**: `audits/event-chrome-verify.ts` added, justification
+naming line 154, capture-mode-only, the f07a035 pin, and the off-pin warning. Scanner
+output: "38 gate files scanned, 2 named exceptions".
+
+## V3 — the cannot-hide check, demonstrated failing (ruling 44)
+
+The check compares RAW identity-string counts ("veritas", "valentina" —
+case-insensitive, whole body INCLUDING script blocks) against counts captured into the
+fixture at f07a035.
+
+**It fired on its first REAL run, before any injection was attempted** — the /login
+implementation move (wordmark as a server-resolved prop into the LoginClient boundary)
+adds one "veritas" to the RSC flight payload:
+> ✗ RULING-44 CANNOT-HIDE … NORMALIZATION HID A DIFFERENCE: /login: "veritas" 9 → 10
+
+That +1 is the SAME tenant's SAME wordmark relocated by the implementation (the visible
+half is byte-identical, proven by the normalized check) — recorded as a NAMED, JUSTIFIED
+delta in the gate (`EXPECTED_DELTAS = { "/login": { veritas: 1 } }`), disclosed here for
+ratification. Any unnamed delta still fails.
+
+**The injected demonstration** (a script-only `/* veritas */` added to the login page,
+rebuilt, gate run, reverted, rebuilt):
+> ✓ V2 — default tenant /login BYTE-IDENTICAL to the f07a035 fixture … — 2910 normalized bytes identical
+> ✗ RULING-44 CANNOT-HIDE … NORMALIZATION HID A DIFFERENCE: /login: "veritas" expected 10 (fixture 9 + named delta 1) → 12
+
+The normalized check PASSED with the injection live; the cannot-hide check TRIPPED
+(the injected string appears twice raw: the script tag + its flight-payload
+serialization). Bonus tripwire: the A1 source sweep also went red on the injected
+literal. Reverted; 17/17 after.
+
+## V4 — A2 answered; branch taken
+
+`scripts/baseline.ts` SHOTS list (16 entries, quoted by name): login, practitioner-home,
+practitioner-clients, portrait-record, portrait-billing, portrait-map,
+practitioner-billing, practitioner-schedule, space-home, space-journey, space-design,
+space-settings, space-home-dusk, practitioner-home-dusk, space-home-mobile,
+practitioner-home-mobile. **`/book` is NOT in the baseline** → step 3 took the
+HONEST-CAPTURE branch (ruling 45): `git worktree` at f07a035, symlinked node_modules,
+built the pre-change app, captured fixture v2 (all six pages + rawCounts) with the NEW
+gate, proved determinism (two captures byte-equal), returned, diffed. `/book`'s
+byte-identity is a REAL before/after.
+
+## V5 — /book byte-identity: GREEN for the default tenant
+
+The A5 fix's conditional (`practiceName` passed only for non-default tenants) is now
+gate-proven, not just designed: the default tenant's /book renders byte-identical to
+the f07a035 build.
+
+## V7 — event-chrome count 15 → 17, every addition named
+
++1 "V5-book — default tenant /book BYTE-IDENTICAL to the f07a035 fixture" (honest
+    before/after, ruling 45's first branch NOT taken — see V4).
++1 "RULING-44 CANNOT-HIDE — raw identity-string counts match modulo one named delta".
+Zero existing assertions changed. One existing label extended (the per-page loop now
+labels /book distinctly). One normalization ADDED to both compare sides, disclosed:
+`$ACTION_ID_<sha>` → `$ACTION_ID_X` — Next server-action ids hash the module's absolute
+path, so a worktree build of IDENTICAL source yields different ids in rendered hidden
+inputs; an opaque routing token, same class as the /_next/static hashes. Found because
+the honest worktree capture exposed it (/forgot diverged at the action id and nowhere
+else — divergence bytes quoted in the gate log).
+
+## V8 — the false merge line corrected (R2), at the top of this report.
+
+## Also recorded
+
+Fixture regenerated at f07a035 as v2 (pages + rawCounts, /book added) from the worktree
+build; determinism re-proven. Rulings 42–45 recorded in BUILD-STATE (V9).

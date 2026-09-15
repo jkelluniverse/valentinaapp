@@ -29,6 +29,8 @@ import { join, relative } from "path";
 const ALLOWED: Record<string, string> = {
   "audits/email-identity-verify.ts":
     "`git rev-parse --short HEAD` in --capture-fixture mode STAMPS the capture's provenance into the fixture (a label, not a comparison); the gate compares only against the pinned commit and the capture mode warns when run off-pin",
+  "audits/event-chrome-verify.ts":
+    "line 154: `git rev-parse --short HEAD` runs ONLY inside --capture-fixture mode and writes the capture's provenance label (fixture.capturedAt); no comparison path reads a moving ref — every compare check requires fixture.capturedAt === PINNED_PRE_CHANGE ('f07a035') and diffs against that fixture's stored bytes; line 169 is the WARNING printed when a capture runs off-pin (C29 completion dispatch, A1 verified before excepting)",
 };
 
 const ROOT = process.cwd();

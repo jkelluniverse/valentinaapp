@@ -39,9 +39,26 @@ const EMAIL_B = "t29-probe-b@fixture.test";
 const DBURL = process.env.DATABASE_URL!;
 const ERR_URL = DBURL.replace(/\/\/[^@]*@/, "//t29errprobe:errprobe@");
 
-// The five surfaces item 2/5 pin. reset uses a syntactically-valid dummy token
-// (the page renders its "link didn't work" state deterministically).
-const PINNED_PAGES = ["/login", "/forgot", "/reset/t29-dummy-token.x", "/must-change", "/"];
+// The pinned default-tenant surfaces. reset uses a syntactically-valid dummy
+// token (the page renders its "link didn't work" state deterministically).
+// /book joined in the completion dispatch (ruling 45's honest branch: its
+// fixture was captured from a CHECKOUT-AND-BUILD of f07a035, since /book is
+// not in the 16-screen screenshot baseline — a real before/after, not a
+// post-change pin described as one).
+const PINNED_PAGES = ["/login", "/forgot", "/reset/t29-dummy-token.x", "/must-change", "/", "/book"];
+
+// Ruling 44 — the cannot-hide companion: the identity strings whose absence/
+// presence this gate exists to police, counted on the RAW body INCLUDING
+// script blocks (the RSC flight payload carries the wordmark too). If the
+// normalized diff passes while these counts moved, the normalization hid the
+// very difference the gate exists to catch, and the gate must fail.
+const IDENTITY_STRINGS = ["veritas", "valentina"] as const;
+function rawIdentityCounts(body: string): Record<string, number> {
+  const lower = body.toLowerCase();
+  const out: Record<string, number> = {};
+  for (const s of IDENTITY_STRINGS) out[s] = lower.split(s).length - 1;
+  return out;
+}
 
 const psql = (sql: string, url = DBURL) =>
   execFileSync("psql", [url, "-v", "ON_ERROR_STOP=1", "-tAc", sql], { encoding: "utf8" }).trim();
@@ -62,12 +79,18 @@ function normalize(html: string): string {
   return html
     .replace(/<script\b[\s\S]*?<\/script>/g, "<script/>")
     .replace(/\/_next\/static\/[^"']+/g, "/_next/static/X")
-    .replace(/<link[^>]+href="\/_next\/[^"]*"[^>]*\/?>/g, "");
+    .replace(/<link[^>]+href="\/_next\/[^"]*"[^>]*\/?>/g, "")
+    // Server-action ids are BUILD-specific (the hash covers the module's
+    // absolute path, so a worktree build of the SAME source yields different
+    // ids) — an opaque routing token in a hidden input, not chrome. Same
+    // class as the /_next/static hashes above; normalized on both sides.
+    .replace(/\$ACTION_ID_[0-9a-f]+/g, "$ACTION_ID_X");
 }
 /** Applied to BOTH sides at compare time: the COUNT of script stubs is build
  *  shape (hydration payload chunking), not rendered content — an async server
  *  component adds one. Every visible byte still compares verbatim. */
-const stripStubs = (s: string) => s.replace(/<script\/>/g, "");
+const stripStubs = (s: string) =>
+  s.replace(/<script\/>/g, "").replace(/\$ACTION_ID_[0-9a-f]+/g, "$ACTION_ID_X");
 /** The bytes a human can SEE — scripts carry storage keys ("veritas-theme")
  *  that are data, not chrome. */
 const visible = (s: string) => s.replace(/<script\b[\s\S]*?<\/script>/g, "");
@@ -129,16 +152,23 @@ const get = async (path: string, host: string): Promise<{ status: number; body: 
   return { status: res.status, body: await res.text(), location: res.headers.get("location") ?? undefined };
 };
 
-async function captureDefaults(): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
+async function captureDefaults(): Promise<{ pages: Record<string, string>; rawCounts: Record<string, Record<string, number>> }> {
+  const pages: Record<string, string> = {};
+  const rawCounts: Record<string, Record<string, number>> = {};
   for (const p of PINNED_PAGES) {
     const r = await get(p, HOST_DEFAULT);
     // /must-change 307s for an anonymous visitor (its chrome renders only
     // mid-session) — pin the redirect shape; its wordmark is the same shared
     // component the other three pin byte-for-byte.
-    out[p] = r.status === 200 ? normalize(r.body) : `REDIRECT:${r.status}:${new URL(r.location ?? "/", "http://x").pathname}`;
+    if (r.status === 200) {
+      pages[p] = normalize(r.body);
+      rawCounts[p] = rawIdentityCounts(r.body); // RAW, pre-normalization, scripts included
+    } else {
+      pages[p] = `REDIRECT:${r.status}:${new URL(r.location ?? "/", "http://x").pathname}`;
+      rawCounts[p] = {};
+    }
   }
-  return out;
+  return { pages, rawCounts };
 }
 
 async function main() {
@@ -150,7 +180,7 @@ async function main() {
     const server = startServer(DBURL);
     try {
       await waitHealthy();
-      const pages = await captureDefaults();
+      const { pages, rawCounts } = await captureDefaults();
       const head = execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim();
       mkdirSync("audits/event-chrome", { recursive: true });
       writeFileSync(
@@ -158,8 +188,9 @@ async function main() {
         JSON.stringify(
           {
             capturedAt: head,
-            note: `Byte-identity baseline for C29 Verify 2/5 (normalized: scripts stripped, build hashes normalized — every rendered byte kept). Captured at ${head}; the gate pins ${PINNED_PRE_CHANGE}. Regenerate only as a deliberate re-pin.`,
+            note: `Byte-identity baseline for C29 (normalized: scripts stripped, build hashes normalized — every rendered byte kept) PLUS the ruling-44 raw identity counts (whole body, scripts included). Captured at ${head}; the gate pins ${PINNED_PRE_CHANGE}. Regenerate only as a deliberate re-pin.`,
             pages,
+            rawCounts,
           },
           null,
           2,
@@ -241,20 +272,56 @@ async function main() {
     // =======================================================================
     const now = await captureDefaults();
     for (const p of PINNED_PAGES) {
-      const same = stripStubs(now[p]) === stripStubs(fixture.pages[p]);
+      const same = stripStubs(now.pages[p]) === stripStubs(fixture.pages[p]);
       if (!same) {
-        const a = stripStubs(now[p] ?? "").split("\n").join("");
+        const a = stripStubs(now.pages[p] ?? "").split("\n").join("");
         const b = stripStubs(fixture.pages[p] ?? "").split("\n").join("");
         let i = 0;
         while (i < Math.min(a.length, b.length) && a[i] === b[i]) i++;
         log(`  ${p} diverges at normalized byte ${i}:\n    now:     …${a.slice(Math.max(0, i - 40), i + 80)}\n    fixture: …${b.slice(Math.max(0, i - 40), i + 80)}`);
       }
+      const label = p === "/" ? "V5" : p === "/book" ? "V5-book (fixture captured from a checkout-and-build of f07a035 — a real before/after, ruling 45)" : "V2";
       check(
-        `V${p === "/" ? 5 : 2} — default tenant ${p} BYTE-IDENTICAL to the ${fixture.capturedAt} fixture (normalized as documented; every rendered byte compared)`,
+        `${label} — default tenant ${p} BYTE-IDENTICAL to the ${fixture.capturedAt} fixture (normalized as documented; every rendered byte compared)`,
         same && fixture.capturedAt === PINNED_PRE_CHANGE,
-        same ? `${(now[p] ?? "").length} normalized bytes identical` : "DIVERGED — see above",
+        same ? `${(now.pages[p] ?? "").length} normalized bytes identical` : "DIVERGED — see above",
       );
     }
+
+    // Ruling 44 — the cannot-hide companion, on the RAW responses: the
+    // normalization strips scripts, so an identity string living ONLY inside a
+    // script block (the RSC flight payload) would be invisible to the checks
+    // above. This check counts the identity strings across the WHOLE raw body
+    // and compares to the counts captured at f07a035. If the normalized diff
+    // passes while these counts moved, the normalization hid a difference and
+    // this gate says so. (Demonstrated failing under an injected script-only
+    // change — output quoted in the build report.)
+    // NAMED, JUSTIFIED deltas between the f07a035 fixture and the accepted C29
+    // state — found BY this check on its first real run (it fired before any
+    // injection demo was attempted), disclosed in the build report for
+    // ratification. Any delta not named here still fails.
+    //   /login veritas +1: the wordmark is now a server-resolved prop passed
+    //   into the LoginClient boundary, so the RSC flight payload serializes
+    //   the string "veritas " once as slot data. Same tenant's same wordmark,
+    //   relocated by the implementation — the VISIBLE half is byte-identical
+    //   (the normalized check above proves it).
+    const EXPECTED_DELTAS: Record<string, Record<string, number>> = { "/login": { veritas: 1 } };
+    const hidden: string[] = [];
+    for (const p of PINNED_PAGES) {
+      const want = fixture.rawCounts?.[p] ?? {};
+      const got = now.rawCounts[p] ?? {};
+      for (const sName of IDENTITY_STRINGS) {
+        const expected = (want[sName] ?? 0) + (EXPECTED_DELTAS[p]?.[sName] ?? 0);
+        if (expected !== (got[sName] ?? 0)) {
+          hidden.push(`${p}: "${sName}" expected ${expected} (fixture ${want[sName] ?? 0}${EXPECTED_DELTAS[p]?.[sName] ? ` + named delta ${EXPECTED_DELTAS[p][sName]}` : ""}) → ${got[sName] ?? 0}`);
+        }
+      }
+    }
+    check(
+      "RULING-44 CANNOT-HIDE — the RAW identity-string counts (whole body, scripts included) match the f07a035 fixture on every pinned page, modulo ONE named+justified delta (/login veritas +1, the wordmark serialized as RSC slot data — found by this check itself); any unnamed delta fails",
+      hidden.length === 0,
+      hidden.length ? `NORMALIZATION HID A DIFFERENCE: ${hidden.join(" · ")}` : `counts match across ${PINNED_PAGES.length} pages × ${IDENTITY_STRINGS.length} strings (1 named delta applied)`,
+    );
 
     // =======================================================================
     log(`\n## Verify 3 — practice B's auth chrome is B's`);
