@@ -996,6 +996,36 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     title, and contains no NEXT_REDIRECT digest, on every environment, every time.**
     A check that never probes the page the demo opens on is not a deploy check.
 
+## Architect rulings — 2026-09-15 (staging fix review)
+66. **The remedy of record is a staging Build Command override**
+    (`DATABASE_URL="${DATABASE_PUBLIC_URL}" npm run build`), NOT the build-scoped
+    variable originally authorized — Railway's API exposes no build-scoped variable;
+    the buildCommand is the available mechanism and does not touch runtime. Rollback is
+    clearing the field. Recorded so the ledger shows what was BUILT, not what was asked.
+67. **A Railway redeploy reuses the prior build artifact.** When a defect lives in the
+    build, only a fresh FROM-SOURCE deployment tests the fix. Any future deploy
+    verification of a build-phase defect states which of the two it ran.
+
+## PLATFORM_DOMAIN SAFETY TRACE (Q1a-Q1c, for Jacob — code quoted in
+## docs/reports/outbox/INCIDENT-ROOT-URL.md): setting PLATFORM_DOMAIN=psychefolio.com is
+## SAFE for valentinavelez.com — a non-matching host returns the DEFAULT slug (the
+## explicit non-match branch of slugFromHost), identical resolution to today; the C26
+## unresolved path fires only on DB-lookup failure, orthogonal to this variable. Bare
+## apex psychefolio.com → default slug in code, but the apex DOES NOT ROUTE to the app
+## today (not a Railway domain; live probe unreachable). www.psychefolio.com → slug
+## "www" → no row (RESERVED, unclaimable) → unknown-slug → default-host content (her
+## brand on the platform's www — the documented brand-web class). valentina.psychefolio
+## .com → the default tenant live on a second host: auth WORKS there (trustHost: true,
+## auth.config.ts:6), cookies are HOST-ONLY (Auth.js defaults, no Domain attribute) so
+## sessions neither transfer nor leak across hosts, and absolute links follow the
+## visiting host (getBaseUrl reads request headers; PUBLIC_APP_URL unset in production
+## so getBaseUrlSafe falls back to request then to her domain in cron contexts).
+## CLARIFICATION OF RECORD: today's test.psychefolio.com 200 answering
+## kind:"tenant"/isDefault:true proves ROUTING AND TLS ONLY — the default resolves
+## precisely BECAUSE the variable is unset. With it set, that host becomes
+## kind:"unknown-slug" (still default-host content, no redirect). It is NOT proof the
+## demo path works; that proof needs the variable set plus a real minted tenant.
+
 ## ROOT-URL INCIDENT — production state (awaiting Jacob's go):
 - valentinavelez.com/ currently serves the baked 307 error shell (JS visitors land on
   /unavailable's 503; no-JS visitors see a blank error page). Dynamic pages all 200.

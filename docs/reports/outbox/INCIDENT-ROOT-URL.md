@@ -104,3 +104,100 @@ and never `/` (rulings 61/62 close that).
   Fourth confirmation that a scanner beats a list — on day one.
 - The full 36-entry sweep and the deploy-branch merge WAIT until the production root
   incident is closed, per the incident dispatch.
+
+---
+
+# Q1a–Q1c — the PLATFORM_DOMAIN safety trace (rulings 66/67 recorded)
+
+All traces assume `PLATFORM_DOMAIN=psychefolio.com` SET. The function
+(lib/tenancy/index.ts, slugFromHost):
+> `const clean = host.split(":")[0].toLowerCase();`
+> `if (clean === platformDomain || !clean.endsWith(`.${platformDomain}`)) return DEFAULT_TENANT_SLUG;`
+> `const sub = clean.slice(0, -(platformDomain.length + 1));`
+> `return sub.includes(".") ? DEFAULT_TENANT_SLUG : sub || DEFAULT_TENANT_SLUG;`
+
+**Q1a — valentinavelez.com: SAFE.**
+`"valentinavelez.com".endsWith(".psychefolio.com")` is false → the second branch
+returns `DEFAULT_TENANT_SLUG` — the EXPLICIT non-match branch, not a fallthrough.
+`resolveTenant` then does `tenantBySlugChecked("valentina")` → the default row →
+`{kind:"tenant", tenant: default}` — byte-for-byte the resolution her site gets today
+(today EVERY host takes the `!platformDomain` first branch to the same slug). The
+three C26 outcomes, for the record: `tenant`(default) = her live site, unchanged;
+`unknown-slug` = default-host content (ruling 43); `unresolved` = the neutral 503 —
+and `unresolved` arises ONLY from a failed DB lookup with nothing cached
+(resolveTenant's `!r.ok` branch), a code path this variable cannot reach. The
+middleware root redirect also stays off her host: its own guard
+(`!clean.endsWith(".psychefolio.com")` → false) exits before any lookup.
+
+**Q1b — psychefolio.com and www.psychefolio.com: SAFE (with one live fact).**
+Bare apex: `clean === platformDomain` → default slug → her site in code — but the
+apex DOES NOT ROUTE to the app today at all: it is not among the service's Railway
+domains (`valentinavelez.com`, `*.psychefolio.com` — a wildcard does not cover the
+apex) and a live probe was UNREACHABLE (curl exit 000, no route). Nothing changes for
+anyone. www: sub `"www"` (single label) → slug `"www"` → `tenantBySlugChecked` finds
+no row — and never can, `"www"` is in RESERVED_SLUGS — → `unknown-slug` → default-host
+content. Live probe today: www.psychefolio.com answers 200 through the wildcard. Her
+site is not affected; the platform's www showing HER brand is the documented
+brand-web class (F2 copy half), not a new break.
+
+**Q1c — valentina.psychefolio.com: SAFE; yes, the default tenant goes live on a
+second host, and nothing breaks or leaks across them.**
+sub `"valentina"` = the default slug → the default row → her site served there.
+- **Auth**: works on any host — `trustHost: true` is HARDCODED
+  (auth.config.ts:6, with the comment "Railway terminates TLS at a proxy"); the
+  absence of AUTH_TRUST_HOST from the production env is irrelevant.
+- **Cookies**: Auth.js defaults, NO custom cookie/domain config anywhere in
+  auth.config.ts/auth.ts → host-only cookies → a session on valentinavelez.com is
+  neither valid on nor visible to valentina.psychefolio.com, and vice versa. No leak;
+  the benign consequence is that logins do not transfer between the two hosts.
+- **Absolute links**: getBaseUrl() builds the origin from the request's
+  x-forwarded-host → links follow whichever host the visitor is on.
+  getBaseUrlSafe() prefers PUBLIC_APP_URL — UNSET in production — then the request,
+  then hardcoded `https://valentinavelez.com` (cron/email contexts, which are hers).
+- **Email links**: portalHostFor(slug) mints `slug.psychefolio.com` for NEW practices'
+  welcome mail — the variable's intended purpose; her own flows use the request host
+  or her domain.
+
+**The test.psychefolio.com clarification, stated for the record:** today's
+`200 {"kind":"tenant","isDefault":true}` proves ROUTING AND TLS ONLY. It resolves the
+default tenant precisely BECAUSE the variable is unset (first branch of slugFromHost).
+With the variable set, that host becomes `kind:"unknown-slug"` (still default-host
+content; the middleware redirect requires kind "tenant" AND !isDefault, so no
+redirect). It is NOT evidence the demo path works end to end — that requires the
+variable set plus a real minted tenant on a real subdomain.
+
+# The 3131 exposure answer (ruling-58 test applied)
+
+**settings-i18n's greens stand.** The gate that shares 3131 — audits/billing/b1-verify
+(its MOCK_PORT) — appears in ZERO relied-on sweeps: `grep -c "b1\|billing"
+scripts/regress.sh` → **0**, and the session transcript contains no `PASS b1`/`FAIL b1`
+line at all — b1 has never been RUN on this container, so there was never an earlier
+gate on 3131 to crash. settings-i18n itself: `PASS settings-i18n :: 10/10` in all
+three of today's sweeps (quoted from their output files) and in the Sept-14 C29
+pre-merge sweep. Full disclosure of the only FAIL lines in history: the transcript
+holds two `FAIL settings-i18n (exit 1)` lines from a C25-era sweep (datable by
+`engage :: 172/172` on the same output — before C26 moved engage to 173) — that was
+settings-i18n's OWN loud red (its pre-pass reference, fixed in 43045eb "pin
+settings-i18n's pre-pass reference; full regression green"), predates every relied-on
+sweep, and cannot be a 3131 ghost because nothing had ever listened on 3131.
+
+# PRODUCTION — prepared single action (NOT run; awaiting Jacob)
+
+1. Set production Build Command to exactly:
+   `DATABASE_URL="${DATABASE_PUBLIC_URL}" npm run build`
+2. Trigger a FRESH FROM-SOURCE deployment (ruling 67 — NOT a redeploy, which reuses
+   the broken build).
+3. Verify per rulings 61/62, each quoted separately: LAST HTTP status line on
+   `GET https://valentinavelez.com/` = 200 · title present · NEXT_REDIRECT digest
+   count 0 · then /book /join /signup /privacy /login /api/health /api/tenant-kind
+   all 200.
+4. Rollback: clear the Build Command (before-state = unset/Railpack default, same as
+   staging's was) and run another fresh from-source deployment.
+
+**Expected downtime: NONE.** Railway keeps the old deployment serving until the new
+one reaches SUCCESS, then removes it — observed on this service today: production's
+21:17:52Z deployment reached SUCCESS at 21:20:01Z and the PRIOR deployment was only
+REMOVED at 21:20:05+Z, after the new one was serving; same pattern on staging. The
+root's current 307 keeps serving during the ~2–3 minute build, then flips to the
+healthy 200 atomically with the traffic switch. Her booking funnel (/book, dynamic)
+is unaffected before, during, and after.
