@@ -912,6 +912,34 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     bytes) — the meta-description "break free" match was a false positive; the two
     scans' scopes differ ON PURPOSE and the gate comment says why.
 
+## Architect rulings — 2026-09-15 (scope answer accepted; hold lifted)
+55. **The ruling-52 teardown replacement across the sixteen server-spawning gate files
+    is DEFERRED until after Sept 23.** Not cancelled — queued. Reasons of record:
+    (a) the primary mechanism is proven sound; (b) the backstop's failure mode is LOUD
+    (a misfiring pkill aborts the sweep visibly, it does not manufacture a false
+    green); (c) a truncated sweep reading as complete is already closed by ruling 51's
+    committed runner; (d) editing sixteen gate files five days before a freeze is
+    renovating the instruments at the moment we most depend on them. Ruling 52 stands
+    as LAW for any NEW gate from today: port check, never process name. demo-path
+    complies; C31's gate must.
+56. **The teardown mechanism is sound on the NORMAL path; the abnormal path is a crash
+    before teardown, and its blast radius is exactly the set of gates sharing that
+    port.** RESIDUAL ANSWERED WITH TESTS (quoted in the C30 report): the standing set
+    has TWO shared-port pairs — **3123: signup (sweep pos 7) → v31 (pos 20)** and
+    **3124: capture (pos 8) → c21 (pos 18)**. The later gate does NOT detect the
+    occupied port: spawn fails invisibly (stdio "ignore") and the health poll answers
+    from the ghost — v31 ran its COMPLETE suite against a planted ghost twice (4 ✗
+    with a mismatched-env ghost = loud but misattributed; a ghost with v31's own env
+    would be indistinguishable and green; control run with a fresh server 32/32).
+    No baseline.ts-style refusal exists in any of the four. Reported before C31
+    merges, per instruction; port reassignment awaits dispatch (ruling 55's reasoning
+    applies to editing those files too).
+57. **When a gate and observed behavior disagree, suspect the harness before the
+    assertion.** (From the /join 200-vs-303 resolution: the harness posted urlencoded
+    against a form that declares multipart; C23-CAPTURE's real-browser JS-disabled
+    assertion was sound as written. The inverse habit is how a program talks itself
+    into weakening a gate that was right.)
+
 ## STALE-SERVER SCOPE ANSWER (C30 in-flight review, 2026-09-15 — evidence in the C30
 ## report): the pkill backstop is DEAD CODE in every server-spawning gate (16 files,
 ## same pattern), but the PRIMARY teardown (SIGTERM to the spawned pid) is sound —

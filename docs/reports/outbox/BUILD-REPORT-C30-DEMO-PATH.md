@@ -255,3 +255,48 @@ and the real behavior agree. No defect in the assertion.
   set.
 - **C31 spec written to docs/specs/inbox/C31-TENANT-CHROME-REMAINDER.md.** NOT built —
   held per the stop clause until you read the stale-server answer.
+
+---
+
+# RESIDUAL ANSWER (2026-09-15) — shared ports on the abnormal path (ruling 56)
+
+**1. The standing set's port table (from scripts/regress.sh order; "—" = no server):**
+lint-wall — · guard-prisma — · tsc — · build — · smoke 3105 · smoke-writes — ·
+signup **3123** · capture **3124** · referral 3127 · engage 3129 · tenant-scope — ·
+nested-stamp — · settings-i18n 3131 · platform-phase2 — · platform-phase3 3119 ·
+platform-phase5 3121 · platform-verify — · c21 **3124** · c20 3122 · v31 **3123** ·
+c12x — · onboarding-complete/stage1/update — · onboarding-ui 3114 ·
+onboarding-discovery 3115 · password-reset — · amd06 — · practice-setting 3141 ·
+email-identity — · fail-closed-tenancy 3152 · event-chrome 3154 · demo-path 3160 ·
+gate-hygiene — · stamp-audit —. (Outside the set: baseline 3106, billing b1–b4
+3113/3116/3117/3118, platform phase1 3108, phase4 3120.)
+
+**2. TWO shared pairs, both inside the standing set:**
+- **3123**: `audits/signup/verify.ts:25 const PORT = 3123` (sweep position 7) →
+  `audits/agreements/v31-verify.ts:21 const APP_PORT = 3123` (position 20).
+- **3124**: `audits/capture/verify.ts:35 const PORT = 3124` (position 8) →
+  `audits/agreements/c21-verify.ts:29 const APP_PORT = 3124` (position 18).
+
+**3. Tested the pair that matters (3123, ghost = a crashed signup run's exact server
+env), quoted.** v31 does NOT detect the occupied port and does NOT refuse: its spawn
+fails invisibly (`stdio: "ignore"`, no error path) and its health poll answers from
+the ghost, so it ran its COMPLETE 32-check suite against a server it did not start —
+twice:
+> REALISTIC GHOST on 3123 (signup's exact server env): pid 801
+> …4 CHECK(S) FAILED
+> ghost 801 STILL ALIVE, still owns 3123
+Control, same command, fresh port:
+> V3.1 VERIFY PASS — 32/32 · exit 0
+
+The 4 reds were env-mismatch luck (the ghost's PLATFORM_DOMAIN/secret combination),
+not detection — a ghost carrying v31's own env would be byte-indistinguishable from
+v31's intended server and would read GREEN. So on the abnormal path (signup crashes
+hard before teardown), v31 silently talks to the ghost; same structure for
+capture→c21. None of the four has baseline.ts's occupied-port refusal.
+
+**Residual verdict: NOT closed by unique ownership — two pairs share, named above,
+reported before C31 merges as instructed.** Ruling 56 recorded. Port reassignment (a
+two-line change in v31/c21 or signup/capture) awaits your dispatch — ruling 55's
+"don't renovate the instruments before the freeze" reasoning applies to those files
+too, so I did not change them on my own initiative. Rulings 55 and 57 also recorded
+as given.
