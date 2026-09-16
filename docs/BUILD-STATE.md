@@ -1067,8 +1067,8 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     (e) ROLLBACK: remove the custom domain from the Railway service and delete the
         apex DNS record; MX/TXT untouched throughout.
 
-## ROOT-URL INCIDENT — RESOLVED IN BOTH ENVIRONMENTS (2026-09-16; step-3 sweep/merge
-## awaiting the Architect's go). TIMELINE: broke f988a68 2026-09-14 ~16:35Z; staging
+## ROOT-URL INCIDENT — CLOSED (Architect, 2026-09-16; steps 1-3 complete, 36-entry
+## sweep green, ports/rulings merged to the deploy branch). TIMELINE: broke f988a68 2026-09-14 ~16:35Z; staging
 ## build fix 3f74c8fc (2026-09-15 22:53Z); production build fix d13b8518 (Jacob-
 ## authorized, 23:23:50Z — root back to HTTP/2 200, her title, zero digests, seven
 ## surfaces 200, /book up throughout); PLATFORM_DOMAIN=psychefolio.com then shipped

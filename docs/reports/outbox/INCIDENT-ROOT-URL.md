@@ -1,7 +1,9 @@
 # INCIDENT REPORT — the root URL (2026-09-15)
 
-**Status: STAGING FIXED AND VERIFIED · PRODUCTION HELD FOR JACOB (one action,
-staging-proven, rollback recorded).** Ruling 60.
+**Status: CLOSED (Architect, 2026-09-16).** Both environments fixed and verified
+(steps 1-2, Jacob-authorized, recorded below); 36-entry sweep green; ports/rulings
+merged. Rulings 60-62, 66-70. The sections below are the record in the order the
+incident unfolded.
 
 ## What broke, when, why
 
