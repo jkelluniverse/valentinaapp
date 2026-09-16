@@ -49,7 +49,17 @@ async function nonDefaultTenantRoot(req: { headers: Headers; nextUrl: URL }): Pr
   // same host answered {kind:"tenant",isDefault:false}: the silent catch below
   // had turned an unobserved failure into a cached pass-through. Root requests
   // are rare and cached 60s, so this logging is bounded.
-  const target = new URL("/api/tenant-kind", req.nextUrl.origin);
+  //
+  // C32 §2 — the self-fetch goes to LOOPBACK, never req.nextUrl.origin. In
+  // production origin resolves to the public domain, so the "self"-fetch left
+  // the box and re-entered through Railway's edge, which overwrites the
+  // hand-set x-forwarded-host with the wire host — tenant-kind then truthfully
+  // answered about the DEFAULT host and the redirect could not fire (observed
+  // live, C32 §1 log). Loopback stays in-process: the header below survives,
+  // which is the exact configuration every localhost gate proves. PORT is set
+  // by Railway in production and by each gate's spawned env; 3000 is next
+  // start's own default when PORT is absent.
+  const target = new URL("/api/tenant-kind", `http://127.0.0.1:${process.env.PORT || "3000"}`);
   try {
     const res = await fetch(target, {
       headers: { "x-forwarded-host": host },

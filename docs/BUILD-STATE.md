@@ -1091,15 +1091,51 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     process point and becomes ruling 40's prohibition: docs-only pushes redeploy the
     site Jacob is about to present, and they do not ship.)
 
-## REHEARSAL (authorized item 2) — BLOCKED ON DB ACCESS, nothing minted (2026-09-16):
-## the builder has no production DB path (connector redacts values; the Railway agent
-## cannot run SQL — quoted in the runbook; no app surface for counts/deletion), so C2
-## and the teardown are not executable by the builder alone. The split that needs no
-## credential in the transcript is in docs/reports/outbox/REHEARSAL-RUNBOOK.md:
-## Jacob runs three SQL blocks via `railway connect Postgres`; the builder runs the
-## full HTTP walk + reads the welcome email at jkelluniverse+psf-founder@gmail.com
-## (C1) and reports subject/sender/link-targets. Freeze note: this must run BEFORE
-## Sept 20 (ruling 40).
+## Architect rulings — 2026-09-16 (the walk ran; W5 failed; C32 dispatched and
+## step 2 ratified)
+75. **Production SQL runs in the Railway dashboard's Query tab, by Jacob.** The
+    operational form of ruling 73's split — no CLI, no credential, no transcript
+    exposure. Block 1 ran there (baseline quoted under THE WALK below).
+76. **C29's root redirect NEVER worked in production.** The rehearsal walk's W5 is
+    the first time the behavior was exercised live; every green since C29 proved the
+    LOGIC on localhost, where the middleware's self-fetch stays on-box. A gate cannot
+    prove a deployment seam — second defect of this class (first: the baked root,
+    ruling 60). Where feasible the deploy check asserts the behavior itself, not
+    only the pages.
+77. **No silent catch.** A decision that can fail logs every outcome: target, non-ok
+    status, the decision taken, the caught error's name+message. C32 step 1 shipped
+    exactly this (59638d2) and nothing else — observability before any fix.
+78. **Instrument every branch, not only the failure branch.** The decisive evidence
+    was the SUCCESS-path log line: the fetch was succeeding against the wrong origin
+    (`target=https://valentinavelez.com`), so a failures-only log would have stayed
+    silent forever. Observed live: Railway's edge overwrites the hand-set
+    x-forwarded-host, so /api/tenant-kind truthfully answered about the DEFAULT host
+    and the redirect could not fire by construction.
+79. **ARCHITECT ERROR, recorded:** A1 (the belief that the self-fetch FAILS in
+    production) was DISPROVED by observation — the fetch succeeds and returns a
+    truthful answer about the wrong host. The spec's mandatory assumptions section
+    stays: the fix was ratified only after the mechanism was observed, and the
+    observation changed which fix is correct. **Step 2 RATIFIED: loopback** — the
+    self-fetch goes to `http://127.0.0.1:${PORT}` with x-forwarded-host carrying the
+    visitor's host; cache, logging, and C26 pass-through unchanged. Converts
+    production into the exact configuration every gate proves; the DB stays
+    authoritative on tenant existence. Verify V1–V6 (spec) + V7–V12 (dispatch),
+    V12 = the standing psf-rehearsal tenant's root redirecting to its own /book.
+
+## REHEARSAL (authorized item 2) — WALK EXECUTED 2026-09-16; W5 FAILED → C32; the
+## minted tenant STANDS until C32's V12 passes against it (per dispatch), then
+## Blocks 2/3 (teardown + after-counts) go to Jacob. Block 1 baseline (Jacob, Query
+## tab, quoted): Tenant 1 · User 4 · PractitionerProspect 0 · TenantModule 3 ·
+## TenantBilling 0 · AuditEvent 0 · null-tenant rows 0. The walk: W1 /join referral
+## capture GREEN (code AE93EZDY displayed); W2 /signup?ref= mint GREEN (founder
+## jkelluniverse+psf-founder@gmail.com, practice "PSF Rehearsal Studio", slug
+## psf-rehearsal, founder code HZ9QE4RZ); W3 welcome screen GREEN; W4 tenant-kind on
+## psf-rehearsal.psychefolio.com GREEN ({"kind":"tenant","isDefault":false}); W5
+## FAILED — the root served Valentina's marketing page (17 visible "valentina")
+## while tenant-kind on the same host said non-default. Stopped per C3, state left
+## up. W6/W7/W8 + predictions P-A (TenantBilling 0→1→0) and P-B (AuditEvent rows)
+## resume after C32 step 2 is proven live. Original blocked-state record and the
+## three SQL blocks: docs/reports/outbox/REHEARSAL-RUNBOOK.md.
 
 ## ROOT-URL INCIDENT — CLOSED (Architect, 2026-09-16; steps 1-3 complete, 36-entry
 ## sweep green, ports/rulings merged to the deploy branch). TIMELINE: broke f988a68 2026-09-14 ~16:35Z; staging
@@ -1147,16 +1183,17 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 ## ghost could not produce).
 
 ## COUNT RECONCILIATION (C29 review C2 — ruling 38 applied to gate counts):
-The standing regression set contains **35 entries** (34 → 35 on 2026-09-15: C30 added
-demo-path, named; before that 34 since C29 added event-chrome; C26-era set was 33),
-and now has a COMMITTED definition — **`scripts/regress.sh` IS the enumeration**:
+The standing regression set contains **36 entries** (35 → 36 on 2026-09-16: ruling 59
+added port-uniqueness, named; 34 → 35 on 2026-09-15: C30 added demo-path, named;
+before that 34 since C29 added event-chrome; C26-era set was 33),
+and has a COMMITTED definition — **`scripts/regress.sh` IS the enumeration**:
 lint-wall · guard-prisma · tsc · build · smoke ·
 smoke-writes · signup · capture · referral · engage · tenant-scope · nested-stamp ·
 settings-i18n · platform-phase2 · platform-phase3 · platform-phase5 · platform-verify ·
 c21 · c20 · v31 · c12x · onboarding-complete · onboarding-stage1 · onboarding-update ·
 onboarding-ui · onboarding-discovery · password-reset · amd06 · practice-setting ·
 email-identity · fail-closed-tenancy · event-chrome · demo-path · gate-hygiene ·
-stamp-audit (LAST).
+port-uniqueness · stamp-audit (LAST).
 Three wrong numbers, each owned: the original C29 report's "all 35 gates green" was
 FALSE twice over (no 35-entry sweep ever existed, and the only C29-build sweep was
 33 green + gate-hygiene RED — transcript output is the evidence; corrected in the

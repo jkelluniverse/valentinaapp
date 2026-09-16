@@ -386,6 +386,16 @@ async function walkLeg(locale: "en" | "es") {
     `status ${login.status}; practice in visible: ${has(loginVis, L.founder.practice)}; veritas=${countCI(loginVis, "veritas")}, valentina=${countCI(loginVis, "valentina")}`,
   );
 
+  // C32 build-order 3 — WHAT THIS ASSERTION PROVES AND WHAT IT CANNOT (ruling 76).
+  // It proves the root-hop LOGIC end to end over real HTTP: matcher → guard →
+  // loopback self-fetch to 127.0.0.1:$PORT carrying x-forwarded-host → tenant-kind's
+  // DB answer → 307 to /book. Since C32 §2 the self-fetch is loopback in EVERY
+  // environment, so this is the same code path production runs — but the gate still
+  // CANNOT prove the deployment seam itself: that Railway sets PORT, that its edge
+  // delivers the visitor's host in x-forwarded-host, or that PLATFORM_DOMAIN is set
+  // live. Those are proven only by the ruling-48 deploy check hitting the live
+  // minted host (C32 V3/V12). W5 is the standing lesson: this very assertion was
+  // green for 19 days while production never once fired the redirect.
   const root = await req("/", HOST_NEW);
   check(
     `${label} — ${HOST_NEW}/ 307s to /book (C29 redirect, never Valentina's marketing page)`,
