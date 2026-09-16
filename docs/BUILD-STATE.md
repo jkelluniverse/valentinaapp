@@ -1122,6 +1122,17 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     authoritative on tenant existence. Verify V1–V6 (spec) + V7–V12 (dispatch),
     V12 = the standing psf-rehearsal tenant's root redirecting to its own /book.
 
+## C32 COMPLETE (2026-09-16, b5f66a0; report: docs/reports/outbox/BUILD-REPORT-C32.md).
+## V1–V12 all green, quoted in the report. The live proof (V12): psf-rehearsal root
+## 307 → its own /book, its own title, zero valentina. Production PORT observed =
+## 8080 (V8). W6 GREEN; W7 GREEN with finding (AUTH_URL pins the no-JS sign-in
+## redirect to valentinavelez.com; browsers unaffected); W8 read: button URL =
+## valentinavelez.com (prediction CONFIRMED) and the whole email carries Valentina's
+## identity — expected per code (request-scope identity), design gap reported, not
+## fixed. AuditEvent 0→6: P-B corrected (walk writes 2, not 1; capture row keys to
+## Valentina's tenant BY DESIGN); Block 1.5 enumeration SQL + corrected Block 2 in
+## the runbook. Holding for Block 1.5 output / Block 2 dispatch.
+
 ## REHEARSAL (authorized item 2) — WALK EXECUTED 2026-09-16; W5 FAILED → C32; the
 ## minted tenant STANDS until C32's V12 passes against it (per dispatch), then
 ## Blocks 2/3 (teardown + after-counts) go to Jacob. Block 1 baseline (Jacob, Query
