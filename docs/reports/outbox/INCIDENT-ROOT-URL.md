@@ -201,3 +201,68 @@ REMOVED at 21:20:05+Z, after the new one was serving; same pattern on staging. T
 root's current 307 keeps serving during the ~2–3 minute build, then flips to the
 healthy 200 atomically with the traffic switch. Her booking funnel (/book, dynamic)
 is unaffected before, during, and after.
+
+---
+
+# STEPS 1 AND 2 — EXECUTED WITH JACOB'S GO (2026-09-15/16). Rulings 68/69 recorded.
+
+## Step 1 — production root fix (build command)
+
+- **1a before-state, quoted**: production build config was
+  `{"builder":"RAILPACK","buildEnvironment":"V3"}` — NO custom Build Command (Railpack
+  default), nothing staged. Rollback: clear the field, fresh from-source deploy.
+- **1b**: Build Command set to `DATABASE_URL="${DATABASE_PUBLIC_URL}" npm run build`
+  (`updatedFields: ["buildCommand"]`, production only).
+- **1c**: fresh FROM-SOURCE deployment via the Railway agent's deployServiceTool (the
+  path that worked on staging; accept-deploy not retried, no redeploy — ruling 67).
+  Deployment `d13b8518-7125-4f9d-853e-c99b3490e43d`, reason `deploy`, created
+  23:21:59Z → SUCCESS 23:23:50Z.
+- **1d real build proven from the build log**: Railpack plan step
+  `▸ build $ DATABASE_URL="${DATABASE_PUBLIC_URL}" npm run build`; buildkit vertex for
+  that exact command `started 23:22:18Z … completed 23:23:04Z` — a 46-second real
+  build, not a reused image.
+- **1e, each quoted**: status lines `HTTP/1.1 200 Connection Established` (proxy
+  CONNECT) then **`HTTP/2 200`** (origin, read last per ruling 61) · title
+  `<title>Rewrite Your Subconscious Mind, Transform Your Life.</title>` ·
+  NEXT_REDIRECT count **0** · __next_error__ count **0** · seven surfaces all 200.
+- **1f**: /book polled during the build (23:22:11, 23:22:32, 23:22:52) and after
+  (23:28:44) — all 200. Zero observed downtime.
+- Root restored at 23:23:50Z, ~31 hours after f988a68 baked it.
+
+## Step 2 — PLATFORM_DOMAIN (separately, per ruling 68)
+
+- **BEFORE-state**: `PLATFORM_DOMAIN` ABSENT (not empty-string) from BOTH
+  environments' variable lists (both quoted in session). Absent-vs-empty: both are
+  falsy in slugFromHost's `!platformDomain` guard, so the CODE treats them
+  identically; the rollback of record is nonetheless DELETION of the variable.
+- **2b, stated before acting**: the variable is read at RUNTIME per-request
+  (process.env in slugFromHost), so a deployment is required; per instruction it was
+  a FRESH FROM-SOURCE deploy, with the variable set `skipDeploys: true` so exactly
+  one deliberate deployment carried it. (Build output unaffected either way — at
+  build time there is no request host and `!host` short-circuits first.)
+- **2a/2c production**: variable set; fresh from-source deployment
+  `e005d116-1ae2-4b49-b9aa-05e1f041d459`, SUCCESS 23:53:43Z. Verified, each quoted:
+  - THE ONE THAT MATTERS — valentinavelez.com `/`: origin `HTTP/2 200`, her title,
+    NEXT_REDIRECT count 0; /book 200, /login 200. NO degradation → no rollback.
+  - **THE PREDICTED FLIP**: `test.psychefolio.com/api/tenant-kind` →
+    `{"kind":"unknown-slug","isDefault":true}` — kind flipped from "tenant" to
+    "unknown-slug"; isDefault true is CORRECT (the served tenant is the default row).
+    The variable demonstrably took effect (ruling 69's scope discipline in action).
+  - www.psychefolio.com: `HTTP/2 200`, default content (her title), per Q1b.
+- **2f**: all seven valentinavelez.com surfaces re-verified: /book /join /signup
+  /privacy /login /api/health /api/tenant-kind — all 200.
+- **2g — the bare apex, on the record**: `https://psychefolio.com/` remains
+  UNREACHABLE (curl exit 000 — no route to the app; the apex is not a Railway domain
+  and the `*.psychefolio.com` wildcard does not cover it). Unchanged by the variable,
+  exactly as Q1b traced. A BRAND-WEB item for the before-freeze list, not a bug:
+  someone typing the domain without a subdomain on the 23rd reaches nothing.
+- **2d staging**: variable set (skipDeploys), fresh from-source deployment
+  `f568e1e4-d1b8-4746-8e43-d815f9d161e2`, SUCCESS 2026-09-16 15:50:09Z. Verified:
+  root origin `HTTP/2 200`, her title, NEXT_REDIRECT count 0; seven surfaces all 200.
+  Environments no longer diverge.
+- **Rollback for both**: DELETE the variable (not empty string), fresh from-source
+  deploy per environment.
+
+**The incident is resolved in both environments.** Step 3 (36-entry sweep, the
+ports/rulings merge with its ruling-48 check, incident-closed ledger timeline, the
+before-freeze list) awaits the Architect's go.

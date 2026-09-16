@@ -1026,9 +1026,35 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 ## kind:"unknown-slug" (still default-host content, no redirect). It is NOT proof the
 ## demo path works; that proof needs the variable set plus a real minted tenant.
 
-## ROOT-URL INCIDENT — production state (awaiting Jacob's go):
-- valentinavelez.com/ currently serves the baked 307 error shell (JS visitors land on
-  /unavailable's 503; no-JS visitors see a blank error page). Dynamic pages all 200.
+## Architect rulings — 2026-09-15/16 (production authorized; steps 1 and 2 executed)
+68. **Two production changes never ship in one run.** Step-stop-verify, so a regression
+    is attributable to a single cause. (Followed: the build-command fix landed, was
+    verified and reported, and only then did PLATFORM_DOMAIN ship — each with its own
+    fresh from-source deployment and its own verification battery.)
+69. **A live probe proves only what its current configuration permits it to prove.**
+    The test.psychefolio.com 200 proved routing and TLS while PLATFORM_DOMAIN was
+    unset, and nothing about tenancy. Record the probe's scope alongside its result,
+    always. (After the variable shipped, the same probe flipped to kind
+    "unknown-slug" exactly as predicted — the flip itself is the tenancy half-proof.)
+
+## ROOT-URL INCIDENT — RESOLVED IN BOTH ENVIRONMENTS (2026-09-16; step-3 sweep/merge
+## awaiting the Architect's go). TIMELINE: broke f988a68 2026-09-14 ~16:35Z; staging
+## build fix 3f74c8fc (2026-09-15 22:53Z); production build fix d13b8518 (Jacob-
+## authorized, 23:23:50Z — root back to HTTP/2 200, her title, zero digests, seven
+## surfaces 200, /book up throughout); PLATFORM_DOMAIN=psychefolio.com then shipped
+## separately per ruling 68 (before-state: ABSENT from both variable lists; rollback of
+## record = DELETION, though absent and "" are code-identical in slugFromHost's falsy
+## guard): production deploy e005d116 (23:53:43Z), staging deploy f568e1e4 (2026-09-16
+## 15:50:09Z), each a fresh from-source build carrying the variable (set with deploys
+## skipped so exactly one deploy carried it). Verified after each: valentinavelez.com
+## root/seven surfaces unchanged; test.psychefolio.com/api/tenant-kind FLIPPED to
+## {"kind":"unknown-slug","isDefault":true} exactly as predicted (ruling 69);
+## www.psychefolio.com 200 default content; bare apex psychefolio.com still does not
+## route to the app (curl 000) — brand-web item, not a bug. The one-action plan below
+## is retained as the historical record of what Jacob authorized:
+- (AT THE TIME OF THE HOLD) valentinavelez.com/ served the baked 307 error shell (JS
+  visitors landed on /unavailable's 503; no-JS visitors a blank error page). Dynamic
+  pages were 200 throughout. RESOLVED — see the timeline above.
 - THE ONE-ACTION FIX (staging-proven): set the production service's Build Command to
   `DATABASE_URL="${DATABASE_PUBLIC_URL}" npm run build` and trigger a fresh
   from-source deployment. ROLLBACK: clear the Build Command (staging's before-state
