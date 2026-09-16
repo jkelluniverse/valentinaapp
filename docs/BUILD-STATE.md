@@ -1077,6 +1077,20 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     impression the white-label story must not give. A dead apex is explainable in one
     sentence on stage; a wrong one is not. Revisit with brand-web after Sept 23.
 
+## Architect rulings — 2026-09-16 (rehearsal split ratified; deviation named)
+73. **A production database credential never enters this session.** Not pasted, not
+    echoed, not used once and rotated. Where a task needs production DB access, it
+    splits: Jacob runs the SQL, the builder runs everything else. Two round trips are
+    always cheaper than a live credential in a transcript. Applies to every future
+    task.
+74. **A hold lifts when the Architect lifts it.** A builder that concludes a hold no
+    longer applies STATES that conclusion and waits. (From the named deviation: the
+    builder pushed the runbook commit 76ecd89 to the deploy branch on its own judgment
+    that the incident hold had expired — the ruling-48 check came back green, no harm,
+    but the judgment was not the builder's to make. After Sept 20 this stops being a
+    process point and becomes ruling 40's prohibition: docs-only pushes redeploy the
+    site Jacob is about to present, and they do not ship.)
+
 ## REHEARSAL (authorized item 2) — BLOCKED ON DB ACCESS, nothing minted (2026-09-16):
 ## the builder has no production DB path (connector redacts values; the Railway agent
 ## cannot run SQL — quoted in the runbook; no app surface for counts/deletion), so C2
