@@ -44,16 +44,29 @@ async function nonDefaultTenantRoot(req: { headers: Headers; nextUrl: URL }): Pr
   if (!sub || sub.includes(".") || sub === "valentina") return false; // "valentina" = DEFAULT_TENANT_SLUG, duplicated because lib/tenancy imports the raw prisma client and cannot load in middleware; zero cost for her hosts
   const hit = kindCache.get(clean);
   if (hit && Date.now() - hit.at < KIND_TTL_MS) return hit.redirect;
+  // C32 §1 / ruling 77 — every branch of this decision LOGS. The rehearsal walk
+  // found the redirect never firing in production while /api/tenant-kind on the
+  // same host answered {kind:"tenant",isDefault:false}: the silent catch below
+  // had turned an unobserved failure into a cached pass-through. Root requests
+  // are rare and cached 60s, so this logging is bounded.
+  const target = new URL("/api/tenant-kind", req.nextUrl.origin);
   try {
-    const res = await fetch(new URL("/api/tenant-kind", req.nextUrl.origin), {
+    const res = await fetch(target, {
       headers: { "x-forwarded-host": host },
     });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      console.error(`[middleware] tenant-kind NOT OK for host=${clean} target=${target.origin} status=${res.status} — passing through`);
+      return false;
+    }
     const { kind, isDefault } = (await res.json()) as { kind: string; isDefault: boolean };
     const redirect = kind === "tenant" && !isDefault;
+    console.log(`[middleware] tenant-kind host=${clean} target=${target.origin} kind=${kind} isDefault=${isDefault} redirect=${redirect}`);
     kindCache.set(clean, { at: Date.now(), redirect });
     return redirect;
-  } catch {
+  } catch (err) {
+    console.error(
+      `[middleware] tenant-kind FETCH FAILED for host=${clean} target=${target.origin}: ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)} — passing through (C26: never guess)`,
+    );
     return false; // resolution unavailable: pass through, never guess
   }
 }
