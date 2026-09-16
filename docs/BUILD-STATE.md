@@ -1037,6 +1037,36 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     always. (After the variable shipped, the same probe flipped to kind
     "unknown-slug" exactly as predicted — the flip itself is the tenancy half-proof.)
 
+## Architect ruling — 2026-09-16 (step 2 accepted; step 3 authorized; incident closed)
+70. **The bare apex psychefolio.com routes nowhere; the wildcard does not cover it.**
+    Documented, not a defect — and if it is made to route, it serves the DEFAULT
+    tenant's content (Valentina's marketing page under the platform's name) until
+    brand-web says otherwise. Jacob's call (a Railway domain addition, not a content
+    decision). THE PREPARED ONE-ACTION CHANGE (not implemented):
+    (a) WHAT: add `psychefolio.com` as a custom domain on the production service,
+        port 8080, alongside `valentinavelez.com` and `*.psychefolio.com`.
+    (b) DNS: Railway does NOT auto-create DNS (the wildcard's record was created at
+        the DNS provider: live query shows `test.psychefolio.com CNAME
+        48q35e3z.up.railway.app`). The apex needs an ALIAS/ANAME (or the provider's
+        CNAME-FLATTENED apex record — valentinavelez.com's own apex resolves exactly
+        that way: flattened CNAME `lsvhy2j8.up.railway.app` + A 69.46.46.50) pointing
+        at the target Railway issues when the domain is added. NEVER a literal CNAME
+        at the apex — a true CNAME cannot coexist with other record types and would
+        SHADOW THE ZOHO MX, breaking mail.
+    (c) MAIL SAFETY, verified by live DNS queries (2026-09-16), not assumed: apex MX =
+        `10 mx.zoho.com / 20 mx2.zoho.com / 50 mx3.zoho.com`; apex TXT = `v=spf1
+        include:zohomail.com ~all` + zoho-verification; `_dmarc` TXT = `v=DMARC1;
+        p=none;`; Resend lives on the DELEGATED subdomain (`send.psychefolio.com`
+        CNAME `send.forge.rmta.net` with its own SPF/MX). An apex A/ALIAS is a
+        different RR type from MX/TXT and coexists with all of them — nothing above
+        changes. Currently apex A: NONE (why curl exits 000).
+    (d) WHAT IT WOULD SERVE: the default slug (slugFromHost's `clean ===
+        platformDomain` branch) — Valentina's marketing page on psychefolio.com.
+        Plainly: the platform's apex would wear HER brand. That is an argument for
+        leaving it unreachable until brand-web ships the platform page.
+    (e) ROLLBACK: remove the custom domain from the Railway service and delete the
+        apex DNS record; MX/TXT untouched throughout.
+
 ## ROOT-URL INCIDENT — RESOLVED IN BOTH ENVIRONMENTS (2026-09-16; step-3 sweep/merge
 ## awaiting the Architect's go). TIMELINE: broke f988a68 2026-09-14 ~16:35Z; staging
 ## build fix 3f74c8fc (2026-09-15 22:53Z); production build fix d13b8518 (Jacob-
