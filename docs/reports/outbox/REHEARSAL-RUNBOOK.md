@@ -1,11 +1,15 @@
 # PRE-FREEZE REHEARSAL RUNBOOK — throwaway tenant on production (authorized item 2)
 
-**Status: BLOCKED ON DB ACCESS, reported before minting.** The builder has NO
-production database access: the Railway connector redacts variable values (OAuth =
-names only), the Railway AI agent confirmed it cannot execute SQL ("I cannot connect
-to or query databases directly", quoted 2026-09-16), and no app surface exposes counts
-or tenant deletion. C2 (before/after counts per table) and the teardown are therefore
-not executable by the builder alone. NOTHING HAS BEEN MINTED.
+**Status (2026-09-16): WALK EXECUTED — W1–W4 green, W5 failed → C32; the
+psf-rehearsal tenant STANDS until C32's V12 passes against it. Block 1 ran
+(baseline in BUILD-STATE); mid-state counts are in; Block 1.5 (below) is the next
+thing Jacob runs. Blocks 2/3 wait for the Architect's dispatch.** Original
+blocked-state record, kept for the timeline: the builder has NO production database
+access — the Railway connector redacts variable values (OAuth = names only), the
+Railway AI agent confirmed it cannot execute SQL ("I cannot connect to or query
+databases directly", quoted 2026-09-16), and no app surface exposes counts or
+tenant deletion — so all SQL runs in the Railway dashboard's Query tab, by Jacob
+(rulings 73/75).
 
 ## The recommended split (no credentials ever enter the session transcript)
 
@@ -54,7 +58,62 @@ Identical to Jacob's rehearsal, over HTTP, on production:
    paragraph text carries the portal host; observed truth to be reported either way).
 5. C3: any break → STOP, report, tear down only after the Architect has seen it.
 
-### Block 2 — teardown (Jacob, ONLY after the builder reports the walk green)
+### Block 1.5 — AuditEvent enumeration (Jacob, read-only; gates the teardown design)
+
+Mid-state showed AuditEvent 0 → 6 against the builder's prediction of +1. The
+prediction was WRONG at the code level: the walk writes TWO audit rows, not one —
+the builder missed W1's `prospect-capture` row (lib/prospect-capture.ts:139). And
+that row does NOT key to psf-rehearsal: capture uses the SCOPED client, so its
+audit row is stamped with the REQUEST's tenant — W1 ran on valentinavelez.com/join,
+so it keys to VALENTINA's tenant BY DESIGN (the row records where the lead was
+captured; capture never touches any other tenant's data). The remaining 4 rows are
+not attributable from code alone. Candidates, each distinguishable in the output:
+`engage-message` rows (the engage tick records every send DECISION — including
+gate-closed SKIPs — keyed to the DEFAULT tenant; only fires if something calls
+/api/jobs/tick with JOBS_SECRET), organic /join traffic (a real lead — must NOT be
+torn down), or Valentina's own portal activity (real business data — must NOT be
+torn down). Run both queries, paste the output back:
+
+```sql
+-- 1: every AuditEvent row, attributed three ways (tenant slug; actor as user;
+--    actor as prospect). meta is law-#6 metadata only (ids/flags, never content).
+SELECT a."createdAt", a.action, a.reason,
+       coalesce(t.slug, '(null)') AS tenant_slug,
+       u.email AS actor_as_user,
+       p.email AS actor_as_prospect,
+       a.meta
+FROM "AuditEvent" a
+LEFT JOIN "Tenant" t ON t.id = a."tenantId"
+LEFT JOIN "User" u ON u.id = a."actorId"
+LEFT JOIN "PractitionerProspect" p ON p.id = a."actorId"
+ORDER BY a."createdAt" ASC;
+```
+
+```sql
+-- 2: which rows are REHEARSAL-CAUSED (keyed to psf-rehearsal, or acted by one of
+--    the two rehearsal identities) vs not. Any row with all three flags false is
+--    real production data and the teardown must not touch it.
+SELECT a."createdAt", a.action,
+       a."tenantId" = (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal') AS keyed_to_psf,
+       a."actorId" IN (SELECT id FROM "PractitionerProspect" WHERE email IN
+         ('jkelluniverse+psf-ref@gmail.com','jkelluniverse+psf-founder@gmail.com')) AS actor_is_rehearsal_prospect,
+       a."actorId" IN (SELECT id FROM "User" WHERE "tenantId" =
+         (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal')) AS actor_is_rehearsal_user
+FROM "AuditEvent" a
+ORDER BY a."createdAt" ASC;
+```
+
+**Consequence for Block 2 as written:** it deletes AuditEvent by psf-rehearsal
+tenantId only, so it provably leaves at least W1's capture row behind (Valentina-
+keyed, rehearsal-caused) and Block 3 would NOT return AuditEvent to 0. The
+corrected Block 2 below adds one DELETE keyed to the rehearsal prospect ids,
+placed BEFORE the prospect delete (the subquery needs the rows still present).
+Expected DELETE counts stay provisional until Block 1.5's output is in; the
+builder re-issues the final expectation line then.
+
+### Block 2 — teardown (Jacob, ONLY after the builder reports the walk green
+### AND Block 1.5's enumeration has been reconciled — CORRECTED, supersedes the
+### original; the added line is the AuditEvent-by-actor delete)
 
 Dependency order = the same shape signup's own rollbackTenant uses:
 
@@ -62,6 +121,11 @@ Dependency order = the same shape signup's own rollbackTenant uses:
 BEGIN;
 DELETE FROM "PracticeSetting" WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
 DELETE FROM "AuditEvent"      WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
+-- rehearsal-caused rows keyed to OTHER tenants (W1's capture row is stamped with
+-- Valentina's tenant by design; engage decision rows, if any, likewise). Keyed to
+-- the rehearsal identities' own prospect rows, so no organic row can match. Must
+-- run BEFORE the PractitionerProspect delete below.
+DELETE FROM "AuditEvent"      WHERE "actorId" IN (SELECT id FROM "PractitionerProspect" WHERE email IN ('jkelluniverse+psf-ref@gmail.com','jkelluniverse+psf-founder@gmail.com'));
 DELETE FROM "TenantBilling"   WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
 DELETE FROM "TenantModule"    WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
 DELETE FROM "User"            WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
@@ -70,9 +134,21 @@ DELETE FROM "PractitionerProspect" WHERE email IN ('jkelluniverse+psf-ref@gmail.
 COMMIT;
 ```
 
+Provisional expected counts (FINAL numbers wait on Block 1.5's output; ROLLBACK on
+any surprise stands): PracticeSetting 1 · AuditEvent-by-tenant ≥1 (the
+practitioner-signup row; plus any engage rows that turn out psf-keyed — none
+expected) · AuditEvent-by-actor ≥1 (W1's capture row; plus rehearsal-attributed
+engage rows if the enumeration shows any) · TenantBilling 1 · TenantModule 3 ·
+User 1 · Tenant 1 · PractitionerProspect 2. If Block 1.5 shows any of the 6 rows
+NOT rehearsal-caused (organic lead, Valentina's own activity), those rows STAY and
+Block 3's AuditEvent count will equal that residue, not 0 — that is correct, not a
+failure to reconcile.
+
 ### Block 3 — AFTER counts + null-tenant invariant (Jacob; paste output back)
 
-Re-run Block 1 verbatim. Every table count must equal its BEFORE value, and
+Re-run Block 1 verbatim. Every table count must equal its BEFORE value (unless
+Block 1.5 identified organic rows that arrived during the window — those stay, and
+the expected AFTER value is baseline + that named residue), and
 'null-tenant rows' must be 0 — that is tenant-stamp-audit's invariant expressed as
 read-only SQL (the gate itself refuses nothing here, but it cannot be pointed at
 production without its DATABASE_URL, same access gap).

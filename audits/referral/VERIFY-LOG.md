@@ -1,6 +1,6 @@
 # C23-REFERRAL — acceptance log
 
-Run: 2026-09-16T21:36:52.767Z · `npx tsx audits/referral/verify.ts` against the BUILT app on :3127
+Run: 2026-09-16T22:38:11.549Z · `npx tsx audits/referral/verify.ts` against the BUILT app on :3127
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Browser-driven (Playwright, headless Chromium) over two throwaway tenants;
