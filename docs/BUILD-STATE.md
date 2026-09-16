@@ -1122,6 +1122,45 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     authoritative on tenant existence. Verify V1–V6 (spec) + V7–V12 (dispatch),
     V12 = the standing psf-rehearsal tenant's root redirecting to its own /book.
 
+## Architect rulings — 2026-09-16 (PROGRAM RE-SCOPE: the platform split. Freeze
+## LIFTED. Rulings 81/82 REVERSED per the Architect — their original texts were
+## dispatched outside this ledger and are not recorded here; noted as a gap.)
+83. **ARCHITECT ERROR, recorded:** deferring the identity work (ruling 82) treated
+    a deadline as a constraint on correctness. Structural defect triaged as
+    cosmetic: every defect this program has found (C25/C26/C27/C29/C31/C32) is one
+    sentence — anything that fails to resolve lands on Valentina. Jacob directed
+    the cause fixed, not the symptom.
+84. **THE TARGET ARCHITECTURE** (standing answer to "what happens when there are
+    two practices"): psychefolio.com is the PLATFORM host (platform marketing,
+    /signup, /join, platform-identity mail). Valentina's practice is a TENANT like
+    any other; valentinavelez.com is HER TENANT'S CUSTOM DOMAIN, resolved from
+    DATA, not fallback — and keeps working unchanged for her clients throughout.
+    THERE IS NO DEFAULT TENANT: an unmapped host reaches the platform or fails
+    closed, never a practice. Non-negotiable invariants I1–I4 (her domain correct
+    and byte-identical throughout; demo path green; no host resolves to a practice
+    by accident). Phases P1–P5, each ratified before the next; rollback point
+    REQUIRED before P1. Teardown of psf-rehearsal moves to AFTER P5 — it is the
+    reference tenant for the re-scope.
+85. **The apex routes** (supersedes ruling 72): psychefolio.com becomes the
+    platform host rather than staying dark. Ruling 71 still constrains HOW (no
+    CNAME on the mail-bearing apex — MX shadowing); mechanism to be confirmed
+    against the DNS provider before P2.
+
+## PLATFORM SPLIT — pre-P1 hold: A1–A6 ANSWERED (2026-09-16, evidence in
+## docs/reports/outbox/PLATFORM-SPLIT-A1-A6.md). Headlines: A1 fallback census is
+## BIGGER than named (48 refs/16 app files; data-layer default≡NULL in scopeFilter;
+## auth-guards sign-in branch; getBaseUrlSafe + site-content hardcode her domain);
+## A2 no mapping exists — TenantDomain TABLE recommended (host UNIQUE enforces I4);
+## A3 SIX migrations hardcode her tenant (immutable history — fresh DBs are born
+## with it; P5 = "nothing REQUIRES it", not rewritten history) + 15 test files;
+## A4 platform-identity send NOT EXECUTABLE today (only caller is engage, CLOSED) —
+## send-test route or Resend-dashboard check proposed, awaiting the word;
+## A5 CONFIRMED her domain resolves only via fallback (live tenant-kind quoted);
+## A6 CONFIRMED from installed @auth/core source (AUTH_URL absolute precedence;
+## explicit trustHost:true must stay). Rollback point pinned: remote branch
+## known-good-pre-platform-split = 7f55bc7 (tag pushes 403-refused — disclosed).
+## HOLDING before P1.
+
 ## C32 COMPLETE (2026-09-16, b5f66a0; report: docs/reports/outbox/BUILD-REPORT-C32.md).
 ## V1–V12 all green, quoted in the report. The live proof (V12): psf-rehearsal root
 ## 307 → its own /book, its own title, zero valentina. Production PORT observed =
