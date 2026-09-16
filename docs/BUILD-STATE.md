@@ -1067,6 +1067,26 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     (e) ROLLBACK: remove the custom domain from the Railway service and delete the
         apex DNS record; MX/TXT untouched throughout.
 
+## Architect rulings — 2026-09-16 (step 3 accepted; rehearsal authorized)
+71. **An apex CNAME on a mail-bearing domain shadows the MX records. Never add one.**
+    An apex A or ALIAS coexists with MX, SPF, DKIM and DMARC. Live-queried
+    (2026-09-16), not assumed — cheap to record, expensive to rediscover.
+72. **Architect recommendation of record (Jacob's call): the apex stays unrouted
+    through the event.** Routing it would serve Valentina's marketing page under the
+    Psychefolio name — reads as the platform being one person's practice, the exact
+    impression the white-label story must not give. A dead apex is explainable in one
+    sentence on stage; a wrong one is not. Revisit with brand-web after Sept 23.
+
+## REHEARSAL (authorized item 2) — BLOCKED ON DB ACCESS, nothing minted (2026-09-16):
+## the builder has no production DB path (connector redacts values; the Railway agent
+## cannot run SQL — quoted in the runbook; no app surface for counts/deletion), so C2
+## and the teardown are not executable by the builder alone. The split that needs no
+## credential in the transcript is in docs/reports/outbox/REHEARSAL-RUNBOOK.md:
+## Jacob runs three SQL blocks via `railway connect Postgres`; the builder runs the
+## full HTTP walk + reads the welcome email at jkelluniverse+psf-founder@gmail.com
+## (C1) and reports subject/sender/link-targets. Freeze note: this must run BEFORE
+## Sept 20 (ruling 40).
+
 ## ROOT-URL INCIDENT — CLOSED (Architect, 2026-09-16; steps 1-3 complete, 36-entry
 ## sweep green, ports/rulings merged to the deploy branch). TIMELINE: broke f988a68 2026-09-14 ~16:35Z; staging
 ## build fix 3f74c8fc (2026-09-15 22:53Z); production build fix d13b8518 (Jacob-
