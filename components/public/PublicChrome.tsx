@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SITE } from "@/content/site-content";
+import { PLATFORM_NAME } from "@/lib/platform-host";
 import { Img } from "./Img";
 
 // C18 — the public marketing chrome. The brand here is HERS (Valentina Vélez),
@@ -40,7 +41,41 @@ function Wordmark({ variant = "dark" }: { variant?: "dark" | "light" }) {
 // logo's existing TEXT-FALLBACK styling — no logo asset is invented for a
 // practice (brand-web's), and no design is: it is the same span the default
 // renders when her image is missing.
-export function PublicHeader({ practice }: { practice?: string | null }) {
+// P2.3 — the PLATFORM host's chrome. Not a practice, so: no practice wordmark,
+// no "Book a call" (there is no practice to book on the platform's own domain),
+// and none of her credential line. Colors are Psychefolio brand v1.1
+// (indigo/cream) because wine/mocha is tenant #1's Warm Stone palette and never
+// appears on a Psychefolio-branded surface (Jacob, 2026-09-08). Structure is
+// otherwise the existing chrome's — this is a placeholder's chrome, not a
+// design; Jacob's content files replace it.
+const PF = { indigo: "#2E2749", ink: "#141A2E", cream: "#FAF0EF", ivory: "#F5F0E6", text: "#F2ECDF" };
+
+export function PublicHeader({ practice, platform = false }: { practice?: string | null; platform?: boolean }) {
+  if (platform) {
+    return (
+      <header
+        className="sticky top-0 z-50 border-b backdrop-blur"
+        style={{ borderColor: `${PF.indigo}26`, backgroundColor: `${PF.cream}d9` }}
+      >
+        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 md:px-8">
+          <Link href="/" aria-label={PLATFORM_NAME}>
+            <span className="font-headline text-[22px] font-semibold" style={{ color: PF.indigo }}>
+              {PLATFORM_NAME}
+            </span>
+          </Link>
+          <nav className="flex items-center gap-5 text-sm">
+            <Link
+              href="/login"
+              className="rounded-pill border px-4 py-1.5 font-medium transition-colors"
+              style={{ borderColor: `${PF.indigo}4d`, color: PF.indigo }}
+            >
+              Log in
+            </Link>
+          </nav>
+        </div>
+      </header>
+    );
+  }
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-canvas/85 backdrop-blur">
       <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-5 md:px-8">
@@ -67,7 +102,35 @@ export function PublicHeader({ practice }: { practice?: string | null }) {
   );
 }
 
-export function PublicFooter({ practice }: { practice?: string | null }) {
+export function PublicFooter({ practice, platform = false }: { practice?: string | null; platform?: boolean }) {
+  if (platform) {
+    return (
+      <footer style={{ backgroundColor: PF.ink, color: `${PF.text}b3` }}>
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-11 md:flex-row md:items-center md:justify-between md:px-8">
+          <div className="flex flex-col items-start gap-1.5">
+            <span className="font-headline text-[22px] font-semibold" style={{ color: PF.text }}>
+              {PLATFORM_NAME}
+            </span>
+            {/* No postal address on any Psychefolio surface (ruling 96). */}
+            <p className="text-xs" style={{ color: `${PF.text}80` }}>
+              © {PLATFORM_NAME}
+            </p>
+          </div>
+          <nav className="flex flex-wrap items-center gap-6 text-sm">
+            <Link href="/privacy" style={{ color: `${PF.text}d9` }}>
+              Privacy
+            </Link>
+            <Link href="/signup" style={{ color: `${PF.text}d9` }}>
+              For practitioners
+            </Link>
+            <Link href="/login" style={{ color: `${PF.text}d9` }}>
+              Log in
+            </Link>
+          </nav>
+        </div>
+      </footer>
+    );
+  }
   return (
     <footer className="bg-wine-dark text-cream/70">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-11 md:flex-row md:items-center md:justify-between md:px-8">

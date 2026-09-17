@@ -41,6 +41,27 @@ const METADATA_BASE: Metadata = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const { getTenantResolution } = await import("@/lib/tenancy");
+  // P2.2/P2.3 — on the PLATFORM's own host the app identity is the platform's.
+  // Without this the apex emitted `application-name: Veritas` and an Apple
+  // web-app title to match: tenant #1's internal product name installed as the
+  // platform's PWA. Same read as the (public) layout, same build-time-safe
+  // fallback (headers() throws outside a request → not the platform host →
+  // her output stays byte-identical).
+  try {
+    const { headers } = await import("next/headers");
+    const { isPlatformHost, PLATFORM_NAME } = await import("@/lib/platform-host");
+    const h = headers();
+    if (isPlatformHost(h.get("x-forwarded-host") || h.get("host"))) {
+      return {
+        ...METADATA_BASE,
+        title: PLATFORM_NAME,
+        applicationName: PLATFORM_NAME,
+        appleWebApp: { capable: true, title: PLATFORM_NAME, statusBarStyle: "default" },
+      };
+    }
+  } catch {
+    /* outside a request (build-time static render) — not the platform host */
+  }
   const r = await getTenantResolution();
   if (r.kind === "unresolved") return METADATA_BASE;
   const raw = (r.tenant.branding ?? {}).portalTitle || "veritas";

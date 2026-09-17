@@ -34,9 +34,35 @@ const DEFAULT_METADATA: Metadata = {
   robots: { index: true, follow: true },
 };
 
+// P2 — "is this the PLATFORM's own host?", read from the request. Wrapped
+// exactly like getTenantResolution's own header read: at BUILD time (the static
+// routes prerender outside any request) headers() throws, and the honest answer
+// there is "not the platform host" — which keeps the default output, and its
+// 16-screen baseline, byte-identical.
+async function onPlatformHost(): Promise<boolean> {
+  try {
+    const { headers } = await import("next/headers");
+    const { isPlatformHost } = await import("@/lib/platform-host");
+    const h = headers();
+    return isPlatformHost(h.get("x-forwarded-host") || h.get("host"));
+  } catch {
+    return false;
+  }
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const { getTenantResolution } = await import("@/lib/tenancy");
   const { DEFAULT_TENANT_ID } = await import("@/lib/tenancy/scope");
+  // P2.3 — the platform host carries the PLATFORM's tab identity, never a
+  // practice's. noindex while the placeholder stands: nothing here is content
+  // anyone should find in a search result. Jacob's files flip it back.
+  if (await onPlatformHost()) {
+    const { PLATFORM_NAME } = await import("@/lib/platform-host");
+    return {
+      title: { default: PLATFORM_NAME, template: `%s · ${PLATFORM_NAME}` },
+      robots: { index: false, follow: false },
+    };
+  }
   const r = await getTenantResolution();
   if (r.kind === "unresolved") return {};
   if (r.kind === "tenant" && r.tenant.id !== DEFAULT_TENANT_ID) {
@@ -67,11 +93,16 @@ export default async function PublicLayout({ children }: { children: React.React
   // byte-for-byte — hers, including unknown-slug hosts (V6 unchanged) and
   // build-time renders of the static routes.
   const practice = r.kind === "tenant" && r.tenant.id !== DEFAULT_TENANT_ID ? r.tenant.displayName || r.tenant.slug : null;
+  // P2.3 — on the platform's own host the chrome is the PLATFORM's: /signup and
+  // /join there must not wear a practice's identity. Resolution itself is
+  // unchanged and still lands on the default tenant (P3's job, reported not
+  // hidden); this is the chrome only.
+  const platform = await onPlatformHost();
   return (
     <div data-portal="public" className="flex min-h-dvh flex-col bg-canvas text-ink">
-      <PublicHeader practice={practice} />
+      <PublicHeader practice={platform ? null : practice} platform={platform} />
       <div className="flex-1">{children}</div>
-      <PublicFooter practice={practice} />
+      <PublicFooter practice={platform ? null : practice} platform={platform} />
     </div>
   );
 }

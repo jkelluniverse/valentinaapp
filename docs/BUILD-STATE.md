@@ -1311,6 +1311,26 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     after P5 but BEFORE P6 — the reference tenant would be gone exactly when P6 needs
     it. Hold it, or mint a fresh throwaway; the Architect's call.
 
+101. **A domain REGISTERED through Railway has its apex record written BY Railway**,
+    as an ANAME, not a CNAME — which is why Zoho's MX survived P2.1 untouched. Jacob
+    read the name.com root row: `ANAME  @  o0owal2d.up.railway.app  300s`, marked
+    Railway-managed. TWO CORRECTIONS CARRIED: (a) ruling 98's split is finer than
+    stated — Railway both REGISTERS and WRITES records, through name.com's zone;
+    (b) **trust the zone, not the API's self-report** — the Railway API returned
+    `railwayManaged: false` and `currentValue: ""` while the zone showed the
+    opposite. This retires ruling 71's concern for Railway-REGISTERED domains
+    specifically (Railway picks the mail-safe type itself); the prohibition stands
+    everywhere else. The literal CNAME was offered in name.com's menu and
+    DELIBERATELY DECLINED — a choice, not an absence.
+102. **When a mutation could have broken something time-critical, verify first and
+    attribute afterward.** (Ratifying the reasoning, not just the outcome: the P2.1
+    after-half ran before the unattributed record was explained, because if MX had
+    moved, waiting for attribution would only have lengthened an outage.)
+103. **A grep is a lead, never a finding — read the call site before reporting.**
+    (From the C34 groundwork: a grep suggested the drawn signature was unenforced
+    server-side; reading `signAgreement` in context showed the C22.1 backstop
+    present and localized. The near-miss was logged instead of the false finding.)
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling

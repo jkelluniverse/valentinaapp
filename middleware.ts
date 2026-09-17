@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/auth.config";
 import { roleHome } from "@/lib/roles";
+import { isPlatformHost } from "@/lib/platform-host";
 
 const { auth } = NextAuth(authConfig);
 
@@ -92,6 +93,13 @@ export default auth(async (req) => {
     return NextResponse.redirect(
       new URL(roleHome((req.auth.user as { role?: string }).role), publicOrigin(req)),
     );
+  }
+  // P2.2 — the PLATFORM host's root serves the platform's own page, never a
+  // practice's marketing. A REWRITE, not a redirect: psychefolio.com/ stays
+  // psychefolio.com/ in the address bar, and tenant hosts never reach this
+  // branch, so the static root (and its 16-screen baseline) is untouched.
+  if (pathname === "/" && isPlatformHost(req.headers.get("x-forwarded-host") || req.nextUrl.host)) {
+    return NextResponse.rewrite(new URL("/platform", req.nextUrl));
   }
   if (pathname === "/" && (await nonDefaultTenantRoot(req))) {
     return NextResponse.redirect(new URL("/book", publicOrigin(req)));
