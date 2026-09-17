@@ -1007,6 +1007,22 @@ model Tenant {
   featureFlags Json? // { sessionPipeline: true, ... }
   createdAt    DateTime @default(now())
   modules      TenantModule[]
+  domains      TenantDomain[]
+}
+
+// PLATFORM SPLIT P1 (ruling 87) — data-driven host→tenant mapping, consulted
+// FIRST by the resolver; the host-pattern fallback second. `host @unique` is
+// invariant I4 in the schema itself: no host can ever map to two practices.
+// Many rows per tenant on purpose (apex + www + future custom domains). host is
+// stored lowercased with no port — the resolver normalizes before lookup.
+model TenantDomain {
+  id        String   @id @default(cuid())
+  host      String   @unique
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model TenantModule {

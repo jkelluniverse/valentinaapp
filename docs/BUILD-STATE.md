@@ -1146,6 +1146,54 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     CNAME on the mail-bearing apex — MX shadowing); mechanism to be confirmed
     against the DNS provider before P2.
 
+## Architect rulings — 2026-09-16 (A1–A6 accepted; re-planned on the census;
+## A4 send-test authorized; P1 ratified to run after A4 reports)
+86. **The default-tenant fallback is a DATA-OWNERSHIP assumption with routing as
+    its most visible symptom.** NULL-tenantId rows being treated as the default
+    tenant's rows (scopeFilter) is the deepest form; P5 owns it as its own
+    decision, preceded by a full null-tenant census across EVERY scoped model —
+    not the seven tables Block 1 covered.
+87. **A2 ratified: TenantDomain table, host @unique, many-per-tenant.** The unique
+    constraint machine-enforces invariant I4 in the schema rather than in code,
+    and www needs a second row on day one.
+88. **A3 accepted; reshapes P5.** The six migrations that create and stamp her
+    tenant are immutable history and are NOT rewritten. P5's target: "no code path
+    REQUIRES a default tenant," not "the row cannot exist." Every fresh DB is born
+    with a valentina row via replay, and that is fine.
+89. **The tag-push 403 accepted.** Remote branch known-good-pre-platform-split =
+    7f55bc7 is the rollback point; same one action.
+JACOB'S FACTS OF RECORD: (1) PLATFORM_RESEND_API_KEY is a SEPARATE Resend account
+for psychefolio.com; RESEND_API_KEY is Valentina's own account — two accounts, not
+two keys in one (the fact the previous Architect got wrong once). (2)
+PLATFORM_DOMAIN present in production. (3) Platform website content: Jacob is
+producing it — P2 serves a minimal honest placeholder, labeled as such in code;
+the builder does NOT design platform marketing copy. (4) valentinavelez.com is
+functioning fine and is the baseline every phase preserves. Also dispatched: the
+apex/MX check is a HARD STOP before P2 (if Railway's domain flow would create an
+apex CNAME on the mail-bearing domain, stop and report — Zoho MX); engage's
+DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
+
+## A4 SEND-TEST — EXECUTED AND GREEN (2026-09-16 23:51Z; route b58bf6f, reverted
+## beaff52 after reporting; one-shot token minted for the trigger per ruling 73's
+## split, blanked after use — disclosed deviation from "JOBS_SECRET-guarded" letter).
+## Sent via POST /api/jobs/email-identity-test on production ({"ok":true}); read
+## back from jkelluniverse+platform@gmail.com via Gmail. OBSERVED: from address
+## jacob@psychefolio.com; display name NONE (PLATFORM_FROM_EMAIL is a bare
+## address — the platform envelope renders the raw address as its brand header;
+## P4 flag: needs "Psychefolio <addr>" or an envelope brand line); reply-to not
+## exposed by the Gmail connector payload (same limitation as W8); footer legal
+## entity "Kell Systems Consulting, LLC" (matches PLATFORM_LEGAL_ENTITY verbatim);
+## postal address "6521 Beverly Ave NE Canton, Ohio 44721"; platform envelope
+## rendered (its own palette, not Valentina's). **psychefolio.com IS verified in
+## the platform Resend account — proven by the send succeeding and ARRIVING in
+## the inbox (not spam) with the from-domain intact, not by configuration.**
+## PLATFORM_DOMAIN confirmed = psychefolio.com behaviorally: psf-rehearsal
+## .psychefolio.com resolves as tenant and www.psychefolio.com as unknown-slug —
+## both require the suffix match against exactly that value. www.valentinavelez
+## .com: DNS resolves (same IP as her apex) but it is NOT a Railway custom domain
+## (list: valentinavelez.com, *.psychefolio.com) and does not serve (curl 000) —
+## P1 seeds the apex only; www is an ops decision, not a mapping row.
+
 ## PLATFORM SPLIT — pre-P1 hold: A1–A6 ANSWERED (2026-09-16, evidence in
 ## docs/reports/outbox/PLATFORM-SPLIT-A1-A6.md). Headlines: A1 fallback census is
 ## BIGGER than named (48 refs/16 app files; data-layer default≡NULL in scopeFilter;
