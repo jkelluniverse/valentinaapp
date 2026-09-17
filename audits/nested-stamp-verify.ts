@@ -316,7 +316,12 @@ async function main() {
   );
   check(
     "A3 note: the only tenantId columns OUTSIDE the scoped set are platform-level, deliberately",
-    notScopedButHasCol.every((n) => ["TenantModule", "PractitionerProspect"].includes(n)),
+    // TenantDomain added by P1 (ruling 87): resolution plumbing read BEFORE any
+    // scope exists — its tenantId means "the tenant this host maps to", not row
+    // scope, the same semantics as PractitionerProspect's "tenant they own".
+    // This census caught the new column on P1's first sweep, which is its job;
+    // additions here are classification decisions, never quiet.
+    notScopedButHasCol.every((n) => ["TenantModule", "PractitionerProspect", "TenantDomain"].includes(n)),
     notScopedButHasCol.join(", "),
   );
 

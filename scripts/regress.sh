@@ -9,12 +9,14 @@ cd "$(dirname "$0")/.." || exit 1
 if [ -z "$DATABASE_URL" ]; then echo "DATABASE_URL required (scratch DB)"; exit 1; fi
 LOGDIR="${REGRESS_LOGDIR:-/tmp/regress-logs}"
 mkdir -p "$LOGDIR"
+FAILURES=0
 run() {
   local name="$1"; shift
   if "$@" > "$LOGDIR/$name.log" 2>&1; then
     echo "PASS $name :: $(grep -Eo '[0-9]+/[0-9]+|ALL CHECKS PASS|PASS' "$LOGDIR/$name.log" | tail -1)"
   else
     echo "FAIL $name (exit $?) — see $LOGDIR/$name.log"
+    FAILURES=$((FAILURES + 1))
   fi
 }
 run lint-wall            npm run lint:wall
@@ -53,4 +55,12 @@ run demo-path            npx tsx audits/demo-path-verify.ts
 run gate-hygiene         npx tsx audits/gate-hygiene-verify.ts
 run port-uniqueness      npx tsx audits/port-uniqueness-verify.ts
 run stamp-audit          npx tsx audits/tenant-stamp-audit.ts
+# A FAIL line must be a failed SWEEP: before this guard the script exited with
+# the last echo's status, so a red sweep reported exit 0 to any unwatched
+# caller (found on P1's first red — the printed lines were always the real
+# signal, but an exit code that lies is the silent-false-green class).
+if [ "$FAILURES" -gt 0 ]; then
+  echo "=== REGRESSION RUN FAILED — $FAILURES entr$( [ "$FAILURES" -eq 1 ] && echo y || echo ies) red ==="
+  exit 1
+fi
 echo "=== REGRESSION RUN COMPLETE ==="
