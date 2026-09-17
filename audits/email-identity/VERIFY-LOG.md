@@ -1,4 +1,4 @@
-# C27-EMAIL-IDENTITY Phase 1 verify — 2026-09-17T00:20:18.923Z
+# C27-EMAIL-IDENTITY Phase 1 verify — 2026-09-17T16:10:56.449Z
 RESEND_API_KEY present in this environment: no — as the spec requires
 
 ## Item 1 — the five assumptions, confirmed or corrected (ruling 18)
@@ -36,7 +36,7 @@ RESEND_API_KEY present in this environment: no — as the spec requires
 - ✓ no engageEnabled PracticeSetting row exists and the env override is off — the production gate is exactly as closed as before this build — rows=0 · env=off (the tick above ran on an in-process env override, removed)
 
 ## PHASE 2 — items 4, 5, 6: the per-practice identity, the silent-failure case, and no cross-identity in one process
-- ✓ two real non-default practices exist (real signup service); B configures contact details, C deliberately does NOT — B=cmu4s9jyi000aehgw7r3zscwk · C=cmu4s9ki0000iehgwkqwb738w
+- ✓ two real non-default practices exist (real signup service); B configures contact details, C deliberately does NOT — B=cmu5q82fq000a8cezpqmiobv7 · C=cmu5q82yd000i8cez7ml9uzpd
 - ✓ ITEM 4 — practice B's client mail (no explicit identity, resolved from B's host) carries B's DISPLAY NAME, B's REPLY-TO, B's FOOTER, the platform account's key — and none of Valentina's identity strings — from="T27 P2 Practice" <t27-platform-from@fixture.test> · reply_to=t27-p2-reply@fixture.test · auth=platform key · footer=B's · forbidden strings absent
 - ✓ ITEM 5 — a practice with NO email configured sends as NO ONE: the send is skipped (ok:false, skipped:true), zero wire calls, nothing borrowed — honest degradation, same shape as a missing credential — result={ok:false, skipped:true} · wire calls=0
 - ✓ ITEM 6 — A then B then A in ONE process: A's sends are byte-consistent legacy (practice key, NOTIFY_FROM_EMAIL, Veritas footer), B's is B's — no identity crosses in either direction — A1 from=Valentina Vélez  · B from="T27 P2 Practice"  · A2 from=Valentina Vélez  — A1 and A2 identical, B untouched by A, A untouched by B
