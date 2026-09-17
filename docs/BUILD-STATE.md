@@ -1194,6 +1194,67 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## (list: valentinavelez.com, *.psychefolio.com) and does not serve (curl 000) —
 ## P1 seeds the apex only; www is an ops decision, not a mapping row.
 
+## Architect rulings — 2026-09-17 (A4 + P1 ratified; harness finding; postal
+## address; P2 re-planned)
+91. **The harness that reports on the gates is itself a gate** and is verified
+    like one: its red path is demonstrated, not assumed. (regress.sh printed FAIL
+    and exited 0 — the highest-severity class this program recognizes: the harness
+    reporting green on red. No false green got through historically because the
+    printed PASS lines were read every time — luck reinforced by discipline, not a
+    design that held.)
+92. **ARCHITECT ERROR, recorded:** "stamp-audit LAST, exit 0" was written into a
+    dozen verify lists treating a script's self-reported exit code as evidence. A
+    number a script prints about itself is a claim. "Exit 0" now means the guard
+    that can fail was exercised. Applied: (1) harness-guard added to the standing
+    set (set 36 → 37, the addition named) — re-proves regress.sh's red AND green
+    exits every sweep via REGRESS_SELFTEST modes on the REAL script; (2) every
+    other runner audited for the same defect — clean, list in
+    docs/reports/outbox/PLATFORM-SPLIT-PRE-P2.md; regress.sh was the only
+    offender; nothing else changed per the dispatch.
+93. **A purpose-built, short-lived credential minted and destroyed in the same
+    session is the right answer when ruling 73 forbids the real one.** (From A4's
+    trigger token.)
+94. **Jacob's sender decision:** the platform from-address stays
+    jacob@psychefolio.com — a personal sender is a feature for forty founding
+    partners met in person. P4 MUST add the display name: `Psychefolio`
+    <jacob@psychefolio.com>, reply-to the same. Reply-to remains NOT VERIFIED
+    through the Gmail connector (twice now) — P4 asserts it another way or keeps
+    reporting it unverified; never papered over.
+95. **TenantDomain's classification ratified with its reasoning recorded:**
+    platform-level resolution plumbing — its tenantId means "the tenant this host
+    maps to," not row scope. The nested-stamp red was the census doing its job on
+    day one. The 6× identical-timestamp log line: named, bounded, not a defect.
+96. **No postal address appears in Psychefolio email or on any public surface**,
+    except where law requires it or in terms/privacy copy. The A4 footer carried
+    Jacob's HOME address (PLATFORM_POSTAL_ADDRESS); he will move the variable to
+    a business PO box. Sequence: census first (done, in the pre-P2 report);
+    transactional envelopes drop the address (P4); the CAN-SPAM exception is NOT
+    overridden by the builder — commercial (engage) mail keeps a physical address
+    whose value is JACOB'S call (mailbox/registered agent); the builder surfaces
+    the constraint, never resolves it. PLATFORM_POSTAL_ADDRESS stays Jacob's
+    variable — the builder never blanks it; the code must tolerate it empty
+    without stray separators (P4). Verification by rendered-envelope gate
+    assertion, no new sends; what a send alone could prove stays reported as
+    unverified.
+
+## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
+## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
+## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
+## 55's teardown rewrite · C28 · PUBLIC-I18N · tasks #76/#77/#80 · the chromium
+## path.
+## FUTURE SCOPE — RECORDED, NOT DESIGNED OR BUILT (Architect, 2026-09-17):
+## (a) Website tiering: tier 1 Psychefolio-branded practitioner+client portal
+## demo; tier 2 link to a fully-branded reference practice with mock data —
+## REQUIRES Valentina's written consent to use her brand as a sales asset; tier 3
+## documented data-stream integrations, astrologyapi.io named as the source. A
+## public demo cannot be staging — staging's only guard against mailing real
+## people is EMAIL_TEAM_ALLOWLIST.
+## (b) Modality data as evidence: per-practice setting, DEFAULT OFF (consent
+## precedes capability), controlling whether chart data auto-enters the evidence
+## pool; selective manual entry otherwise. Open first: whether cited evidence is
+## the raw data or the practitioner's interpretation, and that auto-fed evidence
+## must be attributable as machine-sourced rather than practitioner-observed.
+
 ## P1 COMPLETE (2026-09-17, bf1c20c; report: docs/reports/outbox/PLATFORM-SPLIT-P1.md).
 ## TenantDomain shipped (migration 50, one row: valentinavelez.com -> valentina);
 ## resolver consults it FIRST under the C26 contract. V1-V6 all green, quoted in
@@ -1294,7 +1355,8 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## ghost could not produce).
 
 ## COUNT RECONCILIATION (C29 review C2 — ruling 38 applied to gate counts):
-The standing regression set contains **36 entries** (35 → 36 on 2026-09-16: ruling 59
+The standing regression set contains **37 entries** (36 → 37 on 2026-09-17: ruling 92
+added harness-guard, named; 35 → 36 on 2026-09-16: ruling 59
 added port-uniqueness, named; 34 → 35 on 2026-09-15: C30 added demo-path, named;
 before that 34 since C29 added event-chrome; C26-era set was 33),
 and has a COMMITTED definition — **`scripts/regress.sh` IS the enumeration**:
@@ -1304,7 +1366,7 @@ settings-i18n · platform-phase2 · platform-phase3 · platform-phase5 · platfo
 c21 · c20 · v31 · c12x · onboarding-complete · onboarding-stage1 · onboarding-update ·
 onboarding-ui · onboarding-discovery · password-reset · amd06 · practice-setting ·
 email-identity · fail-closed-tenancy · event-chrome · demo-path · gate-hygiene ·
-port-uniqueness · stamp-audit (LAST).
+port-uniqueness · harness-guard · stamp-audit (LAST).
 Three wrong numbers, each owned: the original C29 report's "all 35 gates green" was
 FALSE twice over (no 35-entry sweep ever existed, and the only C29-build sweep was
 33 green + gate-hygiene RED — transcript output is the evidence; corrected in the
