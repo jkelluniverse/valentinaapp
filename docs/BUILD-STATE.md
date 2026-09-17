@@ -1194,6 +1194,19 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## (list: valentinavelez.com, *.psychefolio.com) and does not serve (curl 000) —
 ## P1 seeds the apex only; www is an ops decision, not a mapping row.
 
+## P1 COMPLETE (2026-09-17, bf1c20c; report: docs/reports/outbox/PLATFORM-SPLIT-P1.md).
+## TenantDomain shipped (migration 50, one row: valentinavelez.com -> valentina);
+## resolver consults it FIRST under the C26 contract. V1-V6 all green, quoted in
+## the report — V2 proven LIVE (production log: resolved via TenantDomain). Net
+## behavior change zero. P1's first sweep caught two things, both fixed and named:
+## nested-stamp's census refused the new tenantId column until classified
+## (42/43 -> 43/43), and regress.sh's exit code lied on red (FAIL lines printed
+## but exit 0 — now any FAIL exits 1; historical greens stand on the printed PASS
+## lines, which were read every time). A4 also green: platform identity PROVEN
+## working (see the report; psychefolio.com verified in the platform Resend
+## account by arrival). HOLDING for P1 ratification + P2 re-plan (Jacob's
+## content; apex/MX hard-stop check).
+
 ## PLATFORM SPLIT — pre-P1 hold: A1–A6 ANSWERED (2026-09-16, evidence in
 ## docs/reports/outbox/PLATFORM-SPLIT-A1-A6.md). Headlines: A1 fallback census is
 ## BIGGER than named (48 refs/16 app files; data-layer default≡NULL in scopeFilter;
