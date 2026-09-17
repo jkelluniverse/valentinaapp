@@ -1045,7 +1045,9 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
     decision). THE PREPARED ONE-ACTION CHANGE (not implemented):
     (a) WHAT: add `psychefolio.com` as a custom domain on the production service,
         port 8080, alongside `valentinavelez.com` and `*.psychefolio.com`.
-    (b) DNS: Railway does NOT auto-create DNS (the wildcard's record was created at
+    (b) DNS [ruling 98 annotation: THE ZONE IS AT name.com — nameservers
+        ns1kpv/ns2cvx/ns3gnv/ns4fpy.name.com; see docs/DNS-AND-DOMAINS.md]:
+        Railway does NOT auto-create DNS (the wildcard's record was created at
         the DNS provider: live query shows `test.psychefolio.com CNAME
         48q35e3z.up.railway.app`). The apex needs an ALIAS/ANAME (or the provider's
         CNAME-FLATTENED apex record — valentinavelez.com's own apex resolves exactly
@@ -1236,6 +1238,56 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     without stray separators (P4). Verification by rendered-envelope gate
     assertion, no new sends; what a send alone could prove stays reported as
     unverified.
+
+97. **The interlock found and NOT fixed:** `platformIdentity()` fails closed on a
+    missing PLATFORM_POSTAL_ADDRESS (lib/notify.ts:71), so blanking that variable
+    before P4 lands stops ALL platform mail — the kind of coupling that turns a
+    small config change into an outage. The variable stays NON-EMPTY until P4
+    relaxes the requirement in the same commit that stops rendering the address on
+    transactional mail. Finding it before anyone touched the variable is why the
+    census ran first. Jacob has been told.
+98. **LEDGER CORRECTION (this fact has moved three times): psychefolio.com is
+    REGISTERED through Railway; its DNS ZONE lives at name.com**
+    (ns1kpv/ns2cvx/ns3gnv/ns4fpy.name.com, verified live). Railway's domain flow
+    supplies a CNAME VALUE and a TXT verification record; the record TYPE is chosen
+    in the name.com zone. CORRECTION SWEEP RESULT, stated plainly: **no prior
+    ledger statement asserted that Railway manages the DNS** — ruling 70(b) already
+    said "the DNS provider" neutrally and described the ALIAS/ANAME requirement
+    correctly; the belief appeared in a dispatch, not in the ledger. Nothing needed
+    striking; the positive fact is now recorded here and in
+    **docs/DNS-AND-DOMAINS.md**, which is the operational home for all of it.
+99. **NEVER enable Railway's email forwarding on psychefolio.com.** It adds seven
+    apex records and refuses a foreign provider's MX at the apex (Railway's own
+    docs) — structurally incompatible with Zoho, and it takes Jacob's mail down.
+    Standing and load-bearing. Placement: Railway exposes NO field to annotate its
+    domain UI (checked — update-service carries build/deploy settings only, no
+    description or notes), so the warning heads docs/DNS-AND-DOMAINS.md in a box
+    with ruling 71's apex-CNAME prohibition, and that file carries verbatim text
+    for Jacob to paste into the Railway PROJECT DESCRIPTION, the one dashboard
+    surface a human can annotate. Reported rather than silently approximated.
+
+## C34-SIGNATURE-AUDIT — NO SPEC EXISTS (2026-09-17). The only occurrence of "C34" in
+## the repository is the queue line in this ledger. There are therefore no A1–A6
+## assumptions to test, and the builder did NOT invent any. Read-only groundwork any
+## future C34 spec would need is in docs/reports/outbox/C34-GROUNDWORK.md, labeled as
+## observed facts, not as answers.
+
+## P2.1 EXECUTED (2026-09-17) — psychefolio.com is a Railway custom domain on the
+## production service (port 8080) and the apex ROUTES, with a valid certificate.
+## MX/SPF/DMARC quoted before (17:07:35Z) and after (17:10:04Z): IDENTICAL, one
+## v=spf1, no apex CNAME, Resend's send. delegation intact — mail safe, no revert.
+## Railway issued NO TXT record (ownership already verified via the existing
+## *.psychefolio.com domain) and required one value: o0owal2d.up.railway.app, to be
+## entered as an ANAME. UNATTRIBUTED EVENT, reported not guessed: the apex A record
+## (69.46.46.16, TTL 60) appeared within ~90s of the domain add, after reading NONE
+## immediately before it; the builder touched no DNS. Jacob confirms what his zone's
+## root row now says. V8 BEFORE-PICTURE ON RECORD (P3's target, not P2's failure):
+## psychefolio.com/api/tenant-kind = {"kind":"tenant","isDefault":true} and the apex
+## root serves HER marketing page (title "Rewrite Your Subconscious Mind…", 35
+## "valentina") — the platform's own domain wearing the default tenant, exactly what
+## ruling 70 predicted and what P2.2's placeholder and P3's fallback removal fix.
+## /signup and /join already answer 200 on the apex. V2 her domain unchanged; V3
+## psf-rehearsal root still 307 → its own /book. HOLDING before P2.2.
 
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
