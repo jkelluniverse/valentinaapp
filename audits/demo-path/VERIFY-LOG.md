@@ -1,35 +1,35 @@
 # demo-path VERIFY-LOG (gate-written, ruling 17)
 
-Last run: 2026-09-17T16:11:32.445Z
+Last run: 2026-09-17T17:36:08.783Z
 
-# C30-DEMO-PATH verify — 2026-09-17T16:11:26.410Z
+# C30-DEMO-PATH verify — 2026-09-17T17:36:02.772Z
 # the full event path over HTTP, EN and ES, against throwaway practices ("c30-demo-en", "c30-demo-es")
 - ✓ EN — /join renders in EN with no price and no "free" (law 2) — status 200; heading present: true; law2: true
-- ✓ EN — /join POST (no-JS server action) lands on the thanks screen with a code — 303 → /join/thanks?code=6XN2SMH4
-- ✓ EN — thanks screen displays the referral code, in EN, law-2 clean — displayed "6XN2SMH4"
-- ✓ EN — /signup renders in EN, carries ref="6XN2SMH4" untransformed, law-2 clean
-- ✓ EN — /signup POST provisions and lands on the welcome screen — 303 → /signup/welcome?slug=c30-demo-en&email=c30-founder-en%40fixture.test&code=9EWJEJPB
+- ✓ EN — /join POST (no-JS server action) lands on the thanks screen with a code — 303 → /join/thanks?code=RACE9AMX
+- ✓ EN — thanks screen displays the referral code, in EN, law-2 clean — displayed "RACE9AMX"
+- ✓ EN — /signup renders in EN, carries ref="RACE9AMX" untransformed, law-2 clean
+- ✓ EN — /signup POST provisions and lands on the welcome screen — 303 → /signup/welcome?slug=c30-demo-en&email=c30-founder-en%40fixture.test&code=JWERNS7J
 - ✓ EN — welcome screen renders in EN and names the portal host
 - ✓ EN — tenant is ACTIVE + journey-v1 + warm-clay — ACTIVE|journey-v1|warm-clay
 - ✓ EN — exactly the three standard modules — archetypal-keys,body-graph,values-spiral
 - ✓ EN — FOUNDING_COMP and ZERO Stripe objects — FOUNDING_COMP|NULL|NULL
-- ✓ EN — A2: the founder's stored referredByCode IS the displayed string, byte-equal — SIGNED_UP|6XN2SMH4
-- ✓ EN — the referrer stays LEAD and owns that code — LEAD|6XN2SMH4
+- ✓ EN — A2: the founder's stored referredByCode IS the displayed string, byte-equal — SIGNED_UP|RACE9AMX
+- ✓ EN — the referrer stays LEAD and owns that code — LEAD|RACE9AMX
 - ✓ EN — c30-demo-en.psx.test/login wordmark and tab title are the practice's; zero veritas/valentina visible (C29, observed end to end) — status 200; practice in visible: true; veritas=0, valentina=0
 - ✓ EN — c30-demo-en.psx.test/ 307s to /book (C29 redirect, never Valentina's marketing page) — 307 → http://c30-demo-en.psx.test:3160/book
 - ✓ EN — c30-demo-en.psx.test/book is the PRACTICE's page: header/footer/empty-state name it, tab title carries it, ZERO veritas/valentina anywhere visible (C31 — the C30 quarantine pins RETIRED, not lowered) — valentina=0, veritas=0 (visible incl. head); title suffix present: true
 - ✓ EN — the founder signs in; the portal — SCREEN AND TAB — is THEIR practice's: title carries it, ZERO veritas/valentina anywhere visible (C31 — the portal-metadata quarantine pin RETIRED) — status 200; veritas=0, valentina=0 (visible incl. head)
 - ✓ ES — /join renders in ES with no price and no "free" (law 2) — status 200; heading present: true; law2: true
-- ✓ ES — /join POST (no-JS server action) lands on the thanks screen with a code — 303 → /join/thanks?code=CSVAZCT8&lang=es
-- ✓ ES — thanks screen displays the referral code, in ES, law-2 clean — displayed "CSVAZCT8"
-- ✓ ES — /signup renders in ES, carries ref="CSVAZCT8" untransformed, law-2 clean
-- ✓ ES — /signup POST provisions and lands on the welcome screen — 303 → /signup/welcome?slug=c30-demo-es&email=c30-founder-es%40fixture.test&code=T4DQCK36&lang=es
+- ✓ ES — /join POST (no-JS server action) lands on the thanks screen with a code — 303 → /join/thanks?code=95K7HZCP&lang=es
+- ✓ ES — thanks screen displays the referral code, in ES, law-2 clean — displayed "95K7HZCP"
+- ✓ ES — /signup renders in ES, carries ref="95K7HZCP" untransformed, law-2 clean
+- ✓ ES — /signup POST provisions and lands on the welcome screen — 303 → /signup/welcome?slug=c30-demo-es&email=c30-founder-es%40fixture.test&code=XXBQ2BKS&lang=es
 - ✓ ES — welcome screen renders in ES and names the portal host
 - ✓ ES — tenant is ACTIVE + journey-v1 + warm-clay — ACTIVE|journey-v1|warm-clay
 - ✓ ES — exactly the three standard modules — archetypal-keys,body-graph,values-spiral
 - ✓ ES — FOUNDING_COMP and ZERO Stripe objects — FOUNDING_COMP|NULL|NULL
-- ✓ ES — A2: the founder's stored referredByCode IS the displayed string, byte-equal — SIGNED_UP|CSVAZCT8
-- ✓ ES — the referrer stays LEAD and owns that code — LEAD|CSVAZCT8
+- ✓ ES — A2: the founder's stored referredByCode IS the displayed string, byte-equal — SIGNED_UP|95K7HZCP
+- ✓ ES — the referrer stays LEAD and owns that code — LEAD|95K7HZCP
 - ✓ ES — c30-demo-es.psx.test/login wordmark and tab title are the practice's; zero veritas/valentina visible (C29, observed end to end) — status 200; practice in visible: true; veritas=0, valentina=0
 - ✓ ES — c30-demo-es.psx.test/ 307s to /book (C29 redirect, never Valentina's marketing page) — 307 → http://c30-demo-es.psx.test:3160/book
 - ✓ ES — c30-demo-es.psx.test/book is the PRACTICE's page: header/footer/empty-state name it, tab title carries it, ZERO veritas/valentina anywhere visible (C31 — the C30 quarantine pins RETIRED, not lowered) — valentina=0, veritas=0 (visible incl. head); title suffix present: true
