@@ -1289,6 +1289,28 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## /signup and /join already answer 200 on the apex. V2 her domain unchanged; V3
 ## psf-rehearsal root still 307 → its own /book. HOLDING before P2.2.
 
+100. **Square credentials are split by OWNERSHIP, not by convenience.** The OAuth
+    APPLICATION (id + secret) belongs to the platform; merchant access tokens, refresh
+    tokens and location ids belong to the tenant that owns them. Mixing them in one env
+    block is the payments instance of the default-tenant defect (ruling 86) — tenant
+    #1's merchant credentials standing in for the platform's identity. Spec written to
+    docs/specs/inbox/P6-SQUARE-TENANT-OAUTH.md (PLAN ONLY, nothing built, assumptions
+    A1–A5 deliberately NOT verified yet — P3/P4/P5 rewrite the code they depend on, so
+    they are verified at dispatch, not today). QUEUE POSITION: **P6, after P5** — the
+    last major piece of the platform split and the one with live money in it, so it
+    goes last and slowest.
+    Two absences the variable classification surfaced, recorded as observations for
+    A1/A4 rather than as answers: (a) production has NO Square application SECRET
+    variable, which an authorization-code exchange requires — bears on whether the
+    OAuth flow is operational or merely present; (b) PAYMENT_TOKEN_ENC_KEY, which the
+    gates require, is NOT in the production variable list — if genuinely absent,
+    whatever depends on it may be inert in production, which changes what card-on-file
+    data A4 will find.
+    SEQUENCING CONFLICT flagged in the spec: V-b needs a SECOND practice to prove Square
+    connect, and the obvious candidate (psf-rehearsal) is currently queued for teardown
+    after P5 but BEFORE P6 — the reference tenant would be gone exactly when P6 needs
+    it. Hold it, or mint a fresh throwaway; the Architect's call.
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
