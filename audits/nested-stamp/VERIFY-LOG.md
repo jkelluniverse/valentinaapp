@@ -1,24 +1,24 @@
 # C24-NESTED-STAMP — acceptance log
 
-Run: 2026-09-16T23:44:31.349Z · `npx tsx audits/nested-stamp-verify.ts`
+Run: 2026-09-17T00:17:38.734Z · `npx tsx audits/nested-stamp-verify.ts`
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Requests are simulated in-process via Next's request async storage, so every
 request-path check runs through the real scoped client against the real database.
 
-# C24-NESTED-STAMP verify — 2026-09-16T23:44:27.626Z
+# C24-NESTED-STAMP verify — 2026-09-17T00:17:35.060Z
 - ✓ simulated request scope is real (next/headers resolves inside it)
 
 ## Verify 1 — the five assumptions
 - ✓ the nested-write scanner is not blind — it finds the ones the acceptance harnesses write deliberately — 24 in audits/nested-stamp-verify.ts + audits/tenant-scope-verify.ts
-- ✓ A1 CORRECTED: outside the acceptance harnesses the repo contains ZERO nested relation writes on scoped models — 488 files scanned against 43 schema relation fields · hits=0
+- ✓ A1 CORRECTED: outside the acceptance harnesses the repo contains ZERO nested relation writes on scoped models — 487 files scanned against 44 schema relation fields · hits=0
 - ✓ A1 CORRECTED: the REAL mechanism — a scoped-client create OUTSIDE a request writes tenantId NULL — tenantId=null
 - ✓ A1 CORRECTED: the SAME create INSIDE a request is stamped (so the request path was never the leak) — tenantId=tnt_valentina_000000001
 - ✓ A2 CONFIRMED for the request path: the nested-stamp walker is used by lib/prisma.ts and nothing else — lib/prisma.ts
 - ✓ A2 CORRECTED: it is NOT the only place a tenant is stamped — call sites stamp explicitly for the OUT-of-request path — 15 file(s), e.g. lib/engage.ts, audits/c12x-ai-pass/run3-patch01.ts, audits/capture/verify.ts
 - ✓ A3 CONFIRMED: handwrittenNote and appointment are both in SCOPED_MODEL_SET
 - ✓ A3 CONFIRMED: every scoped model has a nullable tenantId, and the audit's table list is the same list — 79 scoped models (docs/PRISMA-ALLOWLIST.md still says 66 — stale)
-- ✓ A3 note: the only tenantId columns OUTSIDE the scoped set are platform-level, deliberately — TenantModule, PractitionerProspect
+- ✓ A3 note: the only tenantId columns OUTSIDE the scoped set are platform-level, deliberately — TenantDomain, TenantModule, PractitionerProspect
 - ✓ A4 CONFIRMED: the producer was a GATE HARNESS (prisma/fixtures/c12x-verify.ts), not a product path — c12x exit=0 · nulls before=0 after=0 (was +11 across 6 tables)
 - ✓ A5 CONFIRMED: the audit reports the offending TABLE by name and counts it — {"note":1}
 - ✓ A5 CONFIRMED: the audit covers every scoped table (one count per SCOPED_MODELS entry) — 79 tables iterated
@@ -62,7 +62,7 @@ request-path check runs through the real scoped client against the real database
 ## Verify 9 — the backfill: counts, zero left, safe twice
 - ✓ drift seeded for the backfill to find — {"chapter":1,"logEntry":2}
 - ✓ the backfill migration runs (psql, ON_ERROR_STOP)
-- ✓ it records exactly the rows it stamped, per table (this is what makes it reversible) — Chapter=1 LogEntry=24
+- ✓ it records exactly the rows it stamped, per table (this is what makes it reversible) — Chapter=1 LogEntry=30
 - ✓ zero null-tenant rows after the backfill
 - ✓ running it twice is safe — the second pass stamps nothing and errors nothing — second pass clean
 ~ probe tenant, courses, chapters, lessons, log entries and prospects removed

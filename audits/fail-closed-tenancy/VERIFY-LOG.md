@@ -1,4 +1,4 @@
-# C26-FAIL-CLOSED-TENANCY verify — 2026-09-16T23:47:16.782Z
+# C26-FAIL-CLOSED-TENANCY verify — 2026-09-17T00:20:24.275Z
 
 ## Verify 1 — the five assumptions, confirmed or corrected
 - ✓ A1 CONFIRMED — getTenant()'s never-throw contract is load-bearing: the ROOT LAYOUT calls it on every request, plus dozens of surfaces — 42 calling files, app/layout.tsx among them — the contract is kept; only WHAT it returns on an unresolvable host changed
@@ -8,7 +8,7 @@
 - ✓ A5 CONFIRMED — the layer-3 literal survives ONLY behind a lookup that SUCCEEDED and found nothing (FRESH_DB_SHELL on the unknown-slug branch); the error branch can never reach it — verified structurally here and behaviorally in Verify 8
 
 ## Rig — practice B (real signup), discovery hours, the errprobe role, the sink
-- ✓ a real ACTIVE non-default practice exists (real signup service) — tenant B = cmu4r31xk0001shafzbca0rqj
+- ✓ a real ACTIVE non-default practice exists (real signup service) — tenant B = cmu4s9nhz0001juvxq0wk0ehc
 
 ## Phase 1 — FAILURE injected (Verify 2, 3, 4, 10 + the signed-in half of 9)
 - ✓ V3/V10 — practice B's /book under failure is the NEUTRAL 503: Retry-After set, both languages, and NONE of Valentina's availability, branding, name, or wordmark in the HTML — status=503 · retry-after=10 · bilingual=yes · practice strings=absent
@@ -21,7 +21,7 @@
 - ✓ V6 — recovery is IMMEDIATE: the very next request after the failure lifts renders the booking page — no restart, no wait, no poisoned cache (ruling 33) — first post-recovery request: 200
 
 ## Phase 3 — HEALTHY control on the same server (Verify 5, 7) — the fix must not cost a working booking
-- ✓ V5 — the healthy booking still completes on B's host and the Lead is stamped tenant B — final url /book/confirmed?t=cmu4r39uo0002wa9iejnlyeln.W87ZnFMKOzTuVzcMuVYfvJi13ZOFBCnikLXILloN2U4 · Lead.tenantId = cmu4r31xk0001shafzbca0rqj
+- ✓ V5 — the healthy booking still completes on B's host and the Lead is stamped tenant B — final url /book/confirmed?t=cmu4s9vie0002vido4kx9fva5.669UDPGsZ9sGNmpNES-oXsV5JobuPZ1H-iYUObbSctc · Lead.tenantId = cmu4s9nhz0001juvxq0wk0ehc
 - ✓ V5/V4 — and its two notification emails reached the SINK carrying TENANT B'S identity (C27 §Phase 2) — proving phase 1's zero-email assertion had a working instrument — sink: t26-probe-b@fixture.test ← "T26 Practice B" · t26-lead-healthy@fixture.test ← "T26 Practice B"
 - ✓ V7 — an UNKNOWN slug still behaves exactly as documented (default-host content, 200, the booking page renders) — this spec changed the error path only — unknown slug /book → 200 · booking-page heading present
 - ✓ V3 — the STATIC front door is resolution-INDEPENDENT: under failure it served byte-identical content to the healthy request, so the failure changed nothing about whose identity renders — healthy 37246b === failure 37246b: true
