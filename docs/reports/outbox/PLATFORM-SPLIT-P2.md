@@ -129,3 +129,39 @@ designed after ruling 76 — not a gap in it.
    should not be in a search index. It applies to the whole platform host including
    /signup, and Jacob's content files flip it back — named because it is a choice,
    not an oversight.
+
+## LIVE VERIFICATION — 2026-09-18, serving tip 2e973f5
+
+- **V1 valentinavelez.com UNCHANGED:** root `HTTP/2 200`, `<title>Rewrite Your
+  Subconscious Mind, Transform Your Life.</title>`, zero NEXT_REDIRECT digests, all
+  seven surfaces 200 (/book /join /signup /privacy /login /api/health
+  /api/tenant-kind). Staging root 200 with her title. event-chrome 17/17
+  (16-screen baseline MATCH) in the sweep.
+- **V2 psychefolio.com:** `HTTP/2 307` → `location: https://psychefolio.com/platform`
+  → 200, `<title>Psychefolio</title>`. **VISIBLE valentina = 0, VISIBLE veritas = 0.**
+  Raw-HTML veritas = 2, both the internal `veritas-theme` localStorage key inside a
+  script tag; raw valentina = 0.
+- **V3 apex /signup and /join:** 200 and 200, titled `· Psychefolio`. The
+  founding-partner affordance survives: `/signup?ref=HZ9QE4RZ` → 200 rendering
+  "Founding partners".
+- **V4 demo path intact:** psf-rehearsal root `307` → its own `/book` → 200,
+  `<title>Book a free discovery call · PSF Rehearsal Studio</title>`.
+- **V5 C26:** fail-closed-tenancy 18/18.
+- **V6:** full 37-entry sweep green, harness-guard 5/5, stamp-audit LAST,
+  `SWEEP EXIT: 0`.
+- **V7 DNS after the deploy — IDENTICAL to the 17:07:35Z before-half:** MX
+  `10 mx.zoho.com / 20 mx2.zoho.com / 50 mx3.zoho.com`; apex TXT `v=spf1
+  include:zohomail.com ~all` + the zoho-verification record; **exactly 1 v=spf1**;
+  `_dmarc` `v=DMARC1; p=none;`; apex CNAME **NONE**; `send.` →
+  `send.forge.rmta.net.`. Code cannot touch DNS; asserted because this was the
+  deploy that landed on that domain.
+- **V8 unchanged and expected:** `psychefolio.com/api/tenant-kind` →
+  `{"kind":"tenant","isDefault":true}`. The placeholder is what a visitor sees; the
+  RESOLUTION still falls back to the default tenant. **P3's job, reported not
+  treated as a failure.**
+- **www.psychefolio.com** → `307` → `/platform`, consistent with the disclosed
+  scope judgment.
+
+**Still outstanding from V1's other half:** Jacob sends a message to his
+psychefolio.com mailbox and confirms arrival. Mail is proven by arrival, not by
+records looking right — and nothing above proves it.

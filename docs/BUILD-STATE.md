@@ -1331,6 +1331,29 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     server-side; reading `signAgreement` in context showed the C22.1 backstop
     present and localized. The near-miss was logged instead of the false finding.)
 
+## P2 COMPLETE (2026-09-18, serving tip 2e973f5; report:
+## docs/reports/outbox/PLATFORM-SPLIT-P2.md). psychefolio.com no longer serves tenant
+## #1's marketing: root 307 -> /platform -> 200 "Psychefolio", VISIBLE valentina 0 /
+## VISIBLE veritas 0; /signup + /join on the apex under platform chrome with the
+## ref-code affordance intact. V1 her domain unchanged (root 200, her title, 0
+## digests, seven surfaces); V4 psf-rehearsal 307 -> its own /book; V5 18/18; V6
+## 37/37 exit 0; V7 MX/SPF/DMARC identical to the before-half, exactly one v=spf1, no
+## apex CNAME; V8 STILL {"kind":"tenant","isDefault":true} — P3's job, on record.
+## BUILDER DEFECT SHIPPED AND FIXED, disclosed in full: P2.2 first went out as a
+## middleware REWRITE built from req.nextUrl and 404'd live — C32's own finding in
+## code written after establishing it (nextUrl.origin is the DEFAULT TENANT'S domain
+## in production, so the target became valentinavelez.com/platform where the route's
+## host guard correctly refuses). The deployed server printed the proof in its own
+## response header (x-middleware-rewrite). Fixed as a REDIRECT, not a re-pointed
+## rewrite, because a cross-origin rewrite is PROXIED — the app would fetch its own
+## public URL back through Railway's edge, the very self-fetch pattern C32 removed.
+## No gate could have caught it (ruling 76); the ruling-48 live check did, in minutes.
+## REPORTED NOT FIXED: app/manifest.ts hardcodes "Veritas" for every host (cross-tenant,
+## brand-web's); /signup+/join page BODIES still use Warm Stone tokens on the platform
+## host (chrome was the scope, re-skinning is design); psychefolio.com/book still
+## reaches the default tenant until P3. DISCLOSED SCOPE JUDGMENT: www.psychefolio.com
+## is treated as the platform host too. OUTSTANDING: Jacob's mailbox arrival test.
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
