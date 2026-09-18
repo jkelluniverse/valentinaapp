@@ -1354,6 +1354,51 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## reaches the default tenant until P3. DISCLOSED SCOPE JUDGMENT: www.psychefolio.com
 ## is treated as the platform host too. OUTSTANDING: Jacob's mailbox arrival test.
 
+104. **P2 ACCEPTED** (live, tip 69c8dcd). Mail test CLOSED — Jacob sent to his
+    psychefolio.com mailbox and confirmed ARRIVAL, so V1 is complete; he also deleted
+    EMAIL_IDENTITY_TEST_TOKEN. www.psychefolio.com as a platform host: RATIFIED.
+    noindex on the placeholder: ratified. The three reported-not-fixed items are
+    accepted and queued — and app/manifest.ts hardcoding "Veritas" for every host is
+    flagged DEMO-VISIBLE: it is the name a phone shows when someone adds a
+    practitioner's site to their home screen, which Jacob may demo.
+105. **`req.nextUrl.origin` is the DEFAULT TENANT'S origin in production regardless of
+    visitor. Never build a cross-host URL from it — use `publicOrigin()`.** Two
+    production defects in one week, in one file. REMEDY ORDERED: a lint-wall rule or
+    scanner that FAILS on `nextUrl` used to construct a cross-host target — a scanner
+    that fails on new unknowns beats a ruling someone must remember (that has worked
+    four times: rulings 28, 59, 92, and the nested-stamp census).
+106. **A cross-origin rewrite is PROXIED; a redirect is not.** Where the target host
+    differs from the request host, REDIRECT — never rewrite. (Fixing the address while
+    preserving the broken mechanism is the failure that was avoided: re-pointing the
+    rewrite would have reintroduced the self-fetch-through-the-edge pattern C32
+    removed from that same file.)
+
+## P3 PRE-CENSUS COMPLETE (2026-09-18, read-only, nothing built; report:
+## docs/reports/outbox/P3-PRE-CENSUS.md, SQL: P3-NULL-TENANT-CENSUS.sql).
+## HEADLINE: there are TWO tenant resolvers and P1 fixed only one. lib/prisma.ts's
+## scopeTenantId() — the DATA layer — calls slugFromHost() directly and NEVER consults
+## TenantDomain, so valentinavelez.com reaches HER DATA only via the host-pattern
+## fallback. Removing the fallback without first teaching the data layer the mapping
+## severs her live practice from its database. That is P3's blocker and its first step.
+## Q1: nothing was retired — 49 refs/17 files vs A1's 48/16, the delta is one COMMENT;
+## "net behavior change zero" meant exactly that. Still on the fallback: localhost,
+## staging, psychefolio.com for every path except "/", unknown subdomains, and EVERY
+## out-of-request context (jobs/ticks resolve to her via the headers() catch).
+## Q2: zero FAIL-OPEN sites found; five fail-closed-WRONGLY (prisma scopeTenantId is
+## the blocker; auth-guards' null-tenant branch is dead by DATA not code — migration 34
+## stamped User and Block 1 measured 0; payments/agreements/notify key off tenant ID
+## and survive IF the blocker is fixed first); the isDefault chrome comparisons and
+## slugFromHost's three returns fail closed CORRECTLY. scopeFilter's NULL-equals-default
+## stays P5's per ruling 86 and is NOT touched by P3.
+## Q3: FRESH_DB_SHELL has exactly ONE invocation and becomes unreachable by
+## construction — delete it with the branch that contains it, in the same commit.
+## Q4: PUBLIC_APP_URL is unset in production, so getBaseUrlSafe's hardcoded
+## valentinavelez.com fires only when headers() throws — the LIVE path is the cron tick
+## (app/api/jobs/tick/route.ts:275), whose emailed links all carry her domain. Not a P3
+## blocker; belongs to P4.
+## Q5: SQL generated from the Prisma DMMF — all 79 SCOPED_MODELS, every one carrying a
+## tenantId column, zero problems. Jacob runs it (rulings 73/75). Every row must be 0.
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
