@@ -95,11 +95,25 @@ export default auth(async (req) => {
     );
   }
   // P2.2 — the PLATFORM host's root serves the platform's own page, never a
-  // practice's marketing. A REWRITE, not a redirect: psychefolio.com/ stays
-  // psychefolio.com/ in the address bar, and tenant hosts never reach this
-  // branch, so the static root (and its 16-screen baseline) is untouched.
+  // practice's marketing. Tenant hosts never reach this branch, so the static
+  // root and its 16-screen baseline are untouched.
+  //
+  // A REDIRECT, and the first attempt's failure is why. It shipped as a rewrite
+  // to `new URL("/platform", req.nextUrl)` and 404'd in production: C32's
+  // finding applies here too — req.nextUrl.origin is the DEFAULT TENANT'S
+  // domain whoever is visiting, so the target became
+  // https://valentinavelez.com/platform, where this route's own host guard
+  // correctly refuses. The deployed server printed the evidence in its own
+  // response header: `x-middleware-rewrite: https://valentinavelez.com/platform`.
+  // Rebuilding the target from publicOrigin() fixes the address but NOT the
+  // mechanism: a rewrite whose origin differs from nextUrl's is PROXIED, so the
+  // app would fetch its own public URL through Railway's edge — the exact
+  // self-fetch pattern C32 removed from this file. A redirect has no such hop
+  // and uses the same publicOrigin() builder the /book redirect below has been
+  // proving in production since C29. The cost is an honest one: the visitor's
+  // address bar reads /platform.
   if (pathname === "/" && isPlatformHost(req.headers.get("x-forwarded-host") || req.nextUrl.host)) {
-    return NextResponse.rewrite(new URL("/platform", req.nextUrl));
+    return NextResponse.redirect(new URL("/platform", publicOrigin(req)));
   }
   if (pathname === "/" && (await nonDefaultTenantRoot(req))) {
     return NextResponse.redirect(new URL("/book", publicOrigin(req)));

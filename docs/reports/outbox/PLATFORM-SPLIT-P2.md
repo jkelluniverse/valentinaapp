@@ -14,11 +14,11 @@ literal-duplication middleware needed for `DEFAULT_TENANT_SLUG`. It answers a
 question about the host STRING only; it is not tenant resolution and must not
 become it.
 
-**P2.2 — the placeholder, reached by a REWRITE.** `middleware.ts` rewrites `/` to
-`/platform` on the platform host. A rewrite, not a redirect: the visitor's URL stays
-`psychefolio.com/`, and — this is the point — **tenant hosts never reach that branch,
-so the static root and its 16-screen baseline are untouched**. The route table still
-shows `○ /` (static). `app/(public)/platform/page.tsx` carries a host guard and 404s
+**P2.2 — the placeholder, reached by a REDIRECT.** `middleware.ts` redirects `/` to
+`/platform` on the platform host (it first shipped as a rewrite and 404'd in
+production — see the section below, which is the more useful half of this report).
+**Tenant hosts never reach that branch, so the static root and its 16-screen
+baseline are untouched**; the route table still shows `○ /` (static). `app/(public)/platform/page.tsx` carries a host guard and 404s
 anywhere else, so a practice's domain can never serve the platform's placeholder
 (verified: valentinavelez.com/platform → 404). The page is labeled in code, in a
 banner comment, as REPLACED WHOLESALE when Jacob's content files land — with the
@@ -48,8 +48,9 @@ platform host" → her output byte-identical).
   `· Valentina Vélez`. Route table `○ /` unchanged. event-chrome (16-screen baseline
   MATCH) and the full set below. Live check after deploy, quoted in the closing
   section.
-- **V2 — the placeholder, counted as asked.** psychefolio.com/ → 200,
-  `<title>Psychefolio</title>`, **visible "valentina": 0, visible "veritas": 0**.
+- **V2 — the placeholder, counted as asked.** psychefolio.com/ → 307 →
+  `/platform` → 200, `<title>Psychefolio</title>`, **visible "valentina": 0,
+  visible "veritas": 0**.
   Raw-HTML "veritas" is 2, both the internal `veritas-theme` localStorage key inside
   a script tag — the same irreducible identifier named in W6, not visible text.
   Down from 6 before the root-layout fix.
@@ -64,6 +65,44 @@ platform host" → her output byte-identical).
 - **V8 — re-run, and it still reports the fallback**, exactly as predicted. Quoted
   below. The placeholder is what a visitor sees; the RESOLUTION stays wrong until P3
   removes the fallback. Reported, not treated as a failure.
+
+## THE DEFECT I SHIPPED, AND OWNED — the rewrite 404'd in production
+
+P2.2 first shipped as a middleware REWRITE whose target was
+`new URL("/platform", req.nextUrl)`. Locally it was green, in the 37-entry sweep it
+was green, and **in production psychefolio.com/ returned 404** — carrying HER
+metadata.
+
+The cause is C32's finding, in code I wrote AFTER establishing it:
+`req.nextUrl.origin` is the DEFAULT TENANT'S domain in production regardless of who
+is visiting, so the rewrite target became `https://valentinavelez.com/platform` —
+her host, where this route's own guard correctly refuses. **The deployed server
+printed the evidence in its own response header**, which is how it was diagnosed in
+minutes rather than guessed at:
+
+```
+x-middleware-rewrite: https://valentinavelez.com/platform
+```
+
+Isolation before the fix, so the diagnosis rested on evidence and not on the first
+plausible story: `psychefolio.com/platform` requested DIRECTLY returned **200 with
+`<title>Psychefolio</title>`** (page and host guard both correct), and
+`valentinavelez.com/platform` returned **404** (guard correctly refusing) — so the
+page was never the problem; only the rewrite target was.
+
+**The fix is a REDIRECT, not a re-pointed rewrite,** and the distinction matters:
+rebuilding the target from `publicOrigin()` would have corrected the address but not
+the mechanism, because a rewrite whose origin differs from `nextUrl`'s is PROXIED —
+the app would fetch its own public URL back through Railway's edge, the exact
+self-fetch pattern C32 removed from this same file. The redirect uses the same
+`publicOrigin()` builder that the `/book` hop has been proving in production since
+C29. Honest cost: the address bar reads `/platform`.
+
+**Why no gate caught it, stated plainly:** this is ruling 76 again — a gate cannot
+prove a deployment seam. Locally `nextUrl.origin` IS the request's origin, so the
+rewrite target was correct on every machine a gate runs on. What caught it was the
+ruling-48 live check, within minutes of the deploy, which is the system working as
+designed after ruling 76 — not a gap in it.
 
 ## Findings — reported, NOT fixed
 
