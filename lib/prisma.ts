@@ -5,7 +5,7 @@ import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG, SCOPED_MODEL_SET, scopeFilter }
 import { stampCreateInput, stampUpdateInput } from "./tenancy/stamp";
 import { identitySelect } from "./tenancy/model-identity";
 import { ambientTenantId } from "./tenancy/tenant-scope";
-import { slugFromHost, tenantBySlugChecked } from "./tenancy";
+import { slugFromHost, tenantBySlugChecked, tenantByDomainChecked } from "./tenancy";
 
 // C26-FAIL-CLOSED-TENANCY §2 — thrown when a request's host cannot be
 // resolved to a tenant (the lookup ERRORED with nothing cached). Under that
@@ -81,6 +81,23 @@ const CREATE = new Set(["create", "createMany", "createManyAndReturn"]);
 const WRITE_WHERE = new Set(["updateMany", "deleteMany"]);
 const UNIQUE_WRITE = new Set(["update", "delete", "upsert"]);
 
+// P3.1 — THIS PATH LOGS WHICH RESOLVER DECIDED, and it logs the fallback too.
+// A line saying "via=TenantDomain" proves the mapping fired; it does not prove
+// the fallback is unreachable. Both branches are instrumented so the ABSENCE of
+// a `via=host-pattern-fallback` line for a mapped host is itself evidence
+// (ruling 78: instrument every branch, not only the failure branch).
+// Bounded to one line per host+outcome per TTL, because this function runs on
+// every scoped database operation — not once per request.
+const SCOPE_LOG_TTL_MS = 60_000;
+const scopeLoggedAt = new Map<string, number>();
+function logScopeOnce(host: string, tenantId: string, via: string): void {
+  const key = `${host}|${via}|${tenantId}`;
+  const now = Date.now();
+  if (now - (scopeLoggedAt.get(key) ?? 0) < SCOPE_LOG_TTL_MS) return;
+  scopeLoggedAt.set(key, now);
+  console.info(`[tenant-scope] host=${host} tenantId=${tenantId} via=${via}`);
+}
+
 async function requestTenantId(): Promise<string | null> {
   let host: string | null;
   try {
@@ -91,20 +108,54 @@ async function requestTenantId(): Promise<string | null> {
     // caller does can override a request's tenant (C24.1 §1 precedence 2/3).
     // Inside withTenantScope(T, …): T. Otherwise null — passthrough,
     // unstamped, visible to the null-tenant audit, exactly as before.
+    // NOTE (P3 A3): this is why background jobs do NOT ride the host-pattern
+    // fallback in the DATA layer — they are already null here, and P3.3 does
+    // not change that. The chrome resolver is the one that defaults to her.
     return ambientTenantId();
   }
+  // P3.1 — THE MAPPING DECIDES FIRST, the identical shape P1 gave the chrome
+  // resolver and for the identical reason. Until this step the data layer had
+  // its OWN resolver that never consulted TenantDomain, so valentinavelez.com
+  // reached HER ROWS only through the host-pattern fallback — removing that
+  // fallback first would have severed her practice from its database.
+  // C26 contract preserved: a FAILED mapping lookup serves its stale value if
+  // one exists, and with nothing cached falls through to the slug path, which
+  // carries its own cache and refusal. A DB outage degrades exactly as before.
+  const clean = host ? host.split(":")[0].toLowerCase() : "";
+  if (clean) {
+    const m = await tenantByDomainChecked(clean);
+    if (m.ok && m.tenant) {
+      logScopeOnce(clean, m.tenant.id, "TenantDomain");
+      return m.tenant.id;
+    }
+    if (!m.ok) {
+      if (m.stale) {
+        logScopeOnce(clean, m.stale.id, "TenantDomain-stale");
+        return m.stale.id;
+      }
+      console.error(`[tenant-scope] TenantDomain lookup failed for host "${clean}" with nothing cached — host-pattern resolution decides`);
+    }
+  }
   const slug = slugFromHost(host);
-  if (slug === DEFAULT_TENANT_SLUG) return DEFAULT_TENANT_ID;
+  if (slug === DEFAULT_TENANT_SLUG) {
+    logScopeOnce(clean || "(none)", DEFAULT_TENANT_ID, "host-pattern-fallback");
+    return DEFAULT_TENANT_ID;
+  }
   const r = await tenantBySlugChecked(slug);
   if (!r.ok) {
     // C26 §2 — a stale-but-known identity is a KNOWN identity; anything else
     // is a refusal. "Unknown slug" (a successful lookup finding nothing) and
     // "lookup failed" are different answers and only the first may default.
-    if (r.stale) return r.stale.id;
+    if (r.stale) {
+      logScopeOnce(clean, r.stale.id, "host-pattern-slug-stale");
+      return r.stale.id;
+    }
     console.error(`[tenant-scope] refusing scoped access: host slug "${slug}" unresolved (lookup failed)`);
     throw new TenantUnresolvedError();
   }
-  return r.tenant?.id ?? DEFAULT_TENANT_ID; // unknown slug behaves like the default host (matches getTenant)
+  const id = r.tenant?.id ?? DEFAULT_TENANT_ID; // unknown slug behaves like the default host (matches getTenant)
+  logScopeOnce(clean, id, r.tenant ? "host-pattern-slug" : "host-pattern-unknown-slug-default");
+  return id;
 }
 
 function withScope(args: Record<string, unknown>, tenantId: string): Record<string, unknown> {
