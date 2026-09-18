@@ -1438,6 +1438,38 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## origin laundered through a variable is not caught, and it is no substitute for
 ## the ruling-48 live check (ruling 76 stands).
 
+109. **A scanner ships with its own limitations written where the next person reads
+    the SCANNER, not in the report that introduced it.** A tool whose blind spots live
+    only in a build report will eventually be trusted for more than it covers. Four
+    scanners exist now (gate-hygiene, port-uniqueness, harness-guard, nexturl-origin);
+    give the others the same treatment when next touched.
+
+## P3.1 COMPLETE (2026-09-18, tip 299e837; report:
+## docs/reports/outbox/PLATFORM-SPLIT-P3.1.md). The DATA layer now consults
+## TenantDomain first — the blocker is cleared and her practice reads and writes
+## through the mapping, not the fallback. V1a: /book 200 with her title and 12 real
+## slots from her own availability (Mon Sep 21 … Fri Oct 2). V1b: WRITE via /join
+## (surface named and justified BEFORE doing it — no email sent, writes a platform-
+## level prospect + a tenant-scoped AuditEvent, never her client data; /book REJECTED
+## because it writes into her live calendar) → 303 /join/thanks?code=QBA8XS9M.
+## V2/V2a: production logged `[tenant-scope] host=valentinavelez.com
+## tenantId=tnt_valentina_000000001 via=TenantDomain` for both the read AND the write,
+## and a `host-pattern` filter returns ZERO lines for her host — proven meaningful by
+## showing the filter matches substrings AND that the fallback branch DOES emit live
+## (psf-rehearsal). V4: psf-rehearsal read+write on the UNMAPPED path →
+## `via=host-pattern-slug tenantId=cmu4m1p160003x6aemtexsxeu` — ITS id, not hers.
+## V-x: local both-halves, /book byte-identical either way. Sweep 38/38 exit 0.
+## A3 ANSWERED AND IT CORRECTS THE BUILDER'S OWN Q4 CLAIM: there is NO scheduler
+## anywhere (no cronSchedule on the service, no GitHub Actions) and the tick is an
+## HTTP route where headers() WORKS — it never rode the headers-catch fallback. Its
+## tenant comes from the Host it is called with. P3.3 HAZARD, named in advance: the
+## tick catches per-step errors and still returns ok:true, so unmapped scoped access
+## must THROW rather than resolve to a tenant with zero rows — an empty-but-successful
+## run is the fail-closed that looks correct and is not.
+## AWAITING JACOB: confirm-then-cleanup SQL for the two verification rows is in the
+## report; they cannot affect P3.2's census (non-null tenantId; PractitionerProspect
+## is not in SCOPED_MODELS).
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
