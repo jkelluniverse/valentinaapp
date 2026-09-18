@@ -1399,6 +1399,45 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## Q5: SQL generated from the Prisma DMMF — all 79 SCOPED_MODELS, every one carrying a
 ## tenantId column, zero problems. Jacob runs it (rulings 73/75). Every row must be 0.
 
+107. **ARCHITECT ERROR, recorded:** P3 was designed believing P1 had made the
+    fallback unnecessary. P1 made it unnecessary for CHROME only. Two resolvers
+    existed and the question was never asked. **"What else does this?" is now
+    mandatory before any keystone removal** — a phase that removes a dependency
+    first enumerates every CONSUMER of it, not the consumers someone happens to name.
+108. **"Net behavior change zero" describes what a change did NOT break. It never
+    establishes coverage.** P1's verify list proved her CHROME resolved via
+    TenantDomain; that was generalized to "resolution". A passing gate proves its own
+    assertion and nothing adjacent.
+
+## P3 RE-PLANNED ON THE TWO-RESOLVER FINDING — four steps, each ships green and
+## reverts alone: P3.0 the ruling-105 scanner FIRST (before editing resolution code
+## in the files where that defect has already landed twice); P3.1 teach the DATA
+## layer the mapping (scopeTenantId consults TenantDomain first, falls back second —
+## P1's shape, and the blocker: her practice must read AND write throughout); P3.2
+## Jacob runs the 79-model null-tenant census, and ANY non-zero row STOPS P3 because
+## auth-guards' branch would be load-bearing after all; P3.3 remove the fallback
+## (slugFromHost's three returns, prisma.ts:107's unknown-slug default,
+## FRESH_DB_SHELL deleted with its branch, middleware's duplicated "valentina").
+## A1: re-enumerate before P3.3 and confirm no THIRD consumer. A2: gates/localhost
+## ride the fallback — fixture tenants belong INSIDE P3.3 and a gate is never
+## relaxed to accommodate it. A3: the cron tick resolves to her out-of-request; if
+## P3.3 makes it resolve to nothing and it silently stops processing, that is a
+## fail-closed that LOOKS correct and is not — name it before it happens.
+## V1 requires a real READ AND WRITE against her practice after every step: chrome
+## being right while data is severed is the exact failure this phase risks.
+
+## P3.0 COMPLETE (2026-09-18) — audits/nexturl-origin-verify.ts, standing set
+## 37 → 38 (named). Flags nextUrl used as a URL BASE and `.nextUrl.origin` anywhere;
+## allows .searchParams/.pathname/.host/.protocol and clone(), so publicOrigin()
+## passes without a pragma; strips comments first (middleware's own comments QUOTE
+## the defect) and skips lines carrying `nexturl-allow:`. Clean on 360 files with
+## zero pragmas needed. DEMONSTRATED ABLE TO FAIL on the two lines that actually
+## shipped: C32's `new URL("/api/tenant-kind", req.nextUrl.origin)` and P2.2's
+## `new URL("/platform", req.nextUrl)` — both caught, exit 1; restored, exit 0.
+## Limitations stated in the file: textual, so a multi-line `new URL(...)` or an
+## origin laundered through a variable is not caught, and it is no substitute for
+## the ruling-48 live check (ruling 76 stands).
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
@@ -1517,7 +1556,8 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## ghost could not produce).
 
 ## COUNT RECONCILIATION (C29 review C2 — ruling 38 applied to gate counts):
-The standing regression set contains **37 entries** (36 → 37 on 2026-09-17: ruling 92
+The standing regression set contains **38 entries** (37 → 38 on 2026-09-18: ruling 105
+added nexturl-origin, named; 36 → 37 on 2026-09-17: ruling 92
 added harness-guard, named; 35 → 36 on 2026-09-16: ruling 59
 added port-uniqueness, named; 34 → 35 on 2026-09-15: C30 added demo-path, named;
 before that 34 since C29 added event-chrome; C26-era set was 33),
@@ -1528,7 +1568,7 @@ settings-i18n · platform-phase2 · platform-phase3 · platform-phase5 · platfo
 c21 · c20 · v31 · c12x · onboarding-complete · onboarding-stage1 · onboarding-update ·
 onboarding-ui · onboarding-discovery · password-reset · amd06 · practice-setting ·
 email-identity · fail-closed-tenancy · event-chrome · demo-path · gate-hygiene ·
-port-uniqueness · harness-guard · stamp-audit (LAST).
+port-uniqueness · nexturl-origin · harness-guard · stamp-audit (LAST).
 Three wrong numbers, each owned: the original C29 report's "all 35 gates green" was
 FALSE twice over (no 35-entry sweep ever existed, and the only C29-build sweep was
 33 green + gate-hygiene RED — transcript output is the evidence; corrected in the
