@@ -1470,6 +1470,43 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## report; they cannot affect P3.2's census (non-null tenantId; PractitionerProspect
 ## is not in SCOPED_MODELS).
 
+110. **An absence is evidence only when the instrument that would have detected the
+    presence is shown working IN THE SAME RUN.** Negative findings carry their positive
+    control or they are not findings. (From P3.1's V2a: the filter was shown to match
+    substrings, and the fallback branch was shown to emit live for psf-rehearsal,
+    before the absence of a fallback line on her host counted for anything.)
+111. **ARCHITECT ERROR, recorded:** Q4's claim that the cron tick emits her domain via
+    the headers() catch was ratified without asking how the tick is invoked. The tick
+    is an HTTP route where headers() WORKS, and there is no scheduler at all — no
+    cronSchedule on the service, no GitHub Actions, nothing in the repo. Sixth wrong
+    assumption caught by verification rather than review.
+112. **P3.3 must make unmapped scoped access THROW** — never resolve to a tenant with
+    zero rows, never complete an empty run reporting success. The tick catches
+    per-step errors and still returns ok:true with report.<step>="error", so a monitor
+    reading only `ok` would see a refusing tick as healthy. **A fail-closed that looks
+    correct is worse than an obvious failure, because nobody investigates it.** Added
+    to P3.3's verify: an empty-but-successful tick run must be IMPOSSIBLE, demonstrated.
+
+## A1 RE-ENUMERATION DONE (2026-09-18, read-only; report:
+## docs/reports/outbox/P3-A1-REENUMERATION.md). THERE IS NO THIRD RESOLVER — slugFromHost
+## still has exactly two callers (resolveTenant, requestTenantId). But "how many
+## resolvers" was the wrong question: the risk is who DEPENDS on host resolution and is
+## NOT a browser. FIVE external-callback consumers do tenant-scoped DB work whose tenant
+## comes from whatever Host an external provider calls: /api/square/webhook (FIVE money
+## writes — Charge ×3, ExternalPayment, updateMany), /api/webhooks/transcription
+## (lib/capture), /api/recording/webhook (lib/recording), /api/inbound/remarkable
+## (lib/remarkable), and /api/jobs/tick. COUNTER-EXAMPLE showing the right pattern
+## already exists in-tree: /api/webhooks/square -> lib/payments/webhook.ts resolves
+## merchant_id -> ConnectedPaymentAccount.tenantId on the raw client and drops unknown
+## merchants rather than guessing — host-independent and P3.3-safe. So TWO Square
+## webhook endpoints exist with DIFFERENT tenancy models, and which one Square actually
+## calls is set in Square's dashboard and cannot be read from here (Jacob, or P6's A3).
+## P3.3 SHAPE OPTIONS for the Architect: (a) confirm every provider callback URL and map
+## its host; (b) make callbacks payload-resolved like the counter-example; (c) ship with
+## a narrow, NAMED callback exemption until (b). Also: audits/platform/verify.ts asserts
+## the fallback as correct in three checks — P3.3 UPDATES them to the new truth, never
+## relaxes them (A2), and the moving count gets named (ruling 38).
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
