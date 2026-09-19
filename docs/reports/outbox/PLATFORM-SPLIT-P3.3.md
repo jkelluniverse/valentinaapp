@@ -103,7 +103,7 @@ Two findings from the probe that the probe existed to produce:
 2. **`/book` was the only broken page in smoke**, and every authenticated page
    passed — the authed surface carries session-derived scope, not host-derived.
 
-## THREE DEFECTS FOUND BEFORE THEY SHIPPED, EACH BY A DIFFERENT INSTRUMENT
+## FOUR DEFECTS FOUND BEFORE THEY SHIPPED, EACH BY A DIFFERENT INSTRUMENT
 
 **1. P3.3 would have sent the whole platform host to `/unavailable`** — found by
 reading the resolver change through to `app/(public)/layout.tsx`. That layout
@@ -136,7 +136,30 @@ discriminator is now a HOST: a build has none and every request through Railway'
 edge has one. Confirmed on the rebuilt artifact — `NEXT_REDIRECT` 0, her title
 and identity intact, route table still `○ /`.
 
-**3. Staging would have gone dark in the same push that needed verifying** —
+**3. The pre-rendered pages lost HER IDENTITY, and only a raw-count gate saw
+it.** With the redirect fixed, `/` rendered — but `audits/event-chrome-verify.ts`
+still failed, on the ruling-44 cannot-hide check rather than on the byte compare:
+`"valentina" 35 → 25`, `"veritas" 6 → 2` against the f07a035 fixture. A build has
+no host, so both layouts read `unresolved` and took their C26 branches — the
+public layout returned empty metadata instead of the STATIC SITE's own
+`DEFAULT_METADATA` (which comes from `@/content/site-content`, not from tenant
+data), and the root layout lost `application-name: Veritas`, the title and the
+Open Graph identity. Her marketing page would have shipped stripped of its own
+name. The normalized byte compare alone would have reported a divergence without
+saying what; the raw counts named it.
+
+`staticSiteTenant()` is the answer and it is a STATEMENT, not the fallback
+returning: the pre-rendered bytes are tenant #1's — her wordmark, her portrait,
+her copyright line, her PWA name — which is a product fact about what the static
+site IS, not a guess about who is asking. It answers for NO host at all, it is
+reachable only when `requestHost()` is null, it is one named function with one
+caller, and no REQUEST can reach it. Its P4 tracking item is written into it: a
+host-agnostic static home cannot serve a second practice, so `/` becomes dynamic
+and per-tenant or each practice's site is built separately, and the function is
+deleted then. Rebuilt and re-counted: **35 and 6, exactly the fixture**, and
+event-chrome back to 17/17.
+
+**4. Staging would have gone dark in the same push that needed verifying** —
 `valentinaapp-staging.up.railway.app` is neither mapped nor a practice subdomain,
 so every public page there would be the 503. Rulings 48/62 verify the serving tip
 on staging, so the verification surface would have failed in the deploy it was

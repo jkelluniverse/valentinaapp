@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 // client depends on this module, so this also breaks the import cycle).
 import { rawPrisma as prisma } from "@/lib/prisma-internal";
 import { ambientTenantId } from "@/lib/tenancy/tenant-scope";
+import { DEFAULT_TENANT_ID } from "@/lib/tenancy/scope";
 
 // PLATFORM Phase 0 — tenant resolution. Since P1 (ruling 87) the host decides
 // the tenant in two steps: the TenantDomain mapping FIRST (custom domains,
@@ -288,6 +289,31 @@ export function requestHost(): string | null {
   } catch {
     return null;
   }
+}
+
+/** THE ONE PLACE A BUILD NAMES A TENANT — and it is a statement, not a fallback.
+ *
+ *  `next build` pre-renders the static marketing home and the app shell around
+ *  it with no visitor and therefore no host. Those bytes are tenant #1's: her
+ *  wordmark, her portrait, her copyright line, her PWA name. That is a PRODUCT
+ *  fact about what the static site IS, not a guess about who is asking — and
+ *  P3.3 proved the difference matters by breaking it. With the fallback gone the
+ *  build resolved `unresolved`, and the baked page lost `application-name:
+ *  Veritas`, its title and its Open Graph identity: ten "valentina" and four
+ *  "veritas" strings, caught by audits/event-chrome-verify.ts's ruling-44
+ *  cannot-hide check comparing raw counts against the f07a035 fixture.
+ *
+ *  WHY THIS IS NOT THE FALLBACK COMING BACK. It answers for NO host at all, it
+ *  is reachable only when `requestHost()` is null, and it is one named function
+ *  with one caller rather than a default buried in resolution. No REQUEST can
+ *  reach it — an unmapped host still refuses, which is the whole of P3.3.
+ *
+ *  TRACKING (P4): the static home is host-agnostic, so a second practice cannot
+ *  have one. Either `/` becomes dynamic and per-tenant, or each practice's
+ *  public site is built separately. Delete this function when that lands. */
+export async function staticSiteTenant(): Promise<TenantConfig | null> {
+  const r = await tenantByIdChecked(DEFAULT_TENANT_ID);
+  return r.ok ? r.tenant : r.stale;
 }
 
 export async function getTenantResolution(): Promise<TenantResolution> {

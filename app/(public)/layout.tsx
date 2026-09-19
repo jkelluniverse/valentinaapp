@@ -51,7 +51,7 @@ async function onPlatformHost(): Promise<boolean> {
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { getTenantResolution } = await import("@/lib/tenancy");
+  const { getTenantResolution, requestHost } = await import("@/lib/tenancy");
   const { DEFAULT_TENANT_ID } = await import("@/lib/tenancy/scope");
   // P2.3 — the platform host carries the PLATFORM's tab identity, never a
   // practice's. noindex while the placeholder stands: nothing here is content
@@ -64,7 +64,12 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
   const r = await getTenantResolution();
-  if (r.kind === "unresolved") return {};
+  // P3.3 — DEFAULT_METADATA is the STATIC marketing site's own metadata (from
+  // @/content/site-content), not tenant data, and a BUILD has no host to place.
+  // Returning {} there stripped her title, template and Open Graph identity out
+  // of the pre-rendered page. C26's empty metadata is for a REQUEST whose host
+  // cannot be placed, and that is unchanged below.
+  if (r.kind === "unresolved") return requestHost() === null ? DEFAULT_METADATA : {};
   if (r.kind === "tenant" && r.tenant.id !== DEFAULT_TENANT_ID) {
     const name = r.tenant.displayName || r.tenant.slug;
     return {

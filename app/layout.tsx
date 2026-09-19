@@ -40,7 +40,7 @@ const METADATA_BASE: Metadata = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { getTenantResolution } = await import("@/lib/tenancy");
+  const { getTenantResolution, staticSiteTenant } = await import("@/lib/tenancy");
   // P2.2/P2.3 — on the PLATFORM's own host the app identity is the platform's.
   // Without this the apex emitted `application-name: Veritas` and an Apple
   // web-app title to match: tenant #1's internal product name installed as the
@@ -63,8 +63,12 @@ export async function generateMetadata(): Promise<Metadata> {
     /* outside a request (build-time static render) — not the platform host */
   }
   const r = await getTenantResolution();
-  if (r.kind === "unresolved") return METADATA_BASE;
-  const raw = (r.tenant.branding ?? {}).portalTitle || "veritas";
+  // P3.3 — a BUILD has no host, so resolution is `unresolved` and this used to
+  // drop her PWA identity out of the pre-rendered shell. staticSiteTenant()
+  // states whose static site is being built; no REQUEST can reach it.
+  const built = r.kind === "unresolved" ? await staticSiteTenant() : r.tenant;
+  if (!built) return METADATA_BASE;
+  const raw = (built.branding ?? {}).portalTitle || "veritas";
   const name = raw.charAt(0).toUpperCase() + raw.slice(1);
   return {
     ...METADATA_BASE,
@@ -101,8 +105,12 @@ const THEME_INIT = `(function(){try{var t=localStorage.getItem('veritas-theme');
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // PLATFORM Layer 2 — the tenant's skin selects the token set. Cached 60s;
   // falls back to warm-clay so her portal can never break on a config read.
-  const { getTenant } = await import("@/lib/tenancy");
-  const tenant = await getTenant();
+  const { getTenantResolution, staticSiteTenant } = await import("@/lib/tenancy");
+  // Same build-time statement as generateMetadata above: the pre-rendered shell
+  // is tenant #1's. A request that cannot be placed still gets the unresolved
+  // shell's skin, which is what C26 renders around its 503.
+  const res = await getTenantResolution();
+  const tenant = (res.kind === "unresolved" ? await staticSiteTenant() : res.tenant) ?? { skinKey: "warm-clay" };
   return (
     <html lang="en" data-skin={tenant.skinKey} className={`${crimson.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
