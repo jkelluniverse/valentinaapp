@@ -24,6 +24,7 @@ API answered `{"ok":true}`; the email arrived at jkelluniverse+platform@gmail.co
 - **Footer legal entity:** `Kell Systems Consulting, LLC` — matches
   PLATFORM_LEGAL_ENTITY verbatim (comma and all).
 - **Postal address:** `6521 Beverly Ave NE Canton, Ohio 44721`.
+  **SUPERSEDED AND WRONG — DO NOT COPY.** That address belongs to a DIFFERENT company and was the value in the A4 test email. The platform's postal address is **2202 31st St NE, Canton, OH 44705** (ruling 143), it lives in `PLATFORM_POSTAL_ADDRESS` only, and it renders on COMMERCIAL mail only.
 - **Envelope:** the platform envelope rendered with its own palette — not
   Valentina's warm-stone one.
 

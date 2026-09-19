@@ -314,8 +314,15 @@ async function main() {
   const headerCalls = (prismaCode.match(/headers\(\)/g) ?? []).length;
   const ambientCalls = (prismaCode.match(/ambientTenantId\(\)/g) ?? []).length;
   const resolverDefs = (prismaCode.match(/function requestTenantId/g) ?? []).length;
-  // The definition's own signature matches too — subtract it to get call sites.
-  const resolverCalls = (prismaCode.match(/requestTenantId\(\)/g) ?? []).length - resolverDefs;
+  // Count call sites REGARDLESS OF ARGUMENTS. This used to match
+  // `requestTenantId()` with empty parens, which silently stopped seeing a call
+  // site the moment one passed an argument — the P4 log-severity change added
+  // `requestTenantId(opts)` and this check reported 3 → 1 as though two call
+  // sites had vanished. The count had not moved; the INSTRUMENT had gone blind,
+  // which is the failure mode a count assertion is supposed to catch, not
+  // exhibit (ruling 38 on the count, ruling 137 on the instrument).
+  const resolverDefsWithParen = (prismaCode.match(/function requestTenantId\s*\(/g) ?? []).length;
+  const resolverCalls = (prismaCode.match(/requestTenantId\s*\(/g) ?? []).length - resolverDefsWithParen;
   check(
     "A2 CONFIRMED (with a correction): ONE resolver, ONE headers() call, ONE fallback consult…",
     headerCalls === 1 && ambientCalls === 1 && resolverDefs === 1,
@@ -323,8 +330,8 @@ async function main() {
   );
   check(
     "A2 CORRECTED: …but that resolver is CALLED from two write paths (runOp and the array-form $transaction) — and, since C25, re-exported once as scopeTenantId()",
-    resolverCalls === 3 && /export function scopeTenantId\(\)/.test(prismaCode),
-    `requestTenantId() call sites: ${resolverCalls} — the two write paths plus the C25 export scopeTenantId() (lib/practice-settings.ts, which must address a row by a unique key that INCLUDES tenantId). One fallback consult still covers all three, because it lives in the resolver`,
+    resolverCalls === 3 && /export function scopeTenantId\s*\(/.test(prismaCode),
+    `requestTenantId() call sites: ${resolverCalls} — the two write paths plus the C25 export scopeTenantId() (lib/practice-settings.ts, which must address a row by a unique key that INCLUDES tenantId). One consult still covers all three, because it lives in the resolver; arguments are ignored when counting, since scopeTenantId now forwards a severity-only option`,
   );
 
   // --- A3: the remaining producers of null-tenant rows ---

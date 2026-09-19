@@ -408,12 +408,53 @@ async function main() {
         w.authorization === `Bearer ${PLATFORM_ENV.PLATFORM_RESEND_API_KEY}`,
     );
   const cleanOk = wire.every((w) => !forbidden.test(w.html) && !forbidden.test(w.text) && !forbidden.test(w.subject));
+  // These `wire` messages are ENGAGE sends, and the check below this one asserts
+  // every one of them carries a working unsubscribe link — i.e. they are
+  // COMMERCIAL mail. So the postal address SHOULD be in their footer, and moving
+  // it off TRANSACTIONAL envelopes (ruling 96) correctly left this untouched.
   const footerOk = wire.every(
     (w) =>
       w.html.includes("T27 Entity, Inc.") &&
       w.html.includes("123 Fixture Way, Testville FL 00000") &&
       w.text.includes("T27 Entity, Inc."),
   );
+  // ---- RULING 143, BOTH DIRECTIONS, ON THE RENDERER ITSELF ----
+  // The address renders on COMMERCIAL mail and nowhere else, and "commercial" is
+  // identified by the envelope carrying an unsubscribe link (ruling 141). Asserted
+  // on renderPlatformEnvelope directly so the claim does not depend on which
+  // fixture happens to be a marketing send.
+  {
+    const { renderPlatformEnvelope } = await import("../emails/platform-envelope");
+    const ADDR = "123 Fixture Way, Testville FL 00000";
+    const identity = { from: 'T27 <p@t27.test>', legalEntity: "T27 Entity, Inc.", postalAddress: ADDR };
+    const base = { locale: "en" as const, heading: "H", paragraphs: ["P"] };
+    const commercial = renderPlatformEnvelope({ ...base, unsubscribe: { label: "Unsubscribe", url: "https://t27.test/u/x" } }, identity);
+    const transactional = renderPlatformEnvelope(base, identity);
+    check(
+      "COMMERCIAL envelope (carries an unsubscribe) RENDERS the postal address",
+      commercial.html.includes(ADDR),
+      ADDR,
+    );
+    check(
+      "TRANSACTIONAL envelope (no unsubscribe) renders NO postal address — ruling 96",
+      !transactional.html.includes(ADDR) && !transactional.text.includes(ADDR),
+      "",
+    );
+    check(
+      "and the legal entity signs BOTH — only the address is conditional",
+      commercial.html.includes("T27 Entity, Inc.") && transactional.html.includes("T27 Entity, Inc."),
+      "",
+    );
+    check(
+      "NO postal address is hardcoded: with the value unset, the commercial envelope renders none (ruling 143)",
+      !renderPlatformEnvelope(
+        { ...base, unsubscribe: { label: "Unsubscribe", url: "https://t27.test/u/x" } },
+        { ...identity, postalAddress: null },
+      ).html.includes(ADDR),
+      "",
+    );
+  }
+
   check(
     "at the WIRE: platform from + platform reply-to + the PLATFORM account's Authorization, and the html, text and subject contain NONE of Veritas / VIIIV / Valentina / her credential line — both locales",
     wireOk && cleanOk,

@@ -1,4 +1,4 @@
-# C27-EMAIL-IDENTITY Phase 1 verify — 2026-09-19T20:39:47.385Z
+# C27-EMAIL-IDENTITY Phase 1 verify — 2026-09-19T21:04:18.376Z
 RESEND_API_KEY present in this environment: no — as the spec requires
 
 ## Item 1 — the five assumptions, confirmed or corrected (ruling 18)
@@ -19,6 +19,10 @@ RESEND_API_KEY present in this environment: no — as the spec requires
 - ✓ A4-correction — a missing PLATFORM key fails closed the same way, even with the PRACTICE key present: the other account's credential is never borrowed — PLATFORM_RESEND_API_KEY removed (practice RESEND_API_KEY still set) → unconfigured
 - ✓ with NO platform key, every due step records UNCONFIGURED — no exception, no send, no borrowed credential (degrades exactly as a missing practice key does today) — tick configured=false · transport calls=0 · ledger: UNCONFIGURED|2
 - ✓ …and once the platform key exists, the SAME re-sendable rows flip to SENT (no third row) with the PLATFORM identity — its own key included — on every step, both locales (injected-transport seam) — 2 sends: en→T27 Platform · es→T27 Platform · ledger rows=2 · tick configured=true
+- ✓ COMMERCIAL envelope (carries an unsubscribe) RENDERS the postal address — 123 Fixture Way, Testville FL 00000
+- ✓ TRANSACTIONAL envelope (no unsubscribe) renders NO postal address — ruling 96
+- ✓ and the legal entity signs BOTH — only the address is conditional
+- ✓ NO postal address is hardcoded: with the value unset, the commercial envelope renders none (ruling 143)
 - ✓ at the WIRE: platform from + platform reply-to + the PLATFORM account's Authorization, and the html, text and subject contain NONE of Veritas / VIIIV / Valentina / her credential line — both locales — from=T27 Platform <t27-platform-from@fixture.test> · reply_to=t27-platform-reply@fixture.test · auth=platform key · forbidden-string scan clean=true
 - ✓ A4-correction — account independence: a platform send succeeds with NO practice RESEND_API_KEY present, authenticating with the platform account's own key — ok=true · auth=platform key
 - ✓ …and the platform footer names the configured legal entity and postal address in html AND text (no practice letterhead, no borrowed wordmark) — entity + postal present in both parts of both locales
@@ -36,7 +40,7 @@ RESEND_API_KEY present in this environment: no — as the spec requires
 - ✓ no engageEnabled PracticeSetting row exists and the env override is off — the production gate is exactly as closed as before this build — rows=0 · env=off (the tick above ran on an in-process env override, removed)
 
 ## PHASE 2 — items 4, 5, 6: the per-practice identity, the silent-failure case, and no cross-identity in one process
-- ✓ two real non-default practices exist (real signup service); B configures contact details, C deliberately does NOT — B=cmu8upi8o000av6lmxtid0bbx · C=cmu8upim6000iv6lmzocnyg5y
+- ✓ two real non-default practices exist (real signup service); B configures contact details, C deliberately does NOT — B=cmu8vl16s000abjf9t60l7tax · C=cmu8vl1kf000ibjf9oouz6cgb
 - ✓ ITEM 4 — practice B's client mail (no explicit identity, resolved from B's host) carries B's DISPLAY NAME, B's REPLY-TO, B's FOOTER, the platform account's key — and none of Valentina's identity strings — from="T27 P2 Practice" <t27-platform-from@fixture.test> · reply_to=t27-p2-reply@fixture.test · auth=platform key · footer=B's · forbidden strings absent
 - ✓ ITEM 5 — a practice with NO email configured sends as NO ONE: the send is skipped (ok:false, skipped:true), zero wire calls, nothing borrowed — honest degradation, same shape as a missing credential — result={ok:false, skipped:true} · wire calls=0
 - ✓ ITEM 6 — A then B then A in ONE process: A's sends are byte-consistent legacy (practice key, NOTIFY_FROM_EMAIL, Veritas footer), B's is B's — no identity crosses in either direction — A1 from=Valentina Vélez  · B from="T27 P2 Practice"  · A2 from=Valentina Vélez  — A1 and A2 identical, B untouched by A, A untouched by B
@@ -46,4 +50,4 @@ RESEND_API_KEY present in this environment: no — as the spec requires
 - ✓ F1 — with RESEND_API_URL SET and RAILWAY_ENVIRONMENT_NAME=production, the send goes to the REAL endpoint: a stray override variable can never redirect credentialed production mail — send ok=true · reached api.resend.com=true (the override pointed at localhost:9 and was ignored)
 - ✓ SELF-CLEANING — every fixture row this gate created is gone, and the environment is restored — rows 0 · env restored
 
-EMAIL-IDENTITY VERIFY PASS — 28/28
+EMAIL-IDENTITY VERIFY PASS — 32/32

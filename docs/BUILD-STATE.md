@@ -1185,7 +1185,8 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## P4 flag: needs "Psychefolio <addr>" or an envelope brand line); reply-to not
 ## exposed by the Gmail connector payload (same limitation as W8); footer legal
 ## entity "Kell Systems Consulting, LLC" (matches PLATFORM_LEGAL_ENTITY verbatim);
-## postal address "6521 Beverly Ave NE Canton, Ohio 44721"; platform envelope
+## postal address "6521 Beverly Ave NE Canton, Ohio 44721" [SUPERSEDED AND WRONG — that
+## address belongs to a DIFFERENT company; see ruling 143]; platform envelope
 ## rendered (its own palette, not Valentina's). **psychefolio.com IS verified in
 ## the platform Resend account — proven by the send succeeding and ARRIVING in
 ## the inbox (not spam) with the from-domain intact, not by configuration.**
@@ -1900,6 +1901,21 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     in CODE via `withDisplayName()` rather than as a request for an ops variable edit:
     deterministic, idempotent, no ops dependency, and a value that already carries a
     display name passes through untouched.
+
+143. **The platform's postal address is `2202 31st St NE, Canton, OH 44705`.** It lives
+    in `PLATFORM_POSTAL_ADDRESS` ONLY, and it renders on COMMERCIAL mail only — identified
+    by the envelope carrying an unsubscribe link. **No postal address is hardcoded
+    anywhere in the repository.** The previously recorded
+    `6521 Beverly Ave NE Canton, Ohio 44721` belongs to a DIFFERENT company, was the value
+    in the A4 test email, and is wrong; the two historical mentions (this file and
+    PLATFORM-SPLIT-P1.md) are annotated in place as SUPERSEDED rather than erased, so the
+    record stays honest while nobody can copy the string by accident. The only
+    address-shaped literal left in the repo is the obviously fictional gate fixture
+    `123 Fixture Way, Testville FL 00000`, which is correct and stays.
+    VERIFIED BOTH DIRECTIONS in audits/email-identity-verify.ts (28/28 → 32/32, ruling 38):
+    a COMMERCIAL envelope renders the address, a TRANSACTIONAL one renders none, the legal
+    entity signs BOTH so only the address is conditional, and with the value unset the
+    commercial envelope renders none — i.e. nothing supplies it but the variable.
 
 ## LOG SEVERITY ON A NORMAL PATH (done before P5, on the Architect's instruction): every
 ## capture on the platform host emitted an ERROR-severity `[tenant-scope] refusing scoped
