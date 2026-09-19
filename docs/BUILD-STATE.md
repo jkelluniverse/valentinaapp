@@ -1553,6 +1553,54 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## If B turns out to be subscribed AND failing, that is a LIVE BILLING DEFECT
 ## independent of P3 and gets its own item.
 
+115. **The null-tenant invariant HELD across all 79 scoped models**, measured at the
+    state P3.1 left, before cleanup, per the dispatch order. Every row 0. So
+    auth-guards' NULL-tenantId sign-in branch is confirmed dead BY DATA as well as by
+    code, and P3.3 may remove it. P3.2's gate is passed.
+116. **The Railway Query tab accepts ONE statement and appends LIMIT to it.**
+    Multi-statement BEGIN/COMMIT blocks are rejected and bare DELETEs choke on the
+    appended LIMIT — the P3.1 cleanup failed on this, on TOOLING not data (nothing was
+    deleted). All future SQL handed to Jacob is a SINGLE statement, and any mutation is
+    written as data-modifying CTEs ending in a SELECT that reports what it changed, so
+    the appended LIMIT lands on the SELECT harmlessly. APPLIED: the rehearsal runbook's
+    Block 2 teardown is rewritten in that shape — and it is SAFER than the block it
+    replaces, because one statement either applies completely or not at all, so there
+    is no half-torn-down tenant to recover from.
+
+## RULING 111 IS WRONG AND IS CORRECTED HERE (2026-09-19, observed): **THERE IS A
+## SCHEDULER.** The tick runs in production EVERY 15 MINUTES on the quarter-hour —
+## quoted: [tick] lines at 12:00:18, 12:15:12, 12:30:15, 12:45:11, 13:00:18, 13:15:13Z
+## on 2026-09-19, each preceded by `[tenant-scope] host=valentinavelez.com
+## tenantId=tnt_valentina_000000001 via=TenantDomain`. It is EXTERNAL — not a Railway
+## cronSchedule, not GitHub Actions, nothing in the repo — so the earlier search was
+## right about where it ISN'T and wrong to conclude it does not exist. Jacob knows what
+## service calls it. CONSEQUENCE FOR P3.3, now live rather than hypothetical: the tick
+## resolves through the Host it is called with; it works today because that Host is
+## valentinavelez.com, which P1 mapped. Ruling 112's hazard is REAL AT 96 RUNS/DAY — a
+## tick that begins refusing still returns ok:true with report.<step>="error", so
+## nobody would notice. Its work is real: autoComplete, reminders, billingSweep,
+## paymentTokens, engage (considered=1 skipped=1, gate closed), tenantStampDrift.
+
+## SQUARE ENDPOINTS — OBSERVED, correcting the P3 inference (2026-09-19):
+## /api/square/webhook (endpoint A, host-resolved): **24 requests in 7 days, ALL 2xx,
+## zero 4xx** — Square calls it and it accepts. Real money traffic quoted from logs on
+## 2026-09-18: invoice.created/updated/published, invoice.payment_made (PAID),
+## payment.created APPROVED -> payment.updated COMPLETED, and invoice.refunded
+## (PARTIALLY_REFUNDED). Valentina is actively invoicing, being paid, and refunding
+## through this endpoint.
+## /api/webhooks/square (endpoint B, payload-resolved): **ZERO requests in 7 days.**
+## So the earlier inference was wrong in its mechanism: there are no 401s to find
+## because Square never calls B at all — B is unsubscribed, not failing. Its unset
+## notification-URL config is a LATENT defect that would bite if B were ever
+## subscribed, not a live one. Instrument proven working per ruling 110 (same query,
+## same window: /api/tenant-kind returned 57 requests).
+## P3.3 CONSEQUENCE: the Square webhook host must stay mapped. No [tenant-scope]
+## via=host-pattern line appears anywhere in the deployment's life, which is strong
+## evidence Square calls valentinavelez.com — the dashboard still confirms it.
+## ALSO DISCOVERED: **m.psychefolio.com** is being hit in production (alongside
+## psychefolio.com and www.), resolving via host-pattern to unknown-slug. Unexpected
+## host, no mapping row, reported not acted on.
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling

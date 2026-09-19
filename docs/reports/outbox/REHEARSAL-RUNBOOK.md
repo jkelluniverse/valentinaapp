@@ -118,21 +118,62 @@ builder re-issues the final expectation line then.
 Dependency order = the same shape signup's own rollbackTenant uses:
 
 ```sql
-BEGIN;
-DELETE FROM "PracticeSetting" WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
-DELETE FROM "AuditEvent"      WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
--- rehearsal-caused rows keyed to OTHER tenants (W1's capture row is stamped with
--- Valentina's tenant by design; engage decision rows, if any, likewise). Keyed to
--- the rehearsal identities' own prospect rows, so no organic row can match. Must
--- run BEFORE the PractitionerProspect delete below.
-DELETE FROM "AuditEvent"      WHERE "actorId" IN (SELECT id FROM "PractitionerProspect" WHERE email IN ('jkelluniverse+psf-ref@gmail.com','jkelluniverse+psf-founder@gmail.com'));
-DELETE FROM "TenantBilling"   WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
-DELETE FROM "TenantModule"    WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
-DELETE FROM "User"            WHERE "tenantId" IN (SELECT id FROM "Tenant" WHERE slug='psf-rehearsal');
-DELETE FROM "Tenant"          WHERE slug='psf-rehearsal';
-DELETE FROM "PractitionerProspect" WHERE email IN ('jkelluniverse+psf-ref@gmail.com','jkelluniverse+psf-founder@gmail.com');
-COMMIT;
+WITH t AS (
+  SELECT id FROM "Tenant" WHERE slug = 'psf-rehearsal'
+), p AS (
+  SELECT id FROM "PractitionerProspect"
+  WHERE email IN ('jkelluniverse+psf-ref@gmail.com','jkelluniverse+psf-founder@gmail.com')
+), d_setting AS (
+  DELETE FROM "PracticeSetting" WHERE "tenantId" IN (SELECT id FROM t) RETURNING 1
+), d_audit_tenant AS (
+  DELETE FROM "AuditEvent" WHERE "tenantId" IN (SELECT id FROM t) RETURNING 1
+), d_audit_actor AS (
+  DELETE FROM "AuditEvent" WHERE "actorId" IN (SELECT id FROM p) RETURNING 1
+), d_billing AS (
+  DELETE FROM "TenantBilling" WHERE "tenantId" IN (SELECT id FROM t) RETURNING 1
+), d_module AS (
+  DELETE FROM "TenantModule" WHERE "tenantId" IN (SELECT id FROM t) RETURNING 1
+), d_domain AS (
+  DELETE FROM "TenantDomain" WHERE "tenantId" IN (SELECT id FROM t) RETURNING 1
+), d_user AS (
+  DELETE FROM "User" WHERE "tenantId" IN (SELECT id FROM t) RETURNING 1
+), d_tenant AS (
+  DELETE FROM "Tenant" WHERE id IN (SELECT id FROM t) RETURNING 1
+), d_prospect AS (
+  DELETE FROM "PractitionerProspect" WHERE id IN (SELECT id FROM p) RETURNING 1
+)
+SELECT
+  (SELECT count(*) FROM d_setting)      AS practice_setting,
+  (SELECT count(*) FROM d_audit_tenant) AS audit_by_tenant,
+  (SELECT count(*) FROM d_audit_actor)  AS audit_by_actor,
+  (SELECT count(*) FROM d_billing)      AS tenant_billing,
+  (SELECT count(*) FROM d_module)       AS tenant_module,
+  (SELECT count(*) FROM d_domain)       AS tenant_domain,
+  (SELECT count(*) FROM d_user)         AS users,
+  (SELECT count(*) FROM d_tenant)       AS tenants,
+  (SELECT count(*) FROM d_prospect)     AS prospects;
 ```
+
+**Why this shape (ruling 116).** The Railway Query tab accepts ONE statement and
+appends `LIMIT` to it: a `BEGIN; … COMMIT;` block is rejected, and a bare `DELETE`
+chokes on the appended `LIMIT`. This is one statement whose data-modifying CTEs do
+every delete and whose final `SELECT` reports the counts — so the appended `LIMIT`
+lands on the SELECT harmlessly.
+
+**It is atomic by construction and SAFER than the block it replaces.** A single
+statement either applies completely or not at all, so there is no half-torn-down
+tenant to recover from. Foreign-key checks fire at end of statement, after every CTE
+has run, which is why parent and children can go in one statement.
+
+**EXPECTED** (one row): `practice_setting 1 · audit_by_tenant 1 · audit_by_actor 1 ·
+tenant_billing 1 · tenant_module 3 · tenant_domain 0 · users 1 · tenants 1 ·
+prospects 2`. `tenant_domain 0` is correct — psf-rehearsal resolves by host pattern
+and never had a mapping row; the clause is defensive. **Any other numbers: send them
+before doing anything else.** Nothing is left half-done, so there is no rush to fix.
+
+**If it errors on a foreign key**, that is the statement refusing to leave orphans:
+some table not listed here still references the tenant. Send the error verbatim — do
+NOT start deleting the named table by hand.
 
 Provisional expected counts (FINAL numbers wait on Block 1.5's output; ROLLBACK on
 any surprise stands): PracticeSetting 1 · AuditEvent-by-tenant ≥1 (the
