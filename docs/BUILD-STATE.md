@@ -1955,6 +1955,54 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     under either tenant and cannot reach a real lead's row. This is the correct handling
     of uncertainty under time pressure.
 
+149. **An audit row written per EVALUATION rather than per STATE CHANGE grows without
+    bound and buries the rows that matter.** Measured: 299 engage-message rows across
+    three prospects, 289 of them for ONE prospect over three days — 3 days x 96 ticks =
+    288, observed 289. One row per prospect-step per tick, indefinitely, while the gate
+    stays closed. The mechanism is confirmed in code AND reproduced in a gate: SKIPPED and
+    UNCONFIGURED are not terminal, so claimStep()'s catch returns the existing row for
+    reconsideration and actOnStep() writes another audit row every tick.
+150. **No audit row should be written for a repeated identical verdict.** The engine must
+    either short-circuit before the write when the decision is unchanged, or key the write
+    on (prospectId, sequenceKey, stepKey, status) so a repeat UPDATES rather than INSERTS.
+    289 rows recording the same refusal is not an audit trail, it is a log leak that would
+    bury the one row that mattered. SCOPED AFTER Q3, NOT BEFORE — not yet built.
+
+## Q3 ANSWERED — ENGAGE IS IDEMPOTENT ON SEND. NOT A STOP.
+## The gate-open path had NEVER run in production (299 decisions, every one
+## engine-gate-closed), so it was unverified BY DEFINITION with the event days away —
+## ruling 135's shape on a money-adjacent surface. Now covered by a standing gate,
+## audits/engage-send-idempotency-verify.ts (set 42 -> 43), which proves it gate-OPEN with
+## a NEGATIVE CONTROL FIRST: two ticks with the gate CLOSED each write another audit row,
+## so the harness demonstrably detects a repeat and "tick 2 sent nothing" means something.
+## Gate OPEN: tick 1 sends exactly once; tick 2 does not call the transport, records no
+## SENT and writes NO further audit row; the +7 step fires on the first tick after it is
+## due and not the next; and flipping the ledger row off-terminal makes the same step send
+## again — proving the engine READS that state rather than merely recording it (the
+## Architect's (e): a verdict recorded for audit but never consulted is not idempotency).
+## MECHANISM, three layers: plan() excludes a SENT step BEFORE decide() is ever called
+## (`if (prior && TERMINAL.has(prior.status)) continue`, TERMINAL = SENT|SUPPRESSED);
+## claimStep() guards it again; and the claim IS the database constraint
+## @@unique([prospectId, sequenceKey, stepKey]), so a concurrent tick's insert is refused
+## by Postgres rather than by application logic.
+## THE ONE HONEST CAVEAT (the Architect's (b)): the send and the state write are NOT
+## atomic. claimStep inserts PENDING before the send; the SENT update happens after. A
+## crash between transport success and that update leaves the row PENDING, reclaimed after
+## STALE_CLAIM_MS (15 min) and re-sent ONCE. One duplicate to one recipient after a crash
+## mid-step — not forty people every fifteen minutes. Reported, not fixed.
+
+## THE AUDIENCE IS ENTIRELY VERIFICATION DEBRIS — ruling 148's careful keying turned out
+## to be satisfied TRIVIALLY rather than by construction: there is NO genuine lead in
+## engage's audience, so no real audit history existed to preserve. The caution stands as
+## correct handling of the uncertainty AT THE TIME; it is now resolved by enumeration.
+## DELETING THE psf-founder PROSPECT DOES NOT TOUCH THE psf-rehearsal TENANT:
+## PractitionerProspect.tenantId is a bare String? ("the tenant they now OWN — not a scope
+## column") with NO @relation, Tenant has no prospect relation, and no code reads a
+## prospect by tenantId. ProspectMessage.prospectId and AuditEvent.actorId are likewise
+## bare strings with no cascade, so every table is deleted explicitly, children first.
+## CONSEQUENCE OF NOT DELETING A PROSPECT: it stays in the audience and is re-decided
+## every 15 minutes — ~96 new audit rows per day per prospect-step until ruling 150 lands.
+
 ## WHAT AN `engage-message` ROW PROVES, and it is more than an absence: the audit write
 ## happens AFTER decide(), whose SECOND check is `if (!switches.gateOpen) return {status:
 ## "SKIPPED", reason: REASONS.gateClosed}`. So the row's existence proves the gate was
