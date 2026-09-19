@@ -1,0 +1,15 @@
+{
+  "slug": "demo-journey",
+  "displayName": "Rivera Wellness (Demo)",
+  "layoutKey": "journey-v1",
+  "skinKey": "warm-clay",
+  "modules": [
+    { "key": "archetypal-keys", "label": "Inner Keys" },
+    { "key": "body-graph", "label": "Energy Map" },
+    { "key": "values-spiral", "label": "Values Journey" }
+  ],
+  "branding": { "portalTitle": "rivera wellness", "welcomeCopy": "A quiet place for the work between sessions." },
+  "featureFlags": {},
+  "seed": "DEMO_FIXTURES",
+  "practitioner": { "name": "Ríos Demo", "email": "pract@demo-journey.fixture.test" }
+}

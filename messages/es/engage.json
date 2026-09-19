@@ -1,0 +1,80 @@
+{
+  "engage": {
+    "unsubscribe": {
+      "label": "Dejar de recibir estos correos",
+      "line": "¿No quieres más de estos? Un clic, sin necesidad de cuenta: {unsubscribeUrl}"
+    },
+    "page": {
+      "eyebrow": "Seguimiento",
+      "doneHeading": "Listo — te dimos de baja",
+      "doneBody": "No te enviaremos más seguimiento sobre la plataforma para profesionales. Nada más cambia y no tienes que hacer nada adicional.",
+      "alreadyHeading": "Ya estabas dado de baja",
+      "alreadyBody": "Esta dirección ya estaba fuera de la lista de seguimiento, así que este clic no cambió nada.",
+      "invalidHeading": "Este enlace no es válido",
+      "invalidBody": "Puede que un programa de correo lo haya cortado. Nadie fue dado de baja. Responde a cualquiera de nuestros correos y te sacamos de la lista a mano.",
+      "footnote": "Solo seguimiento de la plataforma para profesionales. Esto no tiene nada que ver con ningún cliente tuyo."
+    },
+    "templates": {
+      "eventLeadThanks": {
+        "subject": "Gracias por dejarnos tu nombre",
+        "preheader": "Tu código de referencia y el enlace para crear tu práctica.",
+        "heading": "{firstName}, gracias",
+        "paragraphs": [
+          "Hoy nos dejaste tu nombre, así que aquí tienes todo en un solo lugar.",
+          "Tu código de referencia es {referralCode}. Quien llegue con él queda registrado como que vino de tu parte.",
+          "Cuando quieras, puedes crear tu práctica tú mismo — toma unos minutos y eliges tu propia dirección y contraseña."
+        ],
+        "button": { "label": "Crear tu práctica", "url": "{signupUrl}" },
+        "signoff": "Con cariño,"
+      },
+      "eventLeadWhatItDoes": {
+        "subject": "Qué hace la plataforma en realidad",
+        "preheader": "En simple, sin discurso de venta.",
+        "heading": "{firstName}, qué es esto en realidad",
+        "paragraphs": [
+          "Una respuesta corta y honesta, porque un salón es un mal lugar para explicar software.",
+          "Tu práctica recibe su propio portal: un lugar donde tus clientes entran, la admisión que envías y lees, la agenda, tus notas de sesión y acuerdos que pueden firmar. Es un solo lugar en vez de cinco.",
+          "Los socios fundadores quedan configurados como práctica de cortesía. Si no te resulta útil, dínoslo y dejamos de escribir."
+        ],
+        "button": { "label": "Crear tu práctica", "url": "{signupUrl}" },
+        "signoff": "Con cariño,"
+      },
+      "eventLeadLastNote": {
+        "subject": "Una última nota",
+        "preheader": "El enlace queda abierto; es la última vez que escribimos.",
+        "heading": "{firstName}, una última nota",
+        "paragraphs": [
+          "Este es el último de estos correos que recibirás de nuestra parte — el buzón de una profesional no es lugar para seguir golpeando la puerta.",
+          "El enlace de abajo queda abierto para cuando el momento sea mejor. Nada caduca.",
+          "Si prefieres que lo configuremos contigo en vez de hacerlo solo, responde a este correo y buscamos una hora."
+        ],
+        "button": { "label": "Crear tu práctica", "url": "{signupUrl}" },
+        "signoff": "Con cariño,"
+      },
+      "foundingWelcome": {
+        "subject": "Tu práctica ya está configurada",
+        "preheader": "La dirección de tu portal y las primeras tres cosas por hacer.",
+        "heading": "{firstName}, tu práctica está lista",
+        "paragraphs": [
+          "Tu portal está en {portalUrl}. Entra con el correo y la contraseña que elegiste.",
+          "Tres cosas que vale la pena hacer primero: pon el nombre y los horarios de tu práctica en ajustes, envía una admisión a un cliente que conozcas bien y lee lo que regresa.",
+          "Eres socio fundador, y eso significa que tus preguntas moldean lo que se construye después. Responde a este correo con lo que falte."
+        ],
+        "button": { "label": "Abrir tu portal", "url": "{portalUrl}" },
+        "signoff": "Con cariño,"
+      },
+      "foundingCheckIn": {
+        "subject": "¿Cómo va la primera semana?",
+        "preheader": "Con una respuesta basta.",
+        "heading": "{firstName}, ¿cómo va?",
+        "paragraphs": [
+          "Ha pasado una semana desde que se configuró tu práctica, así que esta es una pregunta genuina y no un recordatorio: ¿qué te ha resultado incómodo?",
+          "Si todavía no has tenido oportunidad de abrirlo, también está bien — no se perdió nada y tu portal sigue en {portalUrl}.",
+          "Una sola frase de vuelta es suficiente. La queja de un socio fundador nos sirve más que un elogio."
+        ],
+        "button": { "label": "Abrir tu portal", "url": "{portalUrl}" },
+        "signoff": "Con cariño,"
+      }
+    }
+  }
+}

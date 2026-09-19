@@ -1,0 +1,245 @@
+VERITAS CONSULTING
+
+Client Services Agreement — Version 3.1 (REVISED per Counsel Review)
+
+Client: {{client_name}}     ·     Effective Date: {{date}}     ·     Revised Draft
+
+Welcome to Veritas Consulting. I'm honored to support your journey toward positive, lasting change. This Agreement explains how we will work together, what the services are (and are not), how the client portal and billing work, and how your information is protected. Please read it carefully and ask any questions before signing — a clear agreement protects us both.
+
+This Agreement is between Veritas Consulting ("the Practice," "we," or "I"), operated by Valentina Vélez, Certified PSYCH-K® Facilitator and Personal Development Consultant ("Practitioner"), and {{client_name}} ("Client," "you"). If the Client is under 18, services are provided only under the Minor Client & Guardian Authorization (Addendum M), and the signing parent or legal guardian is the "Responsible Party." A person or entity who pays for the Client's services but is not the Client or Responsible Party is a "Payer" — a Payer's payment method may not be charged, and a Payer is not obligated to pay, unless that person signs the Third-Party Payer & Card Authorization (Exhibit A).
+
+═══════════════════════════════════════════════════════════
+
+1. AGREEMENT DOCUMENTS & ORDER OF PRIORITY
+
+This Agreement incorporates, when accepted by the applicable signer: this master Agreement; each Package / Scope-of-Work Agreement ("SOW"); Exhibit A (Third-Party Payer & Card Authorization), if used; Addendum M (Minor Client & Guardian Authorization), if used; Addendum R (Data Retention & Deletion Schedule); Addendum P (Pattern-Library Participation Election); any Recording Addendum; the Electronic Records Disclosure (Exhibit B); and the Privacy Policy. If documents conflict, the more specific document controls its own subject: the SOW controls package, price, credit, and cancellation details; the Recording Addendum controls recording; Addendum R controls retention; the Privacy Policy controls data-handling detail; this Agreement controls the commercial relationship; and a later signed document controls an earlier one on the same subject. Services will not begin — and the portal may block booking — until every signature and consent required for that Client, Payer, recording choice, or minor-client arrangement is complete.
+
+═══════════════════════════════════════════════════════════
+
+2. NATURE OF THE SERVICES — PERSONAL DEVELOPMENT, NOT HEALTHCARE
+
+The services are personal-development facilitation and PSYCH-K® belief-change work provided by Valentina Vélez, a Certified PSYCH-K® Facilitator and Personal Development Consultant. The services are educational, reflective, and forward-focused. They are NOT psychotherapy, psychological services, psychiatric care, counseling, medical care, diagnosis, or treatment — and not a substitute for any of them. No therapist–patient, psychologist–patient, physician–patient, or other healthcare relationship is created.
+
+The Practitioner holds dual Bachelor of Science degrees in Biomedical Sciences and Psychology (with a neuropsychology specialization) from the University of South Florida and is a certified PSYCH-K® Facilitator at the Master/Advanced level. She is not a licensed psychologist, therapist, or healthcare provider and does not provide psychotherapy, psychological services, or mental health treatment.
+
+References to mindset patterns, belief systems, personal development research, or reflective frameworks are educational descriptions only. The Practice does not administer or interpret psychological tests, diagnose mental health disorders or medical conditions, or advise anyone to change or discontinue licensed care or medication.
+
+You affirm you are not relying on the services to diagnose or treat any medical or mental-health condition, and you agree not to delay, replace, or discontinue professional care or medication based on this work without consulting the appropriate licensed provider. The Practitioner may recommend licensed care and may pause, narrow, or decline services where she believes your needs fall outside this scope or that a higher level of care is appropriate.
+
+INTAKE SCREENING. Before beginning services, you will complete a brief intake form. If you indicate you are currently seeking treatment for, or have been diagnosed with, a mental health condition requiring clinical care, the Practitioner may refer you to a licensed mental health professional and may decline or defer services until you confirm you have appropriate licensed support in place. This practice is not a substitute for therapy, and concurrent work with a licensed provider is encouraged when clinical needs are present.
+
+═══════════════════════════════════════════════════════════
+
+3. INTERPRETIVE FRAMEWORKS & PSYCH-K®
+
+Materials may draw on interpretive frameworks — Human Design, Gene Keys, astrology-style charts, values models, archetypal keys, numerology, and in-session card draws. These are offered solely as reflective and educational lenses for self-exploration and conversation. They are not scientifically validated diagnostic or predictive instruments, and you agree not to make significant medical, psychological, legal, financial, relationship, employment, or safety decisions solely because of a reading, chart, exercise, card draw, or AI output. The invitation is always the same: explore with curiosity, keep what rings true. PSYCH-K® is a third-party trademarked modality practiced under the Practitioner's facilitator certification; the Practice claims no ownership of the mark or method.
+
+═══════════════════════════════════════════════════════════
+
+4. NO GUARANTEE OF RESULTS
+
+Coaching outcomes depend on many factors, most importantly your own participation and circumstances. No specific result is promised from any session, program, package, belief-change process, reading, or portal feature. Testimonials describe individual experiences, not typical or guaranteed results. Personal-development work can surface uncomfortable thoughts, memories, and emotions; you accept these ordinary risks and agree to slow down, pause, seek licensed support, or tell the Practitioner when appropriate.
+
+═══════════════════════════════════════════════════════════
+
+5. NOT AN EMERGENCY OR CRISIS SERVICE
+
+THE SERVICES, THE PORTAL, AND ALL MESSAGING FEATURES ARE NOT AN EMERGENCY OR CRISIS SERVICE AND ARE NOT MONITORED CONTINUOUSLY. Messaging is asynchronous: the Practitioner responds within her own working rhythm, and stated response expectations are good-faith rhythms, not commitments. The portal's automated features may display supportive resources or bring a message to the Practitioner's attention; they are best-effort aids that can be delayed, incomplete, wrong, or unavailable, and they create no duty to monitor, detect, or intervene.
+
+If you are in crisis or an emergency, do not use the portal to seek help: call 911, call or text 988 (Suicide & Crisis Lifeline), or contact your local emergency services — and if outside the United States, the emergency resources where you are. You agree to do so. Where the Practice reasonably believes there is an imminent risk of serious harm, it may disclose limited information to emergency services or others as permitted or required by law; you understand the Practice may not have enough information to locate or assist you.
+
+═══════════════════════════════════════════════════════════
+
+6. USE OF ARTIFICIAL INTELLIGENCE
+
+The Practitioner uses AI tools under her oversight. AI may transcribe session audio and handwriting; organize and surface themes from your journaling, messages, and assessments; generate draft readings from your chart and assessment data; and help draft session materials and reflective questions. You consent to this processing, including by the vendors in Section 7.
+
+Safeguards the platform enforces: nothing AI-generated becomes part of your record or is published to you without the Practitioner's explicit review and approval; AI output is labeled and treated as an interpretive draft, never a conclusion; nothing is auto-diagnosed (and per Section 2, nothing is diagnosed at all); and your corrections to your own information are honored.
+
+AI output can still be incomplete, biased, or wrong; its accuracy is not warranted; human review reduces but does not eliminate the risk of error; and no AI output is medical, mental-health, legal, financial, or other licensed professional advice. Some portal features may be unavailable if you do not consent to the AI processing they require.
+
+═══════════════════════════════════════════════════════════
+
+7. PLATFORM PROVIDER & SERVICE VENDORS
+
+The client portal is software supplied by a platform provider entity (the "Platform Provider"), which provides hosting, storage, security, and integrations — it does not itself provide coaching, counseling, or healthcare. Vendors currently supporting the services, each receiving only what its function requires: Railway (hosting and database), Cloudflare R2 (file storage), Square (client payments — card data is held by Square, never by us), Resend (transactional email), Twilio (optional SMS), AssemblyAI (session-audio transcription; the vendor's copy is deleted after transcription), Anthropic (AI processing under Section 6), an astrology-chart computation service and geocoding provider (birth data only), and optional recording-capture vendors when that feature is enabled. The Practice may replace or add vendors as reasonably necessary; the current list is maintained in the Privacy Policy.
+
+═══════════════════════════════════════════════════════════
+
+8. CLIENT PORTAL; ELECTRONIC RECORDS & SIGNATURES
+
+You consent to conduct this relationship electronically under ESIGN and Florida's Uniform Electronic Transaction Act: records, notices, invoices, and agreements are delivered and signed electronically. A typed name, checked acceptance, intent tap, or other electronic action adopted with intent to sign — under your authenticated account or a verified email link — is your signature. The platform records document version, timestamps, IP and device information, and authentication method, and seals each signed document as a tamper-evident PDF with an integrity hash and audit certificate; you agree this record may be used to establish attribution and the terms accepted.
+
+You may download or request a paper copy at no charge, and may withdraw consent to electronic records prospectively by written notice (which may require paper processes and affect portal features). The separate Electronic Records Disclosure (Exhibit B) explains system requirements, how to request paper copies, and your rights regarding electronic delivery. You are responsible for a suitable device and connection, current contact information, and your credentials; do not share logins, and report suspected unauthorized access promptly.
+
+═══════════════════════════════════════════════════════════
+
+[Sections 9-13 continue unchanged from original...]
+
+═══════════════════════════════════════════════════════════
+
+14. SESSION RECORDING
+
+No one may record a session — including you — unless every required party has knowingly consented. Florida law (§934.03) makes it a criminal offense to record a private conversation without all parties' consent. Secret recording by any party violates this Agreement, may violate Florida criminal law, and may result in immediate termination of services.
+
+The Practice records only under the separate Recording Addendum: a standing, versioned, revocable consent plus a per-session confirmation, enforced by the platform (no recording is processed without your stored consent on file). Florida law requires all parties' consent; if any other person is present, that person must separately consent before recording. You may revoke recording consent prospectively at any time; revocation stops future recording and does not make a prior lawful recording unlawful — treatment of existing recordings is governed by the Recording Addendum and Addendum R. You may not secretly record, copy, stream, or distribute any session.
+
+═══════════════════════════════════════════════════════════
+
+[Sections 15-21 continue unchanged from original...]
+
+═══════════════════════════════════════════════════════════
+
+22. LIMITATION OF LIABILITY
+
+TO THE FULLEST EXTENT PERMITTED BY LAW: NEITHER THE PRACTICE, THE PRACTITIONER, THE PLATFORM PROVIDER, NOR THEIR OWNERS, EMPLOYEES, CONTRACTORS, OR VENDORS IS LIABLE FOR INDIRECT, INCIDENTAL, CONSEQUENTIAL, SPECIAL, EXEMPLARY, OR PUNITIVE DAMAGES, LOST PROFITS, OR LOSS OF DATA ARISING FROM THE SERVICES OR THIS AGREEMENT.
+
+The total aggregate liability of the Practice, the Practitioner, and the Platform Provider for all claims arising from or relating to this Agreement or the services shall not exceed the greater of (a) the fees paid for the applicable package, or (b) the total fees paid to the Practice in the twelve (12) months before the event giving rise to the claim.
+
+These limits apply to all claims arising from the services, portal features, and business relationship. For claims arising from unauthorized access to or disclosure of personal information due to a data breach, the Practice maintains cybersecurity insurance and will comply with all notification and remediation obligations under Florida's Information Protection Act and applicable law; liability limits and insurance coverage terms for data breach claims are governed by the applicable insurance policy.
+
+These limits do not apply to liability that cannot lawfully be limited, or to a party's own gross negligence, willful misconduct, fraud, or knowing violation of law — and they never reduce any signer's obligation to pay authorized charges.
+
+═══════════════════════════════════════════════════════════
+
+[Sections 23-24 continue unchanged from original...]
+
+═══════════════════════════════════════════════════════════
+
+25. DISPUTE RESOLUTION; GOVERNING LAW; VENUE
+
+Florida law governs this Agreement, without regard to conflict-of-laws rules. Before filing suit, a party must give written notice describing the dispute, and the parties will attempt in good faith to resolve it for thirty (30) days; either party may propose non-binding mediation in Orange County, Florida, but mediation is not required. This informal step never prevents small-claims filings, temporary injunctive relief, chargeback-deadline responses, or action needed to protect safety or preserve a legal deadline.
+
+Any court action must be brought exclusively in the state or federal courts serving Orange County, Florida, and each party consents to that jurisdiction and venue. Each party irrevocably waives any objection to venue in Orange County, Florida, including any claim that such venue is inconvenient or improper, and waives any right to transfer or remove the action to another jurisdiction.
+
+In any action to collect unpaid fees or respond to an invalid payment dispute, the prevailing Practice is entitled to its reasonable attorney fees and costs.
+
+═══════════════════════════════════════════════════════════
+
+[Sections 26-27 continue unchanged from original...]
+
+═══════════════════════════════════════════════════════════
+
+SIGNATURE PAGE
+
+Key Terms & Acknowledgments
+
+The exact financial terms below are presented before payment and captured in the sealed record.
+
+Client: {{client_name}}
+Package: {{package_name}}
+Package price: {{price}}
+Session credits: {{session_count}}
+Cancellation boundary: {{notice_window_hours}} hours
+Late-change / no-show fee: {{late_change_fee}}
+Credit treatment on late change / no-show: {{late_cancellation_credit_treatment}}
+Single-session rate (refund calculations): {{single_session_rate}}
+Personalized deliverables & allocated value: {{personalized_deliverables_and_value}}
+Credit expiration: {{credit_expiration}}
+Payer: {{payer_name_or_self}}
+
+CANCELLATION & REFUND POLICY — REQUIRED ACKNOWLEDGMENT. A cancellation, rescheduling request, or no-show inside {{notice_window_hours}} hours results in a {{late_change_fee}} fee and the credit treatment above. Completed sessions, consultations, earned fees, and delivered materials are nonrefundable. An unused package may be canceled within three (3) calendar days of purchase for a full refund. Later refunds of unused credits deduct completed/consumed sessions at {{single_session_rate}}, earned fees, the allocated value of delivered personalized materials, and legally permitted non-recoverable processing costs. Refunds go to the original payment method.
+
+REQUIRED ACKNOWLEDGMENTS (Initial each):
+
+[  ] Initials: ______   I understand these are non-clinical personal development and facilitation services — not psychotherapy, psychology, mental health treatment, medical care, diagnosis, or crisis care. The Practitioner is a Certified PSYCH-K® Facilitator and Personal Development Consultant, not a licensed psychologist or therapist.
+
+[  ] Initials: ______   I understand messages and automated safety features are not continuously monitored and are not emergency services; in an emergency I will call 911 or 988.
+
+[  ] Initials: ______   I consent to electronic records and signatures (per Exhibit B - Electronic Records Disclosure) and to the AI-assisted and third-party processing described in Sections 6–8 and the Privacy Policy.
+
+[  ] Initials: ______   I reviewed and accept the cancellation, no-show, package-credit, and refund terms shown immediately above.
+
+[  ] Initials: ______   I understand that initiating a chargeback or payment dispute before contacting the Practice first (except for unauthorized charges) may result in responsibility for chargeback fees, dispute-processing costs, and attorney fees if resolved in the Practice's favor, as stated in Section 24.
+
+[  ] Initials: ______   I understand a Third-Party Payer must separately sign Exhibit A before their card is charged, and that payment gives no one access to my confidential content.
+
+[  ] Initials: ______   I understand recording requires the separate Recording Addendum and per-session confirmation, and that Florida law (§934.03) makes secret recording a criminal offense.
+
+[  ] Initials: ______   I acknowledge the Data Retention & Deletion Schedule (Addendum R) and made my pattern-library election (Addendum P).
+
+[  ] Initials: ______   I reviewed the limitation-of-liability and Orange County, Florida venue provisions, and understand venue in Orange County is exclusive and mandatory.
+
+Client Signature — {{client_name}}      Date: {{date}}
+
+Practitioner Countersignature — Valentina Vélez, Certified PSYCH-K® Facilitator and Personal Development Consultant, Veritas Consulting      Date: {{date}}
+
+═══════════════════════════════════════════════════════════
+
+EXHIBIT A
+Third-Party Payer & Card Authorization
+
+[Content unchanged from original through Part 2...]
+
+═══════════════════════════════════════════════════════════
+
+Part 2 — Acknowledgment of Services & Records
+
+The Payer acknowledges and agrees: services are rendered to the Client, not the Payer, and a charge is valid when the corresponding service was rendered or the fee properly assessed under the Client's agreement, whether or not the Payer personally observed it; the Practice's records — the Client's signed agreement, booking confirmations, attendance and session-credit ledger, post-session completion records, invoices, and receipts — accurately document services delivered and are agreed to be sufficient evidence of services rendered in any billing question or payment-network dispute; the Payer waives any right to dispute a charge on the basis that the Payer did not personally observe the service, so long as the Client's records confirm attendance and the service was rendered; the Payer is the cardholder or an authorized user with authority to approve these transactions, and understands that a family member's possession or use of the Payer's card does not by itself constitute the Payer's authorization; and the Payer is not the Client, gains no right to attend or direct sessions, and receives no journals, messages, session content, recordings, or Practitioner notes.
+
+[Parts 3-6 continue unchanged from original...]
+
+═══════════════════════════════════════════════════════════
+
+ADDENDUM M
+Minor Client & Guardian Authorization
+
+[Content mostly unchanged through initial checkboxes, then add new checkbox before final signature:]
+
+[  ] Initials: ______   I understand the Practice will not mediate, participate in, or provide testimony in custody, parenting-time, or family-law disputes, and that attempting to subpoena the Practitioner or records for such purposes may result in termination of services, with fees and costs charged to the party issuing the subpoena where permitted by law.
+
+[Remainder continues unchanged...]
+
+═══════════════════════════════════════════════════════════
+
+EXHIBIT B
+Electronic Records Disclosure
+
+Required under the federal Electronic Signatures in Global and National Commerce Act (ESIGN)
+
+SCOPE OF CONSENT
+
+By accepting this Agreement electronically, you consent to receive and sign all documents, notices, invoices, receipts, and communications related to your services ("Records") in electronic form rather than in paper form. This consent applies to this Agreement and all related documents listed in Section 1.
+
+HARDWARE AND SOFTWARE REQUIREMENTS
+
+To access and retain electronic Records, you need:
+• A device (computer, tablet, or smartphone) with internet access
+• A current web browser (Chrome, Safari, Firefox, or Edge; latest two versions recommended)
+• A PDF reader (Adobe Acrobat Reader or equivalent) to view and save signed agreements
+• An active email address to receive notifications and links
+• Sufficient storage space or cloud access to retain downloaded copies
+
+HOW TO WITHDRAW CONSENT
+
+You may withdraw your consent to electronic Records at any time by sending written notice to [practice email address] with the subject line "Withdraw Electronic Records Consent." Withdrawal is effective after we receive your notice and have a reasonable time to process it. Withdrawal applies prospectively only — it does not affect the validity of Records delivered electronically before withdrawal.
+
+If you withdraw consent, future Records will be provided in paper form (which may delay delivery and affect certain portal features). You will remain responsible for all fees, and paper delivery may incur additional administrative costs where permitted.
+
+RIGHT TO REQUEST PAPER COPIES
+
+You may request a paper copy of any electronic Record at no charge by contacting [practice email address]. We will provide the paper copy within a reasonable time (ordinarily 10 business days). Paper copies are provided as a courtesy and do not replace the official electronically signed and sealed version.
+
+HOW TO UPDATE YOUR CONTACT INFORMATION
+
+You are responsible for keeping your email address and contact information current. You can update your information in the client portal under Account Settings, or by notifying us in writing at [practice email address]. We are not responsible for failed delivery if you do not maintain current contact information.
+
+ACKNOWLEDGMENT
+
+By checking the consent box and signing this Agreement electronically, you confirm that:
+• You have read this Disclosure
+• You can access and retain electronic Records using the system requirements above
+• You consent to receive and sign Records electronically
+• You understand your right to receive paper copies and to withdraw consent
+
+If you do not consent or cannot meet the system requirements, contact us before signing to arrange paper-based processes.
+
+[  ] I acknowledge and accept the Electronic Records Disclosure above.
+
+Client Signature: {{client_name}}      Date: {{date}}
+
+═══════════════════════════════════════════════════════════
+
+[Addenda R and P continue unchanged from original]
+
+══════════════════════════════════════════════════════════
