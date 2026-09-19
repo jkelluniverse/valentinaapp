@@ -654,7 +654,19 @@ async function main() {
     `tenantId=${String(bExplicit?.tenantId)}`,
   );
   // An UPDATE never rewrites tenantId.
-  await runInRequest(DEFAULT_HOST, async () => {
+  //
+  // P5 / RULING 155 — THIS USED TO RUN IN THE DEFAULT TENANT'S SCOPE, AND THAT
+  // WAS A CROSS-TENANT WRITE. The row belongs to FOREIGN_TENANT; updating it
+  // from her scope only ever worked because tenant #1 was EXEMPT from the
+  // ownership pre-check, and under any other tenant it would already have been
+  // refused. The exemption is gone, so this gate was relying on the very
+  // asymmetry P5 removed — found by the sweep, not by reading.
+  //
+  // The assertion is unchanged (ruling 157): it still proves an update does not
+  // rewrite an existing tenantId. It now does so from the scope that OWNS the
+  // row, which is what it should always have been.
+  const { withTenantScope } = await import("../lib/tenancy/tenant-scope");
+  await withTenantScope(FOREIGN_TENANT, async () => {
     await prisma.chapter.update({ where: { id: "nsx_explicit_foreign" }, data: { title: "nsx explicit foreign v2" } });
   });
   const afterUpdate = await p.chapter.findUnique({ where: { id: "nsx_explicit_foreign" } });

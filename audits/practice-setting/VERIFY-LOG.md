@@ -1,6 +1,6 @@
 # C25-PRACTICE-SETTING-TENANCY — acceptance log
 
-Run: 2026-09-19T21:45:14.758Z · `npx tsx audits/practice-setting-verify.ts`
+Run: 2026-09-19T22:07:34.843Z · `npx tsx audits/practice-setting-verify.ts`
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Verify 3 and 5 run in a REAL BROWSER against the BUILT app, on each
@@ -8,7 +8,7 @@ practice's own host, for practices provisioned by the real signup service.
 Verify 7 and 9 reverse migration 49 and re-apply it against the live
 database, comparing every row before and after.
 
-# C25-PRACTICE-SETTING-TENANCY verify — 2026-09-19T21:44:55.066Z
+# C25-PRACTICE-SETTING-TENANCY verify — 2026-09-19T22:07:14.800Z
 
 ## Verify 1 — the five assumptions, confirmed or corrected
 - ✓ A1 — the 79-model sweep: no scoped model lacks an `id` column, and none is keyed by anything else — 79 models swept · no-id: none · pk≠id: none
@@ -27,10 +27,10 @@ database, comparing every row before and after.
 - ✓ BEFORE — and the failure mode is live, not asserted: selecting a column the model does not have is a PrismaClientValidationError, thrown before any tenancy check can run — error class: PrismaClientValidationError
 
 ## Verify 5 (first, because 3 and 4 build on it) — two practices created by the REAL signup service
-- ✓ two ACTIVE non-default practices exist, provisioned by lib/signup.ts exactly as a founding practitioner creates one — cmu8x1aee00019qhjguxbpp0z (ACTIVE) · cmu8x1amx00099qhjkpgplgpy (ACTIVE)
+- ✓ two ACTIVE non-default practices exist, provisioned by lib/signup.ts exactly as a founding practitioner creates one — cmu8xu09x00013ec52i8fkqph (ACTIVE) · cmu8xu0ie00093ec568erwzdg (ACTIVE)
 
 ## Verify 2 (after) + 4 — the write succeeds, and two practices hold the same key independently
-- ✓ AFTER — the exact write this spec exists to fix now SUCCEEDS for a non-default tenant, and is stamped to that tenant — 3 rows for the one key: cmu8x1aee00019qhjguxbpp0z=A-value · cmu8x1amx00099qhjkpgplgpy=B-value · tnt_valentina_000000001=default-value
+- ✓ AFTER — the exact write this spec exists to fix now SUCCEEDS for a non-default tenant, and is stamped to that tenant — 3 rows for the one key: cmu8xu09x00013ec52i8fkqph=A-value · cmu8xu0ie00093ec568erwzdg=B-value · tnt_valentina_000000001=default-value
 - ✓ V4 — THREE practices hold the SAME key with DIFFERENT values (the model was structurally single-practice before this build) — A-value, B-value, default-value
 - ✓ V4 — each practice reads its OWN value and only its own — A=A-value · B=B-value · default=default-value
 - ✓ V4 — a practice cannot READ a key only another practice holds — A reading B's psxProbeSecondKey: nothing
@@ -40,7 +40,7 @@ database, comparing every row before and after.
 ## Verify 8 — fail-closed preserved, on PracticeSetting AND on a normal id-keyed model
 - ✓ V8 — an UPSERT aimed at another practice's existing PracticeSetting row is REFUSED (the fix did not trade fail-closed away) — tenant-scope: practiceSetting.upsert target belongs to another tenant
 - ✓ V8 — a DELETE aimed at another practice's PracticeSetting row is REFUSED and the row survives — tenant-scope: practiceSetting.delete target not found in tenant scope
-- ✓ V8 — on a normal `id`-keyed model the pre-check still refuses a cross-tenant unique write, and the target row is untouched — tenant-scope: patternArchetype.upsert target belongs to another tenant · target still b/cmu8x1amx00099qhjkpgplgpy
+- ✓ V8 — on a normal `id`-keyed model the pre-check still refuses a cross-tenant unique write, and the target row is untouched — tenant-scope: patternArchetype.upsert target belongs to another tenant · target still b/cmu8xu0ie00093ec568erwzdg
 - ✓ V8 — and an UPDATE by another tenant's primary key is still refused — tenant-scope: patternArchetype.update target not found in tenant scope
 - ✓ V8 — the DMMF derivation serves a compound PK and a non-`id` PK, and FAILS CLOSED (throws) for a model it cannot identify — it never returns a skip — compound={"a":true,"b":true} · non-id pk={"key":true} · unkeyable throws ModelIdentityError · unknown delegate throws ModelIdentityError
 - ✓ V8 — and the derivation covers every one of the 79 scoped models, so no write reaches the fail-closed branch unidentified — 79/79 scoped delegates resolve to a non-empty identity select
@@ -64,10 +64,10 @@ database, comparing every row before and after.
 ## Verify 3 — a founding practitioner writes and reads a setting INSIDE A REAL REQUEST on their own host
 - ✓ both founding practitioners sign in on their OWN host and reach their own settings page (the surface the defect blocked) — http://psxprobea.psx.test:3141/practitioner/settings · http://psxprobeb.psx.test:3141/practitioner/settings
 - ✓ …and the request really carries her own host, so this is the request path a practitioner uses, not a simulation — Host: psxprobea.psx.test:3141
-- ✓ V3 — the setting is WRITTEN inside a real request on her own host, owned by HER practice — rows before=0 · after: value=off tenantId=cmu8x1aee00019qhjguxbpp0z · url /practitioner/settings?saved=assist
+- ✓ V3 — the setting is WRITTEN inside a real request on her own host, owned by HER practice — rows before=0 · after: value=off tenantId=cmu8xu09x00013ec52i8fkqph · url /practitioner/settings?saved=assist
 - ✓ V3 — and READ BACK inside a real request: her page renders the value she just saved — assistNotify checkbox rendered checked=false (she turned it off)
 - ✓ V3/V4 — the OTHER practice's identical page is untouched by her save: no row of its own, default state, and Valentina's practice unaffected — B checkbox=true · B rows=0 · default-tenant rows=0
-- ✓ V3/V4 — both practices now hold `assistNotifyEmail` independently, each written through its own real request — cmu8x1aee00019qhjguxbpp0z=off · cmu8x1amx00099qhjkpgplgpy=off
+- ✓ V3/V4 — both practices now hold `assistNotifyEmail` independently, each written through its own real request — cmu8xu09x00013ec52i8fkqph=off · cmu8xu0ie00093ec568erwzdg=off
 - ✓ V3 — saving the same key again UPDATES her one row (no duplicate), and the other practice's value is still its own — A: 1 row(s) = on · B still off
 ~ probe practices, probe settings and probe archetypes removed
 - ✓ SELF-CLEANING: this harness leaves zero null-tenant rows behind — {}

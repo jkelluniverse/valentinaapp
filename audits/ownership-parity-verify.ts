@@ -34,8 +34,13 @@ import { AsyncLocalStorage } from "async_hooks";
 //   DATABASE_URL=...scratch npx tsx audits/ownership-parity-verify.ts
 
 const TENANT_B = "tnt_ownparity_b_00001";
-const KEY_HERS = "ownparity-hers";
-const KEY_THEIRS = "ownparity-theirs";
+// PriceBook on purpose: a scoped model with id + tenantId and no required
+// relation, and — unlike PracticeSetting — no standing invariant of its own. The
+// first version used PracticeSetting and reddened practice-setting-verify, whose
+// A3 scanner requires every settings row be addressed by its tenant-qualified
+// key. That gate was right; this gate moved rather than the assertion (ruling 157).
+const NAME_HERS = "ownparity-hers";
+const NAME_THEIRS = "ownparity-theirs";
 
 const report: string[] = [];
 let failed = 0;
@@ -56,7 +61,7 @@ async function main() {
   const { DEFAULT_TENANT_ID } = await import("../lib/tenancy/scope");
 
   const cleanup = async () => {
-    await rawPrisma.practiceSetting.deleteMany({ where: { key: { in: [KEY_HERS, KEY_THEIRS] } } }).catch(() => {});
+    await rawPrisma.priceBook.deleteMany({ where: { name: { in: [NAME_HERS, NAME_THEIRS] } } }).catch(() => {});
     await rawPrisma.tenant.deleteMany({ where: { id: TENANT_B } }).catch(() => {});
   };
   await cleanup();
@@ -64,16 +69,16 @@ async function main() {
   await rawPrisma.tenant.create({
     data: { id: TENANT_B, slug: "ownparity-b", displayName: "Ownership Parity B", status: "ACTIVE" },
   });
-  const hers = await rawPrisma.practiceSetting.create({
-    data: { tenantId: DEFAULT_TENANT_ID, key: KEY_HERS, value: "original" },
+  const hers = await rawPrisma.priceBook.create({
+    data: { tenantId: DEFAULT_TENANT_ID, name: NAME_HERS, amountCents: 1000 },
     select: { id: true },
   });
-  const theirs = await rawPrisma.practiceSetting.create({
-    data: { tenantId: TENANT_B, key: KEY_THEIRS, value: "original" },
+  const theirs = await rawPrisma.priceBook.create({
+    data: { tenantId: TENANT_B, name: NAME_THEIRS, amountCents: 1000 },
     select: { id: true },
   });
   const valueOf = async (id: string) =>
-    (await rawPrisma.practiceSetting.findUnique({ where: { id }, select: { value: true } }))?.value;
+    (await rawPrisma.priceBook.findUnique({ where: { id }, select: { amountCents: true } }))?.amountCents;
 
   const attempt = async (scope: string, id: string) => {
     try {
@@ -85,7 +90,7 @@ async function main() {
       // of this gate did exactly that and reported a cross-tenant write
       // succeeding — a FALSE ALARM that looked like a security hole.
       await withTenantScope(scope, async () => {
-        await prisma.practiceSetting.update({ where: { id }, data: { value: "hijacked" } });
+        await prisma.priceBook.update({ where: { id }, data: { amountCents: 9999 } });
       });
       return { refused: false, why: "" };
     } catch (e) {
@@ -99,19 +104,19 @@ async function main() {
     log(`\n## 1 — HER scope reaching ANOTHER tenant's row (the exemption that existed)`);
     const a1 = await attempt(DEFAULT_TENANT_ID, theirs.id);
     check("refused", a1.refused, a1.why.slice(0, 90));
-    check("and the other tenant's row is UNCHANGED — it threw AND did not write", (await valueOf(theirs.id)) === "original", String(await valueOf(theirs.id)));
+    check("and the other tenant's row is UNCHANGED — it threw AND did not write", (await valueOf(theirs.id)) === 1000, String(await valueOf(theirs.id)));
 
     log(`\n## 2 — another tenant's scope reaching HER row (held before; regression guard)`);
     const a2 = await attempt(TENANT_B, hers.id);
     check("refused", a2.refused, a2.why.slice(0, 90));
-    check("and HER row is UNCHANGED", (await valueOf(hers.id)) === "original", String(await valueOf(hers.id)));
+    check("and HER row is UNCHANGED", (await valueOf(hers.id)) === 1000, String(await valueOf(hers.id)));
 
     log(`\n## 3 — POSITIVE CONTROL: her scope writing HER OWN row still works`);
     const a3 = await attempt(DEFAULT_TENANT_ID, hers.id);
     check(
       "succeeds — the check is an ownership test, not a blanket refusal",
-      !a3.refused && (await valueOf(hers.id)) === "hijacked",
-      a3.refused ? `REFUSED: ${a3.why.slice(0, 80)}` : `value=${await valueOf(hers.id)}`,
+      !a3.refused && (await valueOf(hers.id)) === 9999,
+      a3.refused ? `REFUSED: ${a3.why.slice(0, 80)}` : `amountCents=${await valueOf(hers.id)}`,
     );
   } finally {
     await cleanup();

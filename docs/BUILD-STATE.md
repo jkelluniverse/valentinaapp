@@ -2015,6 +2015,22 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## AsyncLocalStorage context and every op becomes an unscoped passthrough. It was caught
 ## because leg 2 — the leg that was supposed to ALREADY hold — failed. A GATE WHOSE
 ## CONTROL LEG FAILS IS TELLING YOU ABOUT ITSELF, NOT THE SYSTEM.
+## THE EXEMPTION WAS LOAD-BEARING IN THE TEST APPARATUS — the strongest evidence that
+## ruling 155 was not theoretical, and NOTHING FOUND IT BY READING. The moment the
+## exemption was removed, audits/nested-stamp-verify.ts went red: its check "an update
+## through the scoped client does not rewrite an existing tenantId" proved that property
+## by updating a FOREIGN_TENANT-owned row FROM THE DEFAULT TENANT'S SCOPE — a cross-tenant
+## write that only ever worked BECAUSE tenant #1 was exempt, and which under any other
+## tenant would already have been refused. Fixed per ruling 157: the ASSERTION is
+## unchanged, the SCOPE is corrected — the update now runs inside
+## withTenantScope(FOREIGN_TENANT, ...), the scope that owns the row, which is what it
+## should always have been. 43/43.
+## THE SECOND RED WAS THE NEW GATE'S OWN FAULT and practice-setting-verify was right to
+## catch it: the parity gate used PracticeSetting, whose A3 scanner requires every settings
+## row be addressed by its tenant-qualified (tenantId, key). THE GATE MOVED, NOT THE
+## ASSERTION (ruling 157) — it now uses PriceBook, a scoped model with id + tenantId, no
+## required relation and no standing invariant of its own. 47/47.
+
 ## ITEM 2 STOPPED AND REPORTED RATHER THAN WIDENED: all four remaining chrome branches
 ## have one shape (non-default -> own identity; default -> hardcoded copy, and
 ## book/page.tsx carries her name as a literal). There is no way to express them without
