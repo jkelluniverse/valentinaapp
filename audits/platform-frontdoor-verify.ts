@@ -28,6 +28,7 @@ import { createServer, type Server } from "http";
 import { chromium, type Browser } from "playwright";
 import { rawPrisma as prisma } from "../lib/prisma-internal";
 import { seedLocalDomains } from "./_fixtures/local-domains";
+import { DEFAULT_TENANT_ID } from "../lib/tenancy/scope";
 
 const APP_PORT = 3184;
 const SINK_PORT = 3185;
@@ -46,6 +47,7 @@ const SLUG = "p4probe";
 const PORTAL_HOST = `${SLUG}.${PLATFORM_DOMAIN}`;
 const PROBE_EMAIL = "p4-probe@fixture.test";
 const JOIN_EMAIL = "p4-join-probe@fixture.test";
+const TENANT_JOIN_EMAIL = "p4-tenant-join-probe@fixture.test";
 const EXEC = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
 
 const PLATFORM_FROM = 'Psychefolio <notifications@psx.test>';
@@ -89,7 +91,18 @@ async function cleanup(): Promise<void> {
     await prisma.user.deleteMany({ where: { tenantId: t.id } }).catch(() => {});
     await prisma.tenant.delete({ where: { id: t.id } }).catch(() => {});
   }
-  await prisma.practitionerProspect.deleteMany({ where: { email: { in: [PROBE_EMAIL, JOIN_EMAIL] } } }).catch(() => {});
+  // The audit rows go first: they reference the prospects by actorId, and this
+  // gate must leave the invariant audit clean either way.
+  const stale = await prisma.practitionerProspect.findMany({
+    where: { email: { in: [PROBE_EMAIL, JOIN_EMAIL, TENANT_JOIN_EMAIL] } },
+    select: { id: true },
+  });
+  if (stale.length) {
+    await prisma.auditEvent
+      .deleteMany({ where: { action: "prospect-capture", actorId: { in: stale.map((r) => r.id) } } })
+      .catch(() => {});
+  }
+  await prisma.practitionerProspect.deleteMany({ where: { email: { in: [PROBE_EMAIL, JOIN_EMAIL, TENANT_JOIN_EMAIL] } } }).catch(() => {});
 }
 
 async function main() {
@@ -99,7 +112,7 @@ async function main() {
   await seedLocalDomains();
   await cleanup();
 
-  log(`# P4 PLATFORM-MAIL verify — ${new Date().toISOString()}`);
+  log(`# PLATFORM FRONT-DOOR verify — ${new Date().toISOString()}`);
   const sink = startSink();
   const env = {
     ...process.env,
@@ -221,6 +234,63 @@ async function main() {
       `landed=${joinLanded.replace(BASE, "")}`,
     );
     await jctx.close();
+
+    // ---- THE OTHER HALF OF THE ATTRIBUTION CLAIM ----
+    // Ruling 133 condition 1 says the tracked constant is reachable ONLY on the
+    // platform host. That is a claim about a branch not taken, so it needs its
+    // positive control (ruling 110): the SAME capture path, on a host that DOES
+    // resolve, must attribute to that practice and not to the constant. The
+    // tenant minted a moment ago is used, because it is a non-default practice
+    // whose id cannot be confused with DEFAULT_TENANT_ID.
+    //
+    // Submitted as a plain no-JS form POST rather than through the browser,
+    // which is what this form is built for ("MINIMAL JAVASCRIPT ON PURPOSE" —
+    // it must submit on a saturated conference network before any bundle
+    // arrives). It also keeps the check independent of the browser entirely.
+    // Connect to LOOPBACK but present the practice's host in both headers.
+    // Node's fetch does not apply the RFC 6761 `*.localhost` rule the browser
+    // does, so `p4probe.psx.localhost` does not resolve here — and spoofing
+    // x-forwarded-host ALONE would trip the same Next server-action Origin
+    // check documented at the top of this file. Setting Origin to match is what
+    // makes this a legitimate request rather than a rejected one.
+    const tenantHost = `http://${SLUG}.${PLATFORM_DOMAIN}:${APP_PORT}`;
+    const tenantHdrs = { Origin: tenantHost, Referer: `${tenantHost}/join`, "x-forwarded-host": `${SLUG}.${PLATFORM_DOMAIN}:${APP_PORT}` };  // the PORT matters: Next compares Origin to the forwarded host verbatim
+    const formHtml = await (await fetch(`${LOOPBACK}/join`, { headers: tenantHdrs })).text();
+    const actionId = formHtml.match(/name="(\$ACTION_ID_[a-f0-9]+)"/)?.[1] ?? "";
+    const renderedAt = formHtml.match(/name="t" value="(\d+)"/)?.[1] ?? "0";
+    const form = new FormData();
+    form.set(actionId, "");
+    form.set("lang", "en");
+    form.set("ref", "");
+    form.set("src", "web");
+    form.set("t", renderedAt);
+    form.set("company", "");
+    form.set("name", "P4 Tenant Attribution Probe");
+    form.set("email", TENANT_JOIN_EMAIL);
+    await new Promise((r) => setTimeout(r, 1700)); // the action's time trap
+    const tRes = await fetch(`${LOOPBACK}/join`, {
+      method: "POST",
+      body: form,
+      redirect: "manual",
+      headers: tenantHdrs,
+    });
+    const tenantProspect = await prisma.practitionerProspect.findUnique({ where: { email: TENANT_JOIN_EMAIL } });
+    check(
+      "a PRACTICE's own /join captures too (the positive control for the branch below)",
+      Boolean(tenantProspect) && !String(tRes.headers.get("location") ?? "").includes("error="),
+      `→ ${tRes.status} ${tRes.headers.get("location") ?? ""}`,
+    );
+    if (tenantProspect && tenant) {
+      const row = await prisma.auditEvent.findFirst({
+        where: { action: "prospect-capture", actorId: tenantProspect.id },
+        select: { tenantId: true },
+      });
+      check(
+        "...and its audit row is attributed to THAT PRACTICE, never the ruling-133 constant",
+        Boolean(row) && row!.tenantId === tenant.id,
+        `audit tenantId=${row?.tenantId ?? "NO ROW"} · practice=${tenant.id} · constant=${DEFAULT_TENANT_ID}`,
+      );
+    }
     await ctx.close();
   } finally {
     if (browser) await browser.close().catch(() => undefined);
