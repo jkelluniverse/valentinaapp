@@ -1,12 +1,12 @@
 # C24.1-TENANT-SCOPE — acceptance log
 
-Run: 2026-09-19T22:39:51.560Z · `npx tsx audits/tenant-scope-verify.ts`
+Run: 2026-09-19T23:19:32.971Z · `npx tsx audits/tenant-scope-verify.ts`
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Requests are simulated in-process via Next's request async storage, so every
 request-path check runs through the real scoped client against the real database.
 
-# C24.1-TENANT-SCOPE verify — 2026-09-19T22:39:47.474Z
+# C24.1-TENANT-SCOPE verify — 2026-09-19T23:19:28.909Z
 - ✓ simulated request scope is real (next/headers resolves inside it)
 
 ## Verify 1 — the five assumptions
@@ -25,7 +25,7 @@ request-path check runs through the real scoped client against the real database
 - ✓ A3 CORRECTED: audits/amd06/verify.ts was a SECOND live producer (+8 rows / 5 tables), missed by C24's sweep — it is not in the spec's regression list, so the per-gate attribution never ran it
 - ✓ A4: audits/remarkable-recording/verify.ts carries the wrap (mechanical application, NOT a verified pass)
   · credential state at this run: ANTHROPIC_API_KEY=absent · ASSEMBLYAI_API_KEY=absent — informational, not a check: this gate must not fail on an environment that HAS the credentials.
-- ✓ A5 CONFIRMED: the call sites that stamp explicitly are still there and unchanged in number — 15 file(s): audits/c12x-ai-pass/run3-patch01.ts, audits/capture/verify.ts, audits/engage/verify.ts, audits/nested-stamp-verify.ts, audits/ownership-parity-verify.ts, audits/platform/verify.ts, audits/practice-setting-verify.ts, audits/referral/verify.ts, prisma/fixtures/c12x-verify.ts, prisma/fixtures/kfloor-verify.ts, app/invite/[token]/actions.ts, app/practitioner/clients/actions.ts, lib/packages.ts, lib/pattern-library.ts, audits/nested-stamp-verify.ts
+- ✓ A5 CONFIRMED: the call sites that stamp explicitly are still there and unchanged in number — 16 file(s): audits/c12x-ai-pass/run3-patch01.ts, audits/capture/verify.ts, audits/engage/verify.ts, audits/nested-stamp-verify.ts, audits/onboarding/ui-verify.ts, audits/ownership-parity-verify.ts, audits/platform/verify.ts, audits/practice-setting-verify.ts, audits/referral/verify.ts, prisma/fixtures/c12x-verify.ts, prisma/fixtures/kfloor-verify.ts, app/invite/[token]/actions.ts, app/practitioner/clients/actions.ts, lib/packages.ts, lib/pattern-library.ts, audits/nested-stamp-verify.ts
 - ✓ A5 CONFIRMED: lib/pattern-library.ts still resolves and states its own tenant (the CLI-seam precedent)
 
 ## Verify 2 — a CLI write inside withTenantScope is stamped (the case that never worked)
@@ -67,7 +67,7 @@ request-path check runs through the real scoped client against the real database
 ## Verify 7 — the ~10 explicit call sites keep their exact values
 - ✓ a product lib that states its tenant at the call site (lib/pattern-library) keeps its EXACT value under a scope — tenantId=tnt_tcv_foreign_00001 (scope was tnt_valentina_000000001)
 - ✓ an explicit stamp with no scope at all still lands exactly as stated (these files are unaffected by this build)
-- ✓ every explicit tenant VALUE in those files is unchanged across C24.1's sweep (939a663 → a6c8bd8, pinned per ruling 34) — no file lost a stamp, and none gained one for any tenant but the default — 14 files compared value-by-value across the pinned sweep · 0 changed the SHAPE of a stamping line (none), stamping the same tenant
+- ✓ every explicit tenant VALUE in those files is unchanged across C24.1's sweep (939a663 → a6c8bd8, pinned per ruling 34) — no file lost a stamp, and none gained one for any tenant but the default — 15 files compared value-by-value across the pinned sweep · 0 changed the SHAPE of a stamping line (none), stamping the same tenant
 ~ probe tenant, courses, chapters, lessons, log entries and users removed
 - ✓ SELF-CLEANING: this harness leaves zero null-tenant rows behind — {}
 - ✓ the audit still covers every scoped table (79 tables, nothing narrowed) — 79 tables
