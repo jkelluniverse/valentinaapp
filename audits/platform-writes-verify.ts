@@ -127,6 +127,32 @@ async function main(): Promise<void> {
     leaked.length ? `STILL USES DEFAULT_TENANT_ID: ${leaked.join(", ")}` : "none",
   );
 
+  // The severity flag is a deliberate, narrow exception, so it is COUNTED
+  // (ruling 128). Two call sites: the platform-host capture path and notify's
+  // identity resolution. A third would mean someone is quieting a refusal that
+  // is NOT expected, which is how an error stops meaning an error.
+  log(`\n## 2b — the expected-refusal severity flag is used at EXACTLY two call sites`);
+  const FLAG = "refusalExpected: true";
+  const flagHomes = ["lib/prospect-capture.ts", "lib/notify.ts"];
+  let flagUses = 0;
+  for (const f of flagHomes) flagUses += (readFileSync(join(ROOT, f), "utf8").split(FLAG).length - 1);
+  check(
+    `${FLAG} appears exactly twice, in ${flagHomes.join(" and ")}`,
+    flagUses === 2,
+    `${flagUses} use site(s) — a third means a refusal is being quieted that is not expected`,
+  );
+  const straySrc = ["lib/provisioning.ts", "lib/billing/provision.ts", "lib/engage.ts"]
+    .filter((f) => readFileSync(join(ROOT, f), "utf8").includes(FLAG));
+  check("and nowhere else in the platform-level modules", straySrc.length === 0, straySrc.join(", ") || "none");
+  // The refusal ITSELF is untouched — only its level. If the throw ever went
+  // with the severity this whole design would be gone, so it is asserted here.
+  const prismaSrc = readFileSync(join(ROOT, "lib/prisma.ts"), "utf8");
+  check(
+    "the flag changes SEVERITY only — TenantUnresolvedError is still thrown on every refusal path",
+    (prismaSrc.match(/throw new TenantUnresolvedError\(\)/g) ?? []).length >= 4 && /refusal\(/.test(prismaSrc),
+    `${(prismaSrc.match(/throw new TenantUnresolvedError\(\)/g) ?? []).length} throw site(s)`,
+  );
+
   log(`\n## 3 — they still use the RAW client (a silent return to the scoped one breaks the front door)`);
   for (const m of MODULES) {
     const src = readFileSync(join(ROOT, m.file), "utf8");

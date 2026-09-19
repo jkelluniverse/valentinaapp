@@ -1862,6 +1862,59 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     it presented exactly as a mail failure. The constraint is written into that gate's
     header so it is not rediscovered.
 
+138. **A builder that ships a ratified instruction it has just disproved is worse than
+    one that stops.** Item 4 was dispatched as a build instruction; unpinning AUTH_URL
+    moved staging's no-JS sign-in redirect from a WRONG absolute host to a BROKEN one
+    (`https://localhost:8080`) while `x-forwarded-host` is demonstrably correct on that
+    same deployment — proven by /api/tenant-kind resolving by it. Trading a
+    wrong-but-reachable host for an unreachable one on a live practice's sign-in path is
+    a worse outcome than the defect. **The refusal is the correct response to a
+    dispatched instruction contradicted by evidence**, and is recorded as such. Restoring
+    staging to its own host rather than leaving it pointed at production is a strict
+    improvement and stands. ITEM 4 IS NOW ITS OWN TRACKED INVESTIGATION, NOT PART OF P5:
+    why does the deployed auth callback not see x-forwarded-host when the same deployment
+    resolves tenancy by it? Likely shapes — Auth.js reading headers at a different point
+    in the request lifecycle, a basePath/trustHost interaction, or the callback running
+    where the proxy headers have not been applied. **Do not guess; instrument. Do not
+    touch production's AUTH_URL until the mechanism is known.**
+139. **With a wildcard domain, NO HOSTNAME IS UNREACHABLE BY CONSTRUCTION.** Railway's
+    `*.psychefolio.com` matches whatever Host a caller sends, so an "un-typeable" slug is
+    not a guard — a crafted header reaches any slug at all. The platform tenant's
+    protection is a STATUS check in code, in BOTH resolvers, which cannot be spoofed by a
+    header. Proven on the real wildcard in production:
+    `__platform__.psychefolio.com` → `{"kind":"unresolved","isDefault":false}`, with both
+    positive controls (ruling 110).
+140. **Check the raw artifact, never the convenience summary.** The Gmail API's `sender`
+    field strips the display name and returned a bare `jacob@psychefolio.com`, which reads
+    as a ruling-94 failure; the raw MIME header carried
+    `From: Psychefolio <jacob@psychefolio.com>`. Fifth instrument error of the week and
+    **the first that would have produced a PHANTOM DEFECT rather than a missed one** —
+    someone would have "fixed" working code.
+141. **Ruling 97's interlock, discharged correctly.** `platformIdentity()` stopped
+    REQUIRING the postal address in the same commit that stopped RENDERING it, and the
+    requirement moved to where it belongs — commercial mail in lib/engage.ts, which holds
+    sends and logs loudly if unset. The envelope renders the address iff it carries an
+    unsubscribe link. Jacob still owes the address value; **engage will HOLD rather than
+    send non-compliant mail, which is the correct failure.**
+142. **Prefer a fix that cannot be undone by someone editing a variable.** Item 2 shipped
+    in CODE via `withDisplayName()` rather than as a request for an ops variable edit:
+    deterministic, idempotent, no ops dependency, and a value that already carries a
+    display name passes through untouched.
+
+## LOG SEVERITY ON A NORMAL PATH (done before P5, on the Architect's instruction): every
+## capture on the platform host emitted an ERROR-severity `[tenant-scope] refusing scoped
+## access` line from captureAuditTenantId() and from notify's identity resolution — both
+## working as designed on a path that is now NORMAL. **An error line on a healthy path
+## trains everyone to ignore error lines, and this program has twice been saved by
+## someone reading one carefully.** Fixed as SEVERITY ONLY: `scopeTenantId({
+## refusalExpected: true })` logs at info with "— expected here; the caller handles it"
+## appended; the line, its host, its reason and the TenantUnresolvedError throw are all
+## unchanged. Counted at EXACTLY two call sites by audits/platform-writes-verify.ts
+## (ruling 128), with a third check asserting the throw sites still exist — if the throw
+## ever went with the severity, the whole design would be gone. notify's own line is now
+## info too, and in practice it no longer fires at all on the platform host: P4 item 1
+## means that path SENDS rather than refusing.
+
 ## THE P3.3 REGRESSION — BOTH PLATFORM FRONT DOORS, AND THE GATE GAP THAT HID IT
 ## (found 2026-09-19 while building P4's acceptance gate; hotfix follows)
 ## WHAT BROKE, on the platform host ONLY (her domain and practice subdomains resolve, so

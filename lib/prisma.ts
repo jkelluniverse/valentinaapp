@@ -98,7 +98,27 @@ function logScopeOnce(host: string, tenantId: string, via: string): void {
   console.info(`[tenant-scope] host=${host} tenantId=${tenantId} via=${via}`);
 }
 
-async function requestTenantId(): Promise<string | null> {
+/** `refusalExpected` — SEVERITY ONLY, never the refusal itself.
+ *
+ *  Two callers ASK whether this request has a tenant and are built to handle
+ *  "no": the platform-host capture path, which then attributes to the platform
+ *  tenant, and notify's identity resolution, which then skips the send rather
+ *  than borrowing a practice's letterhead. On the platform host their refusal is
+ *  NORMAL — it is P3.3 working — so logging it at error level trains everyone
+ *  reading production logs to ignore error lines on a healthy path. This program
+ *  has twice been saved by someone reading a log line carefully; that only keeps
+ *  working while error means error.
+ *
+ *  Nothing is hidden. The line is still emitted, with the same host and the same
+ *  reason, and TenantUnresolvedError is still thrown. On a PRACTICE host this
+ *  branch means a real outage — and that outage is already loud everywhere else,
+ *  because the page itself 503s and every other scoped access refuses at error
+ *  level. This removes a duplicate, not a signal. */
+async function requestTenantId(opts?: { refusalExpected?: boolean }): Promise<string | null> {
+  const refusal = (msg: string): void => {
+    if (opts?.refusalExpected) console.info(`${msg} — expected here; the caller handles it`);
+    else console.error(msg);
+  };
   let host: string | null;
   try {
     const h = headers();
@@ -127,7 +147,7 @@ async function requestTenantId(): Promise<string | null> {
     // P4 item 5 — the platform's own tenant is an attribution target, not a
     // practice: no host may scope data access to it, by mapping or by pattern.
     if (m.ok && m.tenant?.status === PLATFORM_TENANT_STATUS) {
-      console.error(`[tenant-scope] refusing scoped access: host "${clean}" maps to the PLATFORM tenant`);
+      refusal(`[tenant-scope] refusing scoped access: host "${clean}" maps to the PLATFORM tenant`);
       throw new TenantUnresolvedError();
     }
     if (m.ok && m.tenant) {
@@ -150,7 +170,7 @@ async function requestTenantId(): Promise<string | null> {
   // host must fail loudly rather than land somewhere plausible.
   const slug = slugFromHost(host);
   if (slug === null) {
-    console.error(
+    refusal(
       `[tenant-scope] refusing scoped access: host "${clean || "(none)"}" has no TenantDomain row and no {slug}.$PLATFORM_DOMAIN pattern`,
     );
     throw new TenantUnresolvedError();
@@ -164,7 +184,7 @@ async function requestTenantId(): Promise<string | null> {
       logScopeOnce(clean, r.stale.id, "host-pattern-slug-stale");
       return r.stale.id;
     }
-    console.error(`[tenant-scope] refusing scoped access: host slug "${slug}" unresolved (lookup failed)`);
+    refusal(`[tenant-scope] refusing scoped access: host slug "${slug}" unresolved (lookup failed)`);
     throw new TenantUnresolvedError();
   }
   // P3.3 — an UNKNOWN slug is not the default tenant's data either. The chrome
@@ -173,11 +193,11 @@ async function requestTenantId(): Promise<string | null> {
   // that content would be backed by her rows. The two layers diverge here on
   // purpose, and that divergence is the whole point of ruling 113.
   if (!r.tenant) {
-    console.error(`[tenant-scope] refusing scoped access: host slug "${slug}" matches no tenant row`);
+    refusal(`[tenant-scope] refusing scoped access: host slug "${slug}" matches no tenant row`);
     throw new TenantUnresolvedError();
   }
   if (r.tenant.status === PLATFORM_TENANT_STATUS) {
-    console.error(`[tenant-scope] refusing scoped access: slug "${slug}" is the PLATFORM tenant`);
+    refusal(`[tenant-scope] refusing scoped access: slug "${slug}" is the PLATFORM tenant`);
     throw new TenantUnresolvedError();
   }
   logScopeOnce(clean, r.tenant.id, "host-pattern-slug");
@@ -428,6 +448,6 @@ export const prisma = wrapClient(rawPrisma);
  * the default tenant — ruling 24 rejected implicit default-tenant stamping,
  * and this resolver is not a back door to it.
  */
-export function scopeTenantId(): Promise<string | null> {
-  return requestTenantId();
+export function scopeTenantId(opts?: { refusalExpected?: boolean }): Promise<string | null> {
+  return requestTenantId(opts);
 }

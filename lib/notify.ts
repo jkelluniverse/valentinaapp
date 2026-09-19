@@ -156,7 +156,11 @@ async function resolvePracticeIdentity(): Promise<PracticeIdentity | "default" |
   try {
     const { scopeTenantId, prisma } = await import("@/lib/prisma");
     const { DEFAULT_TENANT_ID } = await import("@/lib/tenancy/scope");
-    const tid = await scopeTenantId();
+    // refusalExpected — SEVERITY only, same reasoning as the capture path: on
+    // the platform host there is no practice to send as, this function is built
+    // to return null and let the caller skip, and platform mail goes out with
+    // platformIdentity() instead. The refusal is unchanged.
+    const tid = await scopeTenantId({ refusalExpected: true });
     if (tid === null || tid === DEFAULT_TENANT_ID) return "default";
     const platformFrom = process.env.PLATFORM_FROM_EMAIL;
     const apiKey = process.env.PLATFORM_RESEND_API_KEY;
@@ -187,7 +191,13 @@ async function resolvePracticeIdentity(): Promise<PracticeIdentity | "default" |
       postalAddress: postalRow?.value?.trim() || null,
     };
   } catch (err) {
-    console.error("[notify] practice send skipped — identity resolution failed", err instanceof Error ? err.name : "unknown");
+    // Also info, not error: the only way to reach here is an unresolvable host,
+    // which on the platform host is expected and on a practice host is an outage
+    // already shouting from every other surface. A duplicate, not a signal.
+    console.info(
+      "[notify] practice send skipped — no practice identity for this host (expected on the platform host):",
+      err instanceof Error ? err.name : "unknown",
+    );
     return null;
   }
 }

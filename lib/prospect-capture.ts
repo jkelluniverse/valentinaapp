@@ -79,7 +79,12 @@ async function issueReferralCode(): Promise<string> {
 async function captureAuditTenantId(): Promise<string> {
   try {
     const { scopeTenantId } = await import("@/lib/prisma");
-    const tid = await scopeTenantId();
+    // refusalExpected — SEVERITY only. On the platform host this refusal is the
+    // normal path, not an incident: there is no practice here and this function
+    // is built to say so. The line is still emitted with its host and reason,
+    // and the throw still happens; only the level changes, so "error" in
+    // production logs keeps meaning error.
+    const tid = await scopeTenantId({ refusalExpected: true });
     if (tid) return tid;
   } catch {
     /* the platform host: refused by P3.3, and rightly — no practice owns it */
