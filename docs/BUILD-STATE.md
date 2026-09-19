@@ -1939,6 +1939,22 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     action name or its payload should say which. Today the verdict is in `reason` and
     `meta.status`.
 
+147. **An audit row that carries the VERDICT of the check it follows is worth more than
+    any log search.** The engage-message rows are POSITIVE evidence, not an absence
+    argument: the write happens after decide(), so `reason="engine-gate-closed"` proves
+    the gate was consulted AND closed, and `reason="delivered-to-transport"` would
+    falsify the never-sent record. **Note this shape for future audit design — it is the
+    difference between "we found no evidence of sending" and "the system recorded eight
+    refusals."**
+148. **Make the uncertainty irrelevant rather than resolve it in a hurry.** Q5 — whether
+    the two older engage rows belong to a real lead — was left OPEN and the delete was
+    shaped so its answer is not load-bearing. `considered=1` at the 17:15 tick, BEFORE any
+    verification artifact existed, means at least one real prospect is in engage's
+    audience, so one of those rows may be a genuine record of a genuine refusal. Keying
+    the delete on the three verification PROSPECT identities removes verification rows
+    under either tenant and cannot reach a real lead's row. This is the correct handling
+    of uncertainty under time pressure.
+
 ## WHAT AN `engage-message` ROW PROVES, and it is more than an absence: the audit write
 ## happens AFTER decide(), whose SECOND check is `if (!switches.gateOpen) return {status:
 ## "SKIPPED", reason: REASONS.gateClosed}`. So the row's existence proves the gate was
