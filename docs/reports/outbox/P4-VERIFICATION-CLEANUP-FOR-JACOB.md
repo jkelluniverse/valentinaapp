@@ -19,21 +19,21 @@ cycle. Sooner is better; nothing breaks if it waits.
 
 ```sql
 SELECT 'tenant' AS kind, t.id, t.slug AS detail, t."displayName" AS extra
-  FROM "Tenant" t WHERE t.slug = 'p4verify'
+  FROM "Tenant" t WHERE t.slug IN ('p4verify','p4mail')
 UNION ALL
 SELECT 'user', u.id, u.email, u.role FROM "User" u
-  WHERE u.email IN ('p4-verify@fixture.test')
+  WHERE u.email IN ('p4-verify@fixture.test','jkelluniverse+p4verify@gmail.com')
 UNION ALL
 SELECT 'billing', b.id, b."tenantId", b.plan::text FROM "TenantBilling" b
-  WHERE b."tenantId" IN (SELECT id FROM "Tenant" WHERE slug = 'p4verify')
+  WHERE b."tenantId" IN (SELECT id FROM "Tenant" WHERE slug IN ('p4verify','p4mail'))
 UNION ALL
 SELECT 'prospect', p.id, p.email, p.status::text FROM "PractitionerProspect" p
-  WHERE p.email IN ('p4-verify@fixture.test','p4-join-verify@fixture.test')
+  WHERE p.email IN ('p4-verify@fixture.test','p4-join-verify@fixture.test','jkelluniverse+p4verify@gmail.com')
 UNION ALL
 SELECT 'auditevent', a.id, a.action, a."tenantId" FROM "AuditEvent" a
   WHERE a."actorId" IN (SELECT id FROM "PractitionerProspect"
-                        WHERE email IN ('p4-verify@fixture.test','p4-join-verify@fixture.test'))
-     OR a."tenantId" IN (SELECT id FROM "Tenant" WHERE slug = 'p4verify');
+                        WHERE email IN ('p4-verify@fixture.test','p4-join-verify@fixture.test','jkelluniverse+p4verify@gmail.com'))
+     OR a."tenantId" IN (SELECT id FROM "Tenant" WHERE slug IN ('p4verify','p4mail'));
 ```
 
 **What it should show, and the one row worth actually reading:**
@@ -55,9 +55,10 @@ SELECT 'auditevent', a.id, a.action, a."tenantId" FROM "AuditEvent" a
 ## BLOCK 2 — DELETE (one statement, CTE chain, ends in a SELECT)
 
 ```sql
-WITH t AS (SELECT id FROM "Tenant" WHERE slug = 'p4verify'),
+WITH t AS (SELECT id FROM "Tenant" WHERE slug IN ('p4verify','p4mail')),
      p AS (SELECT id FROM "PractitionerProspect"
-            WHERE email IN ('p4-verify@fixture.test','p4-join-verify@fixture.test')),
+            WHERE email IN ('p4-verify@fixture.test','p4-join-verify@fixture.test',
+                            'jkelluniverse+p4verify@gmail.com')),
      da AS (DELETE FROM "AuditEvent"
              WHERE "actorId" IN (SELECT id FROM p)
                 OR "tenantId" IN (SELECT id FROM t) RETURNING 1),
@@ -78,9 +79,9 @@ SELECT (SELECT count(*) FROM da) AS audit_events,
 
 Re-running BLOCK 1 afterwards should return **zero rows**.
 
-**Deliberately scoped to `p4verify` and those two exact addresses.** It touches no
+**Deliberately scoped to slugs `p4verify` / `p4mail` and those three exact addresses.** It touches no
 other practice and no client data. If BLOCK 1 shows anything you did not expect —
-especially a `user` row that is not `p4-verify@fixture.test` — stop and say so
+especially a `user` row that is neither `p4-verify@fixture.test` nor `jkelluniverse+p4verify@gmail.com` — stop and say so
 rather than running BLOCK 2.
 
 ---
@@ -94,3 +95,19 @@ production.** It was written to the builder's local scratch database by
 outright, and its own cleanup removed it; re-querying scratch returns zero rows and
 zero orphaned audit events. No SQL was written for it, on purpose — statements aimed
 at a row that does not exist in production invite being run there.
+
+---
+
+## A NOTE ON THE PLATFORM TENANT ROW — do NOT delete this one
+
+P4 item 5 adds a `Tenant` row via migration 52: id `tnt_platform_00000000001`, slug
+`__platform__`, status **`PLATFORM`**. It is **not** a practice and it is not
+verification debris. It exists so that platform activity — founding-partner
+captures, engage sends, engage unsubscribes — stops being recorded as Valentina's
+practice data (ruling 82).
+
+**No host can resolve to it**, by design: both resolvers refuse any tenant whose
+status is `PLATFORM`, and the gate proves it for the subdomain pattern *and* for an
+explicit `TenantDomain` row pointed at it. It should never have modules, billing, a
+domain mapping or users. If you ever see it with any of those, something has started
+treating it as a practice and that is worth raising.
