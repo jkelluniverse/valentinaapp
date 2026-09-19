@@ -1917,6 +1917,45 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     entity signs BOTH so only the address is conditional, and with the value unset the
     commercial envelope renders none — i.e. nothing supplies it but the variable.
 
+144. **Re-confirm what exists immediately before deleting; never delete from the plan
+    alone.** A cleanup runbook written BEFORE a verification ran cannot anticipate what
+    that verification's own side effects produced. The P4 runbook expected two tenants,
+    two users, two billing rows and three prospects; Jacob's confirm query also found
+    EIGHT `engage-message` audit rows, and the old delete was wrong for them in both
+    directions — it would have MISSED the two under tnt_valentina_000000001 (caught by
+    neither its actorId nor its tenantId clause) and it carried a tenantId clause that
+    must never be allowed to widen to the platform tenant's other rows. **The confirm
+    query caught it.**
+145. **The two/six tenant split across those rows is P4 item 5's attribution fix taking
+    effect MID-STREAM** — the two older rows carry the old attribution
+    (tnt_valentina_000000001), the six newer ones carry tnt_platform_00000000001. Live
+    evidence of the fix working, arrived at accidentally.
+146. **An audit row named for an ACTION that also records a NON-action is a reporting
+    hazard.** `engage-message` reads as "a message was sent"; it actually records a send
+    DECISION, written for every outcome including SKIPPED, SUPPRESSED and UNCONFIGURED
+    (lib/engage.ts, `actOnStep`, immediately after `decide()`). Eight such rows with the
+    gate closed are eight recorded REFUSALS to send. **This cost a stop-the-line moment
+    and would cost worse during the event.** TRACKED ITEM, not part of the cleanup: the
+    action name or its payload should say which. Today the verdict is in `reason` and
+    `meta.status`.
+
+## WHAT AN `engage-message` ROW PROVES, and it is more than an absence: the audit write
+## happens AFTER decide(), whose SECOND check is `if (!switches.gateOpen) return {status:
+## "SKIPPED", reason: REASONS.gateClosed}`. So the row's existence proves the gate was
+## CONSULTED, and its `reason` says what it decided — `engine-gate-closed` is positive
+## evidence of a closed gate, not merely of a variable being unset. `delivered-to-transport`
+## would be positive evidence of a SEND, and would falsify the standing "engage has never
+## sent" record. Reason vocabulary in lib/engage-config.ts: engine-gate-closed ·
+## globally-paused · sequence-gated-off · email-not-configured · prospect-unsubscribed ·
+## delivered-to-transport.
+## Q5 IS DELIBERATELY NOT ANSWERED BY INFERENCE: `considered=3` matches the three
+## verification prospects exactly, which is suggestive and not evidence — and the 17:15
+## tick showed `considered=1` BEFORE any verification artifact existed, so at least one
+## REAL prospect is in engage's audience and one of the two older rows may belong to them.
+## The revised BLOCK 2 therefore keys on the three verification PROSPECT identities, never
+## on `action` and never on the platform tenant: it removes verification rows under either
+## tenant and cannot touch a real lead's row whatever the enumeration turns out to say.
+
 ## LOG SEVERITY ON A NORMAL PATH (done before P5, on the Architect's instruction): every
 ## capture on the platform host emitted an ERROR-severity `[tenant-scope] refusing scoped
 ## access` line from captureAuditTenantId() and from notify's identity resolution — both
