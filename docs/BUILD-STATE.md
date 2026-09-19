@@ -1507,6 +1507,52 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## the fallback as correct in three checks — P3.3 UPDATES them to the new truth, never
 ## relaxes them (A2), and the moving count gets named (ruling 38).
 
+113. **Host is NOT a tenancy source for machine-to-machine callbacks — a security
+    position, not only an architectural one.** A webhook's tenant must come from its
+    PAYLOAD, authenticated. Host is chosen by the caller, and with a wildcard domain
+    resolving any subdomain, an endpoint taking its tenant from Host lets whoever knows
+    the URL steer writes at a tenant of their choosing. TARGET = payload-resolved;
+    lib/payments/webhook.ts is the in-tree proof (merchant_id ->
+    ConnectedPaymentAccount.tenantId, unknown merchants dropped not guessed).
+    BUILDER'S CORRECTION, recorded: on /api/square/webhook the concrete replay exploit
+    is BLUNTED — Square signs HMAC(key, subscribedURL + body) and that route recomputes
+    using the host the request ARRIVED on, so replaying a valid event at another host
+    mismatches and 401s. What remains true, and is why the payload model is still
+    right: the signing key is PLATFORM-WIDE (one SQUARE_WEBHOOK_SIGNATURE_KEY), so a
+    signature proves "Square sent this to the subscribed URL", never "this belongs to
+    tenant X". Partial answer to P6's A3: the key is platform-wide, not per-merchant.
+114. **A transitional exemption ships with the scanner that prevents its growth AND the
+    tracking item that ends it.** An exemption without both is a permanent decision
+    wearing a temporary label. P3.3's callback exemption is therefore: an EXPLICIT
+    allowlist of exactly the five routes, each with a comment naming why and what
+    removes it (never a "webhooks are exempt" rule someone widens); a scanner failing
+    on any NEW route resolving tenancy from Host (sixth scanner, same pattern);
+    per-call logging of each exempted route's resolution path so the exemption is
+    observable; and ruling 112 applied to all five.
+
+## THE TWO SQUARE WEBHOOK ENDPOINTS — Q1/Q2/Q3 ANSWERED (2026-09-19, read-only, nothing
+## deleted or merged; report: docs/reports/outbox/P3-SQUARE-DUPLICATE-ENDPOINT.md).
+## HEADLINE, inverting the obvious reading: the architecturally CORRECT endpoint appears
+## INERT in production and the architecturally wrong one is FUNCTIONAL.
+## A = /api/square/webhook (2026-07-22, 874327a, C13 era): invoice.* + payment.created/
+## updated; writes Charge.update x3, Charge.updateMany, ExternalPayment.upsert; tenant
+## from HOST; verifies using a notificationUrl built from THE REQUEST's own host+proto,
+## so its signature check SUCCEEDS — functional.
+## B = /api/webhooks/square (2026-08-04, 2a3db4d, Billing B2): writes WebhookEvent +
+## Payment, reads ConnectedPaymentAccount, tenant from PAYLOAD (correct) — BUT its
+## notificationUrl() is SQUARE_WEBHOOK_NOTIFICATION_URL ?? ${PUBLIC_APP_URL}/api/
+## webhooks/square and NEITHER VAR IS SET IN PRODUCTION, so the expected HMAC is
+## computed over the bare string "/api/webhooks/square" and cannot match. Every event
+## should 401 while webhookConfigured() (signing key only) still reports ready — a
+## silent failure of exactly ruling 112's shape. INFERENCE FROM CONFIG, NOT OBSERVED:
+## needs a Railway 401 log search or Square's delivery history.
+## They do NOT overlap (different tables, different eras) and NEITHER is dead code;
+## B did not supersede A, it was added alongside for a different layer. So this is not
+## a deletion question but "which URL is Square subscribed to" — Q3 gives Jacob the
+## exact navigation and what to screenshot, for Square plus the other three providers.
+## If B turns out to be subscribed AND failing, that is a LIVE BILLING DEFECT
+## independent of P3 and gets its own item.
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
