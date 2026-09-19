@@ -27,6 +27,10 @@ no matter what they forget.
 | File | Justification |
 |---|---|
 | `lib/prisma.ts` | Builds the scoped client on top of the raw one. |
+| `lib/provisioning.ts` | TENANT-CREATING: every scoped row it writes carries the tenantId of the tenant it creates in the same call, stated literally — never the requester's. The tenant cannot exist before the operation that makes it.. |
+| `lib/billing/provision.ts` | The new practice's TenantBilling row; the tenant is STATED by the caller (args.tenantId) on both the read and the write, never resolved from a host. |
+| `lib/prospect-capture.ts` | ONE write: the capture audit row, whose tenant is stated (a practice's own /join keeps that practice; the platform host uses the ruling-133 tracked constant). |
+| `audits/platform-frontdoor-verify.ts` | platform-host front-door harness: CLI-only, inspects and tears down the throwaway tenant it mints. |
 | `audits/_fixtures/local-domains.ts` | P3.3 loopback fixture — writes `TenantDomain`, a PLATFORM-level table with no `tenantId` column, so the scoped client structurally cannot write it. Refuses a Railway `DATABASE_URL` itself, because it is the one fixture that writes before a gate's own guard has necessarily run. |
 | `lib/tenancy/index.ts` | Tenant resolution must read the `Tenant` table before any scope can exist (and this breaks the import cycle). |
 | `lib/tenancy/db.ts` | The explicit-tenant DAL — states its tenant on every call; also used by CLI audit harnesses that deliberately cross tenants to prove isolation. |

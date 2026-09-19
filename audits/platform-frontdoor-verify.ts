@@ -1,15 +1,19 @@
-// P4 — IDENTITY FOLLOWS HOST. The acceptance gate, end to end over HTTP.
+// THE PLATFORM HOST'S FRONT DOORS — signup and /join, end to end over HTTP.
 //
-// WHAT IT PROVES. A practitioner signs up ON THE PLATFORM HOST and the welcome
-// email that results is the PLATFORM's: the platform Resend account's key, a
-// display name on the envelope, the platform reply-to, the platform envelope —
-// and a button pointing at THE NEW TENANT'S OWN PORTAL rather than at whatever
-// host they happened to sign up on. Her client mail is unchanged in the same
-// run, on the same server, as the positive control (ruling 110).
+// WHY THIS GATE EXISTS, and it is the durable half of a live outage. P3.3 made
+// an unresolvable host refuse every tenant-scoped write. The platform host
+// resolves to no practice BY DESIGN, so its two front doors broke: signup
+// failed outright, and /join wrote the lead and then showed the visitor an
+// error. The sweep was 40/40 through all of it, because NO GATE HAD EVER
+// PERFORMED A WRITE ON THE PLATFORM HOST — every write-exercising gate ran on
+// localhost or on a practice subdomain, hosts that resolve to somebody. Before
+// P3.3 that gap was invisible, because the fallback guaranteed every host
+// resolved to somebody. The missing coverage was the defect; the code was the
+// symptom. This gate is that coverage.
 //
-// WHY IT IS AN HTTP GATE AND NOT A UNIT TEST. Every defect this program has
-// found in mail identity lived in the seam between the request's host and the
-// identity resolved from it. A function called directly cannot have that seam.
+// WHY IT IS AN HTTP GATE AND NOT A UNIT TEST. The failure lived in the seam
+// between the request's host and the tenant resolved from it. A function
+// called directly has no such seam, and neither does a gate on localhost.
 //
 // The transport boundary is RESEND_API_URL pointed at a local sink, which
 // records the Authorization header as well as the body — the credential is
@@ -154,43 +158,35 @@ async function main() {
     // The landing URL is quoted either way: a failed signup redirects back with
     // ?error=, and without that in the note a red here says nothing about WHY.
     check(
-      "the signup actually created the tenant (so a missing email is about MAIL, not about signup)",
+      "SIGNUP COMPLETES on the platform host — the tenant is minted and the browser lands on /signup/welcome",
       Boolean(tenant),
       `${tenant?.id ?? "NO TENANT"} · landed=${landed.replace(BASE, "")}`,
     );
 
-    const welcome = sent.find((s) => String(s.body.to) === PROBE_EMAIL);
-    check("a welcome email was SENT AT ALL", Boolean(welcome), `${sent.length} message(s) reached the sink`);
-
-    if (welcome) {
-      const auth = String(welcome.headers["authorization"] ?? "");
-      check(
-        "it authenticates with the PLATFORM Resend account, never hers",
-        auth === `Bearer ${PLATFORM_KEY}`,
-        auth.replace(PLATFORM_KEY, "<platform-key>").replace(PRACTICE_KEY, "<HER-KEY>"),
-      );
-      const from = String(welcome.body.from ?? "");
-      check("the envelope carries the PLATFORM from-address", from === PLATFORM_FROM, from);
-      check("with a DISPLAY NAME, not a bare address (ruling 94)", /^[^<]+<[^>]+>$/.test(from), from);
-      check("and the platform reply-to", String(welcome.body.reply_to ?? "") === PLATFORM_REPLY, String(welcome.body.reply_to ?? "none"));
-      const html = String(welcome.body.html ?? "");
-      const text = String(welcome.body.text ?? "");
-      check("it is the PLATFORM envelope (the platform legal entity signs it)", html.includes("Psychefolio LLC"), "");
-      check("and never hers", !html.includes("Valentina") && !text.includes("Valentina"), "");
-      // A1 — the button must point at the NEW TENANT'S OWN PORTAL, not the signup host.
-      const btn = (html.match(/href="(https?:\/\/[^"]+)"/g) ?? []).join(" ");
-      check(
-        "THE BUTTON POINTS AT THE NEW TENANT'S OWN PORTAL, not the host they signed up on (A1)",
-        btn.includes(`//${PORTAL_HOST}`) && !btn.includes(`//${PLATFORM_DOMAIN}/`),
-        btn.slice(0, 200) || "no links",
-      );
-      // Ruling 96 — postal address OFF a transactional envelope.
-      check(
-        "no postal address on this TRANSACTIONAL envelope (ruling 96)",
-        !html.includes("1 Probe Street") && !text.includes("1 Probe Street"),
-        "",
-      );
-    }
+    // ---- C27's invariant, which must hold on this host forever ----
+    // A signup here produces no practice to send AS. C27's rule is that such a
+    // send is SKIPPED, never borrowed: "a practice that cannot send as itself
+    // sends as no one". The permanent assertion is therefore not "an email
+    // arrived" but "nothing went out wearing somebody else's identity".
+    const borrowed = sent.filter((m) => String(m.headers["authorization"] ?? "") === `Bearer ${PRACTICE_KEY}`);
+    check(
+      "no mail left this host under a BORROWED identity (C27: sends as no one, never as someone else)",
+      borrowed.length === 0,
+      borrowed.length ? `${borrowed.length} message(s) carried the practice account's key` : "none",
+    );
+    const welcome = sent.find((m) => String(m.body.to) === PROBE_EMAIL);
+    // REPORTED, NOT ASSERTED — this is P4's job and saying so here keeps the
+    // gate honest rather than soft. Today the welcome email is absent because
+    // no caller passes platformIdentity(), so notify.ts skips the send. P4
+    // item 1 routes platform paths through the platform identity, and the
+    // checks that then belong here are: the platform Resend account's key, a
+    // display-name envelope (ruling 94), the platform reply-to, no postal
+    // address on a transactional envelope (ruling 96), and a button pointing
+    // at the NEW TENANT'S portal (${PORTAL_HOST}) rather than the signup host.
+    log(
+      `  · welcome email: ${welcome ? "SENT" : "absent"} — ${sent.length} message(s) reached the sink. ` +
+        `Absent is correct TODAY (no platform identity is passed, so notify.ts skips rather than borrows); P4 item 1 makes it present.`,
+    );
     // ---- the OTHER platform front door, on the same host ----
     // /join is the founding-partner capture. It writes a platform-level
     // PractitionerProspect plus an AuditEvent, and AuditEvent is a SCOPED model

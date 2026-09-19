@@ -1809,6 +1809,78 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## demonstrably matches. Zero `UNRESOLVED` / `REFUSING` / `tenant-unresolved` /
 ## `refusing scoped access` lines in production since the deploy.
 
+132. **A forward fix beats a revert when the revert gives back the keystone.** Rolling
+    the deploy branch to 091129e would have restored the front door AND the default-tenant
+    fallback — unknown hosts landing on Valentina's practice again, which is the defect
+    this whole re-scope exists to remove and which is live-verified gone. Trading it back
+    for something fixable forward is the wrong direction. The hotfix also ships as its OWN
+    commit, because a regression fix bundled into a five-part phase cannot be reverted
+    alone: if P4 goes wrong, the front-door fix would go back with it.
+133. **A defect with a name and a tracking item in the code is a TRACKED defect; the same
+    value with no comment is an accident waiting to be ratified by the next reader.** The
+    platform-host capture audit row keeps DEFAULT_TENANT_ID — the value it already had by
+    accident of host resolution — but written as a named module-local constant whose
+    comment says in plain words that it attributes platform capture rows to tenant #1,
+    that this is wrong, that it is ruling 82, and that P4 item 5 fixes it. Two conditions:
+    it is used ONLY on the platform-host capture path (a general "no tenant? use this"
+    helper is the fallback P3.3 removed, re-entering through a side door with a comment
+    attached), and a COUNT assertion fails if its call sites are ever anything but one.
+    REJECTED: skipping the audit row entirely — that trades a WRONG attribution for a
+    MISSING record, and a wrong row can be corrected later because it exists and is
+    findable while a row never written cannot be reconstructed; law 6 wants an
+    attributable audit on consequential actions, and a founding-partner capture at an
+    event whose purpose is capturing founding partners is consequential. REJECTED FOR NOW,
+    NOT ON MERIT: a real Tenant row representing the platform, which is probably right and
+    is recorded as the LIKELY SHAPE OF P4 ITEM 5's FIX, but is a schema and data decision
+    that must not ride a hotfix.
+
+## THE P3.3 REGRESSION — BOTH PLATFORM FRONT DOORS, AND THE GATE GAP THAT HID IT
+## (found 2026-09-19 while building P4's acceptance gate; hotfix follows)
+## WHAT BROKE, on the platform host ONLY (her domain and practice subdomains resolve, so
+## their writes proceeded): **psychefolio.com/signup DEAD** — page renders 200, form
+## submits, action redirects to /signup?...&error=failed, no tenant, no practitioner, no
+## email. **psychefolio.com/join HALF BROKEN, which is worse** — the PractitionerProspect
+## row IS written and the visitor is THEN sent to /join?...&error=failed; a lead captured
+## behind an error screen is a lead the sender believes they did not send.
+## MECHANISM, from the server's own log: `[tenant-scope] refusing scoped access` →
+## `[signup] provisioning threw` / `[capture] failed`. The scoped client's proxy resolves
+## a tenant ONLY for models in SCOPED_MODEL_SET (lib/prisma.ts:358) and passes unscoped
+## models straight through — which is exactly why the failure has the shape it does: in
+## capture, PractitionerProspect (unscoped) succeeded and AuditEvent (scoped) threw; in
+## signup, Tenant and TenantModule (unscoped) succeeded and TenantBilling (scoped) threw,
+## rolling the whole thing back.
+## A1/A2 CLASSIFICATION, done BEFORE any code (the Architect's condition):
+##   · lib/provisioning.ts — TENANT-CREATING, not "mixed" in the dangerous sense. Platform
+##     rows: Tenant, TenantModule. Tenant-scoped rows: TenantBilling, practitioner User,
+##     and on a DEMO seed client User + ConsentGrant + ClientProfile + LogEntry. EVERY
+##     scoped row carries the NEWLY CREATED tenant's id, stated literally; not one belongs
+##     to the requester's tenant, and the tenant they belong to does not exist until this
+##     function creates it. BONUS DEFECT FIXED: its duplicate-email check is a read meant
+##     to be GLOBAL (sign-in is by email across tenants) and under the scoped client only
+##     ever saw the request tenant's users — masked because lib/signup.ts does its own
+##     global check with the raw client.
+##   · lib/billing/provision.ts — TENANT-SCOPED, TENANT STATED BY THE CALLER. One row type
+##     (TenantBilling); read and write both key on args.tenantId. Never consults the host.
+##   · lib/prospect-capture.ts — GENUINELY MIXED, and it does NOT get a blanket raw client.
+##     Platform side: PractitionerProspect (findFirst/findUnique/upsert, unscoped model).
+##     Tenant side: EXACTLY ONE row, AuditEvent.create, whose tenantId came from the host.
+##     Only that one write changes, and it takes ruling 133's named constant.
+## A3 — HOW 40/40 PASSED WITH THE FRONT DOOR BROKEN, and this is the durable defect:
+## **no gate had ever performed a WRITE on the platform apex.** audits/signup/verify.ts
+## runs at http://localhost:3123 and aims its hosts at {slug}.platform.test — tenant
+## subdomains. audits/capture/verify.ts submits /join to localhost, which the P3.3 fixture
+## maps to tenant #1; it names PLATFORM_DOMAIN only in its env block. Every
+## write-exercising gate ran on a host that resolves to SOMEBODY. Before P3.3 that gap was
+## invisible because the fallback guaranteed every host resolved to somebody; P3.3 made
+## WHICH HOST load-bearing for writes, so 40/40 was true and completely uninformative
+## about the front door. audits/platform-frontdoor-verify.ts closes it and is the first
+## gate to write on the platform host.
+## A SECOND INSTRUMENT ERROR WHILE BUILDING THAT GATE (rulings 125/130, a fourth time):
+## its first version spoofed x-forwarded-host, which **Next refuses for server actions
+## when Origin disagrees** — the POST was silently dropped, the page landed back on
+## /signup with NO query, and it looked exactly like a mail failure. It now sits on a real
+## *.localhost platform host, where Origin and Host agree by construction.
+
 ## P3.3 COMPLETE (2026-09-19, tip 73da241; report:
 ## docs/reports/outbox/PLATFORM-SPLIT-P3.3.md). THE DEFAULT-TENANT FALLBACK IS GONE.
 ## slugFromHost returns null instead of "valentina"; the chrome resolver renders C26's

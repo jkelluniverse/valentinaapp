@@ -33,6 +33,10 @@ const ALLOW_NEW_CLIENT: Record<string, string> = {
 
 const ALLOW_RAW_IMPORT: Record<string, string> = {
   "lib/prisma.ts": "builds the scoped client on top of the raw one",
+  "lib/provisioning.ts": "TENANT-CREATING: every scoped row it writes carries the tenantId of the tenant it creates in the same call, stated literally — never the requester's. The tenant cannot exist before the operation that makes it.",
+  "lib/billing/provision.ts": "the new practice's TenantBilling row; the tenant is STATED by the caller (args.tenantId) on both the read and the write, never resolved from a host",
+  "lib/prospect-capture.ts": "ONE write: the capture audit row, whose tenant is stated (a practice's own /join keeps that practice; the platform host uses the ruling-133 tracked constant)",
+  "audits/platform-frontdoor-verify.ts": "platform-host front-door harness: CLI-only, inspects and tears down the throwaway tenant it mints",
   "audits/_fixtures/local-domains.ts": "P3.3 loopback fixture: writes TenantDomain, a PLATFORM-level table with no tenantId column, so the scoped client cannot write it; refuses Railway URLs itself",
   "lib/tenancy/index.ts": "tenant resolution must read the Tenant table before any scope exists",
   "lib/tenancy/db.ts": "explicit-tenant DAL: states its tenant per call; also used by CLI audits",

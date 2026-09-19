@@ -1,6 +1,24 @@
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/lib/prisma";
+// THE RAW CLIENT, AND IT IS A CATEGORY CORRECTION, NOT A BYPASS.
+//
+// Provisioning is TENANT-CREATING. Every tenant-scoped row it writes carries
+// the tenantId of the tenant created on line ~61 of this same function, stated
+// literally in the payload — `TenantBilling`, the practitioner `User`, and on a
+// DEMO seed the client `User`, `ConsentGrant`, `ClientProfile` and `LogEntry`.
+// Not one row belongs to the REQUESTER's tenant. The tenant these rows belong
+// to does not exist until this function creates it, so resolving the operation
+// against the request's host is a category error rather than a limitation.
+//
+// It is therefore not a reopening of what P3.3 closed. P3.3 stopped an
+// unresolvable host from silently reading or writing SOMEONE ELSE's rows; this
+// module never derives a tenant from a host at all, and audits/platform-writes-
+// verify.ts fails if any write here stops stating its tenantId literally.
+//
+// What it FIXES, beyond the outage: the duplicate-email check below is a read
+// that is meant to be GLOBAL — sign-in is by email across tenants — and under
+// the scoped client it only ever saw the request tenant's users.
+import { rawPrisma as prisma } from "@/lib/prisma-internal";
 import { getModule } from "@/lib/modules/registry";
 import { provisionTenantBilling } from "@/lib/billing/provision";
 

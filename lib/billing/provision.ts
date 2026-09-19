@@ -1,4 +1,8 @@
-import { prisma } from "@/lib/prisma";
+// Raw client for the same reason as lib/provisioning.ts, which is its only
+// production caller: the tenant is STATED by the caller (args.tenantId) on both
+// the read and the write, never resolved from a host. One row type,
+// TenantBilling, and it is the new practice's own.
+import { rawPrisma as prisma } from "@/lib/prisma-internal";
 import { createCustomer, createSubscription, priceIdFor, stripeConfigured } from "./stripe";
 
 // BILLING §4.2 — the provisioning billing step (extends Platform §7).
