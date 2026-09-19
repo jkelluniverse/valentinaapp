@@ -159,6 +159,17 @@ and per-tenant or each practice's site is built separately, and the function is
 deleted then. Rebuilt and re-counted: **35 and 6, exactly the fixture**, and
 event-chrome back to 17/17.
 
+**And the first version of THAT fix was too wide, which the next sweep said in
+turn.** It also routed the root layout's shell through `staticSiteTenant()`, and
+`audits/fail-closed-tenancy-verify.ts` went red: its A1 check asserts by name
+that `app/layout.tsx` calls `getTenant()`, because that function's never-throw
+contract is load-bearing on every request. The check was right and the change was
+unnecessary — the root layout reads only `skinKey`, and C26's unresolved shell
+already carries `"warm-clay"`, so the rendered byte is identical either way. The
+statement now lives only in `generateMetadata`, which is where the identity
+actually lived and where the build was losing it. Re-verified: still 35 and 6,
+`NEXT_REDIRECT` 0, still `○ /`.
+
 **4. Staging would have gone dark in the same push that needed verifying** —
 `valentinaapp-staging.up.railway.app` is neither mapped nor a practice subdomain,
 so every public page there would be the 503. Rulings 48/62 verify the serving tip

@@ -105,12 +105,15 @@ const THEME_INIT = `(function(){try{var t=localStorage.getItem('veritas-theme');
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // PLATFORM Layer 2 — the tenant's skin selects the token set. Cached 60s;
   // falls back to warm-clay so her portal can never break on a config read.
-  const { getTenantResolution, staticSiteTenant } = await import("@/lib/tenancy");
-  // Same build-time statement as generateMetadata above: the pre-rendered shell
-  // is tenant #1's. A request that cannot be placed still gets the unresolved
-  // shell's skin, which is what C26 renders around its 503.
-  const res = await getTenantResolution();
-  const tenant = (res.kind === "unresolved" ? await staticSiteTenant() : res.tenant) ?? { skinKey: "warm-clay" };
+  // getTenant() on purpose, and audits/fail-closed-tenancy-verify.ts asserts it
+  // by name: its never-throw contract is load-bearing here, on every request.
+  // P3.3 does not need the build-time statement in THIS function — the only
+  // value read is skinKey, and C26's unresolved shell already carries
+  // "warm-clay", so the rendered byte is identical either way. The statement is
+  // confined to generateMetadata above, which is where the identity actually
+  // lived and where the build was losing it.
+  const { getTenant } = await import("@/lib/tenancy");
+  const tenant = await getTenant();
   return (
     <html lang="en" data-skin={tenant.skinKey} className={`${crimson.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
