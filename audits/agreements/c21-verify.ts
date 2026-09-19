@@ -10,6 +10,7 @@ import { rawPrisma as prisma } from "../../lib/prisma-internal";
 // and are untouched by an ambient scope.
 import { withTenantScope } from "../../lib/tenancy/tenant-scope";
 
+import { seedLocalDomains } from "../_fixtures/local-domains";
 // C21-DOCSIGN acceptance:
 //   1. dispute packet installs (2 fillable TEXT + 2 branded-PDF FILES
 //      templates), verbatim files by hash, idempotent
@@ -111,6 +112,10 @@ async function signIn(email: string): Promise<string> {
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

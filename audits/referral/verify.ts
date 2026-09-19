@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { chromium, type Browser, type BrowserContext } from "playwright";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 
+import { seedLocalDomains } from "../_fixtures/local-domains";
 // C23-REFERRAL acceptance — attribution and the reason to share, in a real
 // browser against the BUILT app. Proves, per the spec's Verify list:
 //   1  a code resolves to its owner; counts split LEAD vs SIGNED_UP across a
@@ -234,6 +235,10 @@ function moneyHit(text: string): RegExp | undefined {
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

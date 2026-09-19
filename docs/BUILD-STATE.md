@@ -1714,6 +1714,44 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     Postgres folds to lowercase and which would fail identically for EVERY table in this
     database. Third time this week that testing the instrument changed the finding.
 
+126. **The tick is driven by an EXTERNAL third-party scheduler outside Railway and
+    GitHub.** CLOSED by Jacob from the provider's dashboard: **cron-job.org, job 8110930,
+    "ValentinaApp_Scheduler", enabled, every 15 minutes, America/New_York**, calling
+    `GET https://valentinavelez.com/api/jobs/tick?secret=…` — all 673 requests. This is
+    why both earlier searches correctly found nothing, and why "no scheduler exists" was
+    wrong twice over. Recorded as a live production dependency in
+    **docs/EXTERNAL-SERVICES.md** (new): what it calls, how often, and that rotating
+    JOBS_SECRET or changing the tick's host breaks it SILENTLY from the app's side.
+    **P3.3 consequence:** the scheduler calls HER host, which carries a TenantDomain row
+    since P1 — so the tick keeps resolving after P3.3. Asserted explicitly in
+    audits/platform/verify.ts rather than assumed.
+127. **Scheduled work needs a tenant-neutral entry point or a per-tenant invocation
+    model.** FUTURE SCOPE, RECORDED NOT BUILT. Because one cron calls one practice's
+    domain, the PLATFORM's scheduled work currently runs inside HER tenant scope — the
+    same class as engage stamping audit rows with DEFAULT_TENANT_ID. A single cron
+    hitting one practice's domain does not scale past one practice. Belongs with P4's
+    identity work.
+
+## JOBS_SECRET ROTATION — WHAT DOES AND DOES NOT NEED CHANGING (asked by the Architect
+## before Jacob rotates; answered from the code, 2026-09-19): **nothing in the repo needs
+## changing.** `authorized()` (app/api/jobs/tick/route.ts) reads `process.env.JOBS_SECRET`
+## INSIDE the function at request time — no value is baked into the build. **No gate or
+## fixture hardcodes the production secret:** every tracked reference is the commented
+## placeholder at `.env.example:74`, the variable NAME in comments/docs, or
+## `audits/engage/verify.ts:50`, which defines its own gate-local literal
+## ("engage-verify-jobs-secret") and injects it into the env of the server that gate
+## spawns — self-consistent, and a production rotation cannot redden it. Two cautions
+## Jacob should have: any window where the Railway variable and cron-job.org job 8110930
+## disagree is 401s every 15 minutes with NO alert; and a BLANKED variable looks exactly
+## like a wrong one, because `authorized()` returns false when JOBS_SECRET is unset.
+## FUTURE SCOPE, NOT BUILT: a secret in a query string reaches access logs, browser
+## history and the third-party dashboard — which is how it reached a screenshot. Note the
+## header path ALREADY EXISTS and needs no code: `authorized()` checks
+## `Authorization: Bearer <secret>` FIRST and falls back to `?secret=`. Moving job 8110930
+## to a Bearer header is a dashboard change with zero repo change. REMOVING the
+## query-parameter fallback is a code change and is deliberately not made — doing it
+## before the job moves takes the tick down.
+
 ## SQUARE AND THE TICK — BOTH LIVE CALLERS USE THE MAPPED HOST (2026-09-19, from HTTP
 ## logs): `POST /api/square/webhook host=valentinavelez.com 200 "Square Connect v2"`
 ## (srcIp 34.202.99.168 / 54.245.1.154) and `GET /api/jobs/tick host=valentinavelez.com

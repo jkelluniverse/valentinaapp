@@ -37,6 +37,7 @@ import { execFileSync, spawn, type ChildProcess } from "child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { createServer, type Server } from "http";
 
+import { seedLocalDomains } from "./_fixtures/local-domains";
 const PORT = 3160;
 const SINK_PORT = 3161;
 const PLATFORM_DOMAIN = "psx.test";
@@ -432,6 +433,10 @@ async function walkLeg(locale: "en" | "es") {
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   if (!DBURL) throw new Error("DATABASE_URL required");
   if (/railway|rlwy\.net/.test(DBURL)) throw new Error("Refusing to run against a Railway database");
 

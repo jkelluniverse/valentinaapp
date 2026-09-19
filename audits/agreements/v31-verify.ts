@@ -3,6 +3,7 @@ import { deflateSync } from "zlib";
 import bcrypt from "bcryptjs";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 
+import { seedLocalDomains } from "../_fixtures/local-domains";
 // C20 v3.1 acceptance (install spec §5):
 //   1. counsel's master installs VERBATIM as DRAFT, v3.0 markers intact;
 //      preview resolves live merge vars (highlighted) and shows unresolved
@@ -117,6 +118,10 @@ async function signIn(email: string): Promise<string> {
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

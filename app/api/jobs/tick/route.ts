@@ -44,8 +44,43 @@ export async function GET(req: NextRequest) {
 
 async function handle(req: NextRequest) {
   if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // P3.3 — TENANCY IS RESOLVED ONCE, UP FRONT, AND AN UNRESOLVED TICK IS A 503.
+  //
+  // Every step below is individually try/caught so one failure never starves
+  // the rest, and the route then returns `ok: true` regardless. That is right
+  // for a step that fails; it is exactly wrong for a tenancy that fails,
+  // because EVERY step fails the same way and the caller is told the run
+  // succeeded. An empty-but-successful tick is the worst possible report: the
+  // scheduler's dashboard stays green while nothing happens.
+  //
+  // This matters now because the tick's caller is an EXTERNAL scheduler
+  // (cron-job.org job 8110930 — docs/EXTERNAL-SERVICES.md, ruling 126) that
+  // calls valentinavelez.com by name. That host has a TenantDomain row, so the
+  // tick keeps resolving to her after P3.3. If it ever stops — the row removed,
+  // the job repointed at an unmapped host — this refuses loudly instead of
+  // running thirteen steps into nothing.
+  const host = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim() || req.headers.get("host") || "(none)";
+  let tenantId: string;
+  try {
+    // scopeTenantId() is the C25 export of the SAME resolver the scoped client
+    // uses on every operation — not a second one. Its contract already says
+    // null must FAIL rather than fall back (ruling 24); this is that failure,
+    // taken once at the top instead of thirteen times inside catch blocks.
+    const { scopeTenantId } = await import("@/lib/prisma");
+    const id = await scopeTenantId();
+    if (!id) throw new Error("no tenant scope on a request path");
+    tenantId = id;
+  } catch (e) {
+    console.error(`[tick] REFUSING: tenancy unresolved for host="${host}" — ${e instanceof Error ? e.message : String(e)}`);
+    return NextResponse.json(
+      { ok: false, error: "tenant-unresolved", host },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const now = new Date();
-  const report: Record<string, number | string> = {};
+  const report: Record<string, number | string> = { tenant: tenantId };
 
   // C23-ENGAGE §4 — two testability affordances on THIS scheduler (a second
   // scheduler is explicitly out of scope):

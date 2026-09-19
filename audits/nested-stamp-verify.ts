@@ -15,6 +15,7 @@ import { rawPrisma } from "../lib/prisma-internal";
 import { SCOPED_MODELS, SCOPED_MODEL_SET, DEFAULT_TENANT_ID } from "../lib/tenancy/scope";
 import { auditNullTenantRows } from "../lib/tenancy/stamp-audit";
 
+import { seedLocalDomains } from "./_fixtures/local-domains";
 // C24-NESTED-STAMP acceptance — the tenant-stamping data layer.
 //
 // THE HEADLINE, up front, because the spec's diagnosis was wrong: the
@@ -209,6 +210,10 @@ async function cleanup() {
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   log(`# C24-NESTED-STAMP verify — ${new Date().toISOString()}`);
   await cleanup();
 

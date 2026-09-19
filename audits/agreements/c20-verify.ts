@@ -4,6 +4,7 @@ import { writeFileSync, readFileSync } from "fs";
 import bcrypt from "bcryptjs";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 
+import { seedLocalDomains } from "../_fixtures/local-domains";
 // C20 acceptance (spec §5 verify list, against the BUILT app):
 //   · María (fixture client) signs a merged Scope end-to-end — both the
 //     merged variables and the pinned snapshot proven; es sibling served
@@ -61,6 +62,10 @@ async function signIn(email: string): Promise<string> {
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

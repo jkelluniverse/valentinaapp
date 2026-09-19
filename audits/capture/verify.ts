@@ -6,6 +6,7 @@ import { rawPrisma as prisma } from "../../lib/prisma-internal";
 import { CSV_HEADERS } from "../../lib/prospects";
 import { EVENT_SOURCE } from "../../lib/capture-config";
 
+import { seedLocalDomains } from "../_fixtures/local-domains";
 // C23-CAPTURE acceptance — the event floor, in a real browser against the
 // BUILT app. Proves, per the spec's Verify list:
 //   1  /join renders 200 in BOTH locales; no price / "free" / dollar figure
@@ -192,6 +193,10 @@ function parseCsv(text: string): string[][] {
 const MONEY = [/\$\s?\d/, /\bUSD\b/, /\bfree\b/i, /\bgratis\b/i, /\bsin costo\b/i, /\bper month\b/i, /\/mo\b/, /\bal mes\b/i];
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

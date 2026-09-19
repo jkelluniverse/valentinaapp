@@ -4,6 +4,7 @@ import { join } from "path";
 import bcrypt from "bcryptjs";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 
+import { seedLocalDomains } from "../_fixtures/local-domains";
 // C23-ENGAGE acceptance — follow-up sequences, against the BUILT app, and
 // DELIBERATELY PASSING WITH NO `RESEND_API_KEY` PRESENT. That constraint is the
 // whole shape of this harness:
@@ -197,6 +198,10 @@ function moneyHit(text: string): RegExp | undefined {
 type SentMail = { to: string; subject: string; text: string; html: string };
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

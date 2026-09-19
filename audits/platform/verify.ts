@@ -106,14 +106,50 @@ async function main() {
   await cleanupB();
 
   // ---- Host → slug resolution ----
-  log(`\n## Host resolution`);
-  check("custom domain resolves the default tenant (no PLATFORM_DOMAIN set)", slugFromHost("valentinavelez.com") === "valentina");
+  //
+  // P3.3 — THESE CHECKS ARE INVERTED, NOT RELAXED (ruling 38: the count moves,
+  // and here is why). Four of the five used to assert that an unmapped host
+  // resolves to "valentina"; they now assert that it resolves to NOTHING,
+  // which is the same property examined from the other side and is a STRICTER
+  // claim, not a weaker one — "some practice owns this host" is satisfied by
+  // any answer, "no practice owns this host" by exactly one. The fifth
+  // (subdomain → its slug) is unchanged because that path is unchanged.
+  //
+  // The count moves 5 → 9: the four inversions keep their places and four new
+  // checks cover what the fallback used to hide — that her domain resolves
+  // through the MAPPING rather than the pattern, that a port never changes the
+  // answer, and that the two live machine-to-machine callback hosts are mapped
+  // (ruling 126: the external scheduler calls valentinavelez.com by name, so
+  // P3.3 asserts that host is mapped instead of assuming it).
+  log(`\n## Host resolution — P3.3: no fallback, no default tenant (ruling 85)`);
+  const savedPd = process.env.PLATFORM_DOMAIN;
+  delete process.env.PLATFORM_DOMAIN;
+  check("with no PLATFORM_DOMAIN set, a custom domain yields NO slug (was: the default tenant)", slugFromHost("valentinavelez.com") === null);
   process.env.PLATFORM_DOMAIN = "portaldomain.com";
   check("subdomain resolves its slug", slugFromHost("demo-mystic.portaldomain.com") === "demo-mystic");
-  check("apex resolves the default tenant", slugFromHost("portaldomain.com") === "valentina");
-  check("foreign host resolves the default tenant", slugFromHost("valentinavelez.com") === "valentina");
-  check("nested subdomain never leaks a slug", slugFromHost("a.b.portaldomain.com") === "valentina");
-  delete process.env.PLATFORM_DOMAIN;
+  check("the platform apex yields NO slug (was: the default tenant)", slugFromHost("portaldomain.com") === null);
+  check("a foreign host yields NO slug (was: the default tenant)", slugFromHost("valentinavelez.com") === null);
+  check("a nested subdomain yields NO slug (was: the default tenant)", slugFromHost("a.b.portaldomain.com") === null);
+  check("a bare/empty subdomain yields NO slug", slugFromHost(".portaldomain.com") === null);
+  check("a port never changes the answer", slugFromHost("demo-mystic.portaldomain.com:3000") === "demo-mystic" && slugFromHost("portaldomain.com:3000") === null);
+  if (savedPd === undefined) delete process.env.PLATFORM_DOMAIN;
+  else process.env.PLATFORM_DOMAIN = savedPd;
+
+  // Her practice reaches her rows through DATA now, not through a pattern. If
+  // this row were missing, valentinavelez.com would resolve to nothing — which
+  // is precisely the failure P3.1 existed to make impossible before P3.3 could
+  // ship, so it is asserted here rather than assumed.
+  const hers = await prisma.tenantDomain.findUnique({ where: { host: "valentinavelez.com" } });
+  check("valentinavelez.com is mapped in TenantDomain, to tenant #1", hers?.tenantId === DEFAULT_TENANT_ID, hers?.tenantId ?? "NO ROW");
+  // Ruling 126 — the external scheduler (cron-job.org job 8110930) and Square's
+  // callbacks both call that same host. One row serves both; the assertion
+  // names them so a future edit that drops it fails here and not in production
+  // fifteen minutes later.
+  check(
+    "the live machine-to-machine callback host (/api/jobs/tick, /api/square/webhook) is that mapped host",
+    hers !== null,
+    "cron-job.org and Square Connect v2 both call https://valentinavelez.com/…",
+  );
 
   log(`\n${failed === 0 ? "ALL CHECKS PASS" : `${failed} CHECK(S) FAILED`}`);
   mkdirSync(join(__dirname), { recursive: true });

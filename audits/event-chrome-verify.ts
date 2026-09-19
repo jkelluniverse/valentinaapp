@@ -25,6 +25,7 @@
 import { execFileSync, spawn, type ChildProcess } from "child_process";
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 
+import { seedLocalDomains } from "./_fixtures/local-domains";
 const PINNED_PRE_CHANGE = "f07a035"; // the commit C29 builds on (spec landed, code untouched)
 const FIXTURE_PATH = "audits/event-chrome/auth-chrome.fixture.json";
 const CAPTURE_MODE = process.argv.includes("--capture-fixture");
@@ -177,6 +178,10 @@ async function captureDefaults(): Promise<{ pages: Record<string, string>; rawCo
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   if (/railway|rlwy\.net/.test(DBURL)) throw new Error("Refusing to run against a Railway database");
   await cleanup();
   log(`# C29-EVENT-CHROME verify — ${new Date().toISOString()}`);

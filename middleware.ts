@@ -42,7 +42,14 @@ async function nonDefaultTenantRoot(req: { headers: Headers; nextUrl: URL }): Pr
   const clean = host.split(":")[0];
   if (!platformDomain || clean === platformDomain || !clean.endsWith(`.${platformDomain}`)) return false;
   const sub = clean.slice(0, -(platformDomain.length + 1));
-  if (!sub || sub.includes(".") || sub === "valentina") return false; // "valentina" = DEFAULT_TENANT_SLUG, duplicated because lib/tenancy imports the raw prisma client and cannot load in middleware; zero cost for her hosts
+  // P3.3 — the duplicated "valentina" literal is GONE. It short-circuited the
+  // default tenant's own subdomain before asking /api/tenant-kind, which meant
+  // middleware carried a second copy of DEFAULT_TENANT_SLUG that no compiler
+  // kept in step with lib/tenancy. The route answers the same question
+  // truthfully for that host (kind="tenant", isDefault=true → no redirect), at
+  // the cost of one in-process loopback call on a root request that is cached
+  // 60s per host. Correctness over a micro-optimisation on the rarest path.
+  if (!sub || sub.includes(".")) return false;
   const hit = kindCache.get(clean);
   if (hit && Date.now() - hit.at < KIND_TTL_MS) return hit.redirect;
   // C32 §1 / ruling 77 — every branch of this decision LOGS. The rehearsal walk

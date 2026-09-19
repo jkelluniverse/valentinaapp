@@ -1,7 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { headers } from "next/headers";
 import { rawPrisma } from "./prisma-internal";
-import { DEFAULT_TENANT_ID, DEFAULT_TENANT_SLUG, SCOPED_MODEL_SET, scopeFilter } from "./tenancy/scope";
+import { DEFAULT_TENANT_ID, SCOPED_MODEL_SET, scopeFilter } from "./tenancy/scope";
 import { stampCreateInput, stampUpdateInput } from "./tenancy/stamp";
 import { identitySelect } from "./tenancy/model-identity";
 import { ambientTenantId } from "./tenancy/tenant-scope";
@@ -136,10 +136,18 @@ async function requestTenantId(): Promise<string | null> {
       console.error(`[tenant-scope] TenantDomain lookup failed for host "${clean}" with nothing cached — host-pattern resolution decides`);
     }
   }
+  // P3.3 / ruling 112 — THE FALLBACK IS GONE AND ITS REMOVAL IS A REFUSAL, NOT
+  // A DEFAULT. Until this step a host with no mapping row and no practice
+  // subdomain was silently scoped to tenant #1, so every unmapped host — the
+  // platform's own apex, a staging URL, a stranger's Host header — read and
+  // wrote HER rows. There is no default tenant (ruling 85); an unresolvable
+  // host must fail loudly rather than land somewhere plausible.
   const slug = slugFromHost(host);
-  if (slug === DEFAULT_TENANT_SLUG) {
-    logScopeOnce(clean || "(none)", DEFAULT_TENANT_ID, "host-pattern-fallback");
-    return DEFAULT_TENANT_ID;
+  if (slug === null) {
+    console.error(
+      `[tenant-scope] refusing scoped access: host "${clean || "(none)"}" has no TenantDomain row and no {slug}.$PLATFORM_DOMAIN pattern`,
+    );
+    throw new TenantUnresolvedError();
   }
   const r = await tenantBySlugChecked(slug);
   if (!r.ok) {
@@ -153,9 +161,17 @@ async function requestTenantId(): Promise<string | null> {
     console.error(`[tenant-scope] refusing scoped access: host slug "${slug}" unresolved (lookup failed)`);
     throw new TenantUnresolvedError();
   }
-  const id = r.tenant?.id ?? DEFAULT_TENANT_ID; // unknown slug behaves like the default host (matches getTenant)
-  logScopeOnce(clean, id, r.tenant ? "host-pattern-slug" : "host-pattern-unknown-slug-default");
-  return id;
+  // P3.3 — an UNKNOWN slug is not the default tenant's data either. The chrome
+  // resolver still renders default-host CONTENT for an unknown subdomain (a
+  // marketing page nobody owns is harmless); the DATA layer must not, because
+  // that content would be backed by her rows. The two layers diverge here on
+  // purpose, and that divergence is the whole point of ruling 113.
+  if (!r.tenant) {
+    console.error(`[tenant-scope] refusing scoped access: host slug "${slug}" matches no tenant row`);
+    throw new TenantUnresolvedError();
+  }
+  logScopeOnce(clean, r.tenant.id, "host-pattern-slug");
+  return r.tenant.id;
 }
 
 function withScope(args: Record<string, unknown>, tenantId: string): Record<string, unknown> {

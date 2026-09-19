@@ -1,5 +1,6 @@
 import { spawn, execSync, type ChildProcess } from "child_process";
 import { prisma } from "../lib/prisma";
+import { seedLocalDomains } from "../audits/_fixtures/local-domains";
 
 // RELEASE SMOKE — boots the BUILT app against the fixture roster and walks
 // every key dynamic page as both roles. This exists because a dynamic page
@@ -145,6 +146,10 @@ async function main() {
   }
   const maria = await prisma.user.findUnique({ where: { email: "maria@fixture.test" } });
   if (!maria) throw new Error("Fixture roster missing (no María) — seed failed?");
+  // P3.3 — the fallback that made `localhost` mean "tenant #1" is gone, so the
+  // loopback host states itself as a TenantDomain row. Without this, /book is
+  // the /unavailable 503 and this smoke reports one broken page, correctly.
+  await seedLocalDomains();
 
   // ---- Boot the BUILT app (fails fast if .next is missing) ----
   console.log(`~ starting built app on :${PORT}`);

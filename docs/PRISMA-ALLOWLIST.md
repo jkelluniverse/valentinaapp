@@ -27,6 +27,7 @@ no matter what they forget.
 | File | Justification |
 |---|---|
 | `lib/prisma.ts` | Builds the scoped client on top of the raw one. |
+| `audits/_fixtures/local-domains.ts` | P3.3 loopback fixture — writes `TenantDomain`, a PLATFORM-level table with no `tenantId` column, so the scoped client structurally cannot write it. Refuses a Railway `DATABASE_URL` itself, because it is the one fixture that writes before a gate's own guard has necessarily run. |
 | `lib/tenancy/index.ts` | Tenant resolution must read the `Tenant` table before any scope can exist (and this breaks the import cycle). |
 | `lib/tenancy/db.ts` | The explicit-tenant DAL — states its tenant on every call; also used by CLI audit harnesses that deliberately cross tenants to prove isolation. |
 | `lib/tenancy/stamp-audit.ts` | The null-tenant invariant audit — cross-tenant by nature; runs nightly in the tick and ad hoc via `audits/tenant-stamp-audit.ts`. |

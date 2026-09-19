@@ -82,11 +82,25 @@ export default async function PublicLayout({ children }: { children: React.React
   // submitted. The visitor gets the neutral 503 instead; the data layer
   // refuses scoped access independently (lib/prisma.ts), so this is the
   // honest face on a refusal that happens regardless.
-  const { getTenantResolution } = await import("@/lib/tenancy");
+  const { getTenantResolution, requestHost } = await import("@/lib/tenancy");
   const { DEFAULT_TENANT_ID } = await import("@/lib/tenancy/scope");
   const { redirect } = await import("next/navigation");
+  // P2.3 / P3.3 — the platform's own host is computed FIRST, because after P3.3
+  // it resolves to no tenant BY DESIGN. psychefolio.com is the platform, not a
+  // practice (ruling 83), so it has no TenantDomain row and matches no practice
+  // subdomain — which is exactly the shape of "unresolved". The two are not the
+  // same thing: "unresolved" means we do not know whose host this is; on the
+  // platform host we know precisely, and the answer is nobody's. Without this
+  // ordering, P3.3 would have sent /platform, /signup and /join on the apex to
+  // /unavailable — silently undoing everything P2 shipped.
+  const platform = await onPlatformHost();
   const r = await getTenantResolution();
-  if (r.kind === "unresolved") redirect("/unavailable");
+  // requestHost() — C26 refuses a REQUEST whose host cannot be PLACED. A BUILD
+  // has no host to place, and this layout wraps the static marketing home
+  // (`force-static`). Without this clause P3.3 baked the /unavailable redirect
+  // into `/` at build time; see lib/tenancy/index.ts:requestHost, which records
+  // why the obvious `headers()`-throws probe does not work here.
+  if (!platform && requestHost() !== null && r.kind === "unresolved") redirect("/unavailable");
   // C31 — the public chrome (header/footer wordmark, © line) is the resolved
   // practice's, passed as a plain string so components/public stays behind the
   // wall (no data imports there). null = the default tenant's original chrome,
@@ -94,10 +108,8 @@ export default async function PublicLayout({ children }: { children: React.React
   // build-time renders of the static routes.
   const practice = r.kind === "tenant" && r.tenant.id !== DEFAULT_TENANT_ID ? r.tenant.displayName || r.tenant.slug : null;
   // P2.3 — on the platform's own host the chrome is the PLATFORM's: /signup and
-  // /join there must not wear a practice's identity. Resolution itself is
-  // unchanged and still lands on the default tenant (P3's job, reported not
-  // hidden); this is the chrome only.
-  const platform = await onPlatformHost();
+  // /join there must not wear a practice's identity. Since P3.3 resolution
+  // agrees with the chrome: the apex resolves to no practice at all.
   return (
     <div data-portal="public" className="flex min-h-dvh flex-col bg-canvas text-ink">
       <PublicHeader practice={platform ? null : practice} platform={platform} />

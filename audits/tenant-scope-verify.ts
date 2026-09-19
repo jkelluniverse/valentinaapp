@@ -15,6 +15,7 @@ import { SCOPED_MODELS, DEFAULT_TENANT_ID } from "../lib/tenancy/scope";
 import { withTenantScope, ambientTenantId } from "../lib/tenancy/tenant-scope";
 import { auditNullTenantRows } from "../lib/tenancy/stamp-audit";
 
+import { seedLocalDomains } from "./_fixtures/local-domains";
 // C24.1-TENANT-SCOPE acceptance — the out-of-request tenant scope.
 //
 // WHAT IS UNDER TEST. `withTenantScope(T, fn)` (lib/tenancy/tenant-scope.ts),
@@ -203,6 +204,10 @@ const tid = async (model: string, id: string): Promise<string | null | undefined
   (await p[model].findUnique({ where: { id } }))?.tenantId;
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   log(`# C24.1-TENANT-SCOPE verify — ${new Date().toISOString()}`);
   await cleanup();
 

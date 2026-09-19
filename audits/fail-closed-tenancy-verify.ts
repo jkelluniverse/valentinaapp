@@ -40,6 +40,7 @@ import { createServer, type Server } from "http";
 import { writeFileSync, mkdirSync } from "fs";
 import { chromium } from "playwright";
 
+import { seedLocalDomains } from "./_fixtures/local-domains";
 const PORT = 3152;
 const SINK_PORT = 3153;
 const PLATFORM_DOMAIN = "psx.test";
@@ -183,6 +184,10 @@ async function bookOn(browser: any, origin: string, leadEmail: string): Promise<
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   if (/railway|rlwy\.net/.test(DBURL)) throw new Error("Refusing to run against a Railway database");
   await cleanup();
   log(`# C26-FAIL-CLOSED-TENANCY verify — ${new Date().toISOString()}`);
@@ -450,9 +455,23 @@ async function main() {
   } finally {
     execFileSync("rm", ["-f", "t26-fresh-probe-tmp.ts"]);
   }
+  // V8 INVERTED BY P3.3, NOT RELAXED (ruling 38 — the claim moved, and here is
+  // why). It used to assert that a schema-only database with ZERO tenant rows
+  // resolves to the "layer-3 literal shell" — FRESH_DB_SHELL, a hardcoded copy
+  // of tenant #1's id, display name and skin, served so that an unseeded
+  // database still rendered SOMETHING. P3.3 deleted that shell: it was the last
+  // place her practice existed as a literal in application code rather than as
+  // data, and "render her identity when we have no data at all" is exactly the
+  // claim ruling 85 removed. An empty database is UNRESOLVED, which is what it
+  // actually is, and C26's neutral 503 is what it renders.
+  //
+  // This is strictly the stronger assertion. The old one was satisfied by any
+  // shell bearing the default id; this one is satisfied only by a refusal, and
+  // it still proves the property the check was written for — the fresh database
+  // RESOLVES to a defined state and does not throw.
   check(
-    "V8 — on a schema-only database with ZERO tenant rows, resolution SUCCEEDS (unknown-slug) and serves the layer-3 literal shell — renders, never errors, and never via the error path",
-    fresh.kind === "unknown-slug" && fresh.id === DEFAULT_TENANT_ID,
+    "V8 — on a schema-only database with ZERO tenant rows, resolution answers UNRESOLVED (was: the layer-3 literal shell) — a defined answer, never a throw, and never a borrowed identity",
+    fresh.kind === "unresolved" && fresh.id === null,
     `kind=${fresh.kind} · shell id=${fresh.id}`,
   );
 

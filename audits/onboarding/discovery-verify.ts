@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { chromium } from "playwright";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 
+import { seedLocalDomains } from "../_fixtures/local-domains";
 // CLIENT-ONBOARDING Stage-6 acceptance — the quiet discovery layer, in a real
 // browser against the BUILT app:
 //   · hints: one at a time, shown-once (SEEN on first render), dismiss-forever
@@ -46,6 +47,10 @@ const HOME_HINT_2 = "lives under the You tab";
 const DESIGN_HINT = "grow richer over time";
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

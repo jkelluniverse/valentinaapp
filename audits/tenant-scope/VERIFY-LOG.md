@@ -1,12 +1,12 @@
 # C24.1-TENANT-SCOPE — acceptance log
 
-Run: 2026-09-18T16:44:06.104Z · `npx tsx audits/tenant-scope-verify.ts`
+Run: 2026-09-19T16:33:23.092Z · `npx tsx audits/tenant-scope-verify.ts`
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Requests are simulated in-process via Next's request async storage, so every
 request-path check runs through the real scoped client against the real database.
 
-# C24.1-TENANT-SCOPE verify — 2026-09-18T16:44:01.135Z
+# C24.1-TENANT-SCOPE verify — 2026-09-19T16:33:18.723Z
 - ✓ simulated request scope is real (next/headers resolves inside it)
 
 ## Verify 1 — the five assumptions
@@ -18,7 +18,7 @@ request-path check runs through the real scoped client against the real database
 - ✓ A1 CONFIRMED: middleware.ts (the one edge-by-default context) does not touch the prisma client
 - ✓ A1 CONFIRMED: the job tick route is a Node route handler (no edge runtime export) and runs inside a request — tick writes are request-scoped anyway — headers() resolves there, so precedence 1 applies
 - ✓ A2 CONFIRMED (with a correction): ONE resolver, ONE headers() call, ONE fallback consult… — headers()×1 · ambientTenantId()×1 · requestTenantId defs×1
-- ✓ A2 CORRECTED: …but that resolver is CALLED from two write paths (runOp and the array-form $transaction) — and, since C25, re-exported once as scopeTenantId() — requestTenantId() call sites: 3 — the two write paths plus the C25 export scopeTenantId() (lib/practice-settings.ts, which must address a row by a unique key that INCLUDES tenantId). One fallback consult still covers all three, because it lives in the resolver
+- ✗ A2 CORRECTED: …but that resolver is CALLED from two write paths (runOp and the array-form $transaction) — and, since C25, re-exported once as scopeTenantId() — requestTenantId() call sites: 4 — the two write paths plus the C25 export scopeTenantId() (lib/practice-settings.ts, which must address a row by a unique key that INCLUDES tenantId). One fallback consult still covers all three, because it lives in the resolver
 - ✓ A3: prisma/fixtures/c12x-verify.ts now leaves the null-tenant invariant intact (wrapped in withTenantScope) — exit=0 · nulls before=0 after=0 {}
 - ✓ A3: audits/amd06/verify.ts now leaves the null-tenant invariant intact (wrapped in withTenantScope) — exit=0 · nulls before=0 after=0 {}
 - ✓ A3 CORRECTED: every CLI file that writes scoped rows through the scoped client is accounted for — 12 scanned · 6 wrapped (audits/amd06/verify.ts, audits/password-reset/verify.ts, audits/remarkable-recording/verify.ts, audits/settings-i18n-verify.ts, scripts/smoke-writes.ts, prisma/fixtures/c12x-verify.ts) · 6 stated another way · unexplained=none
@@ -72,4 +72,4 @@ request-path check runs through the real scoped client against the real database
 - ✓ SELF-CLEANING: this harness leaves zero null-tenant rows behind — {}
 - ✓ the audit still covers every scoped table (79 tables, nothing narrowed) — 79 tables
 
-TENANT-SCOPE VERIFY PASS — 48/48
+1 CHECK(S) FAILED — 47/48

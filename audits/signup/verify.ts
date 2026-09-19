@@ -3,6 +3,7 @@ import { chromium, type Browser, type BrowserContext } from "playwright";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 import { RESERVED_SLUGS } from "../../lib/signup-config";
 
+import { seedLocalDomains } from "../_fixtures/local-domains";
 // C23-SIGNUP acceptance — the front door, in a real browser against the BUILT
 // app. Proves, per the spec's Verify list:
 //   1  /signup renders 200 in BOTH locales, with no price / "free" / figure
@@ -153,6 +154,10 @@ async function signIn(email: string, password: string, host: string): Promise<{ 
 const MONEY = [/\$\s?\d/, /\bUSD\b/, /\bfree\b/i, /\bgratis\b/i, /\bsin costo\b/i, /\bper month\b/i, /\/mo\b/, /\bal mes\b/i];
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

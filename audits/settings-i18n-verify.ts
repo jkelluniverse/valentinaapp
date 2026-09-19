@@ -8,6 +8,7 @@ import { withTenantScope } from "../lib/tenancy/tenant-scope";
 import en from "../messages/en/practitionerSettings.json";
 import es from "../messages/es/practitionerSettings.json";
 
+import { seedLocalDomains } from "./_fixtures/local-domains";
 // C24.1-TENANT-SCOPE §4 (task #78) acceptance — the practitioner settings
 // i18n pass, and spec Verify item 10.
 //
@@ -95,6 +96,10 @@ async function cleanup() {
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

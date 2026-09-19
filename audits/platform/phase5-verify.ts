@@ -2,6 +2,7 @@ import { spawn, execSync, type ChildProcess } from "child_process";
 import bcrypt from "bcryptjs";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 
+import { seedLocalDomains } from "../_fixtures/local-domains";
 // PLATFORM Phase 5 acceptance — provisioning + demo tenants:
 //   · CLI script provisions a tenant from a checked-in config JSON with
 //     ZERO code changes: tenant + modules + comped DEMO billing +
@@ -67,6 +68,10 @@ async function signIn(email: string, password: string, host: string): Promise<st
 }
 
 async function main() {
+  // P3.3 — `localhost` is no longer anybody's host by default. This gate
+  // drives the app on a loopback address, so it states the mapping the way
+  // production states hers: as a TenantDomain row (audits/_fixtures).
+  await seedLocalDomains();
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch copy)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");
