@@ -89,19 +89,49 @@ async function main() {
   check("every table's B row is visible to B", missing === 0);
   check("her tenant sees none of B's rows in any table", herDrift === 0 && cross === 0);
 
-  // Legacy-null rule on representative per-client tables.
+  // P5 / RULING 86 — THIS CHECK IS INVERTED, NOT RELAXED (ruling 38: the count
+  // moves and it is NAMED; the same treatment this file's host checks got at
+  // P3.3, a few lines below).
+  //
+  // IT USED TO ASSERT THE EQUIVALENCE ITSELF: null a row, then require that HER
+  // DAL could still see it (`if (!hers || bs) legacyOk = false`). That assertion
+  // was scopeFilter's default-tenant branch restated as a test, so it was the
+  // one place in the standing set that was LOAD-BEARING on the privilege P5
+  // removes — found by LOOKING BEFORE REMOVING (V7), not by the sweep going red
+  // afterwards, which is ruling 162's lesson applied forward.
+  //
+  // The new assertion is STRICTLY STRONGER: an unowned row is visible to NOBODY.
+  // Her DAL must no longer see it, B's still must not, and the probe keeps its
+  // own positive control — the row IS visible again once ownership is restored,
+  // so "invisible" cannot be passing for the trivial reason that the row is gone.
   const probes: ScopedModel[] = ["logEntry", "note", "charge", "psycheNode", "appointment"];
-  let legacyOk = true;
+  let orphanOk = true;
+  let restoredOk = true;
+  let probed = 0;
   for (const key of probes) {
     const row = await (prisma as any)[key].findFirst({ where: { tenantId: DEFAULT_TENANT_ID } });
     if (!row) continue;
+    probed++;
     await (prisma as any)[key].update({ where: { id: row.id }, data: { tenantId: null } });
     const hers = await herDb[key].findFirst({ where: { id: row.id } });
     const bs = await bDb[key].findFirst({ where: { id: row.id } });
-    if (!hers || bs) legacyOk = false;
+    if (hers || bs) { orphanOk = false; log(`  · ORPHAN VISIBLE in ${key}: hers=${Boolean(hers)} b=${Boolean(bs)}`); }
     await (prisma as any)[key].update({ where: { id: row.id }, data: { tenantId: DEFAULT_TENANT_ID } });
+    // POSITIVE CONTROL — with ownership restored she sees it again, so the
+    // invisibility above is the FILTER working, not the row having vanished.
+    const back = await herDb[key].findFirst({ where: { id: row.id } });
+    if (!back) { restoredOk = false; log(`  · CONTROL FAILED in ${key}: her own row invisible after restore`); }
   }
-  check("legacy null rows belong to the DEFAULT tenant only (5 table probe)", legacyOk);
+  check(
+    `a null-tenant row belongs to NOBODY — invisible to her AND to B (${probed}-table probe; was "belongs to the DEFAULT tenant only" before P5)`,
+    orphanOk && probed > 0,
+    `${probed} tables probed`,
+  );
+  check(
+    "POSITIVE CONTROL — each probed row is visible to her again once its tenantId is restored",
+    restoredOk && probed > 0,
+    `${probed} tables probed`,
+  );
 
   await cleanupB();
 

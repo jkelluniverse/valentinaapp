@@ -212,11 +212,31 @@ async function main() {
     `${tenantCallers.length} calling files, app/layout.tsx among them — the contract is kept; only WHAT it returns on an unresolvable host changed`,
   );
   const guardsSrc = execFileSync("cat", ["lib/auth-guards.ts"], { encoding: "utf8" });
+  // P5 / RULING 157 — UPDATED BY ASSERTING THE NEW DOOR, NOT BY RELAXING WHAT IT
+  // ASSERTS. The door changed shape: the branch that ADMITTED a null-tenant user
+  // on her host is gone and a refusal stands in its place, so this now pins the
+  // stronger pair AND adds a regression guard the old version could not have —
+  // the fail-open line must not come back.
+  //
+  // CODE ONLY, COMMENTS STRIPPED, AND THAT IS NOT FUSSINESS: lib/auth-guards.ts
+  // QUOTES the removed line verbatim in its explanatory comment. A raw-text
+  // "absent" check would read that comment and report the fail-open branch as
+  // still live. The instrument has to look at what runs.
+  const guardsCode = guardsSrc
+    .split("\n")
+    .filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l))
+    .join("\n");
   check(
-    "A2 CONFIRMED — the authenticated cross-tenant door exists as the spec quotes it (behavioral proof under failure is Verify 9 below)",
-    guardsSrc.includes("if (userTenantId && userTenantId !== tenant.id) return null;") &&
-      guardsSrc.includes("if (!userTenantId && tenant.slug !== DEFAULT_TENANT_SLUG) return null;"),
-    "both lines present in lib/auth-guards.ts — this spec's scope is public-only, as assumed",
+    "A2 UPDATED (P5) — the cross-tenant door refuses a null-tenant user outright instead of admitting them on her host",
+    guardsCode.includes("if (!userTenantId) return null;") &&
+      guardsCode.includes("if (userTenantId !== tenant.id) return null;"),
+    "both refusal lines present in lib/auth-guards.ts (comments stripped)",
+  );
+  check(
+    "A2 REGRESSION GUARD (P5) — the fail-open branch `!userTenantId && tenant.slug !== DEFAULT_TENANT_SLUG` is GONE FROM THE CODE, and the gate proves it can tell code from the comment that quotes it",
+    !guardsCode.includes("tenant.slug !== DEFAULT_TENANT_SLUG") &&
+      guardsSrc.includes("tenant.slug !== DEFAULT_TENANT_SLUG"),
+    "absent in code · still present in the file's comment, which is exactly what the stripper must ignore",
   );
   // A3 — scoped writes reachable without a session. Structural argument made
   // checkable: guard-prisma confines raw-prisma to the allowlist, so every

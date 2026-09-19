@@ -53,9 +53,30 @@ export type ScopedModel = (typeof SCOPED_MODELS)[number];
 
 export const SCOPED_MODEL_SET: ReadonlySet<string> = new Set(SCOPED_MODELS);
 
-// Legacy rows (tenantId null) belong to the DEFAULT tenant only; every other
-// tenant sees strictly its own rows.
-export const scopeFilter = (tenantId: string) =>
-  tenantId === DEFAULT_TENANT_ID
-    ? { OR: [{ tenantId }, { tenantId: null }] }
-    : { tenantId };
+// P5 / RULING 86 — EVERY TENANT SEES STRICTLY ITS OWN ROWS, INCLUDING THIS ONE.
+//
+// This read:
+//
+//     tenantId === DEFAULT_TENANT_ID
+//       ? { OR: [{ tenantId }, { tenantId: null }] }
+//       : { tenantId }
+//
+// which was the DEEPEST form of the default-tenant assumption: a row with no
+// owner was treated as HERS. It was true when it was written — migration 36
+// converged the legacy rows and tenant #1 was the only practice — but it means
+// an unowned row is silently readable and writable by one specific practice,
+// and by no other. A row belonging to nobody now belongs to nobody.
+//
+// REMOVED ON EVIDENCE, NOT ON ARGUMENT (ruling 144). Jacob's production census
+// discovered every table carrying a tenantId column dynamically — 82 of them,
+// against P3.2's hardcoded 79 — and every one reported ZERO null-tenant rows.
+// The instrument was proven in both directions on scratch first: 82 zeros, a
+// deliberately planted null surfacing at the top, then 82 zeros again. No live
+// row relies on this equivalence.
+//
+// It was load-bearing in ONE gate, found by looking BEFORE removing rather than
+// by the sweep going red (ruling 162's lesson, applied forward): audits/platform
+// /verify.ts nulled a row and asserted HER DAL could still see it. That check is
+// INVERTED, NOT RELAXED — a null-tenant row is now visible to nobody, which is
+// strictly stronger than what it asserted before.
+export const scopeFilter = (tenantId: string) => ({ tenantId });

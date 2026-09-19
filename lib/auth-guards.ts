@@ -42,14 +42,28 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   // JWT carrying an older version is dead on its next request.
   if ((sessionUser.sessionVersion ?? 0) !== user.sessionVersion) return null;
   // PLATFORM Phase 0 — the cross-tenant door: a user signed into one tenant's
-  // host never resolves on another's. Null tenantId = the default tenant
-  // (legacy rows), which is also what every current host resolves to.
+  // host never resolves on another's.
+  //
+  // P5 / RULING 86 — THE NULL-TENANT BRANCH IS GONE. It read:
+  //
+  //     if (!userTenantId && tenant.slug !== DEFAULT_TENANT_SLUG) return null;
+  //
+  // i.e. a user with NO tenant was signed in as though they were hers, on her
+  // host. That is the same default-tenant assumption scopeFilter carried, wearing
+  // an auth hat. Confirmed dead by data twice: P3's census and Jacob's fresh
+  // production census both report ZERO null-tenantId User rows.
+  //
+  // IT IS REPLACED BY A REFUSAL, NOT BY DELETION, AND THE DIFFERENCE MATTERS.
+  // Simply dropping the line would fail OPEN: with no branch examining a null
+  // tenant, the guard above (`userTenantId && ...`) is skipped entirely and such
+  // a user would resolve on EVERY host rather than on one. Dead code that fails
+  // open when it comes back to life is worse than the branch it replaced. A user
+  // belonging to no practice belongs on no practice's host.
   const { getTenant } = await import("@/lib/tenancy");
   const tenant = await getTenant();
-  const { DEFAULT_TENANT_SLUG } = await import("@/lib/tenancy");
   const userTenantId = (user as { tenantId?: string | null }).tenantId ?? null;
-  if (userTenantId && userTenantId !== tenant.id) return null;
-  if (!userTenantId && tenant.slug !== DEFAULT_TENANT_SLUG) return null;
+  if (!userTenantId) return null;
+  if (userTenantId !== tenant.id) return null;
   const { sessionVersion: _sv, tenantId: _t, ...rest } = user;
   return rest as SessionUser;
 }

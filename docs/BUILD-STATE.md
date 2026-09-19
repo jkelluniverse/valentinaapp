@@ -2046,6 +2046,38 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     thing that was already true. Written into audits/ownership-parity-verify.ts's header
     so it is not rediscovered the hard way.
 
+164. **THE HONESTLY-REPORTED GAP, NOW CLOSED BY EVIDENCE RATHER THAN ARGUMENT.**
+    (Architect's numbering of P5-ITEMS-1-3-LIVE.md §4.) Both production ticks reported
+    ALL ZEROS, so no update/delete/upsert had run in her tenant since the deploy: the
+    tick being green proved resolution and reads and NOTHING about item 3's branch, and
+    the report said so rather than letting a quiet log pass as a write test. CLOSED: Jacob
+    signed in as Valentina, renamed a file and renamed it back, and it saved — a
+    UNIQUE_WRITE update running under the ownership pre-check her tenant was exempt from
+    until the day before, on her live practice, with the save as its own positive control.
+
+165. **THE UNKNOWN-SLUG DIVERGENCE, behaving in both directions with its control.**
+    (Architect's numbering.) An unowned subdomain answers kind="unknown-slug" and CHROME
+    renders her content there while the DATA LAYER REFUSES — ruling 113's deliberate
+    divergence, proven live: `/` and `/privacy` 200 with her bytes, `/login` 200 with
+    valentina=0, `/book` (which reads) **500 — refused**, and the same `/book` on HER host
+    **200** as the positive control. Same page, reads on one host, refuses on the other.
+    Rough edge recorded and NOT fixed in P5: the refusal surfaces as a raw 500 rather than
+    C26's neutral 503, because the (public) layout redirects only on kind="unresolved".
+    A face, not a leak, and P3.3-era rather than P5's.
+
+166. **NOT RECORDED — the Architect referenced 164 and 165 by number but no text was
+    issued for 166.** Left deliberately blank rather than invented; the builder asked for
+    it in the P5 closing report instead of filling the gap with a guess.
+
+167. **A CENSUS DISCOVERS ITS OWN SCOPE. A list of tables written at one moment is wrong
+    by the next migration.** Jacob's production run returned **82 tables, every one zero**,
+    against P3.2's hardcoded **79**-model list — ruling 144 vindicated, and the dynamic
+    discovery is what caught the staleness. Ordered `null_tenant_rows DESC` so any non-zero
+    sorts to the top; the first row read 0. The instrument was proven in BOTH directions on
+    scratch before he ran it (82 zeros → a planted NULL surfacing at the top → 82 zeros
+    again), so a screen of zeros is evidence the query looked, not evidence it did not run.
+
+
 ## P5 ITEMS 1 AND 3 BUILT (items order per dispatch; item 2 STOPPED, see below).
 ## ITEM 1 (ruling 156): all five global-by-intent reads now go through
 ## lib/user-identity.ts -> emailInUse(email): Promise<boolean> on the raw client,
@@ -2106,6 +2138,47 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## presentation still is, because the marketing bytes still are. Five DEFAULT_TENANT_ID
 ## comparisons remain in app/. P5 IS NOT "no default-tenant reference left in production
 ## code" and must never be reported as such.
+
+## P5 CENTRAL ITEMS BUILT — THE PLATFORM SPLIT'S LAST TWO DEFAULT-TENANT ASSUMPTIONS.
+## Both were deferred from earlier phases specifically so they could land on EVIDENCE
+## rather than on an assumption that they were safe (ruling 144). They now have it: the
+## production census returned 82 tables, every one ZERO null-tenant rows.
+## CENTRAL 1 (ruling 86) — scopeFilter's NULL-equals-default equivalence is GONE.
+## lib/tenancy/scope.ts now reads `(tenantId) => ({ tenantId })`. It was the DEEPEST form
+## of the assumption: a row with no owner was treated as HERS — silently readable and
+## writable by one specific practice and by no other. A row belonging to nobody now
+## belongs to nobody.
+## CENTRAL 2 (ruling 86) — auth-guards' NULL-tenantId sign-in branch is GONE, AND IT WAS
+## REPLACED BY A REFUSAL RATHER THAN DELETED. Dropping the line outright would FAIL OPEN:
+## with no branch examining a null tenant, the guard above it is skipped and such a user
+## would resolve on EVERY host instead of one. `if (!userTenantId) return null;` now
+## stands first. DEAD CODE THAT FAILS OPEN WHEN IT COMES BACK TO LIFE IS WORSE THAN THE
+## BRANCH IT REPLACED.
+## V7 ANSWERED BEFORE ANYTHING WAS REMOVED, WHICH IS RULING 162 APPLIED FORWARD. Exactly
+## ONE standing gate was load-bearing on the equivalence: audits/platform/verify.ts nulled
+## a row and asserted HER DAL COULD STILL SEE IT — scopeFilter's default branch restated as
+## a test. It was found by LOOKING FIRST, not by the sweep going red afterwards. INVERTED,
+## NOT RELAXED (ruling 38, the same treatment this file's own host checks got at P3.3): a
+## null-tenant row is now visible to NOBODY, which is strictly stronger, and it carries a
+## new POSITIVE CONTROL so "invisible" cannot pass for the trivial reason that the row is
+## gone. Re-introducing the equivalence prints `hers=true b=false` on all five probed
+## tables and turns the check red while the control stays green.
+## A2 in fail-closed-tenancy asserted the OLD door BY NAME, so ruling 157 applied: it now
+## pins the new refusal pair and adds a REGRESSION GUARD that the fail-open line has not
+## come back. That guard reads CODE WITH COMMENTS STRIPPED and proves its own stripper in
+## one assertion — absent from code AND present in the file, because auth-guards.ts quotes
+## the removed line verbatim in its explanation and a raw-text check would have read the
+## comment and reported the branch as still live.
+## COUNTS NAMED (ruling 38): platform-verify 19 -> 20 checks (+positive control);
+## fail-closed-tenancy 18/18 -> 19/19 (+regression guard). NO ASSERTION WAS RELAXED;
+## both gates got stronger.
+## AN INSTRUMENT ERROR CAUGHT BEFORE IT BECAME A PHANTOM: the builder first compared
+## platform-verify's count against audits/platform/VERIFY-LOG.md and read 68 -> 20, an
+## alarming collapse. That file is the CURATED, human-maintained accumulation of every
+## phase's acceptance; verify.ts writes its machine output to isolation-verify.out.md,
+## which is untracked. The count was measured from the diff itself instead. RULING 153
+## AGAIN — the instrument, not the system.
+
 
 153. **THE PLAN HAS BEEN WRONG MORE OFTEN THAN THE CODE HAS.** Three times in ONE
     session the INSTRUMENT was the problem, not the system: `strings` on a
