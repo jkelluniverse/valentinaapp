@@ -1601,6 +1601,70 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## psychefolio.com and www.), resolving via host-pattern to unknown-slug. Unexpected
 ## host, no mapping row, reported not acted on.
 
+117. **A vendor callback that is never subscribed is not a working integration with a
+    bug; it is an UNBUILT integration — distinguish the two, because one is a fix and
+    the other is a build.** APPLIED PER ENDPOINT, from observed traffic:
+    /api/square/webhook is a WORKING integration in its degraded-but-designed mode
+    (24 requests, all 2xx, real invoices/payments/refund — see below);
+    /api/webhooks/square is UNBUILT (zero traffic, zero ConnectedPaymentAccount rows,
+    and a dependent table whose presence in production is unconfirmed); the
+    transcription, recording and remarkable callbacks are UNBUILT in production (zero
+    traffic each).
+118. **A table's absence from production is a finding of the same weight as a wrong
+    value in it, and it is invisible to any gate**, because gates build their scratch
+    DB from the same migrations production supposedly ran. Substance holds — but see
+    the WebhookEvent entry below: drift is NOT yet established and must not be recorded
+    as fact until a quoted query tests the simpler explanation.
+
+## CALLBACK TRAFFIC TABLE — OBSERVED (production, 7 days, 2026-09-19). Instrument
+## proven in the same window per ruling 110 (/api/tenant-kind = 57 requests).
+## /api/jobs/tick 673 all-2xx (96/day, every 15 min) · /api/square/webhook 24 all-2xx ·
+## /api/webhooks/square 0 · /api/webhooks/transcription 0 · /api/recording/webhook 0 ·
+## /api/inbound/remarkable 0.
+## **RULING 114's EXEMPTION LIST SHRINKS FROM FIVE TO TWO** — only /api/square/webhook
+## and /api/jobs/tick carry live traffic. An exemption not needed cannot grow.
+
+## EXTERNALPAYMENT = 25 EXPLAINED, and it answers Charge = 0 with the same fact:
+## endpoint A's ONLY create path in the whole repo is externalPayment.upsert (route:154);
+## the other three sites (billing/actions x2, tick) only UPDATE. Endpoint A matches each
+## payment to a Charge by reference_id, then squareInvoiceId, then squarePaymentId; with
+## Charge empty every lookup misses and every event falls through to the upsert — its
+## documented third job, "an outside-the-app payment, surfaced for one-tap matching".
+## So the 25 rows ARE Square-webhook-written, and they are the record of Valentina
+## invoicing and taking payment INSIDE Square rather than through the app's charge flow.
+## The integration is working, not unbuilt (ruling 117's distinction, applied).
+
+## THE DASHBOARD CONTRADICTION RESOLVED: Jacob's "practitioner portal" app
+## (sq0idp-T4siHrz83o93QxqJt80h9g) shows ZERO subscriptions, yet SIGNATURE-VERIFIED
+## events arrive — endpoint A 401s on signature failure and only logs a parsed event
+## after verification, and the logs show parsed events with 2xx. So the subscription
+## lives in a DIFFERENT Square application/account: the one that issued the
+## SQUARE_WEBHOOK_SIGNATURE_KEY in production. Jacob is looking at the wrong dashboard.
+## The grep-the-bundle approach CANNOT answer which app is live:
+## NEXT_PUBLIC_SQUARE_APPLICATION_ID is referenced NOWHERE in the codebase (repo-wide,
+## zero hits), so Next never inlines it and no sq0idp- reaches the client bundle. The
+## variable is VESTIGIAL — useful for P6's classification: one of the two
+## "platform-level" Square vars is dead weight.
+
+## WEBHOOKEVENT — DRIFT NOT ESTABLISHED, DO NOT RECORD IT AS FACT YET. The model IS in
+## schema.prisma (line 1586) AND migration 37_billing_b1 contains CREATE TABLE
+## "WebhookEvent". Two explanations for Jacob's "relation does not exist":
+## (a) real drift — unlikely, since `prisma migrate deploy` is the service's
+## preDeployCommand and runs on EVERY deploy (~10 succeeded today; a pending migration
+## would have applied, a failing one would have failed the deploy); (b) an UNQUOTED
+## identifier — Postgres folds WebhookEvent to webhookevent and every table here is
+## created with quoted CamelCase, so an unquoted query cannot find ANY of them. (b) is
+## far more likely and declaring drift before testing it would be the exact error this
+## program keeps catching. A quoted single-statement query testing both the table and
+## the migration ledger is in the report. Reconciled separately: WebhookEvent was
+## CORRECTLY absent from the 79-model census — scope.ts names it platform-level and
+## deliberately unscoped, so the census was complete.
+
+## P6 PREMISE ESTABLISHED AS FACT: ConnectedPaymentAccount = 0. No OAuth connection
+## exists for any tenant; Valentina's payments run entirely through the legacy env-var
+## path (lib/payments/account.ts:41's env-legacy branch). Endpoint B could never
+## attribute an event even if it received one.
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
