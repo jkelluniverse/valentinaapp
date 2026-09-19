@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 // below — because its tenant is STATED rather than resolved from the host.
 // Everything else here goes through the scoped client unchanged.
 import { rawPrisma } from "@/lib/prisma-internal";
-import { DEFAULT_TENANT_ID } from "@/lib/tenancy/scope";
+import { PLATFORM_TENANT_ID } from "@/lib/tenancy/scope";
 import { CAPS, DEFAULT_SOURCE, EMAIL_RE } from "@/lib/capture-config";
 import { isSelfReferral } from "@/lib/referral-config";
 
@@ -71,36 +71,11 @@ async function issueReferralCode(): Promise<string> {
   throw new Error("could not issue a unique referral code");
 }
 
-// ---------------------------------------------------------------------------
-// RULING 133 — A NAMED, TRACKED DEFECT. READ THIS BEFORE COPYING IT.
-//
-// In plain words: this attributes PLATFORM-level capture audit rows to
-// tenant #1 — Valentina's practice. That is WRONG. A founding-partner lead
-// captured on psychefolio.com is the platform's event, not hers, and recording
-// it as her practice's data is ruling 82. P4 item 5 fixes it, most likely by
-// giving the platform a Tenant row of its own, which is a schema and data
-// decision that must not ride a hotfix.
-//
-// The value does not change anything: before P3.3 these rows were stamped with
-// this same id, silently, by host resolution landing on the default tenant.
-// What changes is that the defect now has a name, a reason and a tracking item
-// instead of being an accident the next reader ratifies.
-//
-// IT IS NOT A FALLBACK AND MUST NOT BECOME ONE. It is reachable only where a
-// capture happens with no practice to attribute it to — the platform host —
-// and audits/platform-writes-verify.ts fails if this identifier is used
-// anywhere other than the single site below (ruling 133 condition 2). A
-// general "when there is no tenant, use this" helper is precisely the fallback
-// P3.3 removed, re-entering through a side door with a comment attached.
-// ---------------------------------------------------------------------------
-const PLATFORM_CAPTURE_AUDIT_TENANT: string = DEFAULT_TENANT_ID;
-
-/** The tenant a capture's audit row belongs to.
- *
- *  A practice's OWN /join keeps that practice — the request resolves and its
- *  tenant is used, exactly as before. Only the platform host, where P3.3
- *  correctly refuses because there is no practice there, reaches the tracked
- *  constant. */
+// P4 item 5 — RULING 133's TRACKING ITEM IS DISCHARGED, and the constant it
+// named is gone with it. Platform-level capture audit rows no longer land on
+// tenant #1: they are attributed to the PLATFORM's own tenant row (migration
+// 52), which exists for exactly this and which no host can resolve to. A
+// practice's own /join still attributes to that practice, unchanged.
 async function captureAuditTenantId(): Promise<string> {
   try {
     const { scopeTenantId } = await import("@/lib/prisma");
@@ -109,7 +84,7 @@ async function captureAuditTenantId(): Promise<string> {
   } catch {
     /* the platform host: refused by P3.3, and rightly — no practice owns it */
   }
-  return PLATFORM_CAPTURE_AUDIT_TENANT; // THE ONE CALL SITE
+  return PLATFORM_TENANT_ID;
 }
 
 export async function captureProspect(input: CaptureInput): Promise<CaptureResult> {

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { platformEmailConfigured, platformIdentity, sendEmail } from "@/lib/notify";
-import { DEFAULT_TENANT_ID } from "@/lib/tenancy/scope";
+import { PLATFORM_TENANT_ID } from "@/lib/tenancy/scope";
 import {
   ENGAGE_ENABLED_KEY,
   ENGAGE_PAUSED_KEY,
@@ -186,7 +186,17 @@ export async function planEngage(opts: PlanOptions = {}): Promise<{
   // means the platform identity exists (from + legal entity + postal address),
   // not merely that a practice can send. Without it every due step records
   // UNCONFIGURED and stays re-sendable — never a send under a practice's name.
-  const configured = platformEmailConfigured();
+  // P4 item 3 — COMMERCIAL mail requires the postal address, and this is where
+  // that requirement now lives. platformIdentity() stopped demanding it when it
+  // left transactional envelopes (ruling 97's interlock), so engage — the only
+  // commercial sender — re-imposes it rather than letting it lapse entirely.
+  // Same failure shape as before: without it, due steps record UNCONFIGURED and
+  // stay re-sendable, never a send that is missing what commercial mail needs.
+  const identityNow = platformIdentity();
+  const configured = platformEmailConfigured() && Boolean(identityNow?.postalAddress);
+  if (platformEmailConfigured() && !identityNow?.postalAddress) {
+    console.error("[engage] PLATFORM_POSTAL_ADDRESS is unset — commercial sends are held (transactional platform mail is unaffected)");
+  }
 
   const ledger = await prisma.prospectMessage.findMany({
     where: { prospectId: { in: prospects.map((p) => p.id) } },
@@ -410,7 +420,9 @@ async function actOnStep(
   await prisma.auditEvent
     .create({
       data: {
-        tenantId: DEFAULT_TENANT_ID,
+        // P4 item 5 / RULING 82 — engage is PLATFORM marketing, and it is now
+        // recorded as the platform's, not as Valentina's practice data.
+        tenantId: PLATFORM_TENANT_ID,
         actorId: step.prospectId,
         action: "engage-message",
         reason: outcome.reason,
@@ -468,7 +480,9 @@ export async function unsubscribeProspect(prospectId: string | null): Promise<Un
   await prisma.auditEvent
     .create({
       data: {
-        tenantId: DEFAULT_TENANT_ID,
+        // P4 item 5 / RULING 82 — engage is PLATFORM marketing, and it is now
+        // recorded as the platform's, not as Valentina's practice data.
+        tenantId: PLATFORM_TENANT_ID,
         actorId: p.id,
         action: "engage-unsubscribe",
         reason: "one-click unsubscribe honoured",

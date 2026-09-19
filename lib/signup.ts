@@ -10,7 +10,7 @@ import { randomBytes } from "crypto";
 // Cross-tenant by nature — same shape as lib/payments/webhook.ts.
 import { rawPrisma as prisma } from "@/lib/prisma-internal";
 import { provisionTenant, type TenantConfigFile } from "@/lib/provisioning";
-import { sendEmail, emailConfigured } from "@/lib/notify";
+import { sendEmail, platformIdentity } from "@/lib/notify";
 import { SLUG_RE, PASSWORD_MIN, RESERVED_SLUGS, STANDARD_MODULES, portalHostFor } from "@/lib/signup-config";
 import { signupCopy, fill, type SignupLocale } from "@/lib/signup-copy";
 import { isSelfReferral } from "@/lib/referral-config";
@@ -234,9 +234,19 @@ export async function signUpPractitioner(input: SignupInput): Promise<SignupResu
 
   const portalHost = portalHostFor(slug);
 
-  // Welcome email is a COURTESY, never a dependency: the confirmation screen
-  // carries everything they need, so a missing Resend key changes nothing.
-  if (emailConfigured()) {
+  // P4 item 1 — THE WELCOME EMAIL IS PLATFORM MAIL, and until now it was not.
+  // It was gated on emailConfigured() — the LEGACY check, meaning HER Resend key
+  // and HER NOTIFY_FROM_EMAIL — and sent on the default path, so a practitioner
+  // signing up for Psychefolio heard from Valentina's practice. Since P3.3 it
+  // did not even do that on the platform host: resolvePracticeIdentity() refuses
+  // there, correctly, and the send was skipped entirely. Both are the same
+  // defect seen from two sides — the platform had no identity of its own here.
+  //
+  // It is still a COURTESY and never a dependency: the confirmation screen
+  // carries everything they need, so an unconfigured platform identity changes
+  // nothing about whether the practice exists.
+  const platform = platformIdentity();
+  if (platform) {
     const locale = input.locale === "es" ? "es" : "en";
     const e = signupCopy(locale).email;
     const vars = { practice: practiceName, host: portalHost, email, code: referralCode };
@@ -249,8 +259,17 @@ export async function signUpPractitioner(input: SignupInput): Promise<SignupResu
         locale,
         heading: e.heading,
         paragraphs,
-        button: { label: e.button, url: input.baseUrl ?? `https://${portalHost}` },
+        // A1, CONFIRMED AGAINST CURRENT CODE AND NOW FIXED. This read
+        // `input.baseUrl ?? \`https://${portalHost}\`` — the SIGNUP host winning
+        // over the portal host — so the paragraph told them their portal was at
+        // {slug}.$PLATFORM_DOMAIN while the button sent them to wherever they
+        // happened to sign up. On the platform host that is psychefolio.com,
+        // which is no practice at all. The portal host now wins; baseUrl remains
+        // only for an environment with no PLATFORM_DOMAIN, where portalHostFor()
+        // returns a bare slug that is not a host.
+        button: { label: e.button, url: process.env.PLATFORM_DOMAIN ? `https://${portalHost}` : (input.baseUrl ?? `https://${portalHost}`) },
       },
+      identity: platform,
     }).catch(() => ({ ok: false }));
   }
 

@@ -30,6 +30,7 @@ no matter what they forget.
 | `lib/provisioning.ts` | TENANT-CREATING: every scoped row it writes carries the tenantId of the tenant it creates in the same call, stated literally — never the requester's. The tenant cannot exist before the operation that makes it.. |
 | `lib/billing/provision.ts` | The new practice's TenantBilling row; the tenant is STATED by the caller (args.tenantId) on both the read and the write, never resolved from a host. |
 | `lib/prospect-capture.ts` | ONE write: the capture audit row, whose tenant is stated (a practice's own /join keeps that practice; the platform host uses the ruling-133 tracked constant). |
+| `audits/platform-writes-verify.ts` | Platform-level writes gate: reads TenantDomain and Tenant directly to prove no host can resolve to the platform tenant; seeds and removes one probe mapping. |
 | `audits/platform-frontdoor-verify.ts` | platform-host front-door harness: CLI-only, inspects and tears down the throwaway tenant it mints. |
 | `audits/_fixtures/local-domains.ts` | P3.3 loopback fixture — writes `TenantDomain`, a PLATFORM-level table with no `tenantId` column, so the scoped client structurally cannot write it. Refuses a Railway `DATABASE_URL` itself, because it is the one fixture that writes before a gate's own guard has necessarily run. |
 | `lib/tenancy/index.ts` | Tenant resolution must read the `Tenant` table before any scope can exist (and this breaks the import cycle). |

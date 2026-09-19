@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 // client depends on this module, so this also breaks the import cycle).
 import { rawPrisma as prisma } from "@/lib/prisma-internal";
 import { ambientTenantId } from "@/lib/tenancy/tenant-scope";
-import { DEFAULT_TENANT_ID } from "@/lib/tenancy/scope";
+import { DEFAULT_TENANT_ID, PLATFORM_TENANT_STATUS } from "@/lib/tenancy/scope";
 
 // PLATFORM Phase 0 — tenant resolution. Since P1 (ruling 87) the host decides
 // the tenant in two steps: the TenantDomain mapping FIRST (custom domains,
@@ -198,6 +198,17 @@ const UNRESOLVED_SHELL: TenantConfig = {
   featureFlags: null,
 };
 
+/** P4 item 5 — the platform's own tenant row is an ATTRIBUTION TARGET, never a
+ *  practice, and NO HOST MAY RESOLVE TO IT. The check is on STATUS rather than on
+ *  the slug's shape, because Railway's wildcard `*.psychefolio.com` matches
+ *  whatever Host a caller sends: a slug picked to be un-typeable would still be
+ *  reachable with a crafted header, while a status cannot be spoofed by one.
+ *  Applied to BOTH resolution paths — the mapping and the subdomain pattern —
+ *  because a TenantDomain row pointing at it would be just as wrong. */
+function isPlatformTenant(t: { status?: string } | null | undefined): boolean {
+  return t?.status === PLATFORM_TENANT_STATUS;
+}
+
 export async function resolveTenant(host: string | null): Promise<TenantResolution> {
   // P1 — the mapping decides FIRST. No mapping row (the database answered) is
   // not a failure: today's host-pattern behavior takes over, unchanged. A
@@ -207,6 +218,10 @@ export async function resolveTenant(host: string | null): Promise<TenantResoluti
   const clean = host ? host.split(":")[0].toLowerCase() : null;
   if (clean) {
     const m = await tenantByDomainChecked(clean);
+    if (m.ok && m.tenant && isPlatformTenant(m.tenant)) {
+      console.error(`[tenancy] REFUSING: host "${clean}" maps to the PLATFORM tenant, which is an attribution target and not a practice`);
+      return { kind: "unresolved" };
+    }
     if (m.ok && m.tenant) return { kind: "tenant", tenant: m.tenant };
     if (!m.ok && m.stale) return { kind: "tenant", tenant: m.stale };
     if (!m.ok) {
@@ -227,6 +242,10 @@ export async function resolveTenant(host: string | null): Promise<TenantResoluti
   if (!r.ok) {
     if (r.stale) return { kind: "tenant", tenant: r.stale };
     console.error(`[tenancy] UNRESOLVED host — tenant lookup failed for slug "${slug}" with nothing cached`);
+    return { kind: "unresolved" };
+  }
+  if (r.tenant && isPlatformTenant(r.tenant)) {
+    console.error(`[tenancy] REFUSING: slug "${slug}" is the PLATFORM tenant, which is an attribution target and not a practice`);
     return { kind: "unresolved" };
   }
   if (r.tenant) return { kind: "tenant", tenant: r.tenant };

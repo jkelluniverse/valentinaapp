@@ -1,7 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { headers } from "next/headers";
 import { rawPrisma } from "./prisma-internal";
-import { DEFAULT_TENANT_ID, SCOPED_MODEL_SET, scopeFilter } from "./tenancy/scope";
+import { DEFAULT_TENANT_ID, PLATFORM_TENANT_STATUS, SCOPED_MODEL_SET, scopeFilter } from "./tenancy/scope";
 import { stampCreateInput, stampUpdateInput } from "./tenancy/stamp";
 import { identitySelect } from "./tenancy/model-identity";
 import { ambientTenantId } from "./tenancy/tenant-scope";
@@ -124,6 +124,12 @@ async function requestTenantId(): Promise<string | null> {
   const clean = host ? host.split(":")[0].toLowerCase() : "";
   if (clean) {
     const m = await tenantByDomainChecked(clean);
+    // P4 item 5 — the platform's own tenant is an attribution target, not a
+    // practice: no host may scope data access to it, by mapping or by pattern.
+    if (m.ok && m.tenant?.status === PLATFORM_TENANT_STATUS) {
+      console.error(`[tenant-scope] refusing scoped access: host "${clean}" maps to the PLATFORM tenant`);
+      throw new TenantUnresolvedError();
+    }
     if (m.ok && m.tenant) {
       logScopeOnce(clean, m.tenant.id, "TenantDomain");
       return m.tenant.id;
@@ -168,6 +174,10 @@ async function requestTenantId(): Promise<string | null> {
   // purpose, and that divergence is the whole point of ruling 113.
   if (!r.tenant) {
     console.error(`[tenant-scope] refusing scoped access: host slug "${slug}" matches no tenant row`);
+    throw new TenantUnresolvedError();
+  }
+  if (r.tenant.status === PLATFORM_TENANT_STATUS) {
+    console.error(`[tenant-scope] refusing scoped access: slug "${slug}" is the PLATFORM tenant`);
     throw new TenantUnresolvedError();
   }
   logScopeOnce(clean, r.tenant.id, "host-pattern-slug");

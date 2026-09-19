@@ -35,7 +35,9 @@
 //   npx tsx audits/platform-writes-verify.ts
 import { readFileSync } from "fs";
 import { join } from "path";
-import { SCOPED_MODEL_SET } from "../lib/tenancy/scope";
+import { SCOPED_MODEL_SET, PLATFORM_TENANT_ID, DEFAULT_TENANT_ID, PLATFORM_TENANT_STATUS } from "../lib/tenancy/scope";
+import { rawPrisma } from "../lib/prisma-internal";
+import { seedLocalDomains } from "./_fixtures/local-domains";
 
 const ROOT = join(__dirname, "..");
 // The platform-level modules, and the reason each one is in this list.
@@ -44,8 +46,6 @@ const MODULES = [
   { file: "lib/billing/provision.ts", why: "the new practice's TenantBilling; tenant stated by the caller" },
   { file: "lib/prospect-capture.ts", why: "mixed: platform prospect rows plus ONE stated-tenant audit row" },
 ];
-const TRACKED_CONSTANT = "PLATFORM_CAPTURE_AUDIT_TENANT";
-const TRACKED_CONSTANT_HOME = "lib/prospect-capture.ts";
 const WRITE_METHODS = ["create", "createMany", "createManyAndReturn", "upsert"];
 
 const report: string[] = [];
@@ -69,7 +69,7 @@ function callArgs(src: string, openParen: number): string {
   return src.slice(openParen + 1);
 }
 
-function main(): void {
+async function main(): Promise<void> {
   log(`# PLATFORM-LEVEL WRITES verify — ${new Date().toISOString()}`);
 
   log(`\n## 1 — every scoped write states its tenant`);
@@ -97,23 +97,35 @@ function main(): void {
     missing.length ? `MISSING: ${missing.join(" · ")}` : `${totalWrites} write(s), 0 missing`,
   );
 
-  log(`\n## 2 — the ruling-133 tracked constant has exactly ONE use site`);
-  const home = readFileSync(join(ROOT, TRACKED_CONSTANT_HOME), "utf8");
-  const occurrences = (home.match(new RegExp(`\\b${TRACKED_CONSTANT}\\b`, "g")) ?? []).length;
+  // RULING 38 — THE COUNT MOVED AND HERE IS WHY. This used to assert that
+  // ruling 133's tracked constant had exactly one use site. P4 item 5 DISCHARGED
+  // that tracking item: platform activity is now attributed to the platform's
+  // own tenant row (migration 52) instead of to tenant #1, so the constant is
+  // gone and the assertion becomes the stronger one it was standing in for —
+  // that these modules attribute platform rows to the PLATFORM tenant and to
+  // nobody else. 3 checks became 3 checks; what they assert changed.
+  log(`\n## 2 — platform activity is attributed to the PLATFORM tenant, never to a practice`);
+  const attributing = ["lib/prospect-capture.ts", "lib/engage.ts"];
+  let platformRefs = 0;
+  const leaked: string[] = [];
+  for (const f of attributing) {
+    const src = readFileSync(join(ROOT, f), "utf8");
+    // USE sites, not mentions: the import line names it too, and counting that
+    // would make the number drift with unrelated refactors.
+    const body = src.split("\n").filter((l) => !/^import\s/.test(l.trim())).join("\n");
+    platformRefs += (body.match(/\bPLATFORM_TENANT_ID\b/g) ?? []).length;
+    if (/\bDEFAULT_TENANT_ID\b/.test(src)) leaked.push(f);
+  }
   check(
-    `${TRACKED_CONSTANT}: 1 definition + 1 use, and nothing more (ruling 133 condition 2)`,
-    occurrences === 2,
-    `${occurrences} occurrence(s) in ${TRACKED_CONSTANT_HOME} (expected exactly 2)`,
+    "the three platform audit sites attribute to PLATFORM_TENANT_ID (capture 1 + engage 2)",
+    platformRefs === 3,
+    `${platformRefs} use site(s) across ${attributing.join(", ")} (expected 3: capture 1, engage 2)`,
   );
   check(
-    "it is module-local — not exported, so it cannot spread by import",
-    !new RegExp(`export\\s+(const|function)\\s+${TRACKED_CONSTANT}`).test(home),
-    "",
+    "and NONE of them still reaches for the default tenant (ruling 82 closed)",
+    leaked.length === 0,
+    leaked.length ? `STILL USES DEFAULT_TENANT_ID: ${leaked.join(", ")}` : "none",
   );
-  const elsewhere = MODULES.map((m) => m.file)
-    .filter((f) => f !== TRACKED_CONSTANT_HOME)
-    .filter((f) => new RegExp(`\\b${TRACKED_CONSTANT}\\b`).test(readFileSync(join(ROOT, f), "utf8")));
-  check("and appears in no other platform-level module", elsewhere.length === 0, elsewhere.join(", ") || "none");
 
   log(`\n## 3 — they still use the RAW client (a silent return to the scoped one breaks the front door)`);
   for (const m of MODULES) {
@@ -121,8 +133,59 @@ function main(): void {
     check(`\`${m.file}\` imports the raw client`, /from\s+"@\/lib\/prisma-internal"/.test(src), "");
   }
 
+  // ---------------------------------------------------------------------
+  // 4 — LIVE: no host may resolve to the platform tenant, by EITHER path.
+  // This is the claim the whole design rests on, and it is a claim about a
+  // refusal, so it ships with its positive control (ruling 110): a normal
+  // tenant must resolve through the same two paths in the same run, or
+  // "unresolved" would prove only that resolution is broken.
+  // ---------------------------------------------------------------------
+  log(`\n## 4 — no host resolves to the platform tenant (live, both paths)`);
+  const { resolveTenant } = await import("../lib/tenancy");
+  const savedPd = process.env.PLATFORM_DOMAIN;
+  const PROBE_DOMAIN = "pwv.test";
+  const PROBE_HOST = "platform-probe.pwv-mapped.test";
+  try {
+    await seedLocalDomains();
+    process.env.PLATFORM_DOMAIN = PROBE_DOMAIN;
+
+    // positive control A — the subdomain PATTERN resolves a real practice
+    const ctrlSlug = (await rawPrisma.tenant.findFirst({ where: { status: { not: PLATFORM_TENANT_STATUS } }, select: { slug: true } }))?.slug ?? "";
+    const ctrlPattern = await resolveTenant(`${ctrlSlug}.${PROBE_DOMAIN}`);
+    check("positive control: the subdomain pattern DOES resolve a real practice", ctrlPattern.kind === "tenant", `${ctrlSlug} → ${ctrlPattern.kind}`);
+
+    // the pattern must NOT reach the platform tenant
+    const viaPattern = await resolveTenant(`__platform__.${PROBE_DOMAIN}`);
+    check(
+      "a crafted Host on the wildcard cannot reach it via the SUBDOMAIN PATTERN",
+      viaPattern.kind === "unresolved",
+      `__platform__.${PROBE_DOMAIN} → ${viaPattern.kind}`,
+    );
+
+    // positive control B — a TenantDomain mapping DOES resolve a real practice
+    const ctrlMapped = await resolveTenant("localhost");
+    check("positive control: a TenantDomain mapping DOES resolve a real practice", ctrlMapped.kind === "tenant", `localhost → ${ctrlMapped.kind}`);
+
+    // and a mapping pointed AT the platform tenant must still refuse
+    await rawPrisma.tenantDomain.upsert({
+      where: { host: PROBE_HOST },
+      update: { tenantId: PLATFORM_TENANT_ID },
+      create: { id: "td_pwv_probe_0001", host: PROBE_HOST, tenantId: PLATFORM_TENANT_ID },
+    });
+    const viaMapping = await resolveTenant(PROBE_HOST);
+    check(
+      "even an explicit TenantDomain row pointing AT it cannot reach it",
+      viaMapping.kind === "unresolved",
+      `${PROBE_HOST} → ${viaMapping.kind}`,
+    );
+  } finally {
+    await rawPrisma.tenantDomain.deleteMany({ where: { host: PROBE_HOST } }).catch(() => {});
+    if (savedPd === undefined) delete process.env.PLATFORM_DOMAIN;
+    else process.env.PLATFORM_DOMAIN = savedPd;
+  }
+
   log(`\n${failed === 0 ? "ALL CHECKS PASS" : `${failed} CHECK(S) FAILED`}`);
   if (failed > 0) process.exit(1);
 }
 
-main();
+main().catch((e) => { console.error(e); process.exit(1); });

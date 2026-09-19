@@ -31,7 +31,21 @@ export function renderPlatformEnvelope(
   const senderName = displayNameOf(identity.from);
   const bodyFont = "-apple-system,'Segoe UI',Arial,sans-serif";
   const serif = "Georgia,'Times New Roman',serif";
-  const footerLines = [`${identity.legalEntity} · ${identity.postalAddress}`];
+  // P4 item 3 / RULING 96 — the postal address belongs on COMMERCIAL mail and
+  // nowhere else. The marker is the envelope's own unsubscribe link: engage is
+  // the only commercial sender and it is the only path that sets one, so
+  // "carries an unsubscribe" and "is commercial" are the same fact here rather
+  // than two facts that could drift apart. A transactional envelope — a welcome
+  // email, a notification — signs with the legal entity alone.
+  //
+  // Not a judgment about what the law requires: the CAN-SPAM constraint on
+  // commercial mail stands untouched, and what address that mail carries is
+  // Jacob's call, not this file's.
+  const footerLines = [
+    input.unsubscribe && identity.postalAddress
+      ? `${identity.legalEntity} · ${identity.postalAddress}`
+      : identity.legalEntity,
+  ];
 
   const paragraphsHtml = input.paragraphs
     .map(

@@ -188,18 +188,42 @@ async function main() {
       borrowed.length ? `${borrowed.length} message(s) carried the practice account's key` : "none",
     );
     const welcome = sent.find((m) => String(m.body.to) === PROBE_EMAIL);
-    // REPORTED, NOT ASSERTED — this is P4's job and saying so here keeps the
-    // gate honest rather than soft. Today the welcome email is absent because
-    // no caller passes platformIdentity(), so notify.ts skips the send. P4
-    // item 1 routes platform paths through the platform identity, and the
-    // checks that then belong here are: the platform Resend account's key, a
-    // display-name envelope (ruling 94), the platform reply-to, no postal
-    // address on a transactional envelope (ruling 96), and a button pointing
-    // at the NEW TENANT'S portal (${PORTAL_HOST}) rather than the signup host.
-    log(
-      `  · welcome email: ${welcome ? "SENT" : "absent"} — ${sent.length} message(s) reached the sink. ` +
-        `Absent is correct TODAY (no platform identity is passed, so notify.ts skips rather than borrows); P4 item 1 makes it present.`,
-    );
+    check("P4 item 1 — a welcome email IS sent from the platform host", Boolean(welcome), `${sent.length} message(s) reached the sink`);
+    if (welcome) {
+      const auth = String(welcome.headers["authorization"] ?? "");
+      check(
+        "it authenticates with the PLATFORM Resend account, never hers",
+        auth === `Bearer ${PLATFORM_KEY}`,
+        auth.replace(PLATFORM_KEY, "<platform-key>").replace(PRACTICE_KEY, "<HER-KEY>"),
+      );
+      const from = String(welcome.body.from ?? "");
+      check("P4 item 2 / ruling 94 — the envelope carries a DISPLAY NAME, not a bare address", /^[^<]+<[^>]+>$/.test(from), from);
+      check("and the platform reply-to", String(welcome.body.reply_to ?? "") === PLATFORM_REPLY, String(welcome.body.reply_to ?? "none"));
+      const html = String(welcome.body.html ?? "");
+      const text = String(welcome.body.text ?? "");
+      check("the platform legal entity signs it", html.includes("Psychefolio LLC"), "");
+      check("and her name appears nowhere in it", !html.includes("Valentina") && !text.includes("Valentina"), "");
+      check(
+        "P4 item 3 / ruling 96 — NO postal address on this TRANSACTIONAL envelope",
+        !html.includes("1 Probe Street") && !text.includes("1 Probe Street"),
+        "",
+      );
+      // A1's fix. The button used to take the signup host, which on the platform
+      // host is psychefolio.com — no practice at all — while the prose named the
+      // portal. They now agree.
+      const links = (html.match(/href="(https?:\/\/[^"]+)"/g) ?? []).join(" ");
+      check(
+        "A1 — the button points at THE NEW TENANT'S OWN PORTAL, not the host they signed up on",
+        links.includes(`//${PORTAL_HOST}`),
+        links.slice(0, 160) || "no links",
+      );
+      check(
+        "...and not at the platform apex",
+        !new RegExp(`//${PLATFORM_DOMAIN}[/"]`).test(links),
+        "",
+      );
+    }
+
     // ---- the OTHER platform front door, on the same host ----
     // /join is the founding-partner capture. It writes a platform-level
     // PractitionerProspect plus an AuditEvent, and AuditEvent is a SCOPED model

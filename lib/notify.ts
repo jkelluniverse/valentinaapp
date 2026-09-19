@@ -52,6 +52,8 @@ export function emailConfigured(): boolean {
 // platform mail records UNCONFIGURED rather than borrowing a practice's
 // letterhead or the other account's key. Falling back to Valentina is the bug.
 // ---------------------------------------------------------------------------
+import { PLATFORM_NAME } from "@/lib/platform-host";
+
 export type PlatformIdentity = {
   kind: "platform";
   /** The platform Resend account's key — a DIFFERENT account from RESEND_API_KEY. */
@@ -60,16 +62,44 @@ export type PlatformIdentity = {
   from: string;
   replyTo: string | null;
   legalEntity: string;
-  postalAddress: string;
+  /** P4 / ruling 96 — NULLABLE since the postal address left transactional mail.
+   *  It is still REQUIRED for commercial mail, which is engage's job to enforce
+   *  (lib/engage.ts), not this function's. */
+  postalAddress: string | null;
 };
+
+/** P4 item 2 / ruling 94 — an envelope signs with a NAME. `Psychefolio
+ *  <jacob@psychefolio.com>`, not the bare address: the bare address is the
+ *  defect, not the address. Done in code rather than by asking for a variable
+ *  edit, so it is deterministic and idempotent — a value that already carries a
+ *  display name is passed through untouched. */
+function withDisplayName(from: string, name: string): string {
+  return /</.test(from) ? from.trim() : `${name} <${from.trim()}>`;
+}
 
 export function platformIdentity(): PlatformIdentity | null {
   const apiKey = process.env.PLATFORM_RESEND_API_KEY;
-  const from = process.env.PLATFORM_FROM_EMAIL;
+  const rawFrom = process.env.PLATFORM_FROM_EMAIL;
   const legalEntity = process.env.PLATFORM_LEGAL_ENTITY;
-  const postalAddress = process.env.PLATFORM_POSTAL_ADDRESS;
-  if (!apiKey || !from || !legalEntity || !postalAddress) return null;
-  return { kind: "platform", apiKey, from, replyTo: process.env.PLATFORM_REPLY_TO ?? null, legalEntity, postalAddress };
+  // P4 item 3 / RULING 97'S INTERLOCK, AND THE ORDER MATTERS. This used to fail
+  // closed without PLATFORM_POSTAL_ADDRESS. The postal address has now left
+  // transactional envelopes (ruling 96), so if that requirement stayed while the
+  // rendering went, blanking the variable would silently stop ALL platform mail
+  // — including engage, which still needs it. The requirement is relaxed HERE,
+  // in the same change that stops rendering it, and re-imposed where it actually
+  // belongs: on COMMERCIAL mail, in lib/engage.ts.
+  const postalAddress = process.env.PLATFORM_POSTAL_ADDRESS?.trim() || null;
+  if (!apiKey || !rawFrom || !legalEntity) return null;
+  const from = withDisplayName(rawFrom, PLATFORM_NAME);
+  return {
+    kind: "platform",
+    apiKey,
+    from,
+    // Ruling 94 — reply-to is the same identity unless ops names another.
+    replyTo: process.env.PLATFORM_REPLY_TO?.trim() || addressOf(from),
+    legalEntity,
+    postalAddress,
+  };
 }
 
 export function platformEmailConfigured(): boolean {
