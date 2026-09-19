@@ -1,5 +1,5 @@
 #!/bin/bash
-# THE STANDING REGRESSION SET — 42 entries, stamp-audit LAST (rulings 38/48
+# THE STANDING REGRESSION SET — 43 entries, stamp-audit LAST (rulings 38/48
 # count discipline: this committed script IS the enumeration; a sweep total is
 # never restated without it). Run against a SCRATCH database only — the gates
 # refuse Railway URLs themselves, and several provision + tear down fixtures.
@@ -68,6 +68,7 @@ run nexturl-origin       npx tsx audits/nexturl-origin-verify.ts
 run host-tenancy         npx tsx audits/host-tenancy-verify.ts
 run platform-writes      npx tsx audits/platform-writes-verify.ts
 run platform-frontdoor   npx tsx audits/platform-frontdoor-verify.ts
+run engage-idempotency   npx tsx audits/engage-send-idempotency-verify.ts
 run tick-refusal         npx tsx audits/tick-refusal-verify.ts
 run harness-guard        npx tsx audits/harness-guard-verify.ts
 run stamp-audit          npx tsx audits/tenant-stamp-audit.ts
