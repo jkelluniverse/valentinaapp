@@ -1,12 +1,12 @@
 # C24.1-TENANT-SCOPE — acceptance log
 
-Run: 2026-09-19T22:10:48.286Z · `npx tsx audits/tenant-scope-verify.ts`
+Run: 2026-09-19T22:39:51.560Z · `npx tsx audits/tenant-scope-verify.ts`
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Requests are simulated in-process via Next's request async storage, so every
 request-path check runs through the real scoped client against the real database.
 
-# C24.1-TENANT-SCOPE verify — 2026-09-19T22:10:44.091Z
+# C24.1-TENANT-SCOPE verify — 2026-09-19T22:39:47.474Z
 - ✓ simulated request scope is real (next/headers resolves inside it)
 
 ## Verify 1 — the five assumptions
