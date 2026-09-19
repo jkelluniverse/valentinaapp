@@ -1,4 +1,4 @@
-# PASSWORD-RESET verify — 2026-09-19T22:04:14.524Z
+# PASSWORD-RESET verify — 2026-09-19T22:12:54.229Z
 
 ## Request
 - ✓ known address → quiet success — /forgot?sent=1
@@ -8,8 +8,8 @@
 - ✓ malformed address → format error — /forgot?error=format
 
 ## Reset
-- ✓ too-short password rejected — /reset/12bda2890bd89422a22cfeaf16da1e3ad5870c95da68e68d3f77f0fecf092f59?error=short
-- ✓ mismatched confirm rejected — /reset/12bda2890bd89422a22cfeaf16da1e3ad5870c95da68e68d3f77f0fecf092f59?error=match
+- ✓ too-short password rejected — /reset/2203f1ceecd0cb7b66b0ec68939ac6bbd30ea3d5eaa4c6d0d66dc1da822f0428?error=short
+- ✓ mismatched confirm rejected — /reset/2203f1ceecd0cb7b66b0ec68939ac6bbd30ea3d5eaa4c6d0d66dc1da822f0428?error=match
 - ✓ valid reset lands on sign-in with the banner — /login?reset=1
 - ✓ new password actually set
 - ✓ sessionVersion bumped — every open session revoked
