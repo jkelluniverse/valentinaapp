@@ -235,3 +235,61 @@ dashboard change with zero repo change — it is available today, not future sco
 REMOVING the query-parameter fallback is a code change and is deliberately not
 made: doing it before the job moves takes the tick down.
 
+
+## SWEEP AND LIVE VERIFICATION
+
+**Sweep 40/40, `SWEEP EXIT: 0`** (the standing set is `scripts/regress.sh`, which IS
+the enumeration — ruling 51). New entries: `host-tenancy` ALL CHECKS PASS and
+`tick-refusal` 8/8. `harness-guard` 5/5, `stamp-audit` last.
+
+**Live, serving tip `73da241`:**
+
+- **V1 — her domain unchanged.** Root `200` `<title>Rewrite Your Subconscious Mind,
+  Transform Your Life.</title>`; `/book` `/join` `/signup` `/privacy` `/login`
+  `/api/health` `/api/tenant-kind` all `200`, titled `· Valentina Vélez`, `/login`
+  `<title>Veritas</title>`.
+- **V2 — the platform host.** `psychefolio.com/` `307` → `/platform` `200`
+  `<title>Psychefolio</title>`; apex `/signup` and `/join` `200`, titled
+  `· Psychefolio`. P2's deliverable intact.
+- **V3 — THE FLIP P2 PREDICTED, and it is the headline.**
+  `psychefolio.com/api/tenant-kind` → **`{"kind":"unresolved","isDefault":false}`**,
+  where before P3.3 it answered `{"kind":"tenant","isDefault":true}`. P2 logged this
+  as "V8 unchanged and expected — the placeholder is what a visitor sees; the
+  RESOLUTION stays wrong until P3." It is no longer wrong.
+  `valentinavelez.com/api/tenant-kind` still `{"kind":"tenant","isDefault":true}`.
+- **V4 — the subdomain pattern survives.** `psf-rehearsal.psychefolio.com/` `307` →
+  `/book` `200` `<title>Book a free discovery call · PSF Rehearsal Studio</title>`;
+  its `tenant-kind` `{"kind":"tenant","isDefault":false}`.
+- **V5 — staging resolves**, proving migration 51 applied: root `200` with her title,
+  `/book` `200`, `tenant-kind` `{"kind":"tenant","isDefault":true}`.
+- **Ruling 44, live, on BOTH environments.** Her root: `NEXT_REDIRECT` **0**,
+  `"valentina"` **35**, `"veritas"` **6**, `application-name: Veritas` — exactly the
+  f07a035 fixture. The identity regression is provably not shipped.
+
+## WHAT I GOT WRONG IN THIS PHASE, STATED PLAINLY
+
+Three of the four defects were caught by gates asserting COUNTS, and each count moved
+because of a change I believed was inert:
+
+1. `requestTenantId()` call sites 3 → 4. I added a second accessor when
+   `scopeTenantId()` — the C25 export of the same resolver, with a doc comment saying
+   exactly the right thing about null meaning FAIL — already existed. Deleted mine.
+2. Her identity strings 35/6 → 25/2. I reasoned about where the build-time branch went
+   and did not check what the build actually emitted.
+3. `getTenant()` callers 41 → 40. My fix for (2) was wider than the defect.
+
+And one instrument error: I assumed `headers()` throws during static generation. Under
+`force-static` it returns an empty object, so the probe I wrote to detect build time
+answered "this is a request" at build time — the precise opposite of its purpose. The
+artifact, not the argument, is what settled it.
+
+## STILL OUTSTANDING
+
+- **The tick's first post-deploy run**, confirming it still resolves to her tenant and
+  now names it in its report (ruling 126's assertion, from production logs rather than
+  from reasoning). The scheduler fires every 15 minutes.
+- **Jacob:** the quoted single-statement WebhookEvent / migration-ledger query; the
+  AssemblyAI, recording-provider and Resend-inbound dashboards, stubbed in
+  `docs/EXTERNAL-SERVICES.md` §3 so their absence is a known gap rather than an
+  assumption of absence (ruling 118).
+- **P4 is not started and must not be without ratification.**

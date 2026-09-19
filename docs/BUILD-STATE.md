@@ -1752,6 +1752,77 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## query-parameter fallback is a code change and is deliberately not made — doing it
 ## before the job moves takes the tick down.
 
+## P3.3 COMPLETE (2026-09-19, tip 73da241; report:
+## docs/reports/outbox/PLATFORM-SPLIT-P3.3.md). THE DEFAULT-TENANT FALLBACK IS GONE.
+## slugFromHost returns null instead of "valentina"; the chrome resolver renders C26's
+## unresolved shell and the DATA layer throws (ruling 112). FRESH_DB_SHELL deleted.
+## middleware's duplicate "valentina" literal deleted with its short-circuit. Out of a
+## request a caller STATES its tenant via withTenantScope, which the chrome resolver now
+## honours too — closing a disagreement between the two layers, not opening one.
+## NEW GATES: audits/host-tenancy-verify.ts (the Host-as-tenancy INVENTORY — 9 routes
+## classified, exemption = exactly /api/jobs/tick + /api/square/webhook with reason and
+## tracking item per rulings 113/114/122; proven red on a new Host-resolving route, exit
+## 1, and green again) and audits/tick-refusal-verify.ts (8/8 — an unresolvable tick is
+## 503 {"ok":false,"error":"tenant-unresolved"} with NO step fields, positive control on
+## a mapped host, and the 401 guard tested first per ruling 125). Standing set 38 -> 40.
+## MIGRATION 51 maps valentinaapp-staging.up.railway.app (true data; without it staging
+## went dark in the same push that needed verifying). audits/_fixtures/local-domains.ts
+## maps the loopback hosts as a FIXTURE, never a migration — a migration would write
+## "some host is hers by default" into PRODUCTION data, ruling 85's claim in a new place.
+##
+## BLAST RADIUS MEASURED BEFORE BUILDING (detached worktree, bare removal, full sweep):
+## 19 of 38 RED — smoke signup capture referral engage tenant-scope nested-stamp
+## settings-i18n platform-phase5 platform-verify c21 c20 v31 onboarding-stage1
+## onboarding-ui onboarding-discovery fail-closed-tenancy event-chrome demo-path. The
+## gate work was sized from a list, not a guess. tsc PASSED on that probe: the compiler
+## caught the one call site that PASSES slugFromHost's value on and none of the four in
+## audits/platform/verify.ts that COMPARE it, because `===` against a literal is legal
+## on a nullable string.
+##
+## FOUR DEFECTS CAUGHT BEFORE SHIPPING, each by a different instrument:
+## (1) the platform host would have sent /platform, /signup and /join to /unavailable,
+##     undoing P2 on the first deploy — the platform check now runs BEFORE the
+##     unresolved check, because "nobody's host by design" and "a host we cannot place"
+##     are different facts;
+## (2) /unavailable got baked into the STATIC marketing home at build time, and THE
+##     FIRST FIX WAS WRONG — headers() does NOT throw under force-static, it returns
+##     empty, and NEXT_REDIRECT was still in .next/server/app/index.html afterwards.
+##     Reading the artifact rather than trusting the reasoning found it (ruling 125, a
+##     fourth time). The discriminator is now requestHost();
+## (3) the pre-rendered pages LOST HER IDENTITY — "valentina" 35->25, "veritas" 6->2
+##     against the f07a035 fixture, caught by event-chrome's ruling-44 cannot-hide RAW
+##     counts, which named what the normalized byte compare could only call a
+##     divergence. staticSiteTenant() states whose static site is being built: it
+##     answers for NO host, is reachable only when requestHost() is null, has one
+##     caller, and no REQUEST can reach it. P4 tracking item written into the function;
+## (4) staging (see migration 51).
+## The first version of (3)'s fix was TOO WIDE and fail-closed-tenancy said so: its A1
+## check asserts by name that app/layout.tsx calls getTenant(). The change was also
+## unnecessary — the shell reads only skinKey and C26's unresolved shell already carries
+## "warm-clay". Narrowed to generateMetadata.
+##
+## SWEEP 40/40, SWEEP EXIT: 0. LIVE (tip 73da241): V1 her root 200 with her title and
+## all seven surfaces 200; /login <title>Veritas</title>. V2 psychefolio.com/ 307 ->
+## /platform 200 <title>Psychefolio</title>, apex /signup + /join 200 titled
+## "· Psychefolio". V3 THE FLIP P2 PREDICTED: psychefolio.com/api/tenant-kind
+## {"kind":"unresolved","isDefault":false} where it answered {"kind":"tenant",
+## "isDefault":true} before; valentinavelez.com still {"kind":"tenant","isDefault":true}.
+## V4 psf-rehearsal.psychefolio.com/ 307 -> /book 200 "PSF Rehearsal Studio",
+## tenant-kind {"kind":"tenant","isDefault":false} — the subdomain pattern survives.
+## V5 STAGING 200 with her title and /book 200 — migration 51 applied. RULING-44 LIVE
+## ON BOTH: her root NEXT_REDIRECT 0, "valentina" 35, "veritas" 6, application-name
+## Veritas — exactly the fixture, production and staging.
+##
+## FINDINGS REPORTED NOT FIXED: (a) ok:true on a tick whose steps all errored is still
+## possible for NON-tenancy reasons — predates P3.3 and is wider than it; (b) the
+## platform host's /signup and /join write through the RAW client (PractitionerProspect
+## is not a scoped model), which is correct and is WHY P3.3 does not break the front
+## door — named because it is load-bearing and invisible; (c) www.psychefolio.com below
+## the root resolves as an unknown slug, chrome serving default content while the data
+## layer now refuses (chrome's unknown-slug behaviour was outside P3.3's scope).
+##
+## P4 IS NOT STARTED AND MUST NOT BE WITHOUT RATIFICATION.
+
 ## SQUARE AND THE TICK — BOTH LIVE CALLERS USE THE MAPPED HOST (2026-09-19, from HTTP
 ## logs): `POST /api/square/webhook host=valentinavelez.com 200 "Square Connect v2"`
 ## (srcIp 34.202.99.168 / 54.245.1.154) and `GET /api/jobs/tick host=valentinavelez.com
