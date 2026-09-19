@@ -1665,6 +1665,34 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## path (lib/payments/account.ts:41's env-legacy branch). Endpoint B could never
 ## attribute an event even if it received one.
 
+119. **ARCHITECT ERROR, recorded from the Architect's own description (the dispatch
+    carrying its full text did not reach the builder — see the LEDGER GAP note below):
+    a conclusion was drawn from a Square dashboard that had not been established as the
+    GOVERNING one.** Unaffected by ruling 121's correction and still standing.
+121. **A surface reporting an unexpected state is not evidence of a bug until the
+    REAL-WORLD WORKFLOW behind the data is known.** Two working behaviours in tenant
+    #1's practice were escalated as live defects because usage was inferred from the
+    data instead of asked about; one sentence from Jacob — she schedules outside the
+    portal, so there are no Appointment or Charge rows for those 25 Square payments to
+    match against — resolved what would have been a wasted build. BOTH CANCELLED, both
+    correct as built: an unlinked payment is the honest state when there is nothing to
+    link to, and the CSV export is correct about the ledger it exports (Charge is 0
+    because no charge was ever raised in the system).
+
+## LEDGER GAP, disclosed rather than papered over: rulings 119 and 120 were issued in a
+## dispatch the builder never received in full. 119 is recorded above from the
+## Architect's own one-line description in the follow-up; **120's text is unknown and is
+## NOT recorded**. Nothing was built on either. The Architect should re-send 120's text
+## (and 119's, if the paraphrase above is not exact) for the ledger to be complete.
+
+## FUTURE SCOPE — RECORDED, NOT DESIGNED, NOT BUILT (Architect, 2026-09-19, arising from
+## the cancelled D1/D2): for a practitioner who schedules OUTSIDE the portal, payments
+## will always arrive unmatched, and the only actions offered today are "match it" or
+## "dismiss it" — **neither of which produces a bookkeeping record**. Whether an
+## unlinked payment should be reconcilable into the ledger on its own is a PRODUCT
+## question for Jacob, informed by whether practitioners are expected to schedule
+## in-portal at all. Not a defect; not scheduled.
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
