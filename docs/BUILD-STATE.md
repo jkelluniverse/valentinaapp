@@ -1968,6 +1968,29 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     289 rows recording the same refusal is not an audit trail, it is a log leak that would
     bury the one row that mattered. SCOPED AFTER Q3, NOT BEFORE — not yet built.
 
+153. **THE PLAN HAS BEEN WRONG MORE OFTEN THAN THE CODE HAS.** Three times in ONE
+    session the INSTRUMENT was the problem, not the system: `strings` on a
+    FlateDecode-compressed PDF, a regex counting `requestTenantId()` with empty parens,
+    and a query that could only see prospects that already had engage rows. Across the
+    program: the unquoted WebhookEvent identifier, the x-forwarded-host spoof Next
+    silently drops for server actions, the Gmail API stripping a display name from
+    `sender`, and `headers()` returning empty rather than throwing under `force-static`.
+    **Every one was caught by a positive control or by reading an artifact — none by
+    reasoning.** So: every instrument carries its positive control, every absence is
+    proven DETECTABLE before it counts as evidence, and a confirm step the plan calls
+    routine is exactly where the 289-row finding came from. Carry into P5 and the event.
+
+## CLEANUP CLOSED (Jacob ran BLOCK 0 then BLOCK 1). BLOCK 0 returned exactly the five
+## expected addresses and no stranger. BLOCK 1: ledger_rows 3 · audit_events 306 ·
+## prospects 5 · users 2 · billing 2 · modules 6 · domains 0 · **tenants 2**. 306
+## reconciles as BLOCK 0's 304 audit_rows plus the two verification tenants' own signup
+## rows. Production is clean of verification artifacts; tnt_platform_00000000001 and
+## psf-rehearsal both survive.
+## INCIDENTAL FINDING WORTH KEEPING: BLOCK 0 showed the rehearsal's referral attribution
+## INTACT — psf-founder carrying referredByCode AE93EZDY, psf-ref's own code — so
+## C23-REFERRAL's first-touch behaviour was OBSERVED WORKING ON LIVE DATA in the moments
+## before that data was deleted. A cleanup incidentally confirmed a feature.
+
 151. **The bounded caveat, recorded because Jacob needs it in his head on the day:** the
     send and the SENT state write are NOT atomic. claimStep() inserts PENDING before the
     send; the SENT update happens after. A process death between transport success and
