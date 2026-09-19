@@ -15,6 +15,7 @@ import {
 import { sendEmail } from "@/lib/notify";
 import { signIn, signOut } from "@/auth";
 
+import { emailInUse } from "@/lib/user-identity";
 // AMD-05 B2 — account security actions shared by BOTH portals (client and
 // practitioner settings bind their own redirect base). Every log line here is
 // metadata only: user id and action — never a password, token, or address.
@@ -83,8 +84,7 @@ export async function requestEmailChange(base: string, formData: FormData) {
   if (!EMAIL_RE.test(newEmail)) redirect(`${base}?error=email-format`);
   if (newEmail === user.email.toLowerCase()) redirect(`${base}?error=email-same`);
 
-  const taken = await prisma.user.findUnique({ where: { email: newEmail } });
-  if (taken) redirect(`${base}?error=email-taken`);
+  if (await emailInUse(newEmail)) redirect(`${base}?error=email-taken`);
 
   const token = randomBytes(32).toString("hex");
   const tokenHash = createHash("sha256").update(token).digest("hex");

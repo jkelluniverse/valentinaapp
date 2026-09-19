@@ -8,6 +8,7 @@ import { recordConsent } from "@/lib/consent";
 import { syncSquareCustomer } from "@/lib/square";
 import { signIn } from "@/auth";
 
+import { emailInUse } from "@/lib/user-identity";
 // Accept an invite: validate the token, set a password, record consent, create
 // the client account, and sign them in. All validation is re-checked here —
 // the page render is only a convenience, never the security boundary.
@@ -26,8 +27,7 @@ export async function acceptInvite(token: string, formData: FormData) {
   if (!invite || !valid) return back("invalid");
 
   // Never overwrite an existing account; stay generic (no enumeration).
-  const existing = await prisma.user.findUnique({ where: { email: invite.email } });
-  if (existing) return back("cannot_complete");
+  if (await emailInUse(invite.email)) return back("cannot_complete");
 
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.$transaction(async (tx) => {

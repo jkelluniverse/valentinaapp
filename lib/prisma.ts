@@ -1,7 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { headers } from "next/headers";
 import { rawPrisma } from "./prisma-internal";
-import { DEFAULT_TENANT_ID, PLATFORM_TENANT_STATUS, SCOPED_MODEL_SET, scopeFilter } from "./tenancy/scope";
+import { PLATFORM_TENANT_STATUS, SCOPED_MODEL_SET, scopeFilter } from "./tenancy/scope";
 import { stampCreateInput, stampUpdateInput } from "./tenancy/stamp";
 import { identitySelect } from "./tenancy/model-identity";
 import { ambientTenantId } from "./tenancy/tenant-scope";
@@ -315,9 +315,19 @@ async function runOp(client: unknown, op: Op, tenantId: string | null): Promise<
   if (CREATE.has(method)) return d[method](stampCreate(op.model, args, tenantId));
   if (WRITE_WHERE.has(method)) return d[method](withScope(stampUpdate(op.model, args, tenantId), tenantId));
   if (UNIQUE_WRITE.has(method)) {
-    if (tenantId !== DEFAULT_TENANT_ID) {
-      await assertUniqueWriteAllowed(d, op.model, method, args, tenantId);
-    }
+    // P5 / RULING 155 — THE CHECK NOW RUNS FOR EVERY TENANT, INCLUDING THIS ONE.
+    //
+    // This read `if (tenantId !== DEFAULT_TENANT_ID)`. It was written as a
+    // performance shortcut — every legacy row is already hers, so her hot paths
+    // stayed at zero extra queries — but it is also a SECURITY ASYMMETRY: every
+    // other practice got a fail-closed ownership pre-check that tenant #1 was
+    // exempt from. P5 does not merely stop privileging her; it removes a check
+    // she was exempt from, which is the direction that matters.
+    //
+    // HONEST COST, stated rather than discovered: one extra SELECT per
+    // update/delete/upsert on her paths, where there were none. That is the
+    // price of her being an ordinary tenant.
+    await assertUniqueWriteAllowed(d, op.model, method, args, tenantId);
     if (method === "upsert") return d.upsert(stampUpsert(op.model, args, tenantId));
     if (method === "update") return d.update(stampUpdate(op.model, args, tenantId));
     return d[method](args);
@@ -370,7 +380,10 @@ function wrapClient(base: object): PrismaClient {
           // Client promises" check). So: await the pre-checks first, then
           // build the promise array synchronously.
           const items = arg as { __veritasOp?: Op }[];
-          if (tid !== null && tid !== DEFAULT_TENANT_ID) {
+          // P5 / ruling 155 — the same asymmetry, in the array form of
+          // $transaction. tid null is still passthrough (out of a request and
+          // out of any stated scope); every real tenant is checked.
+          if (tid !== null) {
             for (const item of items) {
               const op = item?.__veritasOp;
               if (op && UNIQUE_WRITE.has(op.method)) {

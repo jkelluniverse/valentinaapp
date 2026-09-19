@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 
+import { emailInUse } from "@/lib/user-identity";
 export const dynamic = "force-dynamic";
 
 // AMD-05 B2 — the landing page for the email-change confirmation link. It is
@@ -17,7 +18,7 @@ export default async function ConfirmEmailPage({ params }: { params: { token: st
 
   let outcome: "invalid" | "taken" | "done" = "invalid";
   if (request && !request.consumedAt && request.expiresAt > new Date()) {
-    const taken = await prisma.user.findUnique({ where: { email: request.newEmail } });
+    const taken = await emailInUse(request.newEmail);
     if (taken) {
       outcome = "taken";
     } else {

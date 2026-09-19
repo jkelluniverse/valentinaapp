@@ -1968,6 +1968,64 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     289 rows recording the same refusal is not an audit trail, it is a log leak that would
     bury the one row that mattered. SCOPED AFTER Q3, NOT BEFORE — not yet built.
 
+154. **Resolution, data scoping and PRESENTATION are three separate places the
+    default-tenant assumption lives, and fixing one says nothing about the others.** A1
+    was half wrong in the way that matters: five CHROME branches in app/ decide
+    presentation by "is this the default tenant", and P1/P3 never retired them because
+    they were never RESOLUTION. This is ruling 107's two-resolver lesson generalised —
+    the same class of error, made three times.
+155. **P5 does not merely stop privileging tenant #1; it removes a check she was EXEMPT
+    FROM.** lib/prisma.ts skipped the fail-closed ownership pre-check on every unique
+    write when the scope was the default tenant — a performance shortcut that was also a
+    SECURITY ASYMMETRY, since every other practice got a check she did not. Removing it
+    makes her equal in the direction that matters. P5's second central item, alongside
+    scopeFilter. Honest cost: one extra SELECT per update/delete/upsert on her paths.
+156. **A4 was wrong and the instrument was the builder's own survey** — it keyed on a
+    pattern that missed two sites and judged the remainder by eye. The count is FIVE, not
+    three; the new ones are the client email-change check and the client invite check,
+    both global by intent because User.email is @unique across tenants. Ruling 153 on the
+    night it was recorded.
+157. **A gate that references the default tenant is updated by giving it an explicit
+    FIXTURE tenant, never by relaxing what it asserts. If an assertion cannot survive the
+    change, the change is wrong, not the assertion.**
+158. **A census that returns an empty set on success is indistinguishable from a census
+    that did not run.** §6's null-tenant query discovers tenantId columns dynamically
+    rather than trusting the 79-model list (already stale at 82) and returns a row per
+    table INCLUDING the zeros, so the result carries its own positive control.
+
+## P5 ITEMS 1 AND 3 BUILT (items order per dispatch; item 2 STOPPED, see below).
+## ITEM 1 (ruling 156): all five global-by-intent reads now go through
+## lib/user-identity.ts -> emailInUse(email): Promise<boolean> on the raw client,
+## allowlisted once. It returns a BOOLEAN, never a row — a row would leak another
+## practice's user across the boundary the scoped client exists to hold. Pinned by COUNTS
+## because five inline queries spotted by eye is exactly what made A4 miscount: the gate
+## fails on a sixth scoped lookup, asserts the return type, and asserts all five sites use
+## it. The THREE that remain scoped are correct — they resolve the SIGNED-IN user by email
+## to check a role, where scoping to this request's tenant is the point.
+## ITEM 3 (ruling 155): the exemption is gone from both sites (runOp and the array-form
+## $transaction); lib/prisma.ts no longer imports DEFAULT_TENANT_ID at all. New standing
+## gate audits/ownership-parity-verify.ts (set 43 -> 44) proves three legs: her scope ->
+## another tenant's row REFUSED and the row UNCHANGED; another tenant's scope -> her row
+## REFUSED; and the POSITIVE CONTROL that her scope writing her OWN row still succeeds.
+## Re-introducing the exemption turns leg 1 red and leaves 2 and 3 green, so the gate
+## names WHICH direction broke.
+## AN INSTRUMENT ERROR THAT WOULD HAVE BEEN A PHANTOM EMERGENCY: the gate's first version
+## reported a cross-tenant write SUCCEEDING. The cause was the builder's: the scoped
+## client returns a LAZY THENABLE, so awaiting it outside withTenantScope loses the
+## AsyncLocalStorage context and every op becomes an unscoped passthrough. It was caught
+## because leg 2 — the leg that was supposed to ALREADY hold — failed. A GATE WHOSE
+## CONTROL LEG FAILS IS TELLING YOU ABOUT ITSELF, NOT THE SYSTEM.
+## ITEM 2 STOPPED AND REPORTED RATHER THAN WIDENED: all four remaining chrome branches
+## have one shape (non-default -> own identity; default -> hardcoded copy, and
+## book/page.tsx carries her name as a literal). There is no way to express them without
+## DEFAULT_TENANT_ID except by answering "who owns the built-in chrome?", which is
+## staticSiteTenant()'s question and ruling 131 put it outside P5. Making `practice`
+## always the display name would change her live bytes and break event-chrome's pinned
+## 35/6 fixture. Awaiting the Architect's ruling: (a) let the four branches ask
+## staticSiteTenant() — no DEFAULT_TENANT_ID left in chrome, her bytes identical, no gate
+## relaxed, special case consolidated into the one already-tracked function; or (b) defer
+## the chrome category to brand-web with its own tracking item. Builder recommends (a).
+
 153. **THE PLAN HAS BEEN WRONG MORE OFTEN THAN THE CODE HAS.** Three times in ONE
     session the INSTRUMENT was the problem, not the system: `strings` on a
     FlateDecode-compressed PDF, a regex counting `requestTenantId()` with empty parens,

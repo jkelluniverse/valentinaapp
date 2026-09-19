@@ -9,6 +9,7 @@ import { sendEmail, emailConfigured } from "@/lib/notify";
 import { inviteEmail } from "@/emails/invite";
 import { firstNameOf } from "@/lib/name";
 
+import { emailInUse } from "@/lib/user-identity";
 type ActionResult = { ok: true; link?: string; emailed?: boolean } | { ok: false; error: string };
 
 const CLIENTS_PATH = "/practitioner/clients";
@@ -76,8 +77,7 @@ export async function createInvite(input: {
   }
 
   // Don't invite someone who already has an account.
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) return { ok: false, error: "That email already has an account." };
+  if (await emailInUse(email)) return { ok: false, error: "That email already has an account." };
 
   // One live invite per email — steer duplicates to Resend.
   const pending = await prisma.invite.findFirst({ where: { email, status: "PENDING" } });

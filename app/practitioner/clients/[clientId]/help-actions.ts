@@ -21,6 +21,7 @@ import { setChargeStatus } from "@/lib/billing";
 import { listCardsOnFile, createSquarePayment, squareConfigured } from "@/lib/square";
 import { sendChargeInvoice } from "@/app/practitioner/billing/actions";
 
+import { emailInUse } from "@/lib/user-identity";
 // AMD-06 §1 — the "Help with their account" tools. Design law throughout:
 // capability yes, impersonation no. actorId = Valentina on everything here,
 // onBehalfOfId = the client; the audit line is part of the action, not an
@@ -106,7 +107,7 @@ export async function assistedEmailChange(clientId: string, formData: FormData) 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) redirect(back(clientId, "email-format"));
   if (!note) redirect(back(clientId, "email-note"));
   if (newEmail === client.email.toLowerCase()) redirect(back(clientId, "email-same"));
-  if (await prisma.user.findUnique({ where: { email: newEmail } })) {
+  if (await emailInUse(newEmail)) {
     redirect(back(clientId, "email-taken"));
   }
 
