@@ -1752,6 +1752,63 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## query-parameter fallback is a code change and is deliberately not made — doing it
 ## before the job moves takes the tick down.
 
+128. **Prefer a COUNT over a description when adding a gate.** Three of the four
+    defects P3.3 surfaced were caught by count assertions — `requestTenantId()` call
+    sites 3→4, her identity strings 35/6→25/2, `getTenant()` callers 41→40 — and every
+    one moved because of a change believed to be inert. A count is the cheapest
+    instrument this program has and the only one that catches a change nobody thought
+    worth checking.
+129. **Measure the blast radius in a detached worktree BEFORE building a keystone
+    removal.** P3.3's bare removal was applied in a throwaway worktree and the standing
+    set run against it: 19 of 38 red. That sized the work from a list instead of a guess
+    and surfaced three defects before a line shipped. Standing practice from here.
+130. **`headers()` does NOT throw under `force-static` — it returns empty.** The
+    build-time probe written on the opposite assumption therefore answered "this is a
+    request" at BUILD time, the exact inverse of its purpose, and `NEXT_REDIRECT` was
+    still sitting in `.next/server/app/index.html` after the "fix". The build ARTIFACT
+    settled it, not the reasoning. Third instrument error of its kind this week
+    (rulings 110/125). Test the instrument before believing the reading.
+131. **`staticSiteTenant()` is a STATEMENT, not the fallback returning under another
+    name — ratified explicitly so the distinction survives in the ledger and not only
+    in the builder's head.** The pre-rendered bytes are tenant #1's by PRODUCT FACT: her
+    wordmark, portrait, copyright line, PWA name. It answers for NO host at all, is
+    reachable only when `requestHost()` is null, has ONE caller, and no REQUEST can
+    reach it — an unmapped host still refuses, which is the whole of P3.3. Its P4
+    tracking item is written into the function: a host-agnostic static home cannot serve
+    a second practice, so `/` becomes dynamic and per-tenant or each practice's site is
+    built separately, and the function is deleted then. **This is the one thing in P3.3
+    that could later be mistaken for the defect P3.3 removed.**
+
+## ALSO RATIFIED WITH P3.3: reversing the builder's own preflight recommendation on the
+## gate fixture. A migration would have written "some host is hers by default" into
+## PRODUCTION data — ruling 85's claim in a new location. A fixture is correct, and it is
+## CLOSER to production than what it replaced (a gate that rode the fallback now
+## exercises the TenantDomain mapping, which is the path production uses). And the
+## exemption-in-the-SCANNER-not-the-RESOLVER resolution: there is no runtime fallback for
+## anyone; the exemption records only that those two routes decide tenancy by Host, with
+## tracking items that retire it. host-tenancy-verify classifying all 9 unauthenticated
+## data-reaching routes, failing on a NEW one, and failing if the exempt set is anything
+## but those two, is exactly ruling 114's shape.
+
+## RULING 126 CONFIRMED BY MEASUREMENT — THE TICK'S FIRST POST-DEPLOY RUN (production
+## logs, deployment ad765586, status SUCCESS). Two lines, three MICROSECONDS apart, from
+## the same run:
+##   2026-09-19T17:15:13.969140525Z  [tenant-scope] host=valentinavelez.com
+##                                   tenantId=tnt_valentina_000000001 via=TenantDomain
+##   2026-09-19T17:15:13.969143434Z  [tick] {"tenant":"tnt_valentina_000000001",
+##                                   ...,"engage":"considered=1 sent=0 skipped=1
+##                                   suppressed=0 unconfigured=0","tenantStampDrift":0}
+## It resolved **via=TenantDomain** — through the MAPPING, not a fallback, which no
+## longer exists. No 401 (it ran) and no 503 (it did not refuse). It was NOT an empty
+## run: engage evaluated a real candidate (considered=1). tenantStampDrift=0, so the
+## null-tenant invariant still holds after P3.3. The `"tenant"` field is new in P3.3 —
+## the up-front resolution naming what it served — and it makes ruling 127's problem
+## visible in every future log line.
+## A REFUSAL SEARCH RETURNED ZERO, AND THAT IS EVIDENCE ONLY BECAUSE THE INSTRUMENT WAS
+## TESTED (ruling 110): the same log filter returns the [tenant-scope] line above, so it
+## demonstrably matches. Zero `UNRESOLVED` / `REFUSING` / `tenant-unresolved` /
+## `refusing scoped access` lines in production since the deploy.
+
 ## P3.3 COMPLETE (2026-09-19, tip 73da241; report:
 ## docs/reports/outbox/PLATFORM-SPLIT-P3.3.md). THE DEFAULT-TENANT FALLBACK IS GONE.
 ## slugFromHost returns null instead of "valentina"; the chrome resolver renders C26's

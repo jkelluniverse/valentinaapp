@@ -285,11 +285,45 @@ artifact, not the argument, is what settled it.
 
 ## STILL OUTSTANDING
 
-- **The tick's first post-deploy run**, confirming it still resolves to her tenant and
-  now names it in its report (ruling 126's assertion, from production logs rather than
-  from reasoning). The scheduler fires every 15 minutes.
+- ~~The tick's first post-deploy run~~ — **CONFIRMED, see below.**
 - **Jacob:** the quoted single-statement WebhookEvent / migration-ledger query; the
   AssemblyAI, recording-provider and Resend-inbound dashboards, stubbed in
   `docs/EXTERNAL-SERVICES.md` §3 so their absence is a known gap rather than an
   assumption of absence (ruling 118).
 - **P4 is not started and must not be without ratification.**
+
+## THE TICK, CONFIRMED FROM PRODUCTION LOGS (ruling 126)
+
+Deployment `ad765586`, status SUCCESS. Two lines, **three microseconds apart**, from
+the same run:
+
+```
+2026-09-19T17:15:13.969140525Z  [tenant-scope] host=valentinavelez.com tenantId=tnt_valentina_000000001 via=TenantDomain
+2026-09-19T17:15:13.969143434Z  [tick] {"tenant":"tnt_valentina_000000001","autoCompleted":0,
+                                "lastSessionNotices":0,"completionNotices":0,"expired":0,
+                                "sessionReminders":0,"remindersSent":0,"reconciled":0,
+                                "capturesPolled":0,"paymentTokens":"refreshed=0 flagged=0",
+                                "billingSweep":"suspended=0 webhooksPruned=0",
+                                "engage":"considered=1 sent=0 skipped=1 suppressed=0 unconfigured=0",
+                                "tenantStampDrift":0}
+```
+
+Read out in full, because each part answers a different question:
+
+- **`via=TenantDomain`** — it resolved through the MAPPING, not a fallback. The fallback
+  does not exist any more, so this is the only way it could have resolved at all.
+- **`"tenant":"tnt_valentina_000000001"`** — her tenant, named by the run itself. That
+  field is new in P3.3: the up-front resolution reporting what it served. It also makes
+  ruling 127's problem visible in every future log line.
+- **No 401** — it ran; **no 503** — it did not refuse.
+- **`engage: considered=1`** — it was NOT an empty run. The engage engine evaluated a
+  real candidate. An empty-but-successful run is what the hardening exists to prevent,
+  and this run was neither empty nor silent about what it was.
+- **`tenantStampDrift: 0`** — the null-tenant invariant still holds after P3.3.
+
+**A refusal search returned zero, and that is evidence only because the instrument was
+tested first** (ruling 110): the same log filter returns the `[tenant-scope]` line
+above, so it demonstrably matches live output. Zero `UNRESOLVED`, `REFUSING`,
+`tenant-unresolved` or `refusing scoped access` lines in production since the deploy.
+
+**P3.3's one live consumer is healthy.**
