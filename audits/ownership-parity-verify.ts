@@ -30,6 +30,29 @@ import { AsyncLocalStorage } from "async_hooks";
 // Plus: after each refusal the target row is re-read and must be UNCHANGED —
 // "it threw" and "it did not write" are different claims.
 //
+// RULING 163 — THE INSTRUMENT ERROR THAT WOULD HAVE BEEN A PHANTOM EMERGENCY.
+// READ THIS BEFORE EDITING ANY LEG. The first version of this gate reported
+// leg 1's cross-tenant write SUCCEEDING — an alarm that read exactly like a
+// live security hole in production. It was not. It was this gate lying about
+// itself.
+//
+// THE MECHANISM. The scoped client returns a LAZY THENABLE: requestTenantId()
+// runs when the operation is first AWAITED, not when it is written. So this
+//
+//     const p = withTenantScope(T, () => prisma.priceBook.update({ ... }));
+//     await p;                          // <-- await OUTSIDE the scope
+//
+// leaves the AsyncLocalStorage context before the tenant is ever read. The
+// scope resolves to null and EVERY operation becomes an unscoped passthrough —
+// which of course "succeeds" at writing another tenant's row. Every await of a
+// scoped operation must happen INSIDE its own withTenantScope callback.
+//
+// WHAT CAUGHT IT, and this is the transferable part: LEG 2 FAILED — the leg
+// that was supposed to already hold, before any of P5's changes. A gate whose
+// CONTROL leg fails is telling you about ITSELF, not about the system. Chase
+// the instrument first; a real regression does not break the thing that was
+// already true. (Rulings 125 / 153: test the instrument.)
+//
 // Self-cleaning: one throwaway tenant and two settings rows, removed first/last.
 //   DATABASE_URL=...scratch npx tsx audits/ownership-parity-verify.ts
 

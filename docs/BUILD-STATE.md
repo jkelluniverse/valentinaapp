@@ -1993,6 +1993,59 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     rather than trusting the 79-model list (already stale at 82) and returns a row per
     table INCLUDING the zeros, so the result carries its own positive control.
 
+159. **Do not consolidate a special case into a function that is already scheduled for
+    deletion.** It multiplies the cost of the deletion that actually removes it, and it
+    buys the appearance of a fix. P5 item 2's option (a) would have routed five chrome
+    branches through staticSiteTenant() — whose own comment (lib/tenancy/index.ts:329-332)
+    says "Delete this function when that lands" and which has ONE call site. (a) takes it
+    to six, converting brand-web's one-site deletion into a six-site change, to buy a
+    RENAME: the five branches compare an id while caring about content/site-content.ts, so
+    presentation cannot stop naming her while the bytes it serves are hers. Cheap, safe,
+    and built on a condemned foundation — REJECTED. The builder recommended (a), then
+    reversed on facts discovered after recommending it; THE REVERSAL IS THE FINDING.
+
+160. **P5's honest report line, in these words and never a tidier version:** resolution
+    and data scoping are hers no longer; presentation still is, because the marketing
+    bytes still are. Five DEFAULT_TENANT_ID comparisons remain in app/ under task #15,
+    retired by brand-web. P5 IS NOT "no default-tenant reference left in production code"
+    and must never be reported as such.
+
+161. **/api/tenant-kind's contract change is RATIFIED AS DESIGNED and ships with the
+    chrome work in brand-web, not now** — staticRoot cannot be computed without
+    staticSiteTenant(), and (b) keeps that at one call site. Three proven facts carry
+    forward VERBATIM so brand-web does not re-derive them: (i) ONE consumer
+    (middleware.ts:79-80), reached by an in-process loopback self-fetch (C32 §2), so
+    caller and callee are always the same build and there is no rolling-deploy skew
+    window; (ii) all FOUR truth-table rows are already gated — event-chrome V5 (her host),
+    V6 (unknown slug), V4/A5 + demo-path:402 (practice B → 307 /book), V7/A4 (practice B
+    under resolution failure); (iii) staticRoot must fail TRUE — toward the static site,
+    never toward a practice's booking page — because V7/A4 already asserts the root does
+    NOT redirect under resolution failure. DECIDED AGAINST THE BUILDER BY AN EXISTING
+    ASSERTION RATHER THAN CHOSEN. Design of record: docs/reports/outbox/P5-ITEM2-CHROME-DESIGN.md §2.
+
+162. **THE NIGHT'S BEST FINDING — the default-tenant exemption was LOAD-BEARING IN THE
+    TEST APPARATUS.** nested-stamp proved "an update does not rewrite an existing
+    tenantId" by updating a FOREIGN_TENANT-owned row from the default tenant's scope — a
+    cross-tenant write that only ever worked because tenant #1 was exempt from the
+    ownership pre-check. Under any other tenant it would already have been refused.
+    NOTHING FOUND THIS BY READING CODE; the sweep found it the moment the exemption was
+    removed. A PRIVILEGE CAN BE LOAD-BEARING IN THE VERY APPARATUS THAT VERIFIES THE
+    SYSTEM, AND REMOVING IT IS THE ONLY WAY TO DISCOVER THAT. Fixed per ruling 157:
+    nested-stamp's SCOPE was corrected and its assertion left untouched; same for
+    practice-setting, where the gate moved to PriceBook and the A3 assertion stood.
+    EVERY RED TONIGHT WAS A GATE CORRECTLY OBJECTING TO SOMETHING, AND NONE WAS A GATE
+    NEEDING TO BE WEAKENED.
+
+163. **A gate whose CONTROL leg fails is telling you about ITSELF, not the system.** The
+    scoped client returns a LAZY THENABLE: requestTenantId() runs when the operation is
+    first AWAITED, not when it is written, so awaiting outside withTenantScope loses the
+    AsyncLocalStorage context and every op becomes an unscoped passthrough. The parity
+    gate's first version therefore reported a cross-tenant write SUCCEEDING — a false
+    live-security-hole alarm. What caught it was LEG 2 failing, the leg that was supposed
+    to already hold. Chase the instrument first; a real regression does not break the
+    thing that was already true. Written into audits/ownership-parity-verify.ts's header
+    so it is not rediscovered the hard way.
+
 ## P5 ITEMS 1 AND 3 BUILT (items order per dispatch; item 2 STOPPED, see below).
 ## ITEM 1 (ruling 156): all five global-by-intent reads now go through
 ## lib/user-identity.ts -> emailInUse(email): Promise<boolean> on the raw client,
@@ -2031,7 +2084,7 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## ASSERTION (ruling 157) — it now uses PriceBook, a scoped model with id + tenantId, no
 ## required relation and no standing invariant of its own. 47/47.
 
-## ITEM 2 STOPPED AND REPORTED RATHER THAN WIDENED: all four remaining chrome branches
+## ITEM 2 DEFERRED TO BRAND-WEB (ruled (b)) — STOPPED AND REPORTED RATHER THAN WIDENED: all four remaining chrome branches
 ## have one shape (non-default -> own identity; default -> hardcoded copy, and
 ## book/page.tsx carries her name as a literal). There is no way to express them without
 ## DEFAULT_TENANT_ID except by answering "who owns the built-in chrome?", which is
@@ -2040,7 +2093,19 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## 35/6 fixture. Awaiting the Architect's ruling: (a) let the four branches ask
 ## staticSiteTenant() — no DEFAULT_TENANT_ID left in chrome, her bytes identical, no gate
 ## relaxed, special case consolidated into the one already-tracked function; or (b) defer
-## the chrome category to brand-web with its own tracking item. Builder recommends (a).
+## the chrome category to brand-web with its own tracking item. Builder recommended (a),
+## then REVERSED to (b) on facts found after recommending it (ruling 159): staticSiteTenant()
+## carries its own deletion order and has ONE call site, so (a) buys a rename at the cost
+## of a six-site future deletion. The cost objection the builder expected against (a) was
+## WITHDRAWN — tenantByIdChecked shares the chrome's existing 60s cache (lib/tenancy/index.ts:40-42),
+## so (a) was cheap and safe and still wrong.
+## RULED: (b). ITEM 2 IS DEFERRED TO BRAND-WEB, task #15. /api/tenant-kind's contract
+## change is RATIFIED AS DESIGNED and ships there, not now (ruling 161); the design of
+## record is docs/reports/outbox/P5-ITEM2-CHROME-DESIGN.md §2.
+## P5'S REPORT LINE, RULING 160, VERBATIM: resolution and data scoping are hers no longer;
+## presentation still is, because the marketing bytes still are. Five DEFAULT_TENANT_ID
+## comparisons remain in app/. P5 IS NOT "no default-tenant reference left in production
+## code" and must never be reported as such.
 
 153. **THE PLAN HAS BEEN WRONG MORE OFTEN THAN THE CODE HAS.** Three times in ONE
     session the INSTRUMENT was the problem, not the system: `strings` on a
