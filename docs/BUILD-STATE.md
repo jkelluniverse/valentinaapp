@@ -1968,6 +1968,27 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     289 rows recording the same refusal is not an audit trail, it is a log leak that would
     bury the one row that mattered. SCOPED AFTER Q3, NOT BEFORE — not yet built.
 
+151. **The bounded caveat, recorded because Jacob needs it in his head on the day:** the
+    send and the SENT state write are NOT atomic. claimStep() inserts PENDING before the
+    send; the SENT update happens after. A process death between transport success and
+    that update leaves the row PENDING, and after STALE_CLAIM_MS (15 min) it is reclaimed
+    and re-sent ONCE. One duplicate to one recipient after a crash — **not a loop.** NOT A
+    BLOCKER. **Do not fix it before Sept 23.**
+152. **The gate-open path is standing entry 43**, so it stays covered rather than proven
+    once and forgotten — the correct disposition for a path that had never run in
+    production in any prospect's lifetime.
+
+## JACOB'S TWO DECISIONS (recorded so neither is re-litigated):
+## 1. DELETE ALL FIVE verification prospects, not an audit-rows-only variant. None are
+##    genuine leads, and each surviving prospect generates ~96 audit rows per day until
+##    ruling 150 is fixed.
+## 2. RULING 150's FIX WAITS UNTIL AFTER SEPT 23. Once the five prospects are gone and
+##    terminal steps stop being reconsidered, the accumulation largely stops on its own.
+##    The fix is a BEHAVIOUR CHANGE TO THE ENGINE THREE DAYS BEFORE THE ENGINE'S FIRST
+##    REAL USE. The audit noise is tolerable; an untested change to the send path is not.
+##    Queued post-event ALONGSIDE ruling 146's naming item — they touch the same write and
+##    should be ONE change.
+
 ## Q3 ANSWERED — ENGAGE IS IDEMPOTENT ON SEND. NOT A STOP.
 ## The gate-open path had NEVER run in production (299 decisions, every one
 ## engine-gate-closed), so it was unverified BY DEFINITION with the event days away —

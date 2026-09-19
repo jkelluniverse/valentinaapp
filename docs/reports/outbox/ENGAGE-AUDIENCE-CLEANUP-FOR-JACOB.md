@@ -30,11 +30,17 @@ prospect in engage's audience — and it is re-decided **every 15 minutes, forev
 **~96 new audit rows per day, per prospect-step**, until ruling 150's fix lands.
 That is how 289 rows accumulated over three days.
 
-**Recommendation: delete all four prospects and their rows.** All four are
-verification debris, the tenant is provably unaffected, and leaving any of them
-restarts the growth tonight. If you would rather keep the provenance until P6,
-say so and I will give you an audit-rows-only variant — but expect the count to
-climb again.
+**DECIDED (Jacob): delete all five verification prospects.** Not an
+audit-rows-only variant. None of the five is a genuine lead, the psf-rehearsal
+tenant is provably unaffected, and each surviving prospect would generate ~96
+audit rows per day until ruling 150 is fixed.
+
+**Also decided: ruling 150's engine fix WAITS until after Sept 23.** Once the five
+prospects are gone and terminal steps stop being reconsidered, the accumulation
+largely stops on its own. The fix is a behaviour change to the engine three days
+before the engine's first real use — the audit noise is tolerable, an untested
+change to the send path is not. It is queued post-event together with ruling
+146's naming item, since they touch the same write.
 
 ---
 
@@ -78,7 +84,7 @@ genuine lead and nothing here should touch it.
 
 ---
 
-## 3 — BLOCK 2 (REVISED): one statement, everything verification, nothing else
+## 3 — BLOCK 1: one statement, everything verification, nothing else
 
 Keyed on the five verification addresses and the two verification tenant slugs.
 **There are no cascades on any of these links** — `ProspectMessage.prospectId`,
