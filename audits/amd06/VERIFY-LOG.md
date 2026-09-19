@@ -1,4 +1,4 @@
-# AMD-06 verify (mechanics) — 2026-09-19T17:03:54.802Z
+# AMD-06 verify (mechanics) — 2026-09-19T20:03:23.744Z
 
 ## Temp password — Rosa
 - ✓ temp password verifies against the stored hash

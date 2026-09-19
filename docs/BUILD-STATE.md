@@ -1834,6 +1834,34 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     is recorded as the LIKELY SHAPE OF P4 ITEM 5's FIX, but is a schema and data decision
     that must not ride a hotfix.
 
+134. **TENANT-CREATING is a THIRD category**, distinct from platform-level and
+    tenant-scoped. An operation that MINTS a tenant writes scoped rows carrying the id it
+    is creating in the same call, stated literally in the payload. Resolving those against
+    the REQUEST's tenant is a category error, not a limitation, and the raw client cannot
+    reopen P3.3's hole there because the code never derives a tenant from the host at all.
+    **THE TEST for whether a raw-client use is legitimate: does EVERY write state its own
+    tenantId? If yes it is a category correction. If any write would inherit a tenant from
+    context, it is a bypass and it is forbidden.** Machine-enforced by
+    audits/platform-writes-verify.ts.
+135. **A gate set that only exercises the happy host proves nothing about the host that
+    matters.** No gate had ever performed a WRITE on the platform apex; every
+    write-exercising gate ran on a host that resolved to somebody, which before P3.3 the
+    fallback guaranteed. P3.3 made WHICH HOST load-bearing for writes, so 40/40 was true
+    and completely uninformative about the front door. **Platform-host write coverage is
+    now standing and must never be removed.**
+136. **"Global by intent, scoped by accident" is a defect CLASS, and one instance is
+    rarely one instance.** provisioning's duplicate-email check is a read meant to be
+    global — sign-in is by email across tenants — that under the scoped client only ever
+    saw the request tenant's users, masked because lib/signup.ts does its own global check
+    with the raw client. Found by the category correction rather than by looking for it.
+    FIXED. The survey of the rest of the class is in the hotfix report.
+137. **A gate that fails for a reason other than the thing it tests is WORSE than no
+    gate, because it produces a confident wrong diagnosis.** Fourth instrument error of
+    the week: the front-door gate's first version spoofed x-forwarded-host, which **Next
+    refuses for server actions when Origin disagrees** — the POST was silently dropped and
+    it presented exactly as a mail failure. The constraint is written into that gate's
+    header so it is not rediscovered.
+
 ## THE P3.3 REGRESSION — BOTH PLATFORM FRONT DOORS, AND THE GATE GAP THAT HID IT
 ## (found 2026-09-19 while building P4's acceptance gate; hotfix follows)
 ## WHAT BROKE, on the platform host ONLY (her domain and practice subdomains resolve, so

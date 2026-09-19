@@ -21,7 +21,7 @@
 // apart (C27: psychefolio.com's mail lives in a different account).
 //
 // Self-cleaning: one throwaway tenant per run, removed first and last.
-//   DATABASE_URL=...scratch npx tsx audits/platform-mail-verify.ts
+//   DATABASE_URL=...scratch npx tsx audits/platform-frontdoor-verify.ts
 import { spawn, execSync, type ChildProcess } from "child_process";
 import { openSync, readFileSync } from "fs";
 import { createServer, type Server } from "http";
