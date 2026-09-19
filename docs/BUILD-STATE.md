@@ -1693,6 +1693,48 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## question for Jacob, informed by whether practitioners are expected to schedule
 ## in-portal at all. Not a defect; not scheduled.
 
+122. **Ruling 114's transitional exemption covers exactly TWO routes** — /api/jobs/tick
+    and /api/square/webhook. The other three receive no traffic and get the
+    payload-resolution pattern when wired up, never a Host-based exemption. **SEE THE
+    P3.3 PREFLIGHT: new evidence suggests the exemption may be needed for ZERO routes**,
+    because both live callers use the MAPPED host — builder recommendation pending the
+    Architect's ruling, nothing built either way.
+123. **Absence of a scheduler in Railway config and GitHub Actions is not absence of a
+    caller.** ANSWERED WITH EVIDENCE: the tick is called by **cron-job.org** every 15
+    minutes — `clientUa "Mozilla/4.0 (compatible; cron-job.org; http://cron-job.org/abuse/)"`,
+    `srcIp 116.203.134.67`, `GET /api/jobs/tick host=valentinavelez.com 200`. It lives
+    in an account of Jacob's at that service, which is why no repo or platform config
+    mentions it. **It calls the MAPPED host, so P3.3 does not break it.**
+124. **A surface reporting an unexpected state is not evidence of a bug until the
+    real-world workflow behind the data is known.** (Duplicate in substance of the
+    ruling recorded as 121 from the Architect's earlier description — both are kept, and
+    the numbering overlap is noted rather than silently reconciled; see the LEDGER GAP.)
+125. **Test the instrument before believing the reading** — ruling 110's sibling. The
+    "WebhookEvent does not exist" reading came from an UNQUOTED identifier, which
+    Postgres folds to lowercase and which would fail identically for EVERY table in this
+    database. Third time this week that testing the instrument changed the finding.
+
+## SQUARE AND THE TICK — BOTH LIVE CALLERS USE THE MAPPED HOST (2026-09-19, from HTTP
+## logs): `POST /api/square/webhook host=valentinavelez.com 200 "Square Connect v2"`
+## (srcIp 34.202.99.168 / 54.245.1.154) and `GET /api/jobs/tick host=valentinavelez.com
+## 200 "cron-job.org"` (srcIp 116.203.134.67). Both therefore resolve via TenantDomain
+## after P1/P3.1 and neither needs the fallback. CONSEQUENCE, reported not acted on:
+## the ruling-122 exemption would never fire in normal operation, and the only case it
+## WOULD fire — a provider repointed to an unmapped host — is exactly the case that must
+## refuse loudly (ruling 112) rather than land on the default tenant by host-pattern
+## (ruling 113). Builder recommends NO exemption plus a gate asserting the live callback
+## hosts are mapped. Not built: it reverses a ratified decision on a money surface.
+
+## P3.3 GATE BLAST RADIUS, measured before building: tenant-scope and nested-stamp each
+## define DEFAULT_HOST = "localhost:3000" commented "no PLATFORM_DOMAIN suffix → default
+## tenant" (~20 call sites between them) — that comment IS the fallback. Wider and worse:
+## MOST gates never set PLATFORM_DOMAIN at all, so today every host they use resolves to
+## the default slug; after P3.3 nothing would resolve and they fail wholesale, because
+## the fallback was their implicit fixture. Options per A2 (never relax a gate):
+## (a) ONE migration seeding localhost/127.0.0.1 -> default tenant, so dev and gates
+## resolve through the SAME mapping production uses — recommended; (b) each gate seeds
+## its own TenantDomain row — 15+ files, the sprawl ruling 55 deferred once already.
+
 ## QUEUE OF RECORD (post-P5, in order): C33-CLIENT-LIFECYCLE ·
 ## C34-SIGNATURE-AUDIT (read-only) · Blocks 1.5/2/3 + psf-rehearsal teardown ·
 ## rulings 81/82 (AUTH_URL, engage's DEFAULT_TENANT_ID audit stamping) · ruling
