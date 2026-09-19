@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { chromium } from "playwright";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 import { startFlow } from "../../lib/intake/engine";
+import { withTenantScope } from "../../lib/tenancy/tenant-scope";
+import { DEFAULT_TENANT_ID } from "../../lib/tenancy/scope";
 
 import { seedLocalDomains } from "../_fixtures/local-domains";
 // CLIENT-ONBOARDING Stage-1 UI acceptance — drives the whole intake in a real
@@ -51,10 +53,34 @@ async function main() {
   // A new client, consented (so the data-consent gate passes), with a fresh
   // intake flow — exactly the state invite-acceptance produces.
   const client = await prisma.user.create({
-    data: { email: EMAIL, name: "UI Probe", role: "CLIENT", active: true, tenantId: "tnt_valentina_000000001", passwordHash: bcrypt.hashSync("fixture-pass-1", 10) },
+    data: { email: EMAIL, name: "UI Probe", role: "CLIENT", active: true, tenantId: DEFAULT_TENANT_ID, passwordHash: bcrypt.hashSync("fixture-pass-1", 10) },
   });
-  await prisma.consentGrant.create({ data: { userId: client.id, version: "2026-07" } });
-  await startFlow(client.id);
+  // P5 / RULING 162 — TWO FIXTURE WRITES HERE LANDED UNSTAMPED AND ONLY EVER
+  // WORKED BECAUSE TENANT #1 COULD SEE NULL-TENANT ROWS. Both are corrected in
+  // SCOPE; not one assertion moved (ruling 157).
+  //
+  //   1. consentGrant stated no tenantId, so it was written NULL. Invisible
+  //      after P5 → the client space reads "never consented".
+  //   2. startFlow() writes through the SCOPED client, and this gate calls it
+  //      from a Node script — outside any request and outside withTenantScope —
+  //      where the scope resolves to null and the write is an unstamped
+  //      passthrough. Measured directly, with its own control: the bare call
+  //      produced tenantId=null; the same call inside withTenantScope produced
+  //      tnt_valentina_000000001.
+  //
+  // NEITHER IS A PRODUCT DEFECT. startFlow's one production caller is the
+  // server action at app/invite/[token]/actions.ts:109, which runs inside a
+  // request and stamps correctly. This is the TEST APPARATUS leaning on the
+  // privilege, exactly as nested-stamp did — and note that V7's search could
+  // not have found it: this gate never mentions scopeFilter or `tenantId: null`.
+  // It depended on the equivalence BY BEHAVIOUR, through a lib function.
+  //
+  // withTenantScope is the same remedy stage1-verify already documents for the
+  // same reason (P3.3), which is why that gate stayed green.
+  await prisma.consentGrant.create({ data: { tenantId: DEFAULT_TENANT_ID, userId: client.id, version: "2026-07" } });
+  await withTenantScope(DEFAULT_TENANT_ID, async () => {
+    await startFlow(client.id);
+  });
 
   const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(PORT)], {
     env: { ...process.env, AUTH_SECRET: process.env.AUTH_SECRET || "baseline-secret", PORT: String(PORT) },

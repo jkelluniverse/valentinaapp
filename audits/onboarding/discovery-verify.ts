@@ -61,7 +61,15 @@ async function main() {
   const client = await prisma.user.create({
     data: { email: EMAIL, name: "Discovery Probe", role: "CLIENT", active: true, tenantId: TENANT, passwordHash: bcrypt.hashSync("fixture-pass-1", 10) },
   });
-  await prisma.consentGrant.create({ data: { userId: client.id, version: "2026-07" } });
+  // P5 / RULING 162 — THIS ROW USED TO LAND UNSTAMPED AND IT ONLY EVER WORKED
+  // BECAUSE OF A PRIVILEGE THAT IS NOW GONE. Every other create in this fixture
+  // states tenantId; this one did not, so it was written with tenantId NULL and
+  // scopeFilter's default-tenant branch made it visible to her anyway. With the
+  // equivalence removed the grant is invisible, the client space reads "never
+  // consented", and the home card and hints this gate asserts never render —
+  // which is why four checks went red while "hint marked SEEN" stayed green.
+  // The FIXTURE's scope is corrected; not one assertion moved.
+  await prisma.consentGrant.create({ data: { tenantId: TENANT, userId: client.id, version: "2026-07" } });
   await prisma.intakeFlow.create({
     data: { tenantId: TENANT, clientId: client.id, purpose: "INITIAL", status: "COMPLETE", currentStep: "review", schemaHash: "probe", completedAt: new Date() },
   });

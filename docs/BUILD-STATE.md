@@ -2178,6 +2178,40 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## phase's acceptance; verify.ts writes its machine output to isolation-verify.out.md,
 ## which is untracked. The count was measured from the diff itself instead. RULING 153
 ## AGAIN — the instrument, not the system.
+## RULING 162 HAPPENED A SECOND TIME, AND V7 COULD NOT HAVE CAUGHT IT. PROPOSED FOR A
+## RULING NUMBER (the Architect assigns them; this is recorded as a finding meanwhile):
+## A GREP FOR A PRIVILEGE'S NAME CANNOT FIND AN APPARATUS THAT DEPENDS ON ITS EFFECT.
+## V7 searched for gates mentioning scopeFilter or `tenantId: null` and found exactly one
+## (platform/verify.ts). The sweep then went red on TWO MORE — onboarding-ui and
+## onboarding-discovery — neither of which mentions either name. They leaned on the
+## equivalence BY BEHAVIOUR, through a lib function three calls deep.
+## THE FIRST HYPOTHESIS WAS WRONG AND WAS TESTED RATHER THAN ACTED ON: the obvious guess
+## was that a fixture user had a null tenantId and the auth removal broke sign-in. Measured
+## instead — all 19 fixture users carry tnt_valentina_000000001, and for a non-null user the
+## new auth logic is IDENTICAL to the old. Sign-in was never the problem.
+## THE REAL CAUSE, TWO UNSTAMPED FIXTURE WRITES:
+##   1. consentGrant.create({ userId, version }) with NO tenantId, in BOTH gates, while
+##      every other create in discovery states it. Unstamped -> invisible after P5 -> the
+##      client space reads "never consented" -> the home card, the hints and the intake
+##      routing gate never render. That is why four checks went red while "hint marked SEEN
+##      on first render" stayed GREEN: the write still happened, the reads went blind.
+##   2. startFlow() writes through the SCOPED client, and ui-verify calls it from a Node
+##      script — outside any request and outside withTenantScope — so the scope resolves to
+##      null and the write is an unstamped passthrough. MEASURED WITH ITS OWN CONTROL:
+##      bare call -> tenantId=null; same call inside withTenantScope -> tnt_valentina_000000001.
+## NEITHER IS A PRODUCT DEFECT. startFlow's ONE production caller is the server action at
+## app/invite/[token]/actions.ts:109, which runs inside a request and stamps correctly.
+## stage1-verify already documents withTenantScope as the remedy for exactly this at P3.3,
+## which is why that gate stayed green — the precedent existed and two gates predated it.
+## FIXED PER RULING 157 — fixture SCOPE corrected, NOT ONE ASSERTION MOVED. The cause was
+## ISOLATED rather than assumed: stamping the consent grant ALONE took discovery from four
+## red to 19/19; ui-verify needed both and is 10/10.
+## A FOLLOW-UP SCAN OF THE WHOLE APPARATUS is recorded as a COARSE signal and explicitly
+## NOT as a bug count: 127 scoped create/upsert sites, 64 stating no tenantId. The scanner
+## cannot see withTenantScope context, and prisma/fixtures/seed-staging.ts runs a final
+## convergence pass (updateMany tenantId:null -> default) that tenant-scope-verify:129
+## already asserts. THE SWEEP IS THE AUTHORITY, NOT THE GREP.
+
 
 
 153. **THE PLAN HAS BEEN WRONG MORE OFTEN THAN THE CODE HAS.** Three times in ONE
