@@ -2065,9 +2065,13 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     C26's neutral 503, because the (public) layout redirects only on kind="unresolved".
     A face, not a leak, and P3.3-era rather than P5's.
 
-166. **NOT RECORDED — the Architect referenced 164 and 165 by number but no text was
-    issued for 166.** Left deliberately blank rather than invented; the builder asked for
-    it in the P5 closing report instead of filling the gap with a guess.
+166. **AN ARTIFACT COMMIT IS STILL A COMMIT.** Regenerated gate logs are READ before they
+    are committed — confirming every changed line is a timestamp or a per-run generated id,
+    with zero failure markers and no assertion text moved. A log committed blind can put a
+    RED run on the record as though it were green. (Issued after the fact: the Architect
+    referenced 164 and 165 by number without writing 166, and the builder left it blank
+    rather than inventing text. Leaving a referenced-but-unwritten ruling BLANK, and asking,
+    is recorded here as its own small discipline.)
 
 167. **A CENSUS DISCOVERS ITS OWN SCOPE. A list of tables written at one moment is wrong
     by the next migration.** Jacob's production run returned **82 tables, every one zero**,
@@ -2076,6 +2080,32 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
     sorts to the top; the first row read 0. The instrument was proven in BOTH directions on
     scratch before he ran it (82 zeros → a planted NULL surfacing at the top → 82 zeros
     again), so a screen of zeros is evidence the query looked, not evidence it did not run.
+
+168. **A GREP FOR A PRIVILEGE'S NAME CANNOT FIND AN APPARATUS THAT DEPENDS ON ITS EFFECT.**
+    THE MOST TRANSFERABLE THING FROM P5. V7 searched for the privilege BY NAME and found
+    the one gate that named it — audits/platform/verify.ts, inverted not relaxed. The sweep
+    then found two V7 could not have: onboarding-ui and onboarding-discovery mention neither
+    scopeFilter nor `tenantId: null`. They leaned on the equivalence BY BEHAVIOUR, three
+    calls deep inside a lib function. CONSEQUENCE, STANDING: before removing a privilege, a
+    name search is the FIRST instrument, NEVER THE ONLY ONE. The sweep run against the
+    removal is the authority. BUDGET FOR REDS THAT LOOK LIKE DEFECTS AND ARE DEPENDENCIES.
+
+169. **REMOVING A BRANCH IS NOT THE SAME AS REMOVING ITS BEHAVIOUR.** auth-guards' null-
+    tenant branch became a REFUSAL rather than a deletion, and the reasoning IS the ruling:
+    deleting it fails OPEN, because with no branch examining a null tenant the guard above
+    it is skipped and such a user resolves on EVERY host instead of one. DEAD CODE THAT
+    FAILS OPEN WHEN IT COMES BACK TO LIFE IS WORSE THAN THE BRANCH IT REPLACED.
+
+170. **MEASUREMENT CONTAMINATES. CLEAN UP AFTER A PROBE AS DELIBERATELY AS AFTER A TEST.**
+    One sweep red was the BUILDER'S OWN DEBRIS: a probe called startFlow bare to MEASURE the
+    unstamped write and left a null-tenant ActivityEvent behind; tenant-scope and nested-stamp
+    objected and came back green UNTOUCHED once scratch was clean. What made the diagnosis
+    minutes instead of re-run-and-hope: chasing the ACTUAL ROW, establishing it was TRANSIENT,
+    and reasoning from gate ORDER in regress.sh to rule out the night's edits.
+
+## TONIGHT'S PATTERN, RECORDED VERBATIM: every red was a gate correctly objecting to
+## something, and none needed weakening. ONE OF THEM WAS OBJECTING TO THE BUILDER.
+
 
 
 ## P5 ITEMS 1 AND 3 BUILT (items order per dispatch; item 2 STOPPED, see below).
