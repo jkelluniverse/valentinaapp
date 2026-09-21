@@ -2106,6 +2106,82 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## TONIGHT'S PATTERN, RECORDED VERBATIM: every red was a gate correctly objecting to
 ## something, and none needed weakening. ONE OF THEM WAS OBJECTING TO THE BUILDER.
 
+171. **WHEN A MECHANISM RESISTS EXPLANATION, CHECK WHETHER THE THING YOU BELIEVE IS
+    RUNNING IS RUNNING AT ALL.** P4 stopped because it could not explain why the auth
+    callback "couldn't see" x-forwarded-host. It could not explain it because THE CALLBACK
+    NEVER LOOKS: only createActionURL() reads that header, and its callers are getSession
+    and the signIn/signOut SERVER ACTIONS — not the /api/auth/* ROUTE HANDLER, which is
+    what a no-JS form POST hits. The investigation was aimed at the wrong one of two code
+    paths in the same library. RULING 153'S FAMILY — here the instrument was THE QUESTION.
+    Stopping rather than unpinning at P4 is vindicated by mechanism, not only by outcome.
+
+172. **req.nextUrl.origin inside this container is the INTERNAL origin.** THIRD INSTANCE:
+    C32 §2 (the middleware self-fetch), P2.2 (the /platform rewrite), now the auth handler
+    (`Auth()` does `new URL(req.url)`). publicOrigin() in middleware.ts is the remedy,
+    production-proven since C29. THE SCANNER'S LIMIT, recorded per ruling 109: it matches
+    textually, and this third instance is invisible to it because the origin is derived
+    INSIDE node_modules from a request this codebase hands over intact — there is no string
+    in our source to find. Ruling 168's shape in another register: the scanner searches for
+    the NAME, the dependency is on the EFFECT.
+
+173. **A FREEZE EXCEPTION IS GRANTED FOR A NAMED ARTIFACT, ONCE, WITH ITS VERIFICATION
+    ATTACHED, AND THE FREEZE RESUMES ON LANDING.** An exception without all three is a
+    lifted freeze. Precedent: the one docs-only push of afe9653, verified on the serving
+    tip by a full ruling-48 check, freeze resumed the moment it landed.
+
+174. **A PRINTED URL IS A PERMANENT DEPENDENCY.** psychefolio.com/founders is on cards
+    already in the world. It cannot be renamed, cannot be retired, and must never 404
+    again. It belongs in the standing set for the same reason the tick's caller belongs in
+    docs/EXTERNAL-SERVICES.md: the dependency exists whether or not the repo knows it.
+
+175. **PRICING RATIFIED BY JACOB, 2026-09-20** (Psychefolio_Pricing_Strategy_Final_v2):
+    Solo **$99/mo · $990/yr**; Practice **$199/mo · $1,990/yr**; Studio **$499/mo ·
+    $4,990/yr + $2,500** modality build. FOUNDING PRACTICE: **20 seats**, **$99/mo for the
+    first 12 months**, then **$149/mo** locked while continuously active, **$500** guided
+    onboarding included, **60-day** money-back guarantee, enrollment closes **Oct 7 2026
+    11:59 PM ET** or when 20 PAID seats are claimed. NO FREE TRIAL. Constitution law 2's
+    price prohibition is LIFTED FOR THESE FIGURES ONLY — ANY OTHER NUMBER ON ANY SCREEN IS
+    STILL A VIOLATION.
+
+176. **THE SEAT COUNTER IS CUT ENTIRELY FOR LAUNCH — not hidden, not hardcoded, not zero:
+    ABSENT.** Any reference to seats remaining, claimed, or filling comes out with it.
+    "Limited to 20 founding practices" as a FIXED STATEMENT of the offer's terms is fine;
+    A COUNT IS NOT.
+
+177. **BILLING IS DECOUPLED FROM THIS BUILD.** The Square credentials in production are
+    VALENTINA'S merchant account, not a platform merchant (P6: ConnectedPaymentAccount=0,
+    and the platform Square app has no merchant of its own). A founding subscription billed
+    through them would deposit PLATFORM revenue into HER practice account and put her
+    business name on practitioners' card statements — the chargeback lesson. NOBODY PAYS ON
+    SEPT 23: the funnel is apply → fit call → agreement → payment. This build collects
+    APPLICATIONS ONLY; nothing on /founders charges anything or starts a subscription.
+    Billing is its own spec, after the event, and MUST be done before the first founding
+    member is charged.
+
+178. **A FREEZE EXCEPTION FOR A NEW ROUTE IS AUTHORIZED ONLY WHEN THE ROUTE TOUCHES
+    NOTHING EXISTING.** /founders is new. If it needs to modify any EXISTING route, shared
+    layout, or component that other pages render, STOP AND REPORT INSTEAD OF WIDENING.
+
+## C35-FOUNDERS-EVENT STAGE 1 — /founders STOPS 404ING. One new file,
+## app/founders/page.tsx, and NOTHING existing touched (ruling 178 satisfied by
+## construction). Platform host only via isPlatformHost(); a tenant host gets notFound(),
+## which renders app/not-found.tsx inside the same root layout as any unknown path, so a
+## practice's visitors see no change whatsoever.
+## THE REDIRECT IS RELATIVE, AND THAT IS THE POINT (ruling 172): a relative Location is
+## same-origin BY CONSTRUCTION, so there is no origin to get wrong and the route needs
+## neither publicOrigin() nor a nexturl-allow pragma. searchParams is a PAGE PROP — nextUrl
+## is never touched at any depth. The query string survives the hop deliberately: the cards
+## carry ?source= and that attribution is the only way to tell an event lead from a walk-in.
+## SCANNER COVERAGE PROVEN BOTH DIRECTIONS rather than assumed: planting `req.nextUrl.origin`
+## in the new file makes nexturl-origin flag app/founders/page.tsx:45 and exit 1; restoring
+## returns it to clean. A SECOND SCANNER LIMIT WAS FOUND WHILE DOING IT — the builder's
+## FIRST control used optional chaining (`req?.nextUrl?.origin`) and was NOT flagged, because
+## the pattern is `\.nextUrl\.origin`. A malformed control that "passes" looks exactly like
+## coverage. Recorded in the scanner's header per ruling 109.
+## LAW 7 DEVIATION, NAMED NOT SILENT: /founders ships ENGLISH ONLY, ratified by Jacob.
+## Reason: the Spanish copy does not exist and machine-translating commercial and legal
+## terms creates exposure. Tracking item raised.
+
 
 
 ## P5 ITEMS 1 AND 3 BUILT (items order per dispatch; item 2 STOPPED, see below).

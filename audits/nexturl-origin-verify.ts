@@ -24,8 +24,22 @@ import { join } from "path";
 //   An escape hatch exists for a deliberate exception: put `nexturl-allow:
 //   <reason>` on the line.
 //
-// LIMITATIONS, stated rather than implied: it is textual, so a `new URL(...)`
-// split across lines, or an origin laundered through a variable, is not caught.
+// LIMITATIONS, stated rather than implied (ruling 109). It is TEXTUAL, so:
+//   1. a `new URL(...)` split across lines, or an origin laundered through a
+//      variable, is not caught;
+//   2. OPTIONAL CHAINING EVADES IT. `req?.nextUrl?.origin` does not match
+//      `\.nextUrl\.origin`. Found the hard way while proving this scanner
+//      covers a new file: the FIRST control used optional chaining, was not
+//      flagged, and looked exactly like "the scanner does not scan this file".
+//      A MALFORMED CONTROL THAT PASSES IS INDISTINGUISHABLE FROM COVERAGE —
+//      re-run a negative control with the EXACT shape the pattern claims;
+//   3. RULING 172, THE THIRD INSTANCE IS INVISIBLE TO IT BY CONSTRUCTION. The
+//      auth route handler's redirect is built from the internal origin inside
+//      `node_modules` — `Auth()` does `new URL(req.url)` on a request this
+//      codebase hands over intact. There is NO STRING IN OUR SOURCE to find.
+//      That is ruling 168 in another register: this scanner searches for the
+//      NAME, and a dependency can be on the EFFECT. A clean run here is not
+//      evidence that no cross-host URL is being built.
 // It catches the two shapes that actually shipped, and it is not a substitute
 // for the ruling-48 live check — ruling 76 still stands: a gate cannot prove a
 // deployment seam.
