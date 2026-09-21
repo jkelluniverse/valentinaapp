@@ -1,4 +1,4 @@
-# C29-EVENT-CHROME verify — 2026-09-19T23:22:21.339Z
+# C29-EVENT-CHROME verify — 2026-09-21T16:51:06.164Z
 
 ## Verify 1 — the five assumptions, confirmed or corrected
 - ✓ A1 CONFIRMED-AND-WIDENED — the four auth files were the complete set of hardcoded `veritas ✧` CHROME (now zero); the .ics UIDs, export filenames, webhook header and storage keys are NOT chrome and are untouched — AND the sweep found one more identity literal the spec missed: /book's empty-slots copy named Valentina on every host (fixed with the same tenant-resolving pattern, default tenant byte-identical) — files still carrying a hardcoded wordmark: none · non-chrome veritas strings intact (uid/filename/header/keys)
@@ -6,7 +6,7 @@
 - ✓ A3 CONFIRMED — the public wall covers app/(public)/** only and bans auth/prisma imports there; /login etc. live OUTSIDE it and @/lib/tenancy is resolution plumbing, not a banned import — the wall is untouched (lint:wall green in regression) — wall scope verified from its own source
 
 ## Rig — practice B (real signup), the errprobe role
-- ✓ a real ACTIVE non-default practice exists; signup gave it its own portalTitle — tenant B = cmu90ijxz0001icunhfwoe3kj · portalTitle="T29 Bright Practice"
+- ✓ a real ACTIVE non-default practice exists; signup gave it its own portalTitle — tenant B = cmubhf3qz00015ebzdwwz24iu · portalTitle="T29 Bright Practice"
 
 ## Verify 2 + 5 — THE SHIPPABILITY CHECK: the default tenant's five pinned surfaces, byte-identical to f07a035
 - ✓ V2 — default tenant /login BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 2901 normalized bytes identical
