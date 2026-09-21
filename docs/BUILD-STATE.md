@@ -2182,6 +2182,43 @@ DEFAULT_TENANT_ID audit stamping belongs to P4, not fixed early.
 ## Reason: the Spanish copy does not exist and machine-translating commercial and legal
 ## terms creates exposure. Tracking item raised.
 
+179. **VERIFYING THAT A VALUE SURVIVES A BOUNDARY PROVES NOTHING ABOUT WHETHER ANYTHING
+    READS IT ON THE FAR SIDE. FOLLOW A VALUE TO WHERE IT IS STORED, NOT TO WHERE IT
+    ARRIVES.** Stage 1 shipped preserving `?source=` faithfully and passing every check
+    aimed at the hop — while /join read `?src=` (join/page.tsx:53) and fell back to
+    DEFAULT_SOURCE="web", so every card scan would have stored as a walk-in. The hop was
+    not the bug and no test of the hop could have found it. Found by asking what the NEXT
+    hop does with what this one preserved.
+
+180. **OPTIONAL CHAINING EVADES THE NEXTURL-ORIGIN SCANNER** — `req?.nextUrl?.origin` is
+    not matched by `\.nextUrl\.origin`. A MALFORMED CONTROL THAT PASSES IS
+    INDISTINGUISHABLE FROM COVERAGE: the builder's first negative control used optional
+    chaining, was not flagged, and looked exactly like "the scanner does not scan this
+    file". Re-run a negative control with the EXACT shape the pattern claims. Recorded in
+    the scanner header per ruling 109.
+
+181. **THE CARD TAG — JACOB'S DECISION.** Card-scanned leads are STORED as
+    **`event-psychk-ftl-2026`**. The cards' own `?source=psychk-health-wellbeing-ftl-2026`
+    is NOT stored verbatim; it MAPS to this tag. The `event-` prefix is load-bearing:
+    engage's event-lead audience is `source.startsWith("event-")`
+    (lib/engage-sequences.ts:41,50), so the prefix is what makes a card lead ELIGIBLE for
+    the follow-up at all. It commits Jacob to nothing — the gate is closed and stays closed
+    until he reads the sequences himself (see C35-A1-FEATURE-CLAIMS.md, which he must read
+    FIRST: every event-lead template still sells a free, self-provisioned practice).
+
+## THE MAPPING'S EDGES, PROVEN LOCALLY AGAINST THE BUILT APP BEFORE PUSH:
+##   card source                -> /join?source=…&src=event-psychk-ftl-2026
+##   CAPITALISED card source    -> still maps (trimmed, case-insensitive: a QR scan is
+##                                 verbatim but a hand-typed URL is not)
+##   unknown source             -> nothing added; /join's own default applies
+##   no source                  -> nothing added
+##   explicit ?src= present     -> ALWAYS WINS, never overwritten, so a future card or
+##                                 campaign can state its own tag and this cannot override it
+##   ?ref= alongside            -> preserved untouched
+##   tenant host                -> still 404
+## THIS ROUTE INVENTS NO TAGS. A made-up tag is WORSE than "web": "web" is honestly
+## unknown, while an invented one looks deliberate.
+
 
 
 ## P5 ITEMS 1 AND 3 BUILT (items order per dispatch; item 2 STOPPED, see below).
