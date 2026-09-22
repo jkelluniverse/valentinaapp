@@ -1064,6 +1064,12 @@ model PractitionerProspect {
   source         String? // free text: "event-sept23", "web", UTM
   referredByCode String? // raw code as captured; attribution logic is C23-REFERRAL's job
   referralCode   String         @unique // issued at creation so the code exists before the program does
+  // C35-FOUNDERS-EVENT — the founding application's answers. ADDITIVE and
+  // nullable: PractitionerProspect already holds name/email/phone/practiceName,
+  // and the remaining application fields have no columns. A JSON blob keeps the
+  // capture pipeline (and every gate that covers it) unchanged rather than
+  // growing ten columns that only one form writes. Null for every non-applicant.
+  applicationMeta Json?
   tenantId       String? // the tenant they now OWN (set on conversion) — not a scope column
   convertedAt    DateTime?
   // C23-ENGAGE §1 — follow-up consent + language.

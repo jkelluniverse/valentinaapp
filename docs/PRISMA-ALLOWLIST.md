@@ -127,3 +127,21 @@ no matter what they forget.
 - **Unique writes under the DEFAULT tenant** skip the ownership pre-check
   (every legacy row is already hers; her hot paths pay zero extra queries).
   Non-default tenants always pre-check, fail-closed.
+
+## `app/founders/apply/actions.ts` — C35 founding application
+
+ONE write: `applicationMeta` on the `PractitionerProspect` that the shared
+`captureProspect()` has just upserted. **`PractitionerProspect` is a
+PLATFORM-LEVEL ledger and is deliberately absent from `SCOPED_MODELS`** — its
+`tenantId` column is the tenant a prospect *owns after conversion*, not a scope
+column — so the scoped client cannot write it at all. The row is addressed by
+its unique lowercased email, never by a host-resolved tenant, so this cannot
+misattribute by construction (ruling 134's test: the write states its own key).
+
+## `audits/founders-verify.ts` — C35 acceptance harness
+
+CLI-only. Reads back the prospect row it created *through the real form* to
+prove the STORED `source` is ruling 181's `event-psychk-ftl-2026` rather than
+`"web"` — which is the defect ruling 179 named, asserted where it actually
+lives. Self-cleaning: removes its own probe row first and last.
+
