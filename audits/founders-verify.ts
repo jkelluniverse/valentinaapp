@@ -26,7 +26,7 @@ import { CARD_SOURCE, CARD_TAG, PRICING } from "../lib/founders-config";
 //      replaced that redirect, so the mapping had to survive the replacement —
 //      this asserts the STORED ROW, not the query string.
 
-const PORT = 3121;
+const PORT = 3147; // unique per ruling 56/59 — port-uniqueness enforces it
 const BASE = `http://127.0.0.1:${PORT}`;
 const HOST_PLATFORM = "psychefolio.test";
 const HOST_TENANT = "valentina.psychefolio.test";
