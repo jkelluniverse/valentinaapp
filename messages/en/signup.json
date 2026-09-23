@@ -1,0 +1,72 @@
+{
+  "signup": {
+    "eyebrow": "Founding partners",
+    "heading": "Set up your practice portal",
+    "lede": "One screen. When you finish, your practice has a portal on its own address — client intake, maps, notes, agreements, messages — and you are signed in as its owner.",
+    "youGet": {
+      "heading": "What you walk away with",
+      "items": [
+        "A portal on your own address, live the moment you finish.",
+        "Client intake, the map your clients see, session notes, agreements and messages.",
+        "Your practice name on it, not ours.",
+        "A founding-partner referral code to hand to the next practitioner."
+      ]
+    },
+    "fields": {
+      "name": "Your name",
+      "namePlaceholder": "Alex Rivera",
+      "practiceName": "Practice name",
+      "practiceNamePlaceholder": "Rivera Wellness",
+      "email": "Email",
+      "emailPlaceholder": "you@yourpractice.com",
+      "password": "Choose a password",
+      "passwordHint": "At least {min} characters. You will use this to sign in — we never email it to you.",
+      "slug": "Your portal address",
+      "slugHint": "Letters, numbers and hyphens. Editable — this is the address your clients will type."
+    },
+    "slugStatus": {
+      "checking": "Checking…",
+      "ok": "Available",
+      "taken": "Already taken — try another",
+      "reserved": "That one is reserved — try another",
+      "invalid": "Letters, numbers and hyphens only, 2–31 characters"
+    },
+    "submit": "Create my portal",
+    "submitting": "Setting up your portal…",
+    "footnote": "Founding partners are set up as a comped practice — there is nothing to enter here but your details.",
+    "referredBy": "Referred by {code}",
+    "invitedBy": "Invited by a founding partner",
+    "errors": {
+      "missing": "A few fields still need an answer.",
+      "email": "That email address does not look right.",
+      "password": "Choose a password of at least {min} characters.",
+      "slug": "Portal addresses use letters, numbers and hyphens only (2–31 characters).",
+      "slug-reserved": "That address is reserved. Please choose another.",
+      "slug-taken": "That address is already taken. Please choose another.",
+      "email-taken": "That email address already has an account. Sign in instead.",
+      "rate": "Too many attempts from here. Please wait a few minutes and try again.",
+      "failed": "Something went wrong setting up your portal, and nothing was created. Please try again."
+    },
+    "signInInstead": "Already have an account? Sign in",
+    "welcome": {
+      "eyebrow": "You are a founding partner",
+      "heading": "Your portal is live",
+      "portalLabel": "Your portal address",
+      "signInLabel": "Sign in with",
+      "passwordNote": "Use the password you just chose. Nothing was emailed to you — you do not need to wait for anything.",
+      "codeLabel": "Your founding-partner referral code",
+      "codeNote": "Hand this to the next practitioner you meet. It stays yours.",
+      "next": "Open your portal",
+      "keepThis": "Screenshot this screen if you are on conference wifi."
+    },
+    "publicLink": "For practitioners",
+    "email": {
+      "subject": "Your practice portal is live",
+      "heading": "Your practice portal is live",
+      "p1": "{practice} is set up and waiting for you at {host}.",
+      "p2": "Sign in with {email} and the password you chose at signup. We never email a password.",
+      "p3": "Your founding-partner referral code is {code}.",
+      "button": "Open your portal"
+    }
+  }
+}

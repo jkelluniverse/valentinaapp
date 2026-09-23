@@ -1,0 +1,129 @@
+{
+  "id": "caro",
+  "identity": {
+    "name": "Carolina \"Caro\" Núñez",
+    "age": 41,
+    "pronouns": "she/her",
+    "lives": "Dr. Phillips, Orlando, FL",
+    "work": "attorney",
+    "email": "caro@fixture.test",
+    "language": "en, occasional ES"
+  },
+  "birth": {
+    "date": "1985-06-21",
+    "time": "20:15",
+    "precision": "EXACT",
+    "place": "Bogotá, Colombia",
+    "tz_expect": "America/Bogota (UTC-5, no DST in 1985; Colombia's only DST era was May 1992–Feb 1993)"
+  },
+  "arrived": {
+    "presenting": "wants to be 'more efficient' with her time and stress; frames everything as a logistics problem to be optimized",
+    "in_her_words": "I don't really have issues, I just want to get more out of the day. I'm very functional."
+  },
+  "psyche": {
+    "wounds": [
+      "unsafe-to-be-seen",
+      "I-must-not-need"
+    ],
+    "beliefs": [
+      "if they see the real me they'll find the flaw",
+      "competence is the only thing keeping me safe",
+      "needing someone gives them power over me"
+    ],
+    "protections": [
+      "control",
+      "intellectualizing feelings into arguments",
+      "flawless preparation so no one can catch her off guard",
+      "keeping people at a professional distance"
+    ],
+    "patterns": [
+      "preempts criticism by criticizing herself first",
+      "works late to avoid going home to the quiet",
+      "reflexively minimizes ('it's fine, it's not a big deal')",
+      "never lets anyone do a favor she can't repay"
+    ],
+    "resources": [
+      "fierce loyalty to the few people she lets in",
+      "her running routine at dawn",
+      "a sharp, honest inner narrator once she's on the page"
+    ],
+    "origin": "a household where love was performance-reviewed; her father a judge who corrected her grammar at dinner and praised only results"
+  },
+  "first_map": {
+    "self_named": [
+      "control",
+      "her running routine"
+    ],
+    "unaware_of": [
+      "unsafe-to-be-seen",
+      "I-must-not-need",
+      "if they see the real me they'll find the flaw",
+      "competence is the only thing keeping me safe",
+      "preempts criticism by criticizing herself first",
+      "intellectualizing feelings",
+      "minimizing",
+      "works late to avoid the quiet at home"
+    ]
+  },
+  "arc": {
+    "months": 11,
+    "stage": 2,
+    "beats": [
+      {
+        "m": 1,
+        "note": "intake First Map is strikingly sparse — names two things and calls herself 'basically fine'; her reflections, meanwhile, are dense and revealing"
+      },
+      {
+        "m": 2,
+        "note": "writes a long, precise entry about a hearing — the AI surfaces 'unsafe-to-be-seen' from text she never labeled"
+      },
+      {
+        "m": 4,
+        "note": "notices she rewrote an email nine times so no one could 'find anything wrong'"
+      },
+      {
+        "m": 7,
+        "note": "sits with the gap: 'I named two stars and you found nine. That's… uncomfortable.'"
+      },
+      {
+        "m": 9,
+        "note": "lets a colleague help on a brief without repaying it; sits in the discomfort instead of managing it"
+      },
+      {
+        "m": 11,
+        "note": "the awareness gap narrows — she starts naming things before the extractor does"
+      }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 14,
+    "messages_per_month": 8,
+    "worksheets": 5,
+    "course": "Rewiring Self-Worth (75%)",
+    "note": "AWARENESS GAP — first_map.self_named is deliberately SPARSE while psyche is RICH; extraction should find far more than she named"
+  },
+  "voice": "precise, lawyerly, argues with herself on the page; minimizes out loud but writes with unexpected depth; drops into Spanish only when a memory of her father slips past her guard",
+  "values_answers": {
+    "spiral:grounding:1": 2,
+    "spiral:grounding:2": 2,
+    "spiral:grounding:3": 2,
+    "spiral:belonging:1": 2,
+    "spiral:belonging:2": 2,
+    "spiral:belonging:3": 3,
+    "spiral:drive:1": 2,
+    "spiral:drive:2": 3,
+    "spiral:drive:3": 1,
+    "spiral:order:1": 5,
+    "spiral:order:2": 5,
+    "spiral:order:3": 4,
+    "spiral:achievement:1": 4,
+    "spiral:achievement:2": 4,
+    "spiral:achievement:3": 4,
+    "spiral:harmony:1": 2,
+    "spiral:harmony:2": 3,
+    "spiral:harmony:3": 2,
+    "spiral:flow:1": 3,
+    "spiral:flow:2": 2,
+    "spiral:flow:3": 2
+  }
+}

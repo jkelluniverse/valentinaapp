@@ -1,0 +1,48 @@
+{
+  "capture": {
+    "eyebrow": "Socios fundadores",
+    "heading": "Déjanos tu nombre",
+    "lede": "Diez segundos. Con tu nombre y correo basta — te contactamos la próxima semana con el portal de tu práctica. Todo lo demás es opcional.",
+    "honest": "Usamos este correo para contactarte sobre la plataforma para profesionales, y para nada más. Este formulario no es para información de clientes — no escribas aquí nada sobre un cliente.",
+    "fields": {
+      "name": "Tu nombre",
+      "namePlaceholder": "Alex Rivera",
+      "email": "Correo electrónico",
+      "emailPlaceholder": "tu@tupractica.com",
+      "optional": "Opcional",
+      "practiceName": "Nombre de la práctica",
+      "practiceNamePlaceholder": "Rivera Bienestar",
+      "phone": "Teléfono",
+      "phonePlaceholder": "(555) 010-2030",
+      "note": "¿Qué te trae por aquí?",
+      "notePlaceholder": "Una frase es suficiente."
+    },
+    "submit": "Enviar",
+    "submitting": "Enviando…",
+    "footnote": "Los socios fundadores quedan configurados como práctica de cortesía. Aquí no hay nada que ingresar más que tus datos.",
+    "referredBy": "Te refirió {code}",
+    "invitedBy": "Te invitó un socio fundador",
+    "errors": {
+      "missing": "Necesitamos un nombre para saber quién eres.",
+      "email": "Ese correo electrónico no parece correcto.",
+      "rate": "Demasiados envíos desde aquí. Espera unos minutos e inténtalo de nuevo.",
+      "failed": "Algo salió mal y no se guardó nada. Inténtalo de nuevo."
+    },
+    "signupInstead": "¿Listo ya? Crea tu portal ahora",
+    "thanks": {
+      "eyebrow": "Ya estás en la lista",
+      "heading": "Listo — gracias",
+      "body": "Tenemos tus datos. Jacob te contactará la próxima semana para configurar tu portal.",
+      "codeLabel": "Tu código de socio fundador",
+      "codeNote": "Dáselo al siguiente profesional que conozcas. Es tuyo, con cuenta o sin ella.",
+      "shareHeading": "Pásalo",
+      "shareEmail": "Compartir por correo",
+      "shareSms": "Compartir por mensaje",
+      "shareSubject": "Un portal para tu práctica que vale la pena ver",
+      "shareBody": "Acabo de anotarme para conocer Psychefolio — un portal para la práctica de profesionales. Usa mi código {code}: {url}",
+      "linkLabel": "Tu enlace",
+      "signupNow": "Crear mi portal ahora",
+      "keepThis": "Toma una captura de esta pantalla si el wifi del evento está lento."
+    }
+  }
+}

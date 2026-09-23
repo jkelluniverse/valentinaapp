@@ -1,0 +1,406 @@
+# C22.2 verify — 2026-08-12 (the action-first agreements desk)
+
+Harness: `c21-verify.ts` extended to 58 checks. 58/58. Regressions:
+v31 32/32, c20 28/28. Redesigned desk screenshotted + sent to Jacob.
+
+- ✓ the main desk is FOUR DOORS + what's moving, nothing else: Send a
+  document / Create a sign link / Upload a document / Manage documents
+  (with an "update" badge when installs are pending), a one-line
+  signature card, a countersign-needed alert block with a one-click
+  Countersign button, and "In motion" — each recent send as a card with
+  a colored journey bar (Sent → Opened → Signed → [Countersigned] →
+  Sealed; declined/expired/voided render struck-through)
+- ✓ the template list is GONE from the main page → /templates ("Manage
+  documents"): installs/updates, trigger toggles, DRAFT preview,
+  self-sign, and RETIRE (retires every locale sibling; hides the
+  document from all menus; sent/signed history untouched) — Jacob's
+  upload-test clutter can now be cleaned in one pass
+- ✓ send / sign-link / upload each get their own focused page; the sign
+  link renders right on its page with the copy button; upload errors
+  return to the upload page
+- ✓ the documents-first tile archive lives at /all (tiles → shelves →
+  grid/list with the full action set incl. journey bars in grid view)
+- Gates: baseline MATCH, smokes, tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 58/58
+
+# C22.1 verify — 2026-08-12 (drawn signature REQUIRED + disclosure approved)
+
+Harness: `c21-verify.ts` 54/54. Regressions: v31 32/32, c20 28/28.
+
+- ✓ the drawn signature is now REQUIRED to sign — policy change by
+  Jacob (the C20 design had treated the typed name as the binding
+  signature with the mark optional). Enforced twice: the sign UI blocks
+  submit (message + scroll/flash to the signature box or pad, pad
+  auto-opens) and signAgreement refuses server-side (en/es error) — the
+  harness proves the server backstop with a full-fields/no-mark attempt.
+- ✓ the guide counts the signature in both modes (marker box or classic
+  pad); "(required)" in the pad label; self-sign refuses (and voids its
+  scaffolding) when no stored signature exists yet.
+- ✓ e-records disclosure: "[PLACEHOLDER — attorney review required]" /
+  "[MARCADOR…]" tags REMOVED per Jacob's explicit approval of the
+  wording as written (Aug 12). Starter-template placeholder bodies keep
+  their tags — those texts remain unapproved.
+- Gates: baseline MATCH, smokes, tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 54/54
+
+# C22 verify — 2026-08-12 (the paper signing experience, phase 1)
+
+Harness: `c21-verify.ts` extended to 53 checks. 53/53. Regressions:
+v31 32/32, c20 28/28. Screenshot of the live sign page eyeballed +
+sent to Jacob.
+
+- ✓ documents render as PAPER: full-length letterhead sheet (no inner
+  scroll window), serif text, fields as classic fillable-form boxes with
+  their labels, exactly where they sit in the text
+- ✓ in-document signature line is LIVE: {{signature}} renders a dashed
+  "Sign here" box → tap opens the draw pad → the mark lands IN the box;
+  {{date_signed}} auto-fills; {{printed_name}} is typed in place (and IS
+  the attribution name); {{countersignature}}/{{countersign_date}} for
+  dual-signature docs; documents without markers keep the classic block
+- ✓ the sealed PDF places the drawn marks at the SAME in-document spots
+  (name + date substituted, zero leftover markers, appendix keeps the
+  attribution stack without duplicate images); title deduped between the
+  sheet heading and the body's first line
+- ✓ guide counts the signature box as a field until it's drawn
+- ✓ installed docs (payment auth, declaration, memorandum) now carry
+  their real signature lines as markers; installers reconcile in place
+- ✓ sign link now renders INSIDE the "Create a sign link" card (anchor
+  redirect lands the eye on it) with a one-tap Copy button
+- Phase 2 (uploaded-PDF render-and-fill via pdf.js + pdf-lib with
+  coordinate stamping) spec'd to Jacob; awaiting go-ahead.
+- Gates: baseline MATCH, smokes, tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 53/53
+
+# C21.5 verify — 2026-08-12 (payment authorization v2, card-free)
+
+Harness: `c21-verify.ts` 50/50. Regressions: v31 32/32, c20 28/28.
+
+- ✓ Jacob's v2 text REPLACES v1: no card/bank information anywhere on
+  the document (harness asserts zero matches for card/account/routing/
+  CVV wording); every box fillable — name inline, both schedule day
+  blanks inline (optional), Cargo Recurrente + card-on-file
+  authorizations as required checkboxes; FIRMA/FECHA/NOMBRE = ceremony
+- ✓ reconcile-in-place proven: an installed older text updates to v2 via
+  the installer; the desk shows an "Update the payment authorization"
+  button whenever the installed body is stale (production one-click)
+- ✓ full link-only sign→seal path re-proven on v2
+- Gates: baseline 16/16 (5 diffs = documented quote-rotation/time
+  classes, eyeballed, recaptured → MATCH), smokes, tenant-stamp,
+  platform isolation green.
+
+ALL CHECKS PASS — 50/50
+
+# C21.4 verify — 2026-08-12 (payment authorization + direct sign links)
+
+Harness: `c21-verify.ts` extended to 49 checks. 49/49. Regressions:
+v31 32/32, c20 28/28. (Fresh container this session: node_modules and
+the scratch cluster were gone — reinstalled, schema `db push`ed, tenant
+row replayed from migration 33, reseeded; deterministic seed → BASELINE
+MATCH with zero diffs.)
+
+- ✓ Autorización de Pago (es) installed VERBATIM from the upload as an
+  ACTIVE fillable TEXT template: inline name fill, frequency/method and
+  optional day fields, Cargo-Recurrente checkbox acknowledgment; the
+  e-sign ceremony replaces FIRMA/FECHA/NOMBRE EN IMPRENTA
+- DELIBERATE (surfaced, not silent): the account/card blanks stay
+  LITERAL blanks — full card numbers, CVV, and bank account numbers must
+  never enter this system (PCI: no PAN/CVV at rest; the form itself says
+  data lives in Square). Harness asserts no fill marker touches those
+  fields. Instrument details go into Square card-on-file or on paper.
+- ✓ DIRECT SIGN LINKS: a request can be created with just the signer's
+  NAME — no email anywhere; the desk shows the link once in a copyable
+  banner ("your client forwards it to their payer"); the es sign page,
+  guided fill, optional-field skip, sealing without an email on file,
+  and the done-page sealed-copy download all proven end-to-end
+- ✓ es-only documents (no en sibling) now visible in the desk dropdowns
+
+ALL CHECKS PASS — 49/49
+
+# C21.3 verify — 2026-08-06 (Settings unreachable + signature upload)
+
+Harness: `c21-verify.ts` extended to 40 checks. 40/40. Regressions:
+v31 32/32, c20 28/28.
+
+- Root cause confirmed: journey-v1's DESKTOP nav never had a Settings
+  link (mobile more-menu only) — so the signature pad was unreachable
+  on desktop. Settings added to the desktop nav.
+- ✓ agreements desk carries a "Your signature" card one hop from where
+  she signs: shows the stored mark inline (or "not set yet — draw or
+  upload it once"), linking to /practitioner/settings#signature
+- ✓ signature can now be UPLOADED as well as drawn: any photo/scan
+  (png/jpg/webp) normalizes in the browser — canvas-drawn, downscaled
+  (≤700×260), exported as PNG — so the sealed-PDF embedder always gets
+  usable bytes; server cap raised to 500 KB as backstop; same stored
+  path signs, countersigns, and self-signs with auto-date
+- Gates: baseline 16/16 (diffs = the requested Settings nav item + the
+  documented greeting/inactivity rollovers, eyeballed, recaptured →
+  MATCH), GET/write smoke, tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 40/40
+
+# C21.2 verify — 2026-08-06 (Jacob's round-2 feedback)
+
+Harness: `c21-verify.ts` extended to 37 checks. 37/37. Regressions:
+v31-verify 32/32, c20-verify 28/28.
+
+- Missing email sign button DIAGNOSED as Gmail thread-trimming: two
+  near-identical sends in one thread hide the matching tail (button +
+  signoff) behind "…". Fix: every send is unique — the subject carries
+  the document title (distinct threads) and a per-send timestamp whisper
+  rides directly under the button, so nothing above it can trim away.
+- ✓ upload is now upload → VISUAL PREVIEW → confirm: the file parks as a
+  DRAFT (harness proves a DRAFT refuses to send); the preview renders
+  the converted document exactly as the signer meets it with every
+  detected field pilled IN PLACE + a field checklist; release = Send now
+  (recipient name/email, optional keep-as-template) or Save as template,
+  or Discard (deletes). Master-agreement flip explicitly excluded from
+  this path.
+- ✓ desk upload form reduced to title + file(s) + countersign + "Preview
+  it" — the extra-fields textarea and message box are GONE (they were
+  the confusion); PDFs attach as-is (fields only via the Word route,
+  stated plainly on the preview)
+- ✓ template-file route (practitioner-only, hash-verified) backs the
+  preview's open-links
+- ✓ agreements browser is documents-first, like the Library: one tile
+  per document with request counts (awaiting / countersign / sealed);
+  opening a tile shows that document's requests with the shelves +
+  grid/list toolbar; the flat firehose list is gone
+- Gates: baseline MATCH, GET/write smoke, tenant-stamp, platform
+  isolation green.
+
+ALL CHECKS PASS — 37/37
+
+# C21.1 verify — 2026-08-06 (Jacob's memorandum-test feedback)
+
+Harness: `c21-verify.ts` extended to 34 checks. 34/34. Regressions:
+v31-verify 32/32 (KEY TERMS still on the master), c20-verify 28/28.
+
+- ✓ KEY TERMS reserved for documents whose template text carries those
+  merge vars (the client-services master) — data-driven gate on the
+  unresolved template body; absent from one-off/uploaded sealed PDFs
+  and previews
+- ✓ guided signing: sticky Next-field bar (server-rendered) with a live
+  remaining-count; Next scrolls the first empty required field into
+  view, focuses it, flashes a highlight; when complete it walks to the
+  sign button — every required input carries data-sf
+- ✓ upload field authoring made comprehensible: a single Word document
+  auto-converts into a fillable signing page — text extracted verbatim
+  (hand-rolled ZIP/XML reader, no deps), [[text|textarea|initials|
+  checkbox: Label]] brackets become fields, underscore blanks (____)
+  auto-detected and labeled from preceding words (long runs → textarea);
+  PDFs/images attach as-is with listed fields; form copy explains all
+  of it in plain English
+- Gates: baseline MATCH (no chrome change this round), GET/write smoke,
+  tenant-stamp, platform isolation green.
+
+ALL CHECKS PASS — 34/34 · drag-and-drop field placement on rendered
+PDFs noted as the future path if bracket/blank authoring isn't enough.
+
+# C21-DOCSIGN verify — 2026-08-06
+
+Harness: `c21-verify.ts` (port 3124). 29/29. Regressions: v31-verify
+32/32, c20-verify 28/28.
+
+## One-off external signature requests
+- ✓ any ACTIVE template sends to a typed-in name + email — recipient
+  needs no account; the signed link is the whole path (attribution basis
+  as with leads); agreement stores recipientName/Email, no client/lead
+- ✓ token page renders inline fillable fields (incl. block textarea for
+  multiline) + attached documents; refuses signature until every
+  required field is complete; seals; sealed copy downloads by token
+- ✓ sealed-copy email goes to the bare recipient address on seal
+
+## Uploaded documents (PDF/docx), one or several per request
+- ✓ files stored through the storage adapter, SHA-256 per file; template
+  files freeze onto each sent request as rows; certificate PDF carries a
+  DOCUMENTS IN THIS REQUEST section with per-file hashes
+- ✓ file route authorized by token OR session (practitioner/owning
+  client); 403 otherwise; tampered stored bytes refuse with 409
+- ✓ desk upload form: multiple files, optional save-as-template,
+  field-lines syntax (text/textarea/initials/checkbox), optional
+  immediate send; one-off scaffolding templates retire after send
+
+## Stored practitioner signature + auto-date
+- ✓ drawn once in settings (practice setting), previewed, replaceable
+- ✓ countersign auto-applies her mark (Sig2 embedded on the sealed PDF
+  beside the client's Sig1) with the auto-set timestamp as the date
+- ✓ self-sign ("Sign & seal myself"): practitioner-only documents sign +
+  seal in one motion under her name/mark; refuses dual-signature docs
+
+## Dispute packet installed (files_7.zip — Square deadlines Aug 9–10)
+- ✓ Client Declaration: fillable TEXT template (10 fields, verbatim
+  text, blanks → {{fill:*}}), single signature, ACTIVE
+- ✓ Memorandum of Family Services Arrangement: fillable TEXT template,
+  dual signature (client + her countersign), ACTIVE
+- ✓ Session Recording Log + Square Dispute Narrative: branded-PDF FILES
+  templates, hash-verified verbatim against the repo copies, self-sign
+- Deviation (surfaced): the paper signature-line scaffolding at each
+  document's foot is replaced by the e-sign ceremony (typed name + drawn
+  mark + timestamps + sealed certificate); all other text verbatim.
+
+## Dashboard visibility (Jacob's mid-build request)
+- ✓ Agreements in the practitioner nav (both shells, desktop + mobile
+  more-menu) — accepted chrome change, baseline recaptured
+- ✓ Portrait: Agreements tab on the client file (states + sealed PDFs)
+- ✓ desk list reorganized Library-style: status shelves + selectable
+  grid/list view; Worth-a-look lines for awaiting/countersign counts
+- Gates: baseline 16/16 (7 practitioner-screen diffs = exactly the
+  requested nav/tab chrome, eyeballed, recaptured → MATCH; client
+  screens byte-identical throughout), GET smoke, write smoke,
+  tenant-stamp audit, platform isolation (AgreementFile fixture) green.
+
+ALL CHECKS PASS — 29/29 · migration 44 · AgreementFile scoped
+
+# C20 sealed-PDF + fillable fields verify — 2026-08-06
+
+Harness: `v31-verify.ts` extended to 32 checks after Jacob's sealed-PDF
+report (drawn mark said "stored" but never shown; audit trail split
+awkwardly across a page break). 32/32. `c20-verify.ts` regression 28/28.
+
+## Sealed PDF
+- ✓ the drawn signature mark is now EMBEDDED as a real image on the
+  signature block (hand-rolled PNG decode → RGB XObject, no deps; the
+  note-only line remains solely as a fallback for undecodable data)
+- ✓ the audit certificate always starts on its own final page — the full
+  trail renders together, attached to the end of the contract
+- ✓ PDF byte accounting switched to latin1 end-to-end (binary image
+  streams made the old utf8 offsets wrong)
+
+## Fillable fields (ready for the incoming legal documents)
+- ✓ template items now support kind "text": fillable areas that render
+  INLINE in the document at {{fill:<id>}} markers (or as labeled inputs /
+  textareas beside the acknowledgments when unanchored)
+- ✓ required fields refuse the signature when empty; values are captured
+  attributed + timestamped alongside initials/checkboxes
+- ✓ at seal, values substitute into the document text where the markers
+  sit AND render in an attributed CLIENT-COMPLETED FIELDS section
+- ✓ the v3.1 master's 10 acknowledgments are untouched by all of this
+
+## Notes
+- Sealed records are immutable by design: Jacob's existing production
+  test agreement keeps its old PDF (hash-sealed). Void + re-send a test
+  to see the new rendering.
+- Gates: baseline 16/16 (morning-greeting rollover vs yesterday's
+  afternoon capture — documented class, eyeballed, recaptured 9:30 AM →
+  MATCH), GET smoke, write smoke, tenant-stamp audit, platform isolation
+  verify all green.
+
+ALL CHECKS PASS — 32/32
+
+# C20 v3.1 install verify — 2026-08-05
+
+Harness: `v31-verify.ts` against the built app on a seeded scratch DB —
+the attorney master install per CLAUDE-CODE-AGREEMENT-INSTALL.md. 25/25.
+Regression: `c20-verify.ts` re-run after, 28/28.
+
+## Verbatim install (the "not a comma" rule)
+- ✓ installed body is byte-identical to the repo content file, which is
+  SHA-256-matched to counsel's upload — zero edits
+- ✓ every v3.0 continuation marker left intact (nothing reconstructed);
+  the missing-sections list is reported, not filled
+- ✓ re-running the installer is a no-op (idempotent); body refresh only
+  happens while the template is still DRAFT
+
+## DRAFT semantics (not sendable until Jacob flips it)
+- ✓ template lands as DRAFT; desk shows "DRAFT — not sendable" badge and
+  excludes it from the send dropdown
+- ✓ createAndSendAgreement refuses the DRAFT with a hard error — every
+  send path (manual, invite, package, recording triggers) goes through it
+- ✓ DRAFT preview works: live values resolve (24-hour window, formatted
+  fee) and are highlighted; unmapped SOW vars stay visibly {{unresolved}}
+- ✓ preview page renders the DRAFT banner, <mark> highlights, key-terms
+  table, and no send form
+- ✓ flipping status→ACTIVE (simulating Jacob) makes the same template
+  sendable; booking gate blocks until signed, releases on completion
+
+## Per-item acknowledgments + key-terms freeze
+- ✓ sign page renders all 10 ack items (9 typed-initials + Exhibit B
+  checkbox), text verbatim from counsel
+- ✓ signing with missing initials is refused; complete set stores all 10
+  attributed acknowledgments (initialsCaptured)
+- ✓ sealed PDF carries KEY TERMS (resolved merge values frozen) and
+  INITIALED ACKNOWLEDGMENTS (initials + timestamp + full item text)
+
+## Addenda wiring
+- ✓ Addendum P: election is real — 5 probe clients clear the k-floor,
+  one setPatternElection(false) drops the archetype count to 4 (below
+  floor); stale-archetype zeroing proven; practice switch restored
+- ✓ Addendum R: retention note ("retained for 3 years", RETENTION_YEARS
+  config) renders in the client settings agreements section
+- ✓ Addendum M: under-18 intake completion blocked with the guardian
+  notice, flow stays IN_PROGRESS, practitioner evented + emailed —
+  document present, product support intentionally absent (by spec)
+
+## Notes
+- Deviation (reported, not resolved): the spec's "block at invite" gate
+  lives at intake completion — invites carry no DOB; intake is the first
+  moment the platform knows age.
+- Null-tenant fix: CLI aggregatePatterns was creating unstamped
+  patternArchetype rows; now stamps tenantId via getTenant(); scratch
+  backfilled (43 rows) and the invariant audit is green again.
+- Gates on this run: baseline 16/16 (two recaptures — greeting rollover
+  incl. the noon knife-edge, documented classes; final BASELINE MATCH),
+  GET smoke, write smoke, tenant-stamp audit, platform isolation verify
+  (PatternElection B-fixture added) all green. Reconciliation report for
+  Jacob: docs/AGREEMENT-V31-INSTALL-REPORT.md.
+
+ALL CHECKS PASS — 25/25 · template stays DRAFT until Jacob flips
+`AgreementTemplate.status` → ACTIVE for slug `client-services-agreement`.
+
+# C20-AGREEMENTS verify — 2026-08-04
+
+Harness: `c20-verify.ts` against the built app on a seeded scratch DB —
+the spec §5 verify list end-to-end. 25/25.
+
+## Templates (G.1)
+- ✓ starter set seeds 3 templates × en/es siblings, ALL marked placeholder
+  (the 🟡 attorney flag renders on the practitioner desk until real texts land)
+- ✓ scope-of-work requires countersign (dual-signature)
+- ✓ es-locale client is served the es sibling; signature binds to the
+  version they actually read
+
+## Send (G.2)
+- ✓ merged Scope sent to María — bodySnapshot pins the merged text forever
+  (package/price/term resolved, zero {{vars}} left)
+- ✓ automatic triggers wired: invite acceptance, package purchase (merged
+  from the price book), recording-consent grant — each per-template
+  toggles on the desk, each dedupes against a live/signed same-slug doc
+- ✓ tick reminder cadence: one gentle auto-reminder at 3 days, evented
+- ✓ before-first-session gate blocks booking warmly ("One thing before we
+  begin") and lifts the moment it's signed
+- ✓ declined + voided behave; voiding is attributed and history intact
+
+## Sign (G.3)
+- ✓ portal flow: full document + e-records disclosure + typed legal name
+  + optional drawn mark + ONE wine "I agree and sign"
+- ✓ viewed + disclosure timestamped; attribution stack recorded (name,
+  IP, user agent, session/signed-link basis); signing twice refused
+- ✓ Lead Carmen signs pre-portal via the signed no-login link
+- ✓ countersign completes the dual-signature doc
+
+## Seal & store (G.4)
+- ✓ sealed PDF (agreement text + signature page + audit certificate)
+  generated on completion, SHA-256 stored, object in the storage adapter
+  (local driver now; R2 is a config change)
+- ✓ both parties download; every download re-verifies the hash
+- ✓ a single flipped byte in the stored object → download refused (409)
+- ✓ audit trail append-only: created→sent→viewed→disclosure→signed→
+  countersigned→sealed→downloaded
+- ✓ client shelf: /space/agreements + a settings section that exists only
+  once an agreement does (María's settings byte-identical before)
+
+## Notes
+- Portrait "Agreements" tab deliberately deferred: adding a tab changes
+  Valentina's baselined Portrait chrome — the desk lives at
+  /practitioner/agreements (settings-linked) until she accepts a chrome
+  change. Escape hatch §6.2 ("mark signed on paper") shipped on the desk.
+- Gates on this run: baseline 16/16 (one practitioner-home diff eyeballed
+  = the documented three-week inactivity rollover, recaptured), GET smoke
+  (+ /practitioner/agreements), write smoke, tenant-stamp audit, platform
+  isolation verify (B-fixtures + agreement rows) all green.
+
+ALL CHECKS PASS — 25/25 · 🟡 attorney pass on texts/disclosure/retention
+remains the hard gate before ANY real use.
