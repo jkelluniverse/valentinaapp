@@ -46,15 +46,51 @@ export default function FoundersLayout({ children }: { children: React.ReactNode
           font-family: var(--pf-font-body), system-ui, sans-serif;
           color: var(--pf-text); background: var(--pf-card);
         }
-        .pf-root h1, .pf-root h2, .pf-root h3, .pf-root .pf-display {
+        /* THE DEFECT THAT SHIPPED, AND ITS FIX (ruling 190).
+           app/globals.css:43-48 sets h1,h2,h3,h4 with color rgb(var(--c-wine))
+           — Veritas wine. This rule used to set font-family ONLY and leave
+           colour to inherit from the section, and INHERITANCE LOSES TO ANY
+           DIRECT SELECTOR. So every heading on this page rendered wine: 1.01:1
+           against the indigo hero, which is invisible, and the textual gate
+           passed 19/19 on it. Colour is now stated here, not inherited. */
+        .pf-root h1, .pf-root h2, .pf-root h3, .pf-root h4, .pf-root .pf-display {
           font-family: var(--pf-font-display), Georgia, serif; font-weight: 600;
+          color: var(--pf-indigo);
         }
+        /* On the dark fields the headings are cream. Stated on the SECTION so a
+           new dark section inherits it rather than needing to remember. */
+        .pf-dark h1, .pf-dark h2, .pf-dark h3, .pf-dark h4, .pf-dark .pf-display { color: var(--pf-cream); }
+        .pf-dark { background: var(--pf-indigo); color: var(--pf-cream); }
+        /* A CARD IS A LIGHT ISLAND INSIDE A DARK SECTION, and the rule above is
+           a DESCENDANT selector, so without this it reached into the cards and
+           painted "$99" cream on white: 1.12:1. The visual gate caught it on the
+           first run after the heading fix — the same class of bug as the one it
+           was built to catch, introduced by the fix for it. Declared here so any
+           future card inherits the reset rather than needing to remember.
+           Ordered after .pf-dark: equal specificity, later wins. */
+        .pf-card h1, .pf-card h2, .pf-card h3, .pf-card h4, .pf-card .pf-display { color: var(--pf-indigo); }
+        .pf-card, .pf-card p, .pf-card li, .pf-card span { color: var(--pf-text); }
         .pf-root *, .pf-root *::before, .pf-root *::after { box-sizing: border-box; }
         .pf-wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+        /* Eyebrows are 0.7rem per the brief. At 11.2px the brief's muted token
+           measures 3.14-3.57:1 on the light fields and gold measures 2.26:1 on
+           white — all below AA's 4.5 for normal text. The SIZE is the brief's;
+           the COLOUR pairing was mine. Slate on light, gold on dark (gold on
+           indigo measures 5.6:1 and passes). Both are brief tokens: this was a
+           usage error, not a palette one. */
         .pf-eyebrow {
           font-size: .7rem; font-weight: 600; text-transform: uppercase;
-          letter-spacing: .12em; line-height: 1.4;
+          letter-spacing: .12em; line-height: 1.4; color: var(--pf-slate);
         }
+        .pf-dark .pf-eyebrow { color: var(--pf-gold); }
+        /* ORDER MATTERS AND THIS IS WHY IT LIVES HERE. These were first written
+           above, before .pf-dark .pf-eyebrow — identical specificity (0,2,0), so
+           the LATER rule won and a card's eyebrow rendered gold on white at
+           2.26:1. Declared after the dark rules, they win. The gate caught it. */
+        .pf-card .pf-eyebrow { color: var(--pf-slate); }
+        .pf-card .pf-fine { color: var(--pf-slate); }
+        /* Small print on light fields: slate, never muted. */
+        .pf-fine { font-size: .85rem; color: var(--pf-slate); line-height: 1.6; }
         /* Pill, gold fill, deep ink text (brief §3). 44px min target — V6. */
         .pf-cta {
           display: inline-flex; align-items: center; justify-content: center;

@@ -13,7 +13,7 @@ export default function ApplyThanksPage() {
         <div className="pf-wrap" style={{ display: "flex", alignItems: "center", minHeight: 72 }}>
           <Link href="/founders" style={{ display: "flex", alignItems: "center" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/lockup-horizontal-reversed.svg" alt="Psychefolio" style={{ height: 30, width: "auto" }} />
+            <img src="/brand/lockup-primary-reversed.svg" alt="Psychefolio" style={{ width: 150, height: "auto", display: "block" }} />
           </Link>
         </div>
       </header>

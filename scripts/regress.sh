@@ -1,5 +1,5 @@
 #!/bin/bash
-# THE STANDING REGRESSION SET — 45 entries, stamp-audit LAST (rulings 38/48
+# THE STANDING REGRESSION SET — 46 entries, stamp-audit LAST (rulings 38/48
 # count discipline: this committed script IS the enumeration; a sweep total is
 # never restated without it). Run against a SCRATCH database only — the gates
 # refuse Railway URLs themselves, and several provision + tear down fixtures.
@@ -63,6 +63,7 @@ run fail-closed-tenancy  npx tsx audits/fail-closed-tenancy-verify.ts
 run event-chrome         npx tsx audits/event-chrome-verify.ts
 run demo-path            npx tsx audits/demo-path-verify.ts
 run founders            npx tsx audits/founders-verify.ts
+run founders-visual     npx tsx audits/founders-visual-verify.ts
 run gate-hygiene         npx tsx audits/gate-hygiene-verify.ts
 run port-uniqueness      npx tsx audits/port-uniqueness-verify.ts
 run nexturl-origin       npx tsx audits/nexturl-origin-verify.ts

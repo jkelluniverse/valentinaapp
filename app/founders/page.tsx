@@ -105,64 +105,124 @@ export default function FoundersPage({
   return (
     <main>
       {/* ---------- 1. NAVIGATION ---------- */}
-      <header style={{ background: "var(--pf-indigo)" }}>
-        <nav className="pf-wrap" style={{ display: "flex", alignItems: "center", gap: 24, minHeight: 72 }} aria-label="Primary">
+      <header className="pf-dark">
+        <nav className="pf-wrap" style={{ display: "flex", alignItems: "center", gap: 24, minHeight: 88 }} aria-label="Primary">
           <Link href="/founders" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+            {/* THE LOCKUP (ruling 190 §2). The previous src was
+                lockup-horizontal-reversed.svg, which brand-web's own spec
+                documents as "horizontal lockup for nav bars + reversed — BOTH
+                IN ONE FILE": a two-panel presentation board. Rendered whole at
+                53x30 it was the pale box Jacob saw. This is the approved
+                primary lockup, reversed colourway, at a legible size. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/lockup-horizontal-reversed.svg" alt="Psychefolio" style={{ height: 30, width: "auto" }} />
+            <img src="/brand/lockup-primary-reversed.svg" alt="Psychefolio" style={{ width: 150, height: "auto", display: "block" }} />
           </Link>
-          <ul style={{ display: "flex", gap: 28, listStyle: "none", margin: 0, padding: 0, marginLeft: "auto" }} className="pf-navlinks">
+          <ul className="pf-navlinks" style={{ display: "flex", gap: 28, listStyle: "none", margin: 0, padding: 0, marginLeft: "auto" }}>
             {NAV.map((n) => (
-              <li key={n.href}>
-                <a href={n.href} style={{ color: "rgba(250,240,239,.82)", textDecoration: "none", fontSize: ".95rem" }}>{n.label}</a>
-              </li>
+              <li key={n.href}><a href={n.href} style={{ color: "var(--pf-cream)", textDecoration: "none", fontSize: ".95rem" }}>{n.label}</a></li>
             ))}
           </ul>
-          <Link href="/login" style={{ color: "rgba(250,240,239,.7)", textDecoration: "none", fontSize: ".95rem" }}>Sign In</Link>
-          <Link href={applyHref} className="pf-cta" style={{ minHeight: 44, padding: "0 20px", fontSize: ".95rem" }}>Apply</Link>
+          <Link href="/login" className="pf-signin" style={{ color: "var(--pf-cream)", textDecoration: "none", fontSize: ".95rem" }}>Sign In</Link>
+          <Link href={applyHref} className="pf-cta" style={{ minHeight: 44, padding: "0 20px", fontSize: ".95rem", marginLeft: "auto" }}>Apply</Link>
+          {/* MOBILE MENU CONTROL (ruling 190 §6). The links were display:none
+              below 860px with NO replacement, so What's Included, Founding
+              Partnership and FAQ were unreachable on a phone. Native
+              <details> — it opens with JS disabled. */}
+          <details className="pf-menu">
+            <summary aria-label="Menu" style={{ listStyle: "none", cursor: "pointer", color: "var(--pf-cream)", padding: "10px 4px", minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M3 12h18M3 18h18" />
+              </svg>
+            </summary>
+            <ul style={{ position: "absolute", right: 16, left: 16, marginTop: 12, listStyle: "none", padding: 12, background: "var(--pf-ink)", borderRadius: 14, zIndex: 20 }}>
+              {NAV.map((n) => (
+                <li key={n.href}><a href={n.href} style={{ display: "block", padding: "12px 10px", minHeight: 44, color: "var(--pf-cream)", textDecoration: "none" }}>{n.label}</a></li>
+              ))}
+              <li><Link href="/login" style={{ display: "block", padding: "12px 10px", minHeight: 44, color: "var(--pf-cream)", textDecoration: "none" }}>Sign In</Link></li>
+            </ul>
+          </details>
         </nav>
-        <style>{`@media (max-width:860px){ .pf-navlinks{display:none !important;} }`}</style>
+        <style>{`
+          .pf-menu { display: none; position: relative; margin-left: 8px; }
+          .pf-menu > summary::-webkit-details-marker { display: none; }
+          @media (max-width: 900px) {
+            .pf-navlinks, .pf-signin { display: none !important; }
+            .pf-menu { display: block; }
+          }
+        `}</style>
       </header>
 
       {/* ---------- 2. HERO ---------- */}
-      <section style={{ background: "var(--pf-indigo)", color: "var(--pf-cream)", position: "relative", overflow: "hidden" }}>
-        {/* Restrained constellation lines only (brief §3 avoid-list: no fantasy
-            landscapes, no star fields). Decorative, hidden from assistive tech. */}
-        <svg aria-hidden="true" focusable="false" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.24, pointerEvents: "none" }}>
-          <g stroke="var(--pf-gold)" strokeWidth="1" fill="none">
-            <path d="M 78% 12% L 88% 28% L 72% 42% L 92% 58%" />
-            <path d="M 8% 78% L 22% 66% L 34% 84%" />
+      <section className="pf-dark" style={{ position: "relative", overflow: "hidden" }}>
+        {/* RESTRAINED CONSTELLATION LINES (ruling 190 §5). The previous version
+            wrote path data in PERCENTAGES — d="M 78% 12% L ..." — which SVG
+            path data does not accept, so every line was dropped and only the
+            circles rendered: scattered dots over the copy and no lines at all.
+            A viewBox with numeric coordinates draws what was intended.
+            No landscape, no star field: the Stage 2 dispatch excludes both. */}
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 1440 720" preserveAspectRatio="xMaxYMid slice"
+             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.5, pointerEvents: "none" }}>
+          <g stroke="var(--pf-gold)" strokeWidth="1.1" fill="none" opacity="0.45">
+            <path d="M1180 96 L1286 188 L1156 268 L1310 356" />
+            <path d="M1286 188 L1372 132" />
           </g>
-          <g fill="var(--pf-gold)">
-            {["78%,12%", "88%,28%", "72%,42%", "92%,58%", "8%,78%", "22%,66%", "34%,84%"].map((c) => {
-              const [cx, cy] = c.split(",");
-              return <circle key={c} cx={cx} cy={cy} r="2.5" />;
-            })}
+          <g fill="var(--pf-gold)" opacity="0.9">
+            {[[1180, 96], [1286, 188], [1156, 268], [1310, 356], [1372, 132]].map(([cx, cy]) => (
+              <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3" />
+            ))}
           </g>
         </svg>
-        <div className="pf-wrap pf-section" style={{ position: "relative" }}>
-          <p className="pf-eyebrow" style={{ color: "var(--pf-gold)", margin: 0 }}>{eyebrow}</p>
-          <h1 style={{ fontSize: "clamp(2.75rem, 5.6vw, 5rem)", lineHeight: 1.05, margin: "18px 0 0", maxWidth: "16ch" }}>
-            Help shape the operating system built for the way you practice.
-          </h1>
-          <p className="pf-lede" style={{ maxWidth: "58ch", marginTop: 22, color: "rgba(250,240,239,.86)" }}>
-            Join Psychefolio&rsquo;s first practitioner cohort and bring your clients, sessions, reflections, programs,
-            billing, agreements, and evolving client context into one connected environment.
-          </p>
-          {fromCard && (
-            <p style={{ maxWidth: "62ch", marginTop: 16, color: "rgba(250,240,239,.72)", fontSize: ".98rem", lineHeight: 1.65 }}>
-              Built by practitioners familiar with subconscious integration and whole-systems work&mdash;for practitioners
-              whose methods do not fit neatly inside ordinary practice software.
+        <div className="pf-wrap pf-section pf-hero" style={{ position: "relative" }}>
+          <div>
+            <p className="pf-eyebrow" style={{ margin: 0 }}>{eyebrow}</p>
+            <h1 style={{ fontSize: "clamp(2.75rem, 5.6vw, 5rem)", lineHeight: 1.05, margin: "18px 0 0", maxWidth: "15ch" }}>
+              Help shape the operating system built for the way you practice.
+            </h1>
+            <p className="pf-lede" style={{ maxWidth: "52ch", marginTop: 22, color: "var(--pf-cream)" }}>
+              Join Psychefolio&rsquo;s first practitioner cohort and bring your clients, sessions, reflections, programs,
+              billing, agreements, and evolving client context into one connected environment.
             </p>
-          )}
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "center", marginTop: 34 }}>
-            <Link href={applyHref} className="pf-cta">Apply for a Founding Seat</Link>
-            <a href="#included" style={{ color: "var(--pf-cream)", textDecoration: "underline", textUnderlineOffset: 4 }}>See what&rsquo;s included</a>
+            {fromCard && (
+              <p style={{ maxWidth: "58ch", marginTop: 16, color: "var(--pf-cream)", opacity: 0.85, fontSize: ".98rem", lineHeight: 1.65 }}>
+                Built by practitioners familiar with subconscious integration and whole-systems work&mdash;for practitioners
+                whose methods do not fit neatly inside ordinary practice software.
+              </p>
+            )}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "center", marginTop: 34 }}>
+              <Link href={applyHref} className="pf-cta">Apply for a Founding Seat</Link>
+              <a href="#included" style={{ color: "var(--pf-cream)", textDecoration: "underline", textUnderlineOffset: 4 }}>See what&rsquo;s included &rarr;</a>
+            </div>
           </div>
-          <p style={{ marginTop: 26, color: "rgba(250,240,239,.66)", fontSize: ".92rem" }}>
-            {SEATS_STATEMENT}. Enrollment closes {PRICING.closesText}.
-          </p>
+          {/* THE RIGHT COLUMN (ruling 190 §3). The rendering puts a card here and
+              the brief specifies a 7/5 split; ruling 176 CUT the counter and the
+              progress bar that card held, and the product triptych was cut for
+              want of real screenshots. Rather than leave half the hero empty or
+              invent activity, the card carries the OFFER'S OWN TERMS — every
+              figure ruling 175 ratified, and the close date the rendering's card
+              already showed. No count. No bar. Nothing manufactured. */}
+          <aside className="pf-card" style={{ padding: 28, alignSelf: "start", color: "var(--pf-text)" }}>
+            <p className="pf-eyebrow" style={{ margin: 0, color: "var(--pf-slate)" }}>Founding Practice</p>
+            <p style={{ margin: "16px 0 0", display: "flex", alignItems: "baseline", gap: 8 }}>
+              <span className="pf-display" style={{ fontSize: "2.6rem" }}>{PRICING.foundingFirstYear}</span>
+              <span style={{ color: "var(--pf-slate)" }}>/month</span>
+            </p>
+            <p className="pf-fine" style={{ margin: "2px 0 0" }}>for your first 12 months</p>
+            <hr style={{ border: 0, borderTop: "1px solid rgba(46,39,73,.14)", margin: "18px 0" }} />
+            <p style={{ margin: 0 }}>Then <strong>{PRICING.foundingAfter}/month</strong> locked</p>
+            <p className="pf-fine" style={{ margin: "2px 0 0" }}>while continuously active</p>
+            <ul style={{ margin: "16px 0 0", paddingLeft: 18, lineHeight: 1.85 }}>
+              <li>{PRICING.onboardingIncluded} guided onboarding included</li>
+              <li>{PRICING.guaranteeDays}-day money-back guarantee</li>
+            </ul>
+            <p className="pf-fine" style={{ margin: "18px 0 0", borderTop: "1px solid rgba(46,39,73,.14)", paddingTop: 14 }}>
+              {SEATS_STATEMENT}. Enrollment closes {PRICING.closesText}.
+            </p>
+          </aside>
         </div>
+        <style>{`
+          .pf-hero { display: grid; grid-template-columns: 7fr 5fr; gap: 56px; align-items: center; }
+          @media (max-width: 980px) { .pf-hero { grid-template-columns: 1fr; gap: 36px; } }
+        `}</style>
       </section>
 
       {/* ---------- 3. THREE FOUNDING BENEFITS ---------- */}
@@ -178,16 +238,16 @@ export default function FoundersPage({
       </section>
 
       {/* ---------- 4. FOUNDING OFFER + PRICING CARD ---------- */}
-      <section className="pf-section" style={{ background: "var(--pf-indigo)", color: "var(--pf-cream)" }}>
+      <section className="pf-section pf-dark">
         <div className="pf-wrap" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,420px)", gap: 56, alignItems: "start" }}>
           <div>
-            <p className="pf-eyebrow" style={{ color: "var(--pf-gold)", margin: 0 }}>A founding rate for the first twenty</p>
+            <p className="pf-eyebrow" style={{ margin: 0 }}>A founding rate for the first twenty</p>
             <h2 className="pf-h2" style={{ marginTop: 16 }}>Practice-level access at the Solo price.</h2>
-            <p className="pf-lede" style={{ marginTop: 20, color: "rgba(250,240,239,.86)", maxWidth: "52ch" }}>
+            <p className="pf-lede" style={{ marginTop: 20, color: "var(--pf-cream)", maxWidth: "52ch" }}>
               Receive the complete Practice plan, guided onboarding, and a permanent preferred rate in exchange for
               helping us learn from your real practice.
             </p>
-            <ul style={{ marginTop: 28, paddingLeft: 20, lineHeight: 2, color: "rgba(250,240,239,.82)" }}>
+            <ul style={{ marginTop: 28, paddingLeft: 20, lineHeight: 2, color: "var(--pf-cream)" }}>
               <li>Founding pricing from the first month</li>
               <li>Direct product feedback access</li>
               <li>Priority participation in early releases</li>
@@ -195,10 +255,10 @@ export default function FoundersPage({
             </ul>
           </div>
           <div className="pf-card" style={{ padding: 32, color: "var(--pf-text)" }}>
-            <p className="pf-eyebrow" style={{ color: "var(--pf-muted)", margin: 0 }}>Founding Practice</p>
-            <p style={{ margin: "18px 0 0", color: "var(--pf-muted)" }}>
+            <p className="pf-eyebrow" style={{ margin: 0 }}>Founding Practice</p>
+            <p style={{ margin: "18px 0 0", color: "var(--pf-slate)" }}>
               <s>{PRICING.standardPractice}</s>{" "}
-              <span style={{ fontSize: ".9rem" }}>standard Practice price</span>
+              <span style={{ fontSize: ".9rem", color: "var(--pf-slate)" }}>standard Practice price</span>
             </p>
             <p style={{ margin: "6px 0 0", display: "flex", alignItems: "baseline", gap: 8 }}>
               <span className="pf-display" style={{ fontSize: "3rem", color: "var(--pf-indigo)" }}>{PRICING.foundingFirstYear}</span>
@@ -215,7 +275,7 @@ export default function FoundersPage({
               <li>{PRICING.guaranteeDays}-day money-back guarantee</li>
             </ul>
             <Link href={applyHref} className="pf-cta" style={{ width: "100%", marginTop: 26 }}>Apply for a Founding Seat</Link>
-            <p style={{ margin: "14px 0 0", fontSize: ".85rem", color: "var(--pf-muted)", textAlign: "center" }}>
+            <p className="pf-fine" style={{ margin: "14px 0 0", textAlign: "center" }}>
               Enrollment closes {PRICING.closesText}.
             </p>
           </div>
@@ -226,7 +286,7 @@ export default function FoundersPage({
       {/* ---------- 5. EVERYTHING IN PRACTICE ---------- */}
       <section id="included" className="pf-section" style={{ background: "var(--pf-ivory)" }}>
         <div className="pf-wrap">
-          <p className="pf-eyebrow" style={{ color: "var(--pf-muted)", margin: 0 }}>What&rsquo;s included</p>
+          <p className="pf-eyebrow" style={{ margin: 0 }}>What&rsquo;s included</p>
           <h2 className="pf-h2" style={{ marginTop: 14, color: "var(--pf-indigo)" }}>Everything in Practice.</h2>
           <p className="pf-lede" style={{ marginTop: 18, maxWidth: "70ch", color: "var(--pf-slate)" }}>
             The full environment for practitioners who want the business of the practice, the client experience, and the
@@ -235,7 +295,7 @@ export default function FoundersPage({
           <div style={{ marginTop: 44, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 28 }}>
             {INCLUDED.map((g) => (
               <div key={g.label} className="pf-card" style={{ padding: 26 }}>
-                <p className="pf-eyebrow" style={{ color: "var(--pf-gold)", margin: 0 }}>{g.label}</p>
+                <p className="pf-eyebrow" style={{ margin: 0 }}>{g.label}</p>
                 <ul style={{ margin: "16px 0 0", paddingLeft: 18, lineHeight: 1.85, color: "var(--pf-text)" }}>
                   {g.items.map((it) => <li key={it}>{it}</li>)}
                 </ul>
@@ -270,7 +330,7 @@ export default function FoundersPage({
       {/* ---------- 7. QUALIFICATION ---------- */}
       <section className="pf-section" style={{ background: "var(--pf-cream)" }}>
         <div className="pf-wrap">
-          <p className="pf-eyebrow" style={{ color: "var(--pf-muted)", margin: 0 }}>Who this is for</p>
+          <p className="pf-eyebrow" style={{ margin: 0 }}>Who this is for</p>
           <h2 className="pf-h2" style={{ marginTop: 14, color: "var(--pf-indigo)" }}>For practitioners ready to build with us.</h2>
           <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 36 }}>
             <div>
@@ -288,7 +348,7 @@ export default function FoundersPage({
       {/* ---------- 8. HOW IT WORKS ---------- */}
       <section className="pf-section" style={{ background: "var(--pf-card)" }}>
         <div className="pf-wrap">
-          <p className="pf-eyebrow" style={{ color: "var(--pf-muted)", margin: 0 }}>How it works</p>
+          <p className="pf-eyebrow" style={{ margin: 0 }}>How it works</p>
           <h2 className="pf-h2" style={{ marginTop: 14, color: "var(--pf-indigo)" }}>A simple path to get started.</h2>
           <div style={{ marginTop: 40, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 28 }}>
             {STEPS.map((s) => (
@@ -342,18 +402,18 @@ export default function FoundersPage({
       </section>
 
       {/* ---------- 11. FINAL CTA + FOOTER ---------- */}
-      <section className="pf-section" style={{ background: "var(--pf-indigo)", color: "var(--pf-cream)" }}>
+      <section className="pf-section pf-dark">
         <div className="pf-wrap" style={{ maxWidth: 860 }}>
-          <p className="pf-eyebrow" style={{ color: "var(--pf-gold)", margin: 0 }}>The first twenty</p>
+          <p className="pf-eyebrow" style={{ margin: 0 }}>The first twenty</p>
           <h2 className="pf-h2" style={{ marginTop: 14 }}>Your seat in what Psychefolio becomes next.</h2>
-          <p className="pf-lede" style={{ marginTop: 18, color: "rgba(250,240,239,.86)" }}>
+          <p className="pf-lede" style={{ marginTop: 18, color: "var(--pf-cream)" }}>
             Bring us the way you practice. We will help you build a more connected operating environment around
             it&mdash;and learn from your experience as we shape what comes next.
           </p>
           <div style={{ marginTop: 30 }}>
             <Link href={applyHref} className="pf-cta">Apply for a Founding Seat</Link>
           </div>
-          <p style={{ marginTop: 18, color: "rgba(250,240,239,.66)", fontSize: ".92rem" }}>
+          <p style={{ marginTop: 18, color: "var(--pf-cream)", fontSize: ".92rem" }}>
             Enrollment closes {PRICING.closesText} or when all {PRICING.seats} seats are claimed.
           </p>
         </div>
