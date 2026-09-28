@@ -1,4 +1,4 @@
-# C35 VISUAL verify — 2026-09-23T18:53:39.565Z
+# C35 VISUAL verify — 2026-09-28T14:05:00.484Z
 
 ## 0 — did this gate measure the real page?
 - ✓ the page rendered (≥60 text-painting nodes; an error page has a handful) — 151 nodes
@@ -9,7 +9,7 @@
 
 ## C — palette: the brief's tokens only, Veritas ZERO
 - ✓ VERITAS wine/mocha appear ZERO times in rendered colour — 0 occurrences
-- ✓ every rendered colour traces to the brief's required palette — 9 distinct, all on-palette
+- ✓ every rendered colour traces to the brief's required palette — 8 distinct, all on-palette
 
 ## D — the lockup
 - ✓ the lockup loads (not a 404) — natural 1774×747
@@ -18,7 +18,7 @@
 - ✓ rendered at a legible size (≥120px wide) — 150×63
 
 ## A — screenshot baseline (ruling 11)
-- ✓ desktop matches the committed baseline — 618113 bytes
-- ✓ mobile matches the committed baseline — 662862 bytes
+- ✓ desktop matches the committed baseline — 638217 bytes
+- ✓ mobile matches the committed baseline — 663451 bytes
 
 VISUAL VERIFY PASS — 11/11

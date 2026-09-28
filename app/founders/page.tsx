@@ -21,16 +21,37 @@ import { CARD_SOURCE, INCLUDED, PRICING, SEATS_STATEMENT, TERMS_BULLETS, ADDENDU
 
 export const dynamic = "force-dynamic";
 
+// RESTRAINED LINE ICONS (brief §3, and the rendering shows them on the benefit,
+// included and partnership lists). Inline SVG, stroke: currentColor, so each one
+// inherits the colour its context already passed contrast on — an icon cannot
+// introduce an off-palette value or a new contrast pair. Decorative: aria-hidden,
+// never the only carrier of meaning, because every item keeps its text label.
+function Ico({ d, size = 20 }: { d: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+         fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d={d} />
+    </svg>
+  );
+}
+const ICON = {
+  connected: "M12 3v6m0 6v6M5.6 7.8l4.3 2.5m4.2 2.4 4.3 2.5M18.4 7.8l-4.3 2.5m-4.2 2.4-4.3 2.5",
+  thread: "M4 18c0-6 4-9 8-9s4 3 8 3M4 6h4m8 12h4",
+  voice: "M12 3a4 4 0 0 1 4 4v3a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4ZM5 11a7 7 0 0 0 14 0M12 18v3",
+  check: "M4 12.5 9 17.5 20 6.5",
+  spark: "M12 3v4m0 10v4M3 12h4m10 0h4M6.3 6.3l2.8 2.8m5.8 5.8 2.8 2.8m0-11.4-2.8 2.8m-5.8 5.8-2.8 2.8",
+} as const;
+
 const NAV = [
   { href: "#included", label: "What's Included" },
   { href: "#partnership", label: "Founding Partnership" },
   { href: "#faq", label: "FAQ" },
 ];
 
-const BENEFITS = [
-  { h: "Practice, connected.", p: "Clients, scheduling, packages, billing, agreements, notes, reflections, programs, and communication live in one thoughtful system." },
-  { h: "Context that carries forward.", p: "Client Intelligence helps return relevant history, language, themes, and source material so you can continue the work without losing the thread." },
-  { h: "A voice in what comes next.", p: "Founding members receive direct access to the team and a structured place to influence the platform's priorities, flow, and future." },
+const BENEFITS: { h: string; p: string; i: string }[] = [
+  { i: ICON.connected, h: "Practice, connected.", p: "Clients, scheduling, packages, billing, agreements, notes, reflections, programs, and communication live in one thoughtful system." },
+  { i: ICON.thread, h: "Context that carries forward.", p: "Client Intelligence helps return relevant history, language, themes, and source material so you can continue the work without losing the thread." },
+  { i: ICON.voice, h: "A voice in what comes next.", p: "Founding members receive direct access to the team and a structured place to influence the platform's priorities, flow, and future." },
 ];
 
 const RECEIVE = [
@@ -230,6 +251,9 @@ export default function FoundersPage({
         <div className="pf-wrap" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 0 }}>
           {BENEFITS.map((b, i) => (
             <div key={b.h} style={{ padding: "0 32px", borderLeft: i === 0 ? "none" : "1px solid rgba(46,39,73,.12)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: 9999, background: "var(--pf-ivory)", color: "var(--pf-indigo)", marginBottom: 16 }}>
+                <Ico d={b.i} size={22} />
+              </span>
               <h3 className="pf-display" style={{ fontSize: "1.45rem", margin: 0, color: "var(--pf-indigo)" }}>{b.h}</h3>
               <p style={{ marginTop: 12, lineHeight: 1.7, color: "var(--pf-slate)" }}>{b.p}</p>
             </div>
@@ -247,11 +271,12 @@ export default function FoundersPage({
               Receive the complete Practice plan, guided onboarding, and a permanent preferred rate in exchange for
               helping us learn from your real practice.
             </p>
-            <ul style={{ marginTop: 28, paddingLeft: 20, lineHeight: 2, color: "var(--pf-cream)" }}>
-              <li>Founding pricing from the first month</li>
-              <li>Direct product feedback access</li>
-              <li>Priority participation in early releases</li>
-              <li>Recognition as one of the first twenty practices</li>
+            <ul style={{ marginTop: 28, padding: 0, listStyle: "none", color: "var(--pf-cream)" }}>
+              {["Founding pricing from the first month", "Direct product feedback access",
+                "Priority participation in early releases", "Recognition as one of the first twenty practices"].map((v) => (
+                <li key={v} style={{ display: "flex", gap: 12, alignItems: "flex-start", lineHeight: 1.6, marginBottom: 14 }}>
+                  <span style={{ color: "var(--pf-gold)", flexShrink: 0, marginTop: 2 }}><Ico d={ICON.spark} size={18} /></span><span>{v}</span>
+                </li>))}
             </ul>
           </div>
           <div className="pf-card" style={{ padding: 32, color: "var(--pf-text)" }}>
@@ -296,8 +321,13 @@ export default function FoundersPage({
             {INCLUDED.map((g) => (
               <div key={g.label} className="pf-card" style={{ padding: 26 }}>
                 <p className="pf-eyebrow" style={{ margin: 0 }}>{g.label}</p>
-                <ul style={{ margin: "16px 0 0", paddingLeft: 18, lineHeight: 1.85, color: "var(--pf-text)" }}>
-                  {g.items.map((it) => <li key={it}>{it}</li>)}
+                <ul style={{ margin: "16px 0 0", padding: 0, listStyle: "none", color: "var(--pf-text)" }}>
+                  {g.items.map((it) => (
+                    <li key={it} style={{ display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.6, marginBottom: 10 }}>
+                      <span style={{ color: "var(--pf-sage)", flexShrink: 0, marginTop: 2 }}><Ico d={ICON.check} size={18} /></span>
+                      <span>{it}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             ))}
@@ -317,11 +347,17 @@ export default function FoundersPage({
           <div style={{ marginTop: 40, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 36 }}>
             <div>
               <h3 className="pf-display" style={{ fontSize: "1.25rem", color: "var(--pf-indigo)", margin: 0 }}>What founding members receive</h3>
-              <ul style={{ margin: "16px 0 0", paddingLeft: 20, lineHeight: 1.95 }}>{RECEIVE.map((x) => <li key={x}>{x}</li>)}</ul>
+              <ul style={{ margin: "16px 0 0", padding: 0, listStyle: "none" }}>{RECEIVE.map((x) => (
+                <li key={x} style={{ display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.6, marginBottom: 10 }}>
+                  <span style={{ color: "var(--pf-sage)", flexShrink: 0, marginTop: 2 }}><Ico d={ICON.check} size={18} /></span><span>{x}</span>
+                </li>))}</ul>
             </div>
             <div>
               <h3 className="pf-display" style={{ fontSize: "1.25rem", color: "var(--pf-indigo)", margin: 0 }}>What founding members agree to</h3>
-              <ul style={{ margin: "16px 0 0", paddingLeft: 20, lineHeight: 1.95 }}>{AGREE.map((x) => <li key={x}>{x}</li>)}</ul>
+              <ul style={{ margin: "16px 0 0", padding: 0, listStyle: "none" }}>{AGREE.map((x) => (
+                <li key={x} style={{ display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.6, marginBottom: 10 }}>
+                  <span style={{ color: "var(--pf-sage)", flexShrink: 0, marginTop: 2 }}><Ico d={ICON.check} size={18} /></span><span>{x}</span>
+                </li>))}</ul>
             </div>
           </div>
         </div>
@@ -350,15 +386,30 @@ export default function FoundersPage({
         <div className="pf-wrap">
           <p className="pf-eyebrow" style={{ margin: 0 }}>How it works</p>
           <h2 className="pf-h2" style={{ marginTop: 14, color: "var(--pf-indigo)" }}>A simple path to get started.</h2>
-          <div style={{ marginTop: 40, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 28 }}>
-            {STEPS.map((s) => (
-              <div key={s.n} className="pf-card" style={{ padding: 26 }}>
-                <p className="pf-display" style={{ fontSize: "2rem", color: "var(--pf-gold)", margin: 0 }}>{s.n}</p>
-                <h3 className="pf-display" style={{ fontSize: "1.2rem", color: "var(--pf-indigo)", margin: "6px 0 0" }}>{s.h}</h3>
-                <p style={{ marginTop: 10, lineHeight: 1.7, color: "var(--pf-slate)" }}>{s.p}</p>
-              </div>
+          {/* The rendering runs these as numbered circles joined by connectors
+              rather than as three bordered cards — lighter, and it reads as ONE
+              path instead of three options. The connector is decorative and
+              hidden from assistive tech; the numerals stay in the text. */}
+          <ol className="pf-steps" style={{ marginTop: 44, padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 0 }}>
+            {STEPS.map((st, i) => (
+              <li key={st.n} style={{ position: "relative", padding: "0 28px 0 0" }}>
+                {i < STEPS.length - 1 && (
+                  <span aria-hidden="true" className="pf-connector" style={{ position: "absolute", top: 21, left: 52, right: 12, height: 1, background: "rgba(46,39,73,.18)" }} />
+                )}
+                <span style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 42, height: 42, borderRadius: 9999, background: "var(--pf-sage)", color: "var(--pf-ink)", fontWeight: 600, fontSize: "1.05rem" }}>
+                  {st.n}
+                </span>
+                <h3 className="pf-display" style={{ fontSize: "1.2rem", color: "var(--pf-indigo)", margin: "16px 0 0" }}>{st.h}</h3>
+                <p style={{ marginTop: 8, lineHeight: 1.7, color: "var(--pf-slate)", maxWidth: "34ch" }}>{st.p}</p>
+              </li>
             ))}
-          </div>
+          </ol>
+          <style>{`
+            @media (max-width: 820px) {
+              .pf-steps { grid-template-columns: 1fr !important; gap: 28px !important; }
+              .pf-connector { display: none !important; }
+            }
+          `}</style>
           {/* Brief §13, stated rather than implied: applying reserves nothing. */}
           <p style={{ marginTop: 28, fontWeight: 600, color: "var(--pf-indigo)", maxWidth: "70ch" }}>
             Completing the application does not reserve a seat. A seat is claimed only after acceptance, signed terms,
@@ -419,14 +470,21 @@ export default function FoundersPage({
         </div>
       </section>
 
-      <footer style={{ background: "var(--pf-ink)", color: "rgba(250,240,239,.6)", padding: "36px 0" }}>
-        <div className="pf-wrap" style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "center", justifyContent: "space-between", fontSize: ".88rem" }}>
-          <span>&copy; {new Date().getFullYear()} Psychefolio</span>
-          <span style={{ maxWidth: "62ch" }}>
+      {/* The rendering's footer is LIGHT, not another indigo band — it closes the
+          page instead of extending the final CTA. The lockup here is the
+          light-background primary; the reversed colourway belongs on indigo. */}
+      <footer style={{ background: "var(--pf-ivory)", padding: "40px 0", borderTop: "1px solid rgba(46,39,73,.12)" }}>
+        <div className="pf-wrap" style={{ display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", justifyContent: "space-between", fontSize: ".88rem", color: "var(--pf-slate)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/lockup-primary.svg" alt="Psychefolio" style={{ width: 130, height: "auto", display: "block" }} />
+            <span>&copy; {new Date().getFullYear()} Psychefolio</span>
+          </div>
+          <span style={{ maxWidth: "58ch" }}>
             PSYCH-K&reg; is a registered trademark of its owner. Psychefolio is independent and is not affiliated with,
             endorsed by, or sponsored by PSYCH-K&reg;.
           </span>
-          <Link href="/privacy" style={{ color: "rgba(250,240,239,.6)" }}>Privacy</Link>
+          <Link href="/privacy" style={{ color: "var(--pf-slate)" }}>Privacy</Link>
         </div>
       </footer>
     </main>

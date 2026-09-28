@@ -1,4 +1,4 @@
-# C35-FOUNDERS-EVENT verify — 2026-09-23T18:53:37.183Z
+# C35-FOUNDERS-EVENT verify — 2026-09-28T14:04:57.282Z
 - ✓ the founding page renders on the PLATFORM host — status 200
 - ✓ a TENANT host still 404s — no founding funnel on a practice's domain — status 404
 - ✓ V3 — every dollar figure on the page is one of ruling 175's (4 distinct found) — all of: $99 $149 $500 $199
