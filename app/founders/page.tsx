@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { CARD_SOURCE, INCLUDED, PRICING, SEATS_STATEMENT, TERMS_BULLETS, ADDENDUM_URL } from "@/lib/founders-config";
+import { requirePlatformHost } from "@/lib/founders-guard";
+import type { Metadata } from "next";
+import { PLATFORM_NAME, isPlatformHost } from "@/lib/platform-host";
+import { headers } from "next/headers";
 
 // C35-FOUNDERS-EVENT STAGE 2 — the founding page. Replaces Stage 1's redirect.
 //
@@ -54,10 +58,14 @@ const BENEFITS: { h: string; p: string; i: string }[] = [
   { i: ICON.voice, h: "A voice in what comes next.", p: "Founding members receive direct access to the team and a structured place to influence the platform's priorities, flow, and future." },
 ];
 
+// RULING 218 — this list sits in "A simple path to get started", a THIRD place
+// the offer's figures were restated after the hero card and the offer card.
+// The commitments stay; the numbers live once, in the offer section, where the
+// terms belong. A getting-started section is not a pricing table.
 const RECEIVE = [
-  `${PRICING.foundingFirstYear}/month for the first 12 months`,
-  `${PRICING.foundingAfter}/month locked while continuously active`,
-  `${PRICING.onboardingIncluded} guided onboarding included`,
+  "The founding rate for your first 12 months",
+  "Your locked rate thereafter, while continuously active",
+  "Guided onboarding included",
   "Complete Practice plan access",
   "Direct access to the product team",
   "Priority consideration for early capabilities",
@@ -109,11 +117,33 @@ const FAQ = [
   { q: "Are clients limited?", a: "No. Founding Practice includes unlimited clients, and 60 recorded hours each month." },
 ];
 
+// RULING 203 — metadata lives on the PAGE. On the layout it was applied even
+// when the page 404'd, so a tenant host's 404 carried the tab title
+// "Founding Practice · Psychefolio".
+export async function generateMetadata(): Promise<Metadata> {
+  // RULING 203, THE LAST PIECE. Static `metadata` is resolved by Next
+  // INDEPENDENTLY of whether the component calls notFound(), so exporting it
+  // here still put "Founding Practice · Psychefolio" and the full description
+  // into a tenant host's 404 flight payload. Moving it off the layout removed
+  // the rendered <title>; it did not remove the transmission.
+  //
+  // Metadata therefore has to make the host decision itself.
+  const h = headers();
+  if (!isPlatformHost(h.get("x-forwarded-host") || h.get("host"))) return {};
+  return {
+  title: `Founding Practice · ${PLATFORM_NAME}`,
+  description:
+    "Join Psychefolio's first practitioner cohort. Practice-level access at the Solo price, guided onboarding, and a voice in what gets built next.",
+  robots: { index: true, follow: true },
+  };
+}
+
 export default function FoundersPage({
   searchParams,
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
+  requirePlatformHost(); // ruling 203 — refuse BEFORE any JSX is built
   const rawSource = Array.isArray(searchParams.source) ? searchParams.source[0] : searchParams.source;
   const fromCard = (rawSource ?? "").trim().toLowerCase() === CARD_SOURCE;
 
@@ -127,7 +157,7 @@ export default function FoundersPage({
     <main>
       {/* ---------- 1. NAVIGATION ---------- */}
       <header className="pf-dark">
-        <nav className="pf-wrap" style={{ display: "flex", alignItems: "center", gap: 24, minHeight: 88 }} aria-label="Primary">
+        <nav className="pf-wrap" style={{ display: "flex", alignItems: "center", gap: 24, minHeight: 120 }} aria-label="Primary">
           <Link href="/founders" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
             {/* THE LOCKUP (ruling 190 §2). The previous src was
                 lockup-horizontal-reversed.svg, which brand-web's own spec
@@ -136,7 +166,11 @@ export default function FoundersPage({
                 53x30 it was the pale box Jacob saw. This is the approved
                 primary lockup, reversed colourway, at a legible size. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/lockup-primary-reversed.svg" alt="Psychefolio" style={{ width: 150, height: "auto", display: "block" }} />
+            {/* F1 — 150px wide rendered the wordmark at 63px tall, which Jacob
+                read as an illegible smudge in the indigo nav. Roughly doubled.
+                The gate asserts the RENDERED HEIGHT (ruling 202), so this
+                cannot silently shrink again. */}
+            <img className="pf-lockup" src="/brand/lockup-primary-reversed.svg" alt="Psychefolio" style={{ height: "auto", display: "block" }} />
           </Link>
           <ul className="pf-navlinks" style={{ display: "flex", gap: 28, listStyle: "none", margin: 0, padding: 0, marginLeft: "auto" }}>
             {NAV.map((n) => (
@@ -163,6 +197,14 @@ export default function FoundersPage({
             </ul>
           </details>
         </nav>
+        {/* F1 — 240px is the desktop size. Doubling the lockup pushed the nav
+            row to 448px against a 375px viewport, which the gate's overflow
+            check caught on its first run after the change. The lockup steps
+            down on a phone rather than the nav scrolling sideways. */}
+        <style>{`
+          .pf-lockup { width: 240px; }
+          @media (max-width: 560px) { .pf-lockup { width: 168px; } }
+        `}</style>
         <style>{`
           .pf-menu { display: none; position: relative; margin-left: 8px; }
           .pf-menu > summary::-webkit-details-marker { display: none; }
@@ -214,30 +256,33 @@ export default function FoundersPage({
               <a href="#included" style={{ color: "var(--pf-cream)", textDecoration: "underline", textUnderlineOffset: 4 }}>See what&rsquo;s included &rarr;</a>
             </div>
           </div>
-          {/* THE RIGHT COLUMN (ruling 190 §3). The rendering puts a card here and
-              the brief specifies a 7/5 split; ruling 176 CUT the counter and the
-              progress bar that card held, and the product triptych was cut for
-              want of real screenshots. Rather than leave half the hero empty or
-              invent activity, the card carries the OFFER'S OWN TERMS — every
-              figure ruling 175 ratified, and the close date the rendering's card
-              already showed. No count. No bar. Nothing manufactured. */}
+          {/* THE RIGHT COLUMN — F2, RULED OPTION (b).
+              This card previously restated the whole offer: $99, $149, $500 and
+              the 60-day guarantee, within one scroll of the identical card in
+              the offer section. That was an artifact of ruling 176 cutting the
+              seat counter — the rendering put a COUNTER here and the PRICE card
+              below, and removing the counter left a second price card standing
+              in its place.
+              It now carries the offer's SHAPE and not its terms. It names no
+              ratified figure at all, so under ruling 218 every figure appears
+              exactly once on the page, in the offer section where the terms
+              belong. The close date stays, because a deadline with no date is
+              pressure without information.
+              Why a summary rather than nothing (option (a)): the first traffic
+              here is a printed QR code handed to a practitioner at a training.
+              They arrive with no context, and a bare CTA asks for a decision
+              before the offer has been stated. */}
           <aside className="pf-card" style={{ padding: 28, alignSelf: "start", color: "var(--pf-text)" }}>
             <p className="pf-eyebrow" style={{ margin: 0, color: "var(--pf-slate)" }}>Founding Practice</p>
-            <p style={{ margin: "16px 0 0", display: "flex", alignItems: "baseline", gap: 8 }}>
-              <span className="pf-display" style={{ fontSize: "2.6rem" }}>{PRICING.foundingFirstYear}</span>
-              <span style={{ color: "var(--pf-slate)" }}>/month</span>
+            <p className="pf-display" style={{ margin: "14px 0 0", fontSize: "1.55rem", lineHeight: 1.25, color: "var(--pf-indigo)" }}>
+              Practice-level access at the Solo price, locked for twelve months.
             </p>
-            <p className="pf-fine" style={{ margin: "2px 0 0" }}>for your first 12 months</p>
-            <hr style={{ border: 0, borderTop: "1px solid rgba(46,39,73,.14)", margin: "18px 0" }} />
-            <p style={{ margin: 0 }}>Then <strong>{PRICING.foundingAfter}/month</strong> locked</p>
-            <p className="pf-fine" style={{ margin: "2px 0 0" }}>while continuously active</p>
-            <ul style={{ margin: "16px 0 0", paddingLeft: 18, lineHeight: 1.85 }}>
-              <li>{PRICING.onboardingIncluded} guided onboarding included</li>
-              <li>{PRICING.guaranteeDays}-day money-back guarantee</li>
-            </ul>
-            <p className="pf-fine" style={{ margin: "18px 0 0", borderTop: "1px solid rgba(46,39,73,.14)", paddingTop: 14 }}>
+            <p style={{ margin: "14px 0 0", color: "var(--pf-slate)", lineHeight: 1.7 }}>
               {SEATS_STATEMENT}. Enrollment closes {PRICING.closesText}.
             </p>
+            <a href="#offer" style={{ display: "inline-block", marginTop: 18, color: "var(--pf-indigo)", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 4 }}>
+              See the full terms &darr;
+            </a>
           </aside>
         </div>
         <style>{`
@@ -262,8 +307,16 @@ export default function FoundersPage({
       </section>
 
       {/* ---------- 4. FOUNDING OFFER + PRICING CARD ---------- */}
-      <section className="pf-section pf-dark">
-        <div className="pf-wrap" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,420px)", gap: 56, alignItems: "start" }}>
+      <section id="offer" className="pf-section pf-dark">
+        {/* THE id IS LOAD-BEARING. The media query below was written when this
+            section was built and targets #pf-offer-grid — but the id was never
+            put on the element, so it matched nothing and the grid stayed two
+            columns at every width. The 420px track cannot shrink below its
+            floor, so the copy track collapsed to ZERO and its text rendered a
+            few characters per line. That is what Jacob photographed.
+            Same class of defect as the constellation whose path data was in
+            percentages: CSS that is present, plausible, and silently inert. */}
+        <div id="pf-offer-grid" className="pf-wrap" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,420px)", gap: 56, alignItems: "start" }}>
           <div>
             <p className="pf-eyebrow" style={{ margin: 0 }}>A founding rate for the first twenty</p>
             <h2 className="pf-h2" style={{ marginTop: 16 }}>Practice-level access at the Solo price.</h2>
@@ -305,7 +358,9 @@ export default function FoundersPage({
             </p>
           </div>
         </div>
-        <style>{`@media (max-width:900px){ #pf-offer-grid{grid-template-columns:1fr !important;} }`}</style>
+        {/* !important is required: it must beat the inline grid-template-columns
+            above, which a plain class rule would lose to. */}
+        <style>{`@media (max-width:900px){ #pf-offer-grid{grid-template-columns:minmax(0,1fr) !important; gap:36px !important;} }`}</style>
       </section>
 
       {/* ---------- 5. EVERYTHING IN PRACTICE ---------- */}
@@ -442,7 +497,9 @@ export default function FoundersPage({
           <div style={{ marginTop: 26 }}>
             {FAQ.map((f) => (
               <details key={f.q} style={{ borderBottom: "1px solid rgba(46,39,73,.12)", padding: "18px 0" }}>
-                <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--pf-indigo)", fontSize: "1.05rem", minHeight: 24, listStyle: "revert" }}>
+                {/* Brief 19: FAQ tap targets at least 44px. minHeight was 24 and
+                    measured 25px rendered — under half the required target. */}
+                <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--pf-indigo)", fontSize: "1.05rem", minHeight: 44, display: "flex", alignItems: "center", listStyle: "revert" }}>
                   {f.q}
                 </summary>
                 <p style={{ marginTop: 12, lineHeight: 1.75, color: "var(--pf-slate)" }}>{f.a}</p>
@@ -477,7 +534,8 @@ export default function FoundersPage({
         <div className="pf-wrap" style={{ display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", justifyContent: "space-between", fontSize: ".88rem", color: "var(--pf-slate)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/lockup-primary.svg" alt="Psychefolio" style={{ width: 130, height: "auto", display: "block" }} />
+            {/* F1 — the light-footer lockup gets the same treatment. */}
+            <img src="/brand/lockup-primary.svg" alt="Psychefolio" style={{ width: 210, height: "auto", display: "block" }} />
             <span>&copy; {new Date().getFullYear()} Psychefolio</span>
           </div>
           <span style={{ maxWidth: "58ch" }}>

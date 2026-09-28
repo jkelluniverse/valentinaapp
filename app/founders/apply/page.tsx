@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { submitApplication } from "./actions";
+import { requirePlatformHost } from "@/lib/founders-guard";
 
 // C35-FOUNDERS-EVENT §12 — the application.
 //
@@ -35,6 +36,7 @@ export default function ApplyPage({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
+  requirePlatformHost(); // ruling 203 — refuse BEFORE any JSX is built
   const sp = (k: string) => {
     const v = searchParams[k];
     return (Array.isArray(v) ? v[0] : v) ?? "";

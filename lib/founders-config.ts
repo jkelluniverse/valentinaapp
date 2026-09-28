@@ -60,6 +60,11 @@ export const SEATS_STATEMENT = `Limited to ${PRICING.seats} founding practices`;
  *   - custom domain: kept. It works, but has no practitioner-facing flow, so it
  *     depends on guided onboarding doing it for them.
  */
+// F3 — the four columns carried 6/5/4/3 and read as a list that ran out
+// rather than a grid. Now 5/5/4/4. ONE item MOVED, nothing added and nothing
+// removed (ruling 188): "One practitioner seat" sits with the other account
+// entitlements — the guided onboarding call, priority support — rather than
+// among the things you DO with the practice.
 export const INCLUDED = [
   {
     label: "Run the practice",
@@ -69,7 +74,6 @@ export const INCLUDED = [
       "Square payments",
       "Agreements and electronic signatures",
       "Dispute documentation packet",
-      "One practitioner seat",
     ],
   },
   {
@@ -95,6 +99,7 @@ export const INCLUDED = [
     label: "Make it yours",
     items: [
       "Custom domain and full practice branding",
+      "One practitioner seat",
       "Priority support",
       "One guided onboarding call",
     ],

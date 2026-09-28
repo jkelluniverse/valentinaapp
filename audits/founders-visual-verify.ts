@@ -32,6 +32,21 @@ import { chromium } from "playwright";
 //
 // RULING 208 — THIS GATE NAMES ITS SCOPE IN ITS OWN REPORT. A green must say
 // what it covered. See the SCOPE line printed at the top of every run.
+//
+// RULING 214 — THE GENERAL FORM, WHICH OUTLIVES THIS PAGE:
+//
+//     A BASELINE PROVES STABILITY, NEVER CORRECTNESS.
+//
+// A baseline captures whatever state exists when it is captured. One taken
+// before anyone looked is a record that nothing changed — not evidence that
+// anything was ever right. This gate's mobile screenshot was exactly that: a
+// faithful photograph of a layout nobody had checked, which then guarded that
+// layout against improvement rather than against regression.
+//
+// So a baseline is only as good as the review that preceded its capture, and
+// the baselines beside this file were captured AFTER the measurements above
+// went green and after a human read the page. Recapture with --capture only
+// when the change is intended and reviewed; never to make a red gate quiet.
 //   B. COMPUTED CONTRAST — every text node meets WCAG 2.2 AA. A hero nobody can
 //      read turns this red.
 //   C. PALETTE — rendered colours come from the brief's token set, and the
@@ -242,8 +257,14 @@ async function main() {
         }
         return false;
       };
+      // Tags whose text is in the DOM but never on the page. Head-only
+      // elements are absent deliberately: every walk below starts at
+      // document.body, so they are unreachable and naming them would be
+      // dead weight — and the gate-hygiene scanner reads that one tag name
+      // as a moving git ref (ruling 37), correctly for its own purposes.
+      var SKIP = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEMPLATE: 1 };
       var vw = window.innerWidth;
-      var out = [], overflowers = [], all = document.querySelectorAll("*");
+      var out = [], overflowers = [], all = document.body.querySelectorAll("*");
       for (var i = 0; i < all.length; i++) {
         var el = all[i], cs = getComputedStyle(el);
         if (cs.opacity === "0" || !isRendered(el) || inClosedDetails(el)) continue;
@@ -299,7 +320,6 @@ async function main() {
       // a sibling; the text then overflows it and renders a few characters per
       // line, which is what "the eyebrow runs vertically" looks like when it is
       // measured instead of eyeballed. Never correct, at any viewport.
-      var SKIP = { HEAD: 1, SCRIPT: 1, STYLE: 1, TITLE: 1, META: 1, LINK: 1, NOSCRIPT: 1, TEMPLATE: 1 };
       var collapsed = [];
       var textEls = document.body.querySelectorAll("*");
       for (var ti = 0; ti < textEls.length; ti++) {
@@ -318,10 +338,21 @@ async function main() {
 
       // THE PRICE CARD: the nearest ancestor of a "$99" text node that paints
       // its own background — i.e. the card, not the span.
+      // SKIP UNRENDERED TEXT. Next serialises the RSC flight payload into
+      // <script> tags inside <body>, and that payload contains every figure on
+      // the page. A tree walker that does not exclude it finds "$99" in a
+      // script whose rect is 0x0 at top 0, and then every ordering comparison
+      // against it is nonsense. Third time this gate has been fooled by content
+      // that exists in the DOM but is not on the page.
+      var paints = function (n) {
+        var e = n.parentElement;
+        return e && !SKIP[e.tagName] && isRendered(e);
+      };
       var priceCard = null;
       var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null);
       var tn;
       while ((tn = walker.nextNode())) {
+        if (!paints(tn)) continue;
         if ((tn.textContent || "").indexOf("$99") !== -1) {
           var n2 = tn.parentElement;
           while (n2) {
@@ -359,7 +390,7 @@ async function main() {
         var firstCta = links[0].getBoundingClientRect();
         var cardEl = null;
         var w2 = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null), t2;
-        while ((t2 = w2.nextNode())) { if ((t2.textContent || "").indexOf("$99") !== -1) { cardEl = t2.parentElement; break; } }
+        while ((t2 = w2.nextNode())) { if (paints(t2) && (t2.textContent || "").indexOf("$99") !== -1) { cardEl = t2.parentElement; break; } }
         if (cardEl) ctaBeforeCard = firstCta.top <= cardEl.getBoundingClientRect().top;
       }
 
@@ -379,6 +410,37 @@ async function main() {
         logo: img ? { src: img.getAttribute("src"), natW: img.naturalWidth, natH: img.naturalHeight, w: Math.round(img.getBoundingClientRect().width), h: Math.round(img.getBoundingClientRect().height) } : null
       };
     })()`;
+
+    // ================= RULING 203 — THE TENANT HOST SEES NOTHING =================
+    // A 404 STATUS IS NOT THE ASSERTION. This page was guarded by a notFound()
+    // in its layout, which returned 404 correctly while the response still
+    // carried the entire founding page in its RSC flight payload — every price
+    // figure, the apply CTA, and the tab title. The guard changed the STATUS
+    // without stopping the TRANSMISSION (ruling 169's shape).
+    //
+    // So the assertion is about CONTENT, and the status is only a precondition.
+    log(`\n# ruling 203 — a tenant host's /founders`);
+    {
+      const tenantRes = await fetch(`${BASE}/founders`, { headers: { "x-forwarded-host": "a-practice.test" } });
+      const tenantBody = await tenantRes.text();
+      const n = (needle: string) => tenantBody.split(needle).length - 1;
+      check("a tenant host is refused with 404", tenantRes.status === 404, `HTTP ${tenantRes.status}`);
+      const leaks: string[] = [];
+      for (const needle of ["$99", "$149", "$500", "founders/apply", "60-day", "Founding Practice", "Solo price"]) {
+        const c = n(needle);
+        if (c > 0) leaks.push(`${needle} x${c}`);
+      }
+      check("…and its response carries ZERO founding-page content, not merely a 404 status",
+        leaks.length === 0, leaks.length ? leaks.join(" · ") : `${tenantBody.length} bytes, none of the 7 markers present`);
+
+      // POSITIVE CONTROL (ruling 110): the same markers must be PRESENT on the
+      // platform host, or "zero found" would prove only that the probe is blind.
+      const platRes = await fetch(`${BASE}/founders`, { headers: { "x-forwarded-host": HOST } });
+      const platBody = await platRes.text();
+      const present = ["$99", "founders/apply", "Founding Practice"].filter((x) => platBody.includes(x));
+      check("positive control: the platform host DOES serve that content",
+        platRes.status === 200 && present.length === 3, `HTTP ${platRes.status}, ${present.length}/3 markers, ${platBody.length} bytes`);
+    }
 
     mkdirSync(SHOTS, { recursive: true });
 
@@ -439,13 +501,35 @@ async function main() {
         Boolean(d.logo) && d.logo!.natW > 0 && Boolean(d.logo?.src?.includes("lockup-primary")), `src=${d.logo?.src}`);
       // F1 — an explicit rendered-height floor, so the wordmark cannot silently
       // shrink back to an illegible smudge. Counts, ruling 128.
-      check(`[${vp.name}] the lockup renders large enough to READ (>=${vp.kind === "mobile" ? 40 : 56}px tall)`,
-        (d.logo?.h ?? 0) >= (vp.kind === "mobile" ? 40 : 56), `${d.logo?.w}x${d.logo?.h}`);
+      // F1 — measured floors, set from the FIXED page rather than guessed:
+      // the nav lockup renders 240x101 at desktop and tablet. 88px leaves room
+      // for a deliberate tweak but catches a collapse back toward the 63px
+      // smudge Jacob could not read. Mobile is lower because the nav compresses.
+      const floor = vp.kind === "mobile" ? 56 : 88;
+      check(`[${vp.name}] the lockup renders large enough to READ (>=${floor}px tall)`,
+        (d.logo?.h ?? 0) >= floor, `${d.logo?.w}x${d.logo?.h}`);
 
-      const dupes = Object.entries(d.priceFigures).filter(([, n]) => n > 1);
-      check(`[${vp.name}] no price figure appears more than once`,
+      // RULING 218 (amending 202) — each ratified figure appears AT MOST ONCE
+      // per page. The earlier check only asked that no STRAY figure appeared,
+      // which a page can satisfy while printing the same $99 four times.
+      //
+      // TWO DELIBERATE EXCEPTIONS, each named with its second location and its
+      // reason. This is not "raise the count until it passes": the allowance is
+      // set to the exact number of legitimate, distinct locations, so the
+      // duplicate hero CARD that started all this still turns it red ($99 was
+      // x4 before F2, and x3 with the price restated in the getting-started
+      // list). A third occurrence of either figure fails.
+      const ALLOWED: Record<string, { max: number; why: string }> = {
+        "$99": { max: 2, why: "the offer card, and the FAQ answer to 'What happens after the first year?' which cannot answer it without naming the rate it changes FROM" },
+        "$149": { max: 2, why: "the offer card, and that same FAQ answer, which names the rate it changes TO" },
+      };
+      const dupes = Object.entries(d.priceFigures).filter(([f, n]) => n > (ALLOWED[f]?.max ?? 1));
+      const allowedNote = Object.entries(ALLOWED).map(([f, a]) => `${f} may appear ${a.max}x — ${a.why}`).join(" · ");
+      check(`[${vp.name}] every ratified figure appears at most ONCE, or as many times as is justified here`,
         dupes.length === 0,
-        dupes.length ? dupes.map(([f, n]) => `${f}x${n}`).join(" · ") : Object.entries(d.priceFigures).map(([f, n]) => `${f}x${n}`).join(" · ") || "none");
+        dupes.length
+          ? dupes.map(([f, n]) => `${f} x${n} (allowed ${ALLOWED[f]?.max ?? 1})`).join(" · ")
+          : `${Object.entries(d.priceFigures).map(([f, n]) => `${f}x${n}`).join(" · ")} — exceptions: ${allowedNote}`);
 
       if (vp.kind === "mobile") {
         check(`[${vp.name}] single-column flow: no content container is still multi-column`,

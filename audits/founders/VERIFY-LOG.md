@@ -1,7 +1,7 @@
-# C35-FOUNDERS-EVENT verify — 2026-09-28T14:58:03.273Z
+# C35-FOUNDERS-EVENT verify — 2026-09-28T17:53:24.182Z
 - ✓ the founding page renders on the PLATFORM host — status 200
 - ✓ a TENANT host still 404s — no founding funnel on a practice's domain — status 404
-- ✓ V3 — every dollar figure on the page is one of ruling 175's (4 distinct found) — all of: $99 $149 $500 $199
+- ✓ V3 — every dollar figure on the page is one of ruling 175's (4 distinct found) — all of: $199 $99 $149 $500
 - ✓ V4 — ruling 176: no seat counter or 'remaining' language anywhere — none
 - ✓ …and the fixed statement of terms IS present
 - ✓ ruling 188 — Practice Manager agent / morning brief / admin-VA seat are ABSENT — none

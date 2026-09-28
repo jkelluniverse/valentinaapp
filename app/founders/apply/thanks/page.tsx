@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requirePlatformHost } from "@/lib/founders-guard";
 
 // C35-FOUNDERS-EVENT §12 — the confirmation. It promises a conversation, NOT a
 // portal (ruling 189): nothing here implies a practice has been created, and
@@ -7,6 +8,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 export default function ApplyThanksPage() {
+  requirePlatformHost(); // ruling 203 — refuse BEFORE any JSX is built
   return (
     <main style={{ background: "var(--pf-indigo)", color: "var(--pf-cream)", minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
       <header>

@@ -59,6 +59,39 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- /founders F1-F3 + mobile + ruling 203 (2026-09-28; rulings 202-208, 214, 218).
+  THE OFFER SECTION'S COLLAPSE HAD A CAUSE WORTH RECORDING: the breakpoint
+  existed. `<style>@media(max-width:900px){#pf-offer-grid{...!important}}` was
+  written when the section was built, and the id was never put on the element,
+  so it matched nothing and the 420px track squeezed the copy column to ZERO at
+  every width. Same class as the constellation whose path data was in
+  percentages — CSS present, plausible and silently inert. One attribute fixed
+  it. Every OTHER section (hero 7/5, benefits, features, partnership) already
+  collapsed correctly, which is why the audit list was shorter than expected.
+  F1 lockup 150->240px (168 on phones, after my own doubling overflowed a 375px
+  viewport and the gate's new overflow check caught it). F2 option (b): the hero
+  card carries the offer's SHAPE and names no ratified figure, so the figures
+  live once in the offer section — chosen over (a) because the first traffic is
+  a printed QR and a bare CTA asks for a decision before stating the offer.
+  F3 columns 6/5/4/3 -> 5/5/4/4, ONE item MOVED, nothing added (ruling 188).
+  Mobile: padding 16->22px, FAQ tap targets 25->44px.
+  RULING 203: the guard moved from the layout to each page AND to
+  generateMetadata, because static `metadata` is resolved independently of
+  notFound() — moving it off the layout killed the rendered <title> but not the
+  transmission. A tenant host now returns 404 with 6372 bytes and ZERO of the
+  seven founding markers, with a positive control proving the platform host
+  still serves them. Was 69945 bytes carrying the whole page.
+  Gate 11 -> 62 checks across four viewports, mobile first. Sweep 47/47.
+  PATTERN WORTH KEEPING (ruling 218's shape): the one-time Acuity ingress URL in
+  C37 is returned through in-memory action state rather than searchParams, so a
+  secret shown once never enters browser history or request logs.
+- TRACKED COMMITMENTS — claims on /founders that are ahead of delivery, kept
+  deliberately (Jacob's call, guided onboarding covers the gap). ONE LIST, not
+  three footnotes:
+    · "Square payments" — Square OAuth callback is specced (P6), not built, so a
+      founding member cannot connect Square today. 60-hour allowance.
+    · "Custom domain and full practice branding" — works, but has no
+      practitioner-facing flow. 60-hour allowance.
 - C37-EXTERNAL-SCHEDULING — Calendly/Acuity booking sync, OFF by default (2026-09-28;
   rulings 192-198). Additive migration 54 (4 columns + a unique (provider, externalId)
   index on Appointment, Lead.intakeAnswers, the ExternalSchedulingConnection table);

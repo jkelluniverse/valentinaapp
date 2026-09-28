@@ -1,8 +1,7 @@
-import type { Metadata } from "next";
 import { Lora, Poppins } from "next/font/google";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { isPlatformHost, PLATFORM_NAME } from "@/lib/platform-host";
+import { isPlatformHost } from "@/lib/platform-host";
 
 // C35-FOUNDERS-EVENT — the founding page's own shell.
 //
@@ -24,14 +23,13 @@ import { isPlatformHost, PLATFORM_NAME } from "@/lib/platform-host";
 const lora = Lora({ subsets: ["latin"], weight: ["400", "600"], display: "swap", variable: "--pf-font-display" });
 const poppins = Poppins({ subsets: ["latin"], weight: ["400", "500", "600"], display: "swap", variable: "--pf-font-body" });
 
-export const metadata: Metadata = {
-  title: `Founding Practice · ${PLATFORM_NAME}`,
-  description:
-    "Join Psychefolio's first practitioner cohort. Practice-level access at the Solo price, guided onboarding, and a voice in what gets built next.",
-  robots: { index: true, follow: true },
-};
 
 export default function FoundersLayout({ children }: { children: React.ReactNode }) {
+  // RULING 203 — this guard is now the SECOND line, not the only one. It kept
+  // returning 404 while the page it wrapped rendered anyway and was serialised
+  // into the flight payload. The real refusal is requirePlatformHost() as the
+  // first statement of each page; this stays so the layout's own chrome is not
+  // rendered for a host that should not see it.
   const h = headers();
   if (!isPlatformHost(h.get("x-forwarded-host") || h.get("host"))) notFound();
 
@@ -114,7 +112,8 @@ export default function FoundersLayout({ children }: { children: React.ReactNode
         .pf-lede { font-size: 1.125rem; line-height: 1.7; }
         @media (max-width: 760px) {
           .pf-section { padding: 56px 0; }
-          .pf-wrap { padding: 0 16px; }
+          /* Brief 19 mobile: 20-24px horizontal padding. This was 16px. */
+          .pf-wrap { padding: 0 22px; }
         }
       `}</style>
       {children}
