@@ -1,12 +1,12 @@
 # C24.1-TENANT-SCOPE — acceptance log
 
-Run: 2026-09-28T14:00:59.953Z · `npx tsx audits/tenant-scope-verify.ts`
+Run: 2026-09-28T14:54:17.276Z · `npx tsx audits/tenant-scope-verify.ts`
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Requests are simulated in-process via Next's request async storage, so every
 request-path check runs through the real scoped client against the real database.
 
-# C24.1-TENANT-SCOPE verify — 2026-09-28T14:00:50.193Z
+# C24.1-TENANT-SCOPE verify — 2026-09-28T14:54:10.101Z
 - ✓ simulated request scope is real (next/headers resolves inside it)
 
 ## Verify 1 — the five assumptions
@@ -70,6 +70,6 @@ request-path check runs through the real scoped client against the real database
 - ✓ every explicit tenant VALUE in those files is unchanged across C24.1's sweep (939a663 → a6c8bd8, pinned per ruling 34) — no file lost a stamp, and none gained one for any tenant but the default — 15 files compared value-by-value across the pinned sweep · 0 changed the SHAPE of a stamping line (none), stamping the same tenant
 ~ probe tenant, courses, chapters, lessons, log entries and users removed
 - ✓ SELF-CLEANING: this harness leaves zero null-tenant rows behind — {}
-- ✓ the audit still covers every scoped table (79 tables, nothing narrowed) — 79 tables
+- ✓ the audit still covers every scoped table (80 tables, nothing narrowed) — 80 tables
 
 TENANT-SCOPE VERIFY PASS — 48/48

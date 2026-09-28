@@ -184,7 +184,7 @@ async function main() {
   }
   check(
     `A1 — the ${SCOPED_MODELS.length}-model sweep: no scoped model lacks an \`id\` column, and none is keyed by anything else`,
-    SCOPED_MODELS.length === 79 && noIdColumn.length === 0 && pkNotId.length === 0,
+    SCOPED_MODELS.length === 80 && noIdColumn.length === 0 && pkNotId.length === 0,
     `${SCOPED_MODELS.length} models swept · no-id: ${noIdColumn.join(", ") || "none"} · pk≠id: ${pkNotId.join(", ") || "none"}`,
   );
   // The same sweep against HEAD's schema — which is what the assumption was
@@ -907,7 +907,7 @@ async function main() {
   check("SELF-CLEANING: no probe settings left in the table", leftover === 0, `${leftover} rows`);
   check(
     `the audit still covers every scoped table (${SCOPED_MODELS.length} tables, nothing narrowed)`,
-    SCOPED_MODELS.length === 79,
+    SCOPED_MODELS.length === 80,
     `${SCOPED_MODELS.length} tables`,
   );
 

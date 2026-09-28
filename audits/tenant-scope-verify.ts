@@ -865,7 +865,7 @@ async function main() {
   );
   check(
     `the audit still covers every scoped table (${SCOPED_MODELS.length} tables, nothing narrowed)`,
-    SCOPED_MODELS.length === 79,
+    SCOPED_MODELS.length === 80,
     `${SCOPED_MODELS.length} tables`,
   );
 

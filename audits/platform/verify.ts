@@ -278,6 +278,7 @@ async function insertBFixtures() {
   await p.agreementEvent.create({ data: { ...T, agreementId: bAgr.id, kind: "created", actor: "system" } });
   await p.patternElection.create({ data: { ...T, clientId: bUser, participate: false, version: "P-1" } });
   await p.agreementFile.create({ data: { ...T, agreementId: bAgr.id, filename: "bfx.pdf", contentType: "application/pdf", size: 1, sha256: "bfx", key: "bfx/probe.pdf" } });
+  await p.externalSchedulingConnection.create({ data: { ...T, provider: "calendly", credentialEnc: "bfx", signingKeyEnc: "bfx", externalOwner: "https://api.calendly.com/users/BFX" } });
 
   return { bUser, pkg };
 }

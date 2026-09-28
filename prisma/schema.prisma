@@ -1515,9 +1515,19 @@ model Appointment {
   recordingConfirmed Boolean? // C19 §0 — per-session "Recording today?" (null = not asked)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+  // C37-EXTERNAL-SCHEDULING — a booking that originated in the practitioner's
+  // OWN scheduler (Calendly/Acuity). ADDITIVE and nullable: a booking made in
+  // Psychefolio leaves all four null and behaves exactly as before.
+  externalProvider  String? // "calendly" | "acuity"
+  externalId        String? // the provider's own event/appointment id
+  externalPayload   Json? // the raw body as delivered — what we were TOLD, kept verbatim
+  externalUpdatedAt DateTime?
 
   @@index([practitionerId, startAt])
   @@index([clientId, startAt])
+  // THE RECONCILIATION KEY. A reschedule updates the row it already has instead
+  // of creating a second one, and a duplicate delivery cannot fork the booking.
+  @@unique([externalProvider, externalId])
 }
 
 // C18 — a prospect from the public site. Becomes a client via the conversion
@@ -1534,6 +1544,16 @@ model Lead {
   appointment     Appointment? @relation("LeadAppointment", fields: [appointmentId], references: [id], onDelete: SetNull)
   convertedUserId String? // set when she invites them as a client
   source          String? // page/UTM, for later
+  // C37 / RULING 193 — whatever the invitee typed into the PROVIDER's own intake
+  // questions. STORED and VISIBLE TO THE PRACTITIONER, and NOT EVIDENCE.
+  //
+  // The boundary is structural, not a comment: lib/client-record.ts builds the
+  // AI's evidence from RecordItem BY clientId and from nothing else, so a Json
+  // column on Lead is unreachable by the citation path BY CONSTRUCTION. Material
+  // becomes citable only when the practitioner explicitly promotes it into a
+  // RecordItem — two deliberate acts, per ruling 193, and gated by
+  // audits/external-scheduling-verify.ts rather than trusted.
+  intakeAnswers   Json?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -1587,6 +1607,39 @@ model Payment {
   raw               Json // provider payload, archived
 
   @@index([tenantId, clientId])
+}
+
+// C37-EXTERNAL-SCHEDULING — one practitioner's connection to their own
+// scheduler. OFF BY DEFAULT (ruling 194): a practice with no row here sees
+// nothing change anywhere, which is consent preceding capability (law 3).
+model ExternalSchedulingConnection {
+  tenantId      String? // tenant scope column, like every scoped model
+  id            String    @id @default(cuid())
+  provider      String // "calendly" | "acuity"
+  status        String    @default("CONNECTED") // CONNECTED | NEEDS_ATTENTION | DISCONNECTED
+  // Calendly: the owning user/organization URI, which is how a payload is
+  // attributed to a tenant WITHOUT consulting the request host (ruling 195).
+  externalOwner String?
+  // Credentials at rest: AES-256-GCM under PAYMENT_TOKEN_ENC_KEY, the same
+  // discipline lib/payments/crypto.ts uses — and the same warning: once these
+  // exist the key must NEVER change, or every connection becomes unreadable.
+  credentialEnc String
+  signingKeyEnc String? // Calendly's per-subscription signing key
+  // RULING 196 — Acuity only. Its webhook body carries NO account id, so a
+  // single shared URL cannot attribute it. The path names THIS CONNECTION and
+  // SELECTS the key; it does not GRANT trust — the signature is still verified
+  // afterwards. Stored as a SHA-256 hash, never the raw token, matching the
+  // agreement-link precedent.
+  ingressTokenHash String? @unique
+  embedUrl      String? // what /book renders for this practice when embedding
+  lastEventAt   DateTime?
+  lastErrorAt   DateTime?
+  lastError     String?
+  eventCount30d Int       @default(0) // ruling 197 — a FACT the practitioner reads
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([tenantId, provider])
 }
 
 model WebhookEvent {

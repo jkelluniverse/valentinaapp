@@ -1,4 +1,4 @@
-# C35 VISUAL verify — 2026-09-28T14:05:00.484Z
+# C35 VISUAL verify — 2026-09-28T14:58:06.642Z
 
 ## 0 — did this gate measure the real page?
 - ✓ the page rendered (≥60 text-painting nodes; an error page has a handful) — 151 nodes

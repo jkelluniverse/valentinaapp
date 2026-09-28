@@ -59,6 +59,25 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C37-EXTERNAL-SCHEDULING — Calendly/Acuity booking sync, OFF by default (2026-09-28;
+  rulings 192-198). Additive migration 54 (4 columns + a unique (provider, externalId)
+  index on Appointment, Lead.intakeAnswers, the ExternalSchedulingConnection table);
+  provider adapters; TWO ingresses, deliberately not unified — Calendly keeps ONE shared
+  URL with payload attribution (ruling 195), Acuity gets a per-connection URL PATH
+  (ruling 196) whose token SELECTS the key and does NOT grant trust, stored as a SHA-256
+  hash. Settings -> Online booking states Calendly's paid-plan requirement plainly (A1)
+  rather than letting it be discovered as silence. ext-scheduling 32/32 proves both
+  directions of ruling 196 (right path+right sig accepted · right path+WRONG sig 403 ·
+  no sig 403 · unknown path 404), attribution to the tenant the PAYLOAD names with a
+  positive control routing the SAME body to a DIFFERENT tenant, ruling 193 (contact yes,
+  ClientProfile ZERO), and ruling 198's boundary with its positive control (a synced
+  booking's answers are absent from the citation path; the SAME sentence IS citable once
+  promoted, so the absence is a boundary and not a blind instrument). Sweep 47/47.
+  TWO DEFECTS FOUND AND FIXED IN MY OWN PHASE-2 CODE, both silent-corruption class:
+  the Acuity idempotency key contained the current second (every retry a new key, the
+  lock inert), and a delivery that applied nothing still marked its claim processed
+  (Acuity carries no times, so every booking would have been swallowed forever on first
+  arrival). NOT DEPLOYED — awaiting authorization; push = deploy.
 - C31-TENANT-CHROME-REMAINDER — the demo's happy path no longer ends on another
   practitioner's brand (2026-09-15, dispatched in the C30 in-flight review; ruling 54's
   chrome half): root-layout tab identity, the public layout's metadata + title
@@ -421,7 +440,8 @@ PM starts with the true ledger, not an empty one.
    fail-closed-tenancy-verify 18/18 (C26; needs `npm run build`; drives the built app on :3152 with
    a failure-injection DB role; transport sink on :3153)
 ## Standing gate set, with numbers (C24-NESTED-STAMP §4 — the stamp audit is now a REAL gate:
-## it exits 0 today and exits non-zero on any null-tenant row in any of the 79 scoped tables):
+## it exits 0 today and exits non-zero on any null-tenant row in any of the 80 scoped tables
+## (79 → 80 at C37: externalSchedulingConnection joined SCOPED_MODELS)):
    tenant-stamp audit **exit 0 / no number — pass is "zero rows"** · nested-stamp-verify 43/43 ·
    platform/verify ALL CHECKS PASS · platform/phase2 16/16 · platform/phase3 11/11 ·
    platform/phase5 17/17 · c20 28/28 · v31 32/32 · c21 58/58 · c12x 23 passed ·

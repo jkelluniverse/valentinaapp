@@ -27,6 +27,17 @@ import { chromium } from "playwright";
 //      two-panel presentation board (which brand-web's own spec documents as
 //      "both in one file" — using it whole is the error).
 //
+// LIMITATION, RECORDED PER RULING 109 — THIS GATE MEASURES A LOCAL BUILD, NOT
+// PRODUCTION. Chromium's bundled shell does not trust the agent proxy's CA, and
+// disabling TLS verification to screenshot the live site is not an option, so
+// /founders' appearance ON PRODUCTION is verified by MARKUP COMPARISON only.
+// Ruling 191 exists precisely because markup is not appearance, so the honest
+// statement is: this gate proves the page renders correctly FROM THIS BUILD, and
+// a human eye on the live URL is still the only proof of the deployed pixels.
+// A second limit found the hard way (see the deploy that carried this gate): a
+// gate cannot tell you the DEPLOY that shipped it failed. Deploy status is its
+// own check — ruling 48.
+//
 // FALSE POSITIVES ARE A FAILURE MODE TOO. B measures only elements that paint
 // their OWN text — an <li> wrapping an <a> inherits a colour it never renders,
 // and counting it would cry wolf. A gate that cries wolf gets ignored, and then

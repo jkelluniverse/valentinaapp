@@ -262,6 +262,12 @@ export default async function PractitionerSettingsPage({
           open={t.open}
         />
         <LinkRow
+          href="/practitioner/settings/scheduling"
+          label={t.practice.schedulingLabel}
+          hint={t.practice.schedulingHint}
+          open={t.open}
+        />
+        <LinkRow
           href="/practitioner/settings/billing"
           label={t.practice.planLabel}
           hint={t.practice.planHint}

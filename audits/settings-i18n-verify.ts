@@ -148,6 +148,8 @@ async function main() {
     "practiceContact.": "C27 §Phase 2 (2026-09-14) — the practice-contact section is new; both locales ship together and the render checks below cover it",
     "saved.practiceContact": "C27 §Phase 2 — its save confirmation",
     "errors.practiceContact": "C27 §Phase 2 — its validation error",
+    "practice.schedulingLabel": "C37-EXTERNAL-SCHEDULING (2026-09-28) — the Online booking row is new; both locales ship together",
+    "practice.schedulingHint": "C37-EXTERNAL-SCHEDULING (2026-09-28) — its hint; both locales ship together",
   };
   const isNew = (path: string) => Object.keys(NEW_SINCE_PASS).some((p) => path === p || path.startsWith(p));
   const missing: string[] = [];

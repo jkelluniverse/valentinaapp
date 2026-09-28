@@ -61,6 +61,8 @@
       "availabilityHint": "Horarios, duración de la sesión, margen entre sesiones y enlaces de video.",
       "paymentsLabel": "Cómo recibes pagos",
       "paymentsHint": "Tu conexión de pagos — el dinero llega directamente a ti.",
+      "schedulingLabel": "Reservas en línea",
+      "schedulingHint": "Conecta Calendly o Acuity — las reservas aparecen aquí automáticamente.",
       "planLabel": "Plan y facturación",
       "planHint": "Tu plan de la plataforma — tarjeta, facturas y recibos.",
       "toolsLabel": "Herramientas de sesión e investigación",
