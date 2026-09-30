@@ -5,8 +5,8 @@
 **Does not cover:** item 2 (practitioner-offered alternatives — waits on Jacob's
 Zoom answer, ruling 221), item 4 (calendar read-back — C41, ruling 222), Zoom,
 any change to C37's webhook behaviour.
-**Governing rulings:** 219–223. Ruling 223 (Jacob): requests BLOCK the slot,
-with a 48-hour expiry.
+**Governing rulings:** 219–224. Ruling 223 (Jacob): requests BLOCK the slot,
+with a 48-hour expiry. Ruling 224 (Jacob): the request-flow copy, §1.12.
 
 Every claim below is against code read on 2026-09-29, quoted where it governs.
 
@@ -255,6 +255,68 @@ migration 55 contains the three `ADD VALUE` statements and NOTHING that
 writes them — no backfill, no default change. All three precedents are
 shaped exactly that way, which is why they worked.
 
+### 1.11 THE SECOND BOOKING PATH — a scope correction to this spec
+
+Ruling 224 names the DISCOVERY form: Jacob's screenshot is `/book` — name,
+email, phone, "what brings you?", "Confirm my call". §1.2–1.7 above specced
+the CLIENT SESSION path (`/space/schedule` → `bookSlot` → `createAppointment`).
+Those are two different creates, and item 1 must cover both:
+
+| path | entry | create | charge? | notify | lead |
+|---|---|---|---|---|---|
+| client session | `app/space/schedule/actions.ts:21 bookSlot` | `lib/appointments.ts:84` | yes | `notify("booked")` | — |
+| public discovery | `app/(public)/book/actions.ts:27 submitBooking` | `lib/discovery.ts:61 bookDiscoveryCall` | **no** (free) | `notifyDiscovery("booked")` | created, `status: "SCHEDULED"` |
+
+**Discovery request.** `bookDiscoveryCall` branches on the same
+`bookingRequiresApproval` setting. With it on: appointment `REQUESTED`, Lead
+created with a new **`LeadStatus.REQUESTED`** (same additive `ADD VALUE`
+rule as §1.10 — the leads page at `app/practitioner/leads/page.tsx:16`
+labels by status and would otherwise show "Scheduled" for a call she has
+not agreed to). No `notifyDiscovery("booked")`; the practitioner-facing
+request notification instead. The confirmation page copy changes (§1.12).
+
+**Discovery approval** = `confirmDiscovery(appt)`: Lead → `SCHEDULED`,
+appointment → `SCHEDULED`, video URL attached, `notifyDiscovery("booked")`
+— the exact tail of `bookDiscoveryCall` from line 61 onward, extracted the
+same way `confirmAppointment` is in §1.3. Re-check via `hasConflict` with
+the request ignored, identically. Decline/expire: Lead → `CLOSED` with the
+appointment `DECLINED`/`EXPIRED`; `notifyDiscovery` gains the same two kinds.
+
+**The gate's §3 legs 1–8 run against BOTH paths.** A double-hold through
+`/book` is the more likely one — it is the public door.
+
+### 1.12 Ruling 224 — the request-flow copy
+
+When `bookingRequiresApproval` is ON, `/book`'s submit reads
+**"Request my call"** (session kind: "Request this session" on
+`/space/schedule/confirm`), and beneath it:
+
+> Your request goes to {practitioner} to confirm. You'll get an email when
+> it's confirmed, or if a different time is offered.
+
+When OFF: **"Confirm my call"** and no note — byte-identical to today.
+
+**Two facts about the surface, found rather than assumed.** (i) "Confirm my
+call" is a hardcoded string at `app/(public)/book/BookingFlow.tsx:177`, not a
+catalogue key. (ii) `/book` has **no Spanish today** — no locale handling in
+`BookingFlow.tsx` or `page.tsx`, and `grep Confirmar` finds nothing. "Both
+locales" therefore means giving `/book` a copy catalogue it does not have
+(`lib/book-copy.ts`, the `signup-copy`/`referral-copy` shape, `?lang=`
+override per ruling 14). That is a small, separable piece; it lands in C40
+because ruling 224 requires it, and it is named here so it is not mistaken
+for scope creep at build.
+
+**The gate asserts both states**, on `/book` and on `/space/schedule/confirm`,
+in both locales: setting OFF → "Confirm my call" present, note absent;
+setting ON → "Request my call" present, note present, "Confirm my call"
+ABSENT. The wrong label in either direction is a false promise to a stranger.
+
+**Do not hardcode Valentina's preference.** She wants every question on her
+form required. Until C42-PRACTITIONER-FORMS ships that is not expressible
+per practice, and setting `required` on phone/note in the shared
+`BookingFlow.tsx` would impose it on every practice. C40 leaves the form's
+optionality exactly as it is; C42 makes it hers.
+
 ---
 
 ## 2. Item 3 — notification preferences
@@ -368,7 +430,12 @@ Each with its positive control (ruling 110), able-to-fail demonstrated at build.
    reminder step sends to the client on both channels and to the practitioner
    not at all. With `notify.reminder.1d.practitioner = "push"`, she gets one push.
 10. **The client sees their request.** `/space/schedule` renders a REQUESTED row.
-11. **Every AppointmentStatus is reachable and the enum length is 7** (ruling 38).
+11. **Every AppointmentStatus is reachable and the enum length is 7**; `LeadStatus` is 6 (ruling 38).
+12. **Ruling 224, both states, both surfaces, both locales.** Setting off →
+    "Confirm my call", no note. Setting on → "Request my call" + note,
+    "Confirm my call" absent. Rendered through the built app, not grepped.
+13. **The discovery path holds the slot too.** Leg 1 repeated through
+    `/book`: two strangers cannot request one discovery slot.
 
 ---
 
