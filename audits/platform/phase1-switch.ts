@@ -102,6 +102,7 @@ async function main() {
     data: { id: CLIENT_ID, email: "client@demo.fixture.test", name: "Casey Fixture", role: "CLIENT", active: true, tenantId: TENANT_ID, passwordHash: hash, consentAt: new Date("2026-01-05T00:00:00Z") },
   });
 
+  console.log(`SCOPE: host demo.platform.test · HTTP only, no browser viewport · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   console.log(`~ starting built app on :${PORT} with PLATFORM_DOMAIN=${PLATFORM_DOMAIN}`);
   const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(PORT)], {
     env: { ...process.env, AUTH_SECRET: process.env.AUTH_SECRET || "baseline-secret", PORT: String(PORT), PLATFORM_DOMAIN, AUTH_TRUST_HOST: "true" },

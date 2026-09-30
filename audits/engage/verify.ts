@@ -210,6 +210,7 @@ async function main() {
   const keyPresent = Boolean(process.env.RESEND_API_KEY);
   await cleanup();
 
+  console.log(`SCOPE: throwaway tenants under *.platform.test · HTTP only, no browser viewport · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   console.log(`~ starting built app on :${PORT} (NO email credential in its environment)`);
   const env = {
     ...process.env,

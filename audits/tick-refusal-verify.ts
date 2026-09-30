@@ -55,6 +55,7 @@ async function main() {
   await seedLocalDomains();
 
   log(`# TICK REFUSAL verify — ${new Date().toISOString()}`);
+  log(`SCOPE: mapped and unmapped hosts passed per call · HTTP only, no browser viewport · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   console.log(`~ starting built app on :${APP_PORT}`);
   const env = {
     ...process.env,

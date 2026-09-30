@@ -100,6 +100,7 @@ async function main() {
   });
 
   const mock = mockAstro();
+  console.log(`SCOPE: host p4.platform.test · HTTP only, no browser viewport · local build + mock provider. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   console.log(`~ mock provider on :${MOCK_PORT}; starting built app on :${APP_PORT}`);
   const env = {
     ...process.env,

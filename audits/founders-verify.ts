@@ -62,6 +62,7 @@ async function cleanup() {
 
 async function main() {
   log(`# C35-FOUNDERS-EVENT verify — ${new Date().toISOString()}`);
+  log(`SCOPE: hosts ${HOST_PLATFORM} and ${HOST_TENANT} · HTTP markup only — appearance is founders-visual-verify's job · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   const url = process.env.DATABASE_URL ?? "";
   if (!url) throw new Error("DATABASE_URL required (scratch DB)");
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");

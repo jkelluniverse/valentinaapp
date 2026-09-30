@@ -113,6 +113,7 @@ async function main() {
   });
 
   const mock = mockAstro();
+  console.log(`SCOPE: host p3.platform.test · HTTP only, no browser viewport · local build + mock astrology-api. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   console.log(`~ mock astrology-api on :${MOCK_PORT}; starting built app on :${APP_PORT}`);
   const env = {
     ...process.env,

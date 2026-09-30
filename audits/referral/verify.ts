@@ -244,6 +244,7 @@ async function main() {
   if (/railway|rlwy\.net/.test(url)) throw new Error("Refusing to run against a Railway database");
   await cleanup();
 
+  console.log(`SCOPE: two throwaway tenants under *.platform.test · viewport 390x844 (mobile only) · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   console.log(`~ starting built app on :${PORT}`);
   const env = {
     ...process.env,

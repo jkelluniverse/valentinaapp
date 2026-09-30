@@ -185,6 +185,7 @@ async function main() {
   if (/railway|rlwy\.net/.test(DBURL)) throw new Error("Refusing to run against a Railway database");
   await cleanup();
   log(`# C29-EVENT-CHROME verify — ${new Date().toISOString()}`);
+  log(`SCOPE: hosts ${HOST_B}, ${HOST_UNKNOWN}, ${HOST_DEFAULT} · HTTP markup only, no browser viewport · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
 
   if (CAPTURE_MODE) {
     const server = startServer(DBURL);

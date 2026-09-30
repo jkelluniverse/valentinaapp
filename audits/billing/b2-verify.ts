@@ -164,6 +164,7 @@ async function main() {
   });
 
   const mock = mockSquare();
+  console.log(`SCOPE: host demo.platform.test · HTTP only, no browser viewport · local build + mock Square. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   console.log(`~ mock Square on :${MOCK_PORT}; starting built app on :${APP_PORT}`);
   const env = {
     ...process.env,

@@ -1,4 +1,4 @@
-# C35 VISUAL verify — 2026-09-28T17:53:27.595Z
+# C35 VISUAL verify — 2026-09-30T16:04:48.277Z
 
 **SCOPE.** Host `psychefolio.test`, path `/founders`, local production build on :3148.
 Viewports asserted (mobile first, ruling 207): mobile-375 375x812 · mobile-390 390x844 · tablet-768 768x1024 · desktop-1440 1440x900.
@@ -26,7 +26,7 @@ NOT covered: production pixels (proxy CA), real devices, touch, and any viewport
 - ✓ [mobile-375] the price card uses full width (>= viewport - 2x24px) — 331px of 375
 - ✓ [mobile-375] the hero CTA appears BEFORE the price card — true
 - ✓ [mobile-375] FAQ tap targets are >=44px tall — 11 targets, all >=44px
-- ✓ [mobile-375] baseline created (first run) — 656503 bytes
+- ✓ [mobile-375] matches the committed baseline — 656503 bytes
 
 # mobile-390 — 390x844 (mobile)
 - ✓ [mobile-390] the gate measured the real page (>=60 text nodes) — 117 nodes
@@ -45,7 +45,7 @@ NOT covered: production pixels (proxy CA), real devices, touch, and any viewport
 - ✓ [mobile-390] the price card uses full width (>= viewport - 2x24px) — 346px of 390
 - ✓ [mobile-390] the hero CTA appears BEFORE the price card — true
 - ✓ [mobile-390] FAQ tap targets are >=44px tall — 11 targets, all >=44px
-- ✓ [mobile-390] baseline created (first run) — 652730 bytes
+- ✓ [mobile-390] matches the committed baseline — 652730 bytes
 
 # tablet-768 — 768x1024 (tablet)
 - ✓ [tablet-768] the gate measured the real page (>=60 text nodes) — 117 nodes
@@ -60,7 +60,7 @@ NOT covered: production pixels (proxy CA), real devices, touch, and any viewport
 - ✓ [tablet-768] the lockup renders large enough to READ (>=88px tall) — 240x101
 - ✓ [tablet-768] every ratified figure appears at most ONCE, or as many times as is justified here — $99x2 · $149x2 · $500x1 · $199x1 — exceptions: $99 may appear 2x — the offer card, and the FAQ answer to 'What happens after the first year?' which cannot answer it without naming the rate it changes FROM · $149 may appear 2x — the offer card, and that same FAQ answer, which names the rate it changes TO
 - ✓ [tablet-768] the price card is no narrower than the brief's 360px — 720px
-- ✓ [tablet-768] baseline created (first run) — 621840 bytes
+- ✓ [tablet-768] matches the committed baseline — 621840 bytes
 
 # desktop-1440 — 1440x900 (desktop)
 - ✓ [desktop-1440] the gate measured the real page (>=60 text nodes) — 121 nodes
@@ -74,6 +74,6 @@ NOT covered: production pixels (proxy CA), real devices, touch, and any viewport
 - ✓ [desktop-1440] the lockup loads and is the PRIMARY asset — src=/brand/lockup-primary-reversed.svg
 - ✓ [desktop-1440] the lockup renders large enough to READ (>=88px tall) — 240x101
 - ✓ [desktop-1440] every ratified figure appears at most ONCE, or as many times as is justified here — $99x2 · $149x2 · $500x1 · $199x1 — exceptions: $99 may appear 2x — the offer card, and the FAQ answer to 'What happens after the first year?' which cannot answer it without naming the rate it changes FROM · $149 may appear 2x — the offer card, and that same FAQ answer, which names the rate it changes TO
-- ✓ [desktop-1440] baseline created (first run) — 640126 bytes
+- ✓ [desktop-1440] matches the committed baseline — 640126 bytes
 
 VISUAL VERIFY PASS — 62/62

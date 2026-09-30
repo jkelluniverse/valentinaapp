@@ -130,6 +130,7 @@ async function main() {
   await prisma.consentGrant.create({ data: { tenantId: TENANT_ID, userId: client.id, version: "2026-07" } });
 
   const mock = mockStripe();
+  console.log(`SCOPE: host b3.platform.test · HTTP only, no browser viewport · local build + mock Stripe. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   console.log(`~ mock Stripe on :${MOCK_PORT}; starting built app on :${APP_PORT}`);
   const env = {
     ...process.env,

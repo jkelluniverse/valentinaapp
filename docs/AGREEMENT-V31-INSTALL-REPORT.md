@@ -78,3 +78,11 @@ it) · qualified Spanish legal translation (the es sibling must be counsel-bless
 es-locale client can be served this master) · final Ch. 490 title blessing · `PRACTICE_EMAIL`
 env value · Addendum R retention period confirmation (3-year default) · supply v3.0 text ·
 then flip the template ACTIVE.
+
+**RULING 237 — THE FLIP IS A BEHAVIOUR CHANGE TO A LIVE PRACTICE, NOT A STATUS
+CHANGE.** The master installs with `requireBeforeBooking: true` already set
+(`install-v31.ts:72`, asserted by `v31-verify.ts:154`). While DRAFT that flag is
+armed and unreachable — no agreement can be sent from a DRAFT, so the booking
+gate never sees it (ruling 235). The moment status becomes ACTIVE the gate is
+LIVE: every new client on that practice must sign before booking. Whoever
+performs the flip tells Valentina the day before.

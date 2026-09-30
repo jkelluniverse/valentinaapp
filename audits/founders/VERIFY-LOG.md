@@ -1,4 +1,5 @@
-# C35-FOUNDERS-EVENT verify — 2026-09-28T17:53:24.182Z
+# C35-FOUNDERS-EVENT verify — 2026-09-30T16:04:45.138Z
+SCOPE: hosts psychefolio.test and valentina.psychefolio.test · HTTP markup only — appearance is founders-visual-verify's job · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).
 - ✓ the founding page renders on the PLATFORM host — status 200
 - ✓ a TENANT host still 404s — no founding funnel on a practice's domain — status 404
 - ✓ V3 — every dollar figure on the page is one of ruling 175's (4 distinct found) — all of: $199 $99 $149 $500

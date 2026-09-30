@@ -191,6 +191,7 @@ async function main() {
   if (/railway|rlwy\.net/.test(DBURL)) throw new Error("Refusing to run against a Railway database");
   await cleanup();
   log(`# C26-FAIL-CLOSED-TENANCY verify — ${new Date().toISOString()}`);
+  log(`SCOPE: hosts ${HOST_B}, ${HOST_UNKNOWN} · viewport 1024x900 (desktop only) · local build with a failure-injection DB role. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
 
   // =========================================================================
   log(`\n## Verify 1 — the five assumptions, confirmed or corrected`);

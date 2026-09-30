@@ -59,6 +59,14 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- Ruling 208 retroactive + rulings 235-237 recorded (2026-09-30). 17 host- or browser-
+  driven gates and scripts/baseline.ts now print a SCOPE line naming host, viewport, and
+  what they do NOT cover; nexturl-origin excluded as a static scan with neither. The
+  16-screen baseline's own coverage gap is named in its scope line: /practitioner/library
+  and /practitioner/agreements/templates are not among the 16.
+  RULING 236, THE GENERAL LESSON: before calling a state a bug, find out whether a gate
+  asserts it on purpose. Twice now (engage audit rows; the DRAFT master's armed booking
+  trigger) the "bug" was a deliberate design nobody had labelled.
 - /founders F1-F3 + mobile + ruling 203 (2026-09-28; rulings 202-208, 214, 218).
   THE OFFER SECTION'S COLLAPSE HAD A CAUSE WORTH RECORDING: the breakpoint
   existed. `<style>@media(max-width:900px){#pf-offer-grid{...!important}}` was
@@ -772,6 +780,8 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 - (Jacob/counsel) v3.0 sections for the v3.1 master; Spanish legal translation; Ch. 490 blessing;
   PRACTICE_EMAIL env; Addendum P election default; Addendum R retention confirmation; then flip
   `client-services-agreement` DRAFT→ACTIVE (deliberate DB act, excluded from upload-confirm path)
+  ⚠ RULING 237: that flip ARMS requireBeforeBooking for every new client the same instant —
+  a behaviour change to a live practice, not a status change. Tell Valentina the day before.
 - (Architect) C19 continuation spec — pipeline Phase 3+ / Pocket capture layer (adapter seam ready)
 - (Jacob go-ahead, no spec needed) C22 phase 2 — uploaded-PDF render-and-fill (pdf.js + pdf-lib,
   drag-drop field placement, coordinate stamping)

@@ -47,6 +47,7 @@ const HOME_HINT_2 = "lives under the You tab";
 const DESIGN_HINT = "grow richer over time";
 
 async function main() {
+  console.log(`SCOPE: default host (localhost) · viewport 390x844 (mobile only) · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
   // P3.3 — `localhost` is no longer anybody's host by default. This gate
   // drives the app on a loopback address, so it states the mapping the way
   // production states hers: as a TenantDomain row (audits/_fixtures).

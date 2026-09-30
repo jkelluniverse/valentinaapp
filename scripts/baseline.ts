@@ -65,6 +65,7 @@ async function main() {
 
   const users = await prisma.user.count().catch(() => -1);
   if (users <= 0) {
+    console.log(`SCOPE: host localhost (her default tenant) · viewports 1280x900 desktop and 390x844 for the two mobile screens · 16 screens. COVERAGE GAP (C43 finding): /practitioner/library and /practitioner/agreements/templates are NOT among the 16. NOT covered: production, real devices, any host or viewport absent here (ruling 208).`);
     console.log("~ seeding fixture roster");
     execSync("npx tsx prisma/fixtures/seed-staging.ts", {
       stdio: "inherit",
