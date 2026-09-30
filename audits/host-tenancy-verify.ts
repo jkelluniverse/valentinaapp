@@ -23,9 +23,34 @@
 // DATA like every other host. What the exemption still records is the weaker
 // but real fact that their tenant is decided by Host AT ALL.
 //
-// HONEST LIMITATIONS, WRITTEN INTO THE FILE (ruling 109):
-//   · It is a STATIC scan of import and call text. A route that reaches scoped
-//     data through a helper this scan does not follow is invisible to it.
+// C38 — RULING 201. The first version of this gate detected only DIRECT
+// importers of @/lib/(prisma|tenancy). Nine routes reached scoped data through
+// a service module and were invisible to it — app/api/webhooks/stripe among
+// them, a live money surface. It now follows the import graph. The scanner
+// searched for a NAME; the dependency was on an EFFECT (ruling 168, again).
+//
+// RULING 204. The inventory held app/api/square/webhook/route.ts while
+// app/api/webhooks/square/route.ts — a DIFFERENT route — was absent, and this
+// header referred to "the second Square endpoint". Two were known; one was
+// ever classified. They now both appear, and they are DIFFERENT KINDS.
+//
+// RULING 205's amendment to ruling 109: a documented limitation must carry
+// what would CLOSE it and a tracking item, or it is a note rather than a plan.
+// The previous header already confessed the helper blind spot, accurately,
+// and the blind spot survived anyway — a confessed limitation is not a closed
+// one.
+//
+// HONEST LIMITATIONS, WRITTEN INTO THE FILE (ruling 109), each with its closer:
+//   · The walk follows STATIC @/ imports (.ts/.tsx/index.ts). A dynamic
+//     import() with a computed specifier, or a re-export chain that launders
+//     the identifier, is not followed. CLOSER: a runtime probe that hits every
+//     route without a session and records which tables were read. TRACKING:
+//     C38 follow-up; not built, because a static walk found all nine and a
+//     runtime probe is a harness of its own.
+//   · Database access not routed through @/lib/prisma, @/lib/tenancy or
+//     @/lib/prisma-internal is invisible. CLOSER: guard-prisma already forbids
+//     `new PrismaClient(` outside its allowlist, so this is closed by that
+//     gate, not this one.
 //   · "Has a user session" is detected by call text (auth(), requireX). A route
 //     that authenticates some other way is classified by a human here, not by
 //     the scanner.
@@ -37,14 +62,23 @@
 //     (docs/EXTERNAL-SERVICES.md), asserted in audits/platform/verify.ts.
 //
 //   npx tsx audits/host-tenancy-verify.ts
-import { readFileSync, readdirSync, statSync } from "fs";
+import { readFileSync, readdirSync, statSync, existsSync } from "fs";
 import { join } from "path";
 
 const ROOT = join(__dirname, "..");
 const API = join(ROOT, "app", "api");
 
-type Kind = "visitor-host" | "m2m-host-exempt" | "platform";
-type Entry = { route: string; kind: Kind; why: string; tracking?: string };
+// m2m-payload    — a machine caller whose tenant comes from the AUTHENTICATED
+//                  PAYLOAD (a merchant id, a customer id, an owner uri, a path
+//                  token that selects a stored connection). Ruling 113's CORRECT
+//                  answer; the gate had no word for it until C38.
+// m2m-host-UNRATIFIED — a machine caller whose tenant is decided by the Host
+//                  header and which is NOT one of ruling 122's two. This kind
+//                  exists so the inventory can be complete while the gate stays
+//                  RED: its check requires the set to be empty. Classifying a
+//                  route here is a report, not an exemption.
+type Kind = "visitor-host" | "m2m-host-exempt" | "m2m-payload" | "m2m-host-UNRATIFIED" | "platform";
+type Entry = { route: string; kind: Kind; why: string; tracking?: string; attributedBy?: string };
 
 // THE INVENTORY. A route that reaches scoped data without a session must be
 // here, with a classification a human chose and can defend.
@@ -107,6 +141,62 @@ const INVENTORY: Entry[] = [
     kind: "platform",
     why: "Liveness. Reports no tenant data.",
   },
+  // ---- C38 — the nine the direct scan could not see, classified from the PATH each takes ----
+  {
+    route: "app/api/webhooks/stripe/route.ts",
+    kind: "m2m-payload",
+    attributedBy: "the event's `customer` id → TenantBilling.stripeCustomerId (lib/billing/lifecycle.ts:63-66); unmatched → 200 and dropped",
+    why: "Stripe's callback. Never inventoried before C38 — a live money surface reached through lib/billing/lifecycle.ts. Its tenant comes from the payload, which is ruling 113 done right; the header's own text has cited this file as the precedent since ruling 195.",
+  },
+  {
+    route: "app/api/webhooks/square/route.ts",
+    kind: "m2m-payload",
+    attributedBy: "the envelope's `merchant_id` → ConnectedPaymentAccount.merchantId (lib/payments/webhook.ts:67-72); unmatched → dropped",
+    why: "THE SECOND SQUARE ENDPOINT (ruling 204). Not the host-exempt app/api/square/webhook/route.ts above — a different route with a different attribution model: this one resolves from the payload. Two Square endpoints, two kinds, both now in the table.",
+  },
+  {
+    route: "app/api/webhooks/calendly/route.ts",
+    kind: "m2m-payload",
+    attributedBy: "the payload's scheduled_event.event_memberships[0].user → ExternalSchedulingConnection.externalOwner (lib/scheduling/external/ingress.ts); unmatched → 200 and dropped",
+    why: "C37. One shared URL; the body names its owner (ruling 195).",
+  },
+  {
+    route: "app/api/webhooks/acuity/[token]/route.ts",
+    kind: "m2m-payload",
+    attributedBy: "the path token, hashed → ExternalSchedulingConnection.ingressTokenHash, which SELECTS the connection and its key; the signature is then verified (ruling 196). Unknown path → 404",
+    why: "C37. The path selects, it does not grant; the host is consulted nowhere.",
+  },
+  {
+    route: "app/api/auth/[...nextauth]/route.ts",
+    kind: "visitor-host",
+    why: "The sign-in surface. It has no session BECAUSE it is the thing that creates one. A browser on the practice's own host; identity follows host by design (P4). Not machine-to-machine.",
+  },
+  {
+    route: "app/api/signup/slug/route.ts",
+    kind: "visitor-host",
+    why: "Advisory slug check from the signup page's own browser. Returns one word, no ids, no tenant data; the server action re-decides at submit. The raw read it makes (lib/signup.ts checkSlug) is a global uniqueness question by design.",
+  },
+  {
+    route: "app/api/webhooks/transcription/route.ts",
+    kind: "m2m-host-UNRATIFIED",
+    attributedBy: "NOTHING IN THE PAYLOAD. lib/capture.ts:90 reads sessionCapture through the SCOPED client, whose tenant is the request Host (lib/prisma.ts:124-125)",
+    why: "The transcription provider's completion callback. Authenticated by a signed capture token in the URL plus a shared header secret — which proves the CALLER, and says nothing about WHOSE tenant. The captureId in the URL could attribute it (the row knows its tenant), but today the scoped client decides by Host first. Ruling 113's forbidden class, outside ruling 122's two.",
+    tracking: "C38 STOP-AND-REPORT. Needs a ruling: widen the exemption (ruling 122 amended) or attribute from the captureId row — the latter is a behaviour change and is not C38's to make.",
+  },
+  {
+    route: "app/api/recording/webhook/route.ts",
+    kind: "m2m-host-UNRATIFIED",
+    attributedBy: "NOTHING IN THE PAYLOAD. lib/recording.ts reads recordingDraft/recordingConsent through the SCOPED client — tenant = request Host",
+    why: "The recorder's processed-recording callback (C19 REC.2). Secret-in-URL authenticates the caller only. Same shape as transcription.",
+    tracking: "C38 STOP-AND-REPORT — same ruling as transcription.",
+  },
+  {
+    route: "app/api/inbound/remarkable/route.ts",
+    kind: "m2m-host-UNRATIFIED",
+    attributedBy: "NOTHING IN THE PAYLOAD. lib/remarkable.ts reads handwrittenNote through the SCOPED client — tenant = request Host. The sender allowlist inside the ingest is authentication, not attribution",
+    why: "The inbound-email webhook for handwritten notes (C14 R.1). Secret-in-URL plus sender allowlist authenticate; the Host decides the tenant.",
+    tracking: "C38 STOP-AND-REPORT — same ruling as transcription.",
+  },
   {
     route: "app/api/tenant-kind/route.ts",
     kind: "platform",
@@ -119,8 +209,33 @@ const INVENTORY: Entry[] = [
 
 const EXEMPT_ROUTES = ["app/api/jobs/tick/route.ts", "app/api/square/webhook/route.ts"];
 
-const SCOPED_IMPORT = /from\s+"@\/lib\/(prisma|tenancy)"/;
+const SCOPED_IMPORT = /from\s+["']@\/lib\/(prisma|tenancy)["']/;
+const RAW_IMPORT = /from\s+["']@\/lib\/prisma-internal["']/;
 const SESSION_CALL = /\bauth\(\)|getServerSession|require(Practitioner|User|Role|Client)/;
+
+// C38 — FOLLOW THE GRAPH. Resolve every @/ import a file makes and walk it,
+// so a route that reaches the database through lib/x.ts → lib/y.ts is seen.
+// Returns the first path found, so the classifier can read HOW a route gets
+// there, not merely THAT it does.
+function resolveImport(spec: string): string | null {
+  if (!spec.startsWith("@/")) return null;
+  const base = join(ROOT, spec.slice(2));
+  for (const c of [base + ".ts", base + ".tsx", join(base, "index.ts")]) if (existsSync(c)) return c;
+  return null;
+}
+function reachesDb(file: string, seen = new Set<string>(), chain: string[] = []): string[] | null {
+  if (seen.has(file)) return null;
+  seen.add(file);
+  const src = readFileSync(file, "utf8");
+  const rel = file.slice(ROOT.length + 1);
+  if (SCOPED_IMPORT.test(src)) return [...chain, `${rel} [scoped]`];
+  if (RAW_IMPORT.test(src)) return [...chain, `${rel} [RAW]`];
+  for (const m of src.matchAll(/from\s+["'](@\/[^"']+)["']/g)) {
+    const r = resolveImport(m[1]);
+    if (r) { const hit = reachesDb(r, seen, [...chain, rel]); if (hit) return hit; }
+  }
+  return null;
+}
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -143,18 +258,25 @@ function main(): void {
   log(`# HOST-AS-TENANCY inventory — ${new Date().toISOString()}`);
 
   const found: string[] = [];
+  const paths = new Map<string, string[]>();
   for (const abs of walk(API).sort()) {
     const src = readFileSync(abs, "utf8");
-    if (!SCOPED_IMPORT.test(src)) continue;
     if (SESSION_CALL.test(src)) continue;
-    found.push(abs.slice(ROOT.length + 1));
+    const hit = reachesDb(abs);
+    if (!hit) continue;
+    const rel = abs.slice(ROOT.length + 1);
+    found.push(rel);
+    paths.set(rel, hit);
   }
 
   const known = new Set(INVENTORY.map((e) => e.route));
   const unknown = found.filter((r) => !known.has(r));
   const vanished = INVENTORY.map((e) => e.route).filter((r) => !found.includes(r));
 
-  log(`\n## Discovery — ${found.length} route(s) reach scoped data without a user session`);
+  log(`\n## Discovery — ${found.length} route(s) reach the database without a user session (transitive walk, C38)`);
+  for (const r of found) log(`  · ${paths.get(r)!.join(" -> ")}`);
+  // RULING 38 — the moving count, pinned. The direct scan saw 9; the walk sees 18.
+  check("the walk finds the 18 routes it found when C38 landed (a change here is a new route or a lost one — name it)", found.length === 18, `${found.length}`);
   check(
     "every such route is classified in the inventory (a NEW Host-resolving route fails here)",
     unknown.length === 0,
@@ -173,6 +295,22 @@ function main(): void {
     JSON.stringify(exempt) === JSON.stringify([...EXEMPT_ROUTES].sort()),
     exempt.join(", ") || "(empty)",
   );
+  // C38 — payload attribution must NAME its field. A promise is not a field.
+  log(`\n## m2m-payload — attribution named per entry (ruling 113's correct answer)`);
+  for (const e of INVENTORY.filter((x) => x.kind === "m2m-payload")) {
+    check(`${e.route} names the payload field its tenant comes from`, Boolean(e.attributedBy && e.attributedBy.length > 30), e.attributedBy?.slice(0, 70));
+  }
+
+  // C38 — THE STOP-AND-REPORT SET. This check is RED BY DESIGN until a ruling
+  // either widens ruling 122's exemption or attributes these from their payload.
+  const unratified = INVENTORY.filter((x) => x.kind === "m2m-host-UNRATIFIED").map((x) => x.route);
+  log(`\n## Host-resolving machine callers OUTSIDE the ratified exemption`);
+  check("the unratified host-resolving set is EMPTY", unratified.length === 0,
+    unratified.length ? `${unratified.length} route(s) decide tenant by Host without a ruling: ${unratified.join(", ")}` : "none");
+  for (const e of INVENTORY.filter((x) => x.kind === "m2m-host-UNRATIFIED")) {
+    check(`${e.route} carries a tracking item (ruling 114)`, Boolean(e.tracking && e.tracking.length > 20), e.tracking?.slice(0, 60));
+  }
+
   for (const e of INVENTORY.filter((x) => x.kind === "m2m-host-exempt")) {
     check(`${e.route} states a reason`, e.why.length > 40);
     check(`${e.route} carries a tracking item (ruling 114)`, Boolean(e.tracking && e.tracking.length > 20), e.tracking?.slice(0, 60));
