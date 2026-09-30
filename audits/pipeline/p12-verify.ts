@@ -122,7 +122,7 @@ async function main() {
 
     // 3 — completion: normalize, heuristic, vendor scrub, REAL extraction, draft
     console.log("~ running completion (includes one real extraction call — may take a minute)");
-    await completeCapture(up.captureId);
+    await completeCapture(up.captureId, cap1!.tenantId!); // C38-B: tenant stated from the row
     const cap2 = await prisma.sessionCapture.findUnique({ where: { id: up.captureId } });
     check("capture reached REVIEW with a draft", cap2?.status === "REVIEW" && Boolean(cap2.draftId));
     check("vendor copy scrubbed after normalize", seen.deleted);

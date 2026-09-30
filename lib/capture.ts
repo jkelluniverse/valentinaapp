@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { rawPrisma } from "@/lib/prisma-internal";
 import { getTenant } from "@/lib/tenancy";
 import { getBaseUrlSafe } from "@/lib/base-url";
 import { hasRecordingConsent } from "@/lib/recording";
@@ -84,17 +85,37 @@ export async function startUploadCapture(args: {
   }
 }
 
+// C38-B / RULING 238 — ATTRIBUTION FROM THE PAYLOAD, NEVER THE HOST.
+//
+// The transcription webhook is a machine caller. Its URL token and header
+// secret prove WHO SENT IT and say nothing about WHOSE TENANT it is about; and
+// the scoped client decides tenant from the request Host (lib/prisma.ts:124),
+// which is ruling 113's forbidden class for a machine caller. The captureId in
+// the payload names a row that KNOWS its tenant, so that is where the tenant
+// comes from — the merchant_id -> ConnectedPaymentAccount shape of
+// lib/payments/webhook.ts. Unknown id: dropped and logged, never guessed.
+export async function captureTenantId(captureId: string): Promise<string | null> {
+  const row = await rawPrisma.sessionCapture.findUnique({ where: { id: captureId }, select: { tenantId: true } });
+  return row?.tenantId ?? null;
+}
+
 // Webhook/backstop continuation: fetch the completed transcript, scrub the
 // vendor copy, run extraction, land the draft in the review inbox.
-export async function completeCapture(captureId: string): Promise<void> {
-  const capture = await prisma.sessionCapture.findFirst({ where: { id: captureId } });
+//
+// `tenantId` is REQUIRED and STATED by the caller: the webhook resolves it
+// from the capture row, the tick passes the tenant it resolved up front, the
+// practitioner page passes hers. Every read and write below carries it
+// explicitly through the raw client, so a capture belonging to another
+// practice is simply not found — refused by shape, not by a check.
+export async function completeCapture(captureId: string, tenantId: string): Promise<void> {
+  const capture = await rawPrisma.sessionCapture.findFirst({ where: { id: captureId, tenantId } });
   if (!capture || !capture.providerJobId || capture.status !== "TRANSCRIBING") return; // idempotent
 
   const provider = getTranscriptionProvider();
   const result = await provider.fetchResult(capture.providerJobId);
   if (result.status === "pending") return;
   if (result.status === "error") {
-    await prisma.sessionCapture.update({
+    await rawPrisma.sessionCapture.update({
       where: { id: capture.id },
       data: { status: "ERROR", errorMessage: result.errorMessage },
     });
@@ -103,7 +124,7 @@ export async function completeCapture(captureId: string): Promise<void> {
 
   const t: NormalizedTranscript = result.transcript;
   await provider.deleteRemote(capture.providerJobId); // vendor holds audio for minutes, not months
-  await prisma.sessionCapture.update({ where: { id: capture.id }, data: { status: "EXTRACTING" } });
+  await rawPrisma.sessionCapture.update({ where: { id: capture.id }, data: { status: "EXTRACTING" } });
 
   const mapping = mapSpeakers(t);
   const segments = t.utterances.map((u) => ({
@@ -124,8 +145,9 @@ export async function completeCapture(captureId: string): Promise<void> {
 
   // The draft — same shape the C19 review inbox already speaks
   // (PulledRecording), plus the extraction block the review UI shows.
-  const draft = await prisma.recordingDraft.create({
+  const draft = await rawPrisma.recordingDraft.create({
     data: {
+      tenantId, // stated, not resolved — the draft lands in the capture's practice
       provider: "capture",
       providerRef: capture.id,
       matchedClientId: capture.clientId,
@@ -147,7 +169,7 @@ export async function completeCapture(captureId: string): Promise<void> {
       } as unknown as object,
     },
   });
-  await prisma.sessionCapture.update({
+  await rawPrisma.sessionCapture.update({
     where: { id: capture.id },
     data: { status: "REVIEW", draftId: draft.id },
   });

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requirePractitioner } from "@/lib/auth-guards";
+import { getTenant } from "@/lib/tenancy";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { PendingButton } from "@/components/PendingButton";
 import { startUploadCapture } from "@/lib/capture";
@@ -61,7 +62,7 @@ export default async function CapturesPage({ searchParams }: { searchParams: { c
     if (cap?.status === "ERROR" && cap.providerJobId) {
       await prisma.sessionCapture.update({ where: { id }, data: { status: "TRANSCRIBING", errorMessage: null } });
       const { completeCapture } = await import("@/lib/capture");
-      await completeCapture(id).catch(() => {});
+      await completeCapture(id, (await getTenant()).id).catch(() => {}); // C38-B: her tenant, stated
     }
     revalidatePath("/practitioner/captures");
     redirect("/practitioner/captures");

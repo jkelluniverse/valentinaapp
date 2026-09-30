@@ -429,7 +429,7 @@ async function handle(req: NextRequest) {
       take: 20,
     });
     const { completeCapture } = await import("@/lib/capture");
-    for (const c of stuck) await completeCapture(c.id).catch(() => {});
+    for (const c of stuck) await completeCapture(c.id, tenantId).catch(() => {}); // C38-B: the tick's resolved tenant, stated
     report.capturesPolled = stuck.length;
   } catch (e) {
     report.capturesPolled = "error";

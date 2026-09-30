@@ -49,7 +49,9 @@
 //     runtime probe is a harness of its own.
 //   · Database access not routed through @/lib/prisma, @/lib/tenancy or
 //     @/lib/prisma-internal is invisible. CLOSER: guard-prisma already forbids
-//     `new PrismaClient(` outside its allowlist, so this is closed by that
+//     instantiating a PrismaClient directly outside its allowlist (a text
+//     scan, which is why this comment does not spell the call out), so this
+//     is closed by that
 //     gate, not this one.
 //   · "Has a user session" is detected by call text (auth(), requireX). A route
 //     that authenticates some other way is classified by a human here, not by
@@ -178,10 +180,9 @@ const INVENTORY: Entry[] = [
   },
   {
     route: "app/api/webhooks/transcription/route.ts",
-    kind: "m2m-host-UNRATIFIED",
-    attributedBy: "NOTHING IN THE PAYLOAD. lib/capture.ts:90 reads sessionCapture through the SCOPED client, whose tenant is the request Host (lib/prisma.ts:124-125)",
-    why: "The transcription provider's completion callback. Authenticated by a signed capture token in the URL plus a shared header secret — which proves the CALLER, and says nothing about WHOSE tenant. The captureId in the URL could attribute it (the row knows its tenant), but today the scoped client decides by Host first. Ruling 113's forbidden class, outside ruling 122's two.",
-    tracking: "C38 STOP-AND-REPORT. Needs a ruling: widen the exemption (ruling 122 amended) or attribute from the captureId row — the latter is a behaviour change and is not C38's to make.",
+    kind: "m2m-payload",
+    attributedBy: "the payload's captureId → SessionCapture.tenantId via captureTenantId() (lib/capture.ts), on the RAW client; unknown id → 200, dropped and logged. Fixed under ruling 238 — it was m2m-host-UNRATIFIED when C38 first ran.",
+    why: "The transcription provider's completion callback. Its URL token and header secret prove the CALLER; the capture row the payload names decides the TENANT, and completeCapture carries that tenant explicitly on every read and write. The request Host is consulted nowhere on this path.",
   },
   {
     route: "app/api/recording/webhook/route.ts",

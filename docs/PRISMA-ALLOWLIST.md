@@ -44,6 +44,7 @@ no matter what they forget.
 | `audits/billing/b2-verify.ts` | B2 acceptance harness — CLI-only; drives checkout + signed webhooks against a mock Square. |
 | `lib/billing/lifecycle.ts` | Stripe webhook ingress + grace sweep — tenant resolved from the event's customer id, never the request host; cross-tenant by nature. |
 | `lib/scheduling/external/ingress.ts` | C37 external-scheduling webhook resolution — finds the connection by the payload's owner uri (Calendly) or the ingress path's token hash (Acuity, ruling 196), before any tenant scope can exist; cross-tenant by nature. Refuses a null-tenant connection rather than defaulting it. |
+| `lib/capture.ts` | C38-B (ruling 238) — the transcription webhook's completion path; tenant stated by every caller (webhook: from the capture row the payload names; tick and practitioner page: theirs), carried explicitly on every read and write. A machine caller is never scoped by Host. |
 | `lib/scheduling/external/ingest.ts` | C37 external-scheduling webhook apply step — tenant resolved from the event payload (Calendly's organization/user uri, or the Acuity connection the ingress path selected), never the request host; cross-tenant by nature. |
 | `audits/billing/b3-verify.ts` | B3 acceptance harness — CLI-only; drives the subscription lifecycle against a mock Stripe. |
 | `audits/billing/b4-verify.ts` | B4 hardening harness — CLI-only; pruning + money invariants + client copy audit. |
