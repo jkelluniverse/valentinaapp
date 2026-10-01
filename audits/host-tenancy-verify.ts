@@ -79,7 +79,12 @@ const API = join(ROOT, "app", "api");
 //                  exists so the inventory can be complete while the gate stays
 //                  RED: its check requires the set to be empty. Classifying a
 //                  route here is a report, not an exemption.
-type Kind = "visitor-host" | "m2m-host-exempt" | "m2m-payload" | "m2m-host-UNRATIFIED" | "platform";
+// m2m-disabled   — RULING 241. A machine caller whose payload names no tenant
+//                  and which carries no traffic. The route answers 410 Gone,
+//                  imports nothing that reaches the database, and this gate
+//                  asserts that it CANNOT reach scoped data by any path. OFF is
+//                  a fact; an exemption would be a promise.
+type Kind = "visitor-host" | "m2m-host-exempt" | "m2m-payload" | "m2m-host-UNRATIFIED" | "m2m-disabled" | "platform";
 type Entry = { route: string; kind: Kind; why: string; tracking?: string; attributedBy?: string };
 
 // THE INVENTORY. A route that reaches scoped data without a session must be
@@ -186,17 +191,17 @@ const INVENTORY: Entry[] = [
   },
   {
     route: "app/api/recording/webhook/route.ts",
-    kind: "m2m-host-UNRATIFIED",
-    attributedBy: "NOTHING IN THE PAYLOAD. lib/recording.ts reads recordingDraft/recordingConsent through the SCOPED client — tenant = request Host",
-    why: "The recorder's processed-recording callback (C19 REC.2). Secret-in-URL authenticates the caller only. Same shape as transcription.",
-    tracking: "C38 STOP-AND-REPORT — same ruling as transcription.",
+    kind: "m2m-disabled",
+    attributedBy: "NOTHING — and so it is OFF. 410 Gone, no database import; lib/recording.ts stays so re-enabling is a route change (ruling 242's model).",
+    why: "The recorder's processed-recording callback (C19 REC.2). Payload is a recording_id; the pull returns no account; the provider is one global POCKET_API_KEY. Nothing names a tenant, and it has never been called.",
+    tracking: "C38-DISABLED-INGRESS — re-enable per ruling 196 against a real account, with ruling 242's gate leg.",
   },
   {
     route: "app/api/inbound/remarkable/route.ts",
-    kind: "m2m-host-UNRATIFIED",
-    attributedBy: "NOTHING IN THE PAYLOAD. lib/remarkable.ts reads handwrittenNote through the SCOPED client — tenant = request Host. The sender allowlist inside the ingest is authentication, not attribution",
-    why: "The inbound-email webhook for handwritten notes (C14 R.1). Secret-in-URL plus sender allowlist authenticate; the Host decides the tenant.",
-    tracking: "C38 STOP-AND-REPORT — same ruling as transcription.",
+    kind: "m2m-disabled",
+    attributedBy: "NOTHING — and so it is OFF. 410 Gone, no database import; lib/remarkable.ts stays so re-enabling is a route change (ruling 242's model).",
+    why: "The inbound-email webhook for handwritten notes (C14 R.1). `from` is the device's own address, the inbound address is singular, `to` is unread. Nothing names a tenant, and it has never been called.",
+    tracking: "C38-DISABLED-INGRESS — re-enable per ruling 196 against a real account, with ruling 242's gate leg.",
   },
   {
     route: "app/api/tenant-kind/route.ts",
@@ -272,12 +277,18 @@ function main(): void {
 
   const known = new Set(INVENTORY.map((e) => e.route));
   const unknown = found.filter((r) => !known.has(r));
-  const vanished = INVENTORY.map((e) => e.route).filter((r) => !found.includes(r));
+  // A disabled route reaches nothing, so the walk does not find it — by design.
+  // It is checked separately below, not reported as stale here.
+  const vanished = INVENTORY.filter((e) => e.kind !== "m2m-disabled").map((e) => e.route).filter((r) => !found.includes(r));
 
   log(`\n## Discovery — ${found.length} route(s) reach the database without a user session (transitive walk, C38)`);
   for (const r of found) log(`  · ${paths.get(r)!.join(" -> ")}`);
   // RULING 38 — the moving count, pinned. The direct scan saw 9; the walk sees 18.
-  check("the walk finds the 18 routes it found when C38 landed (a change here is a new route or a lost one — name it)", found.length === 18, `${found.length}`);
+  // RULING 38 — two counts, both pinned, both named. The walk found 18 when C38
+  // landed; ruling 241 disabled two, which now reach nothing, so the walk finds
+  // 16 while the INVENTORY still holds 18. 16 + 2 = 18 is itself asserted.
+  check("the walk finds the 16 database-reaching routes (18 at C38, minus the two ruling 241 disabled)", found.length === 16, `${found.length}`);
+  check("the inventory holds all 18 (16 reaching + 2 disabled)", INVENTORY.length === 18 && found.length + INVENTORY.filter((e) => e.kind === "m2m-disabled").length === 18, `${INVENTORY.length} entries`);
   check(
     "every such route is classified in the inventory (a NEW Host-resolving route fails here)",
     unknown.length === 0,
@@ -309,6 +320,18 @@ function main(): void {
   check("the unratified host-resolving set is EMPTY", unratified.length === 0,
     unratified.length ? `${unratified.length} route(s) decide tenant by Host without a ruling: ${unratified.join(", ")}` : "none");
   for (const e of INVENTORY.filter((x) => x.kind === "m2m-host-UNRATIFIED")) {
+    check(`${e.route} carries a tracking item (ruling 114)`, Boolean(e.tracking && e.tracking.length > 20), e.tracking?.slice(0, 60));
+  }
+
+  // RULING 241 — a disabled route must be PROVABLY off: present, 410 in source,
+  // and unable to reach scoped data by any import path.
+  log(`\n## m2m-disabled — off is a fact, asserted (ruling 241)`);
+  for (const e of INVENTORY.filter((x) => x.kind === "m2m-disabled")) {
+    const abs = join(ROOT, e.route);
+    const exists = existsSync(abs);
+    const src = exists ? readFileSync(abs, "utf8") : "";
+    check(`${e.route} exists and answers 410 Gone`, exists && /status: 410/.test(src));
+    check(`${e.route} cannot reach scoped data by ANY import path`, exists && reachesDb(abs) === null, exists ? (reachesDb(abs)?.join(" -> ") ?? "no path to the database") : "missing");
     check(`${e.route} carries a tracking item (ruling 114)`, Boolean(e.tracking && e.tracking.length > 20), e.tracking?.slice(0, 60));
   }
 

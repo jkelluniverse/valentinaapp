@@ -1,68 +1,40 @@
-import { NextRequest, NextResponse } from "next/server";
-import { timingSafeEqual, createHash } from "crypto";
-import { ingestInboundEmail, type InboundAttachment } from "@/lib/remarkable";
+import { NextResponse } from "next/server";
 
-// C14-REMARKABLE R.1 — the private inbound address's webhook (Resend inbound
-// or any provider that POSTs parsed email JSON). Two gates: the URL secret
-// (INBOUND_WEBHOOK_SECRET) and the sender allowlist inside the ingest.
-// Strangers get the same 200 as everyone — silence, not information.
+// C14-REMARKABLE R.1 — the private inbound address's webhook (parsed email -> handwritten-note draft).
+//
+// DISABLED — RULING 241. This route decided its tenant by the request Host:
+// lib/remarkable.ts reads and writes through the SCOPED client, whose tenant is
+// x-forwarded-host (lib/prisma.ts:124-125).
+// A machine caller's secret proves WHO sent it, never WHOSE tenant it is about
+// (ruling 239), and nothing in this payload names a tenant — `from` is allowlisted to the DEVICE's
+// own address (REMARKABLE_SENDER_ALLOWLIST, notes@remarkable.com) so it cannot
+// identify a practitioner, the inbound address is singular, and `to` is not read.
+//
+// It has carried ZERO traffic in every census this program has run, so a
+// per-connection ingress (ruling 196's shape) would be a mechanism with no user
+// to prove it against. OFF is a fact; an exemption would be a promise.
+//
+// What stays: lib/remarkable.ts is untouched, so re-enabling is a ROUTE change — the
+// attribution model is lib/capture.ts after C38-B (ruling 242): resolve the
+// tenant from a payload field through the raw client, require it from every
+// caller, drop unknowns. This file imports NOTHING that reaches the database,
+// and audits/host-tenancy-verify.ts asserts that it cannot (kind m2m-disabled).
+//
+// TRACKING: C38-DISABLED-INGRESS — re-enable per ruling 196 against a real
+// account, with the ruling-242 gate leg: identical payload, other tenant's
+// Host, lands where the row says.
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // transcription runs inline
 
-function authorized(req: NextRequest): boolean {
-  const secret = process.env.INBOUND_WEBHOOK_SECRET;
-  if (!secret) return false;
-  const given = req.nextUrl.searchParams.get("key") ?? "";
-  const a = createHash("sha256").update(secret).digest();
-  const b = createHash("sha256").update(given).digest();
-  return timingSafeEqual(a, b);
-}
-
-// Tolerant extraction across inbound-provider payload shapes.
-type LooseAttachment = {
-  filename?: string;
-  content_type?: string;
-  contentType?: string;
-  content?: string; // base64
-};
-type LoosePayload = {
-  from?: string | { address?: string; email?: string };
-  subject?: string;
-  attachments?: LooseAttachment[];
-  data?: LoosePayload; // Resend wraps the event payload in `data`
+const GONE = {
+  error: "disabled",
+  tracking: "C38-DISABLED-INGRESS",
+  note: "reMarkable inbound is disabled until it carries a tenant (ruling 241)",
 };
 
-function fromAddress(p: LoosePayload): string {
-  const f = p.from ?? p.data?.from;
-  if (typeof f === "string") return f;
-  return f?.address ?? f?.email ?? "";
+export async function POST() {
+  return NextResponse.json(GONE, { status: 410 });
 }
-
-export async function POST(req: NextRequest) {
-  if (!authorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-  let payload: LoosePayload;
-  try {
-    payload = (await req.json()) as LoosePayload;
-  } catch {
-    return NextResponse.json({ ok: true }); // malformed → silent
-  }
-  const inner = payload.data ?? payload;
-  const attachments: InboundAttachment[] = (inner.attachments ?? [])
-    .filter((a) => typeof a.content === "string" && a.content.length > 0)
-    .map((a) => ({
-      filename: a.filename,
-      contentType: a.content_type ?? a.contentType,
-      contentBase64: a.content!,
-    }));
-
-  await ingestInboundEmail({
-    from: fromAddress(payload),
-    subject: inner.subject ?? null,
-    attachments,
-  }).catch(() => undefined);
-
-  // Always 200, always the same body — rejection is silent by design (§2).
-  return NextResponse.json({ ok: true });
+export async function GET() {
+  return NextResponse.json(GONE, { status: 410 });
 }

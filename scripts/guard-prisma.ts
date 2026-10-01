@@ -11,6 +11,12 @@ import { join, relative } from "path";
 //      allowlisted files. `@/lib/prisma` is the safe import: it carries the
 //      request's tenant scope structurally.
 //
+// KNOWN LIMITATION (ruling 109, recorded under ruling 245): this is a TEXT
+// scan, comments included. A comment that quotes the forbidden call will trip
+// it — the C38 gate's header did exactly that, in backticks, and the build
+// failed. The remedy is to reword the comment, never to weaken the scan: a
+// scanner that skipped comments would also skip a call hidden in one.
+//
 // Every allowlist entry carries its justification here AND in
 // docs/PRISMA-ALLOWLIST.md. Extending the list is a reviewed decision, not
 // a convenience.

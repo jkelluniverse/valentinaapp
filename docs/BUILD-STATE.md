@@ -59,6 +59,24 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C38-M2M-ROUTE-INVENTORY shipped (2026-10-01; rulings 201, 204-205, 238-245). The
+  host-tenancy gate walks the import graph: 9 -> 18 routes seen, every one classified from
+  the PATH it takes to the database. Kinds: m2m-payload x5 (stripe, webhooks/square,
+  calendly, acuity, transcription), m2m-host-exempt x2 (ruling 122, unchanged),
+  m2m-disabled x2 (ruling 241: recording/webhook, inbound/remarkable — 410, no DB import,
+  zero traffic in every census), visitor-host x7, platform x2, UNRATIFIED 0. The walk now
+  finds 16 reaching + 2 disabled = 18, both pinned. RULING 204 sharpened: the two Square
+  endpoints are DIFFERENT KINDS and the name "the second Square endpoint" concealed it.
+  RULING 242: transcription's fix (captureId -> row -> tenant, raw client, tenant REQUIRED
+  from every caller, unknown dropped) is the model for re-enabling the two.
+  RULING 245 AMENDS RULING 199: a held commit gets the FULL sweep (build included) BEFORE it
+  is held. Held means "verified and waiting," never "waiting to be verified." bde9139 broke
+  the build on its own and was found only because C38-B rebuilt.
+  RULING 243 enumeration (bare 200 on a webhook route): b2 x1, b3 x3 "accepted" checks —
+  each followed by a DB-state assertion, so they check something; but the stripe and square
+  routes return `{ ok: true }` for a handled DROP as well as a success, so no gate CAN tell
+  them apart from the body today. Making those money routes echo their `note` is a decision,
+  not taken here. RULING 244: build output is an exit code, never a word count.
 - Ruling 208 retroactive + rulings 235-237 recorded (2026-09-30). 17 host- or browser-
   driven gates and scripts/baseline.ts now print a SCOPE line naming host, viewport, and
   what they do NOT cover; nexturl-origin excluded as a static scan with neither. The

@@ -11,6 +11,11 @@
 // Ruling 28's lesson applies: a scanner that fails on new unknowns beats a
 // list someone must remember. This is that scanner.
 //
+// KNOWN LIMITATION (ruling 109, recorded under ruling 245): a TEXT scan,
+// comments and string literals alike. It read a DOM tag name (the <head>
+// element, spelled in upper case) as a moving git ref in the /founders visual
+// gate. The remedy was to reword that code, never to weaken the scan.
+//
 // THE RULE ENFORCED (mechanical half): no string-literal moving git ref —
 // HEAD, HEAD^, HEAD~n, @{...}, origin/... — anywhere in audits/**/*.ts,
 // except files named below WITH justification. Pin a commit instead.
