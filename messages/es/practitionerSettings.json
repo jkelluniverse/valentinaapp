@@ -63,6 +63,8 @@
       "paymentsHint": "Tu conexión de pagos — el dinero llega directamente a ti.",
       "schedulingLabel": "Reservas en línea",
       "schedulingHint": "Conecta Calendly o Acuity — las reservas aparecen aquí automáticamente.",
+      "notificationsLabel": "Notificaciones",
+      "notificationsHint": "Quién recibe qué — correo, push o ambos — y si los clientes solicitan o reservan.",
       "planLabel": "Plan y facturación",
       "planHint": "Tu plan de la plataforma — tarjeta, facturas y recibos.",
       "toolsLabel": "Herramientas de sesión e investigación",

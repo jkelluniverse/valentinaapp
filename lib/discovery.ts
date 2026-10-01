@@ -1,5 +1,6 @@
 import type { Lead } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { sendPushToUser } from "@/lib/push";
 import { getPractitioner, getOrCreateConfig, isSlotOpen, hasConflict, openSlots, formatInZone, zoneAbbrev } from "@/lib/schedule";
 import { appointmentEvent, buildInvite } from "@/lib/ics";
 import { sendEmail } from "@/lib/notify";
@@ -89,7 +90,57 @@ export async function bookDiscoveryCall(args: BookArgs): Promise<BookResult> {
   return { ok: true, leadId: lead.id, appointmentId: appt.id, startAt: args.startAt, timezone: config.timezone };
 }
 
-type NotifyKind = "booked" | "rescheduled" | "cancelled";
+// C40 §1.11 — THE SECOND BOOKING PATH. /book is the public door, and the
+// likelier one for a double-hold. Same preamble as bookDiscoveryCall; the
+// appointment is REQUESTED, the Lead is REQUESTED (so the leads page does not
+// say "Call booked" about a call she has not agreed to), no video link yet,
+// no prospect confirmation — the practitioner hears, the prospect reads the
+// ruling-224 note on the page they just submitted.
+export async function requestDiscoveryCall(args: BookArgs): Promise<BookResult> {
+  const practitioner = await getPractitioner();
+  if (!practitioner) return { ok: false, error: "no_practitioner" };
+  const config = await getOrCreateConfig(practitioner.id);
+  const now = new Date();
+  if (!(await isSlotOpen(practitioner.id, args.startAt, now, "DISCOVERY"))) return { ok: false, error: "unavailable" };
+  const endAt = new Date(args.startAt.getTime() + config.discoveryMinutes * 60000);
+  if (await hasConflict(practitioner.id, args.startAt, endAt, config.bufferMinutes)) return { ok: false, error: "conflict" };
+
+  const appt = await prisma.appointment.create({
+    data: { practitionerId: practitioner.id, clientId: null, kind: "DISCOVERY", startAt: args.startAt, endAt, status: "REQUESTED", location: "VIRTUAL", bookedBy: "client", clientNote: args.note?.trim() || null },
+  });
+  const lead = await prisma.lead.create({
+    data: { name: args.name.trim(), email: args.email.trim().toLowerCase(), phone: args.phone?.trim() || null, note: args.note?.trim() || null, status: "REQUESTED", appointmentId: appt.id, source: args.source?.trim() || null },
+  });
+  await notifyDiscovery(appt.id, "requested", args.baseUrl);
+  return { ok: true, leadId: lead.id, appointmentId: appt.id, startAt: args.startAt, timezone: config.timezone };
+}
+
+/** Approval = the exact tail of bookDiscoveryCall from the create onward:
+ *  appointment SCHEDULED with the standing room, Lead SCHEDULED, then the same
+ *  "booked" announcement both parties get from a direct booking. Re-checks the
+ *  slot with the request itself ignored (it is busy under ruling 223). */
+export async function approveDiscoveryRequest(appointmentId: string, practitionerId: string, baseUrl: string): Promise<{ ok: boolean; error?: "not-requested" | "conflict" }> {
+  const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, practitionerId, kind: "DISCOVERY" } });
+  if (!appt || appt.status !== "REQUESTED") return { ok: false, error: "not-requested" };
+  const config = await getOrCreateConfig(practitionerId);
+  if (await hasConflict(practitionerId, appt.startAt, appt.endAt, config.bufferMinutes, appointmentId)) return { ok: false, error: "conflict" };
+  const videoUrl = config.discoveryVideoUrl || config.defaultVideoUrl || null;
+  await prisma.appointment.update({ where: { id: appointmentId }, data: { status: "SCHEDULED", videoUrl, videoProvider: videoUrl ? "MANUAL" : null } });
+  await prisma.lead.updateMany({ where: { appointmentId }, data: { status: "SCHEDULED" } });
+  await notifyDiscovery(appointmentId, "booked", baseUrl);
+  return { ok: true };
+}
+
+export async function declineDiscoveryRequest(appointmentId: string, practitionerId: string, baseUrl: string): Promise<{ ok: boolean }> {
+  const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, practitionerId, kind: "DISCOVERY" } });
+  if (!appt || appt.status !== "REQUESTED") return { ok: false };
+  await prisma.appointment.update({ where: { id: appointmentId }, data: { status: "DECLINED" } });
+  await prisma.lead.updateMany({ where: { appointmentId }, data: { status: "CLOSED" } });
+  await notifyDiscovery(appointmentId, "declined", baseUrl);
+  return { ok: true };
+}
+
+type NotifyKind = "booked" | "rescheduled" | "cancelled" | "requested" | "declined" | "expired"; // C40 adds the last three
 
 // Email both parties. Never throws — a failed email must not fail the booking.
 export async function notifyDiscovery(appointmentId: string, kind: NotifyKind, baseUrl: string): Promise<void> {
@@ -107,6 +158,30 @@ export async function notifyDiscovery(appointmentId: string, kind: NotifyKind, b
     const config = await getOrCreateConfig(appt.practitionerId);
     const when = discoveryWhen(appt.startAt, config.timezone);
     const firstName = lead.name.trim().split(/\s+/)[0] || lead.name;
+
+    // C40 — a REQUEST goes to her only; DECLINED/EXPIRED go to the prospect only.
+    if (kind === "requested") {
+      if (practitioner?.email) {
+        await sendEmail({
+          to: practitioner.email,
+          subject: `Discovery call requested — ${lead.name}, ${when}`,
+          text: `${lead.name} has asked for a free discovery call.\n\nWhen: ${when}\nEmail: ${lead.email}\n` + (lead.phone ? `Phone: ${lead.phone}\n` : "") + (lead.note ? `\nWhat brings them:\n${lead.note}\n` : "") + `\nApprove or decline from your schedule. Unanswered requests lapse after 48 hours.`,
+        });
+      }
+      await sendPushToUser(appt.practitionerId, { title: "Discovery call request", body: `${lead.name} · ${when}`, url: "/practitioner/schedule?show=requests" });
+      return;
+    }
+    if (kind === "declined" || kind === "expired") {
+      await sendEmail({
+        to: lead.email,
+        subject: kind === "declined" ? `About your request for ${when}` : `Your request for ${when} lapsed`,
+        text:
+          kind === "declined"
+            ? `[JACOB — decline copy. Placeholder: "Hi ${firstName}, ${practitioner?.name ?? "Valentina"} isn't able to take ${when}. You're welcome to request another time."]`
+            : `Hi ${firstName}, your discovery call request for ${when} wasn't answered within 48 hours, so that time has been released. You're welcome to request another.`,
+      });
+      return;
+    }
 
     const ics = buildInvite(appointmentEvent(appt, `${firstName} (discovery)`));
     const attachments = kind === "cancelled" ? undefined : [{ filename: "discovery-call.ics", content: ics }];
@@ -227,6 +302,7 @@ export type DiscoveryInvite = {
   endAt: Date;
   videoUrl: string | null;
   cancelled: boolean;
+  requested: boolean; // C40 — awaiting the practitioner; the confirmed page says so instead of "booked"
 };
 
 export async function getDiscoveryInvite(token: string): Promise<DiscoveryInvite | null> {
@@ -240,6 +316,7 @@ export async function getDiscoveryInvite(token: string): Promise<DiscoveryInvite
     endAt: appt.endAt,
     videoUrl: appt.videoUrl,
     cancelled: appt.status === "CANCELLED",
+    requested: appt.status === "REQUESTED",
   };
 }
 

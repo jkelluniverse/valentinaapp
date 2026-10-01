@@ -456,3 +456,17 @@ export function deletionRequestAckEmail(locale: Locale): Mail {
       `In the meantime, you can download a copy of your information from Settings → Your record.`,
   };
 }
+
+// C40 — the request outcomes a client hears about. DECLINE COPY IS JACOB'S;
+// the placeholder is marked so it cannot ship unnoticed (the C40 gate asserts
+// the marker is gone before release).
+export function requestOutcomeEmail(kind: "declined" | "expired", locale: Locale, v: { when: string; practitioner: string }): Mail {
+  if (kind === "declined") {
+    return locale === "es"
+      ? { subject: `Sobre tu solicitud del ${v.when}`, text: `[JACOB — copia de rechazo. Marcador: "${v.practitioner} no puede tomar el ${v.when}. Puedes solicitar otro horario cuando quieras."]` }
+      : { subject: `About your request for ${v.when}`, text: `[JACOB — decline copy. Placeholder: "${v.practitioner} isn't able to take ${v.when}. You're welcome to request another time."]` };
+  }
+  return locale === "es"
+    ? { subject: `Tu solicitud del ${v.when} venció`, text: `Tu solicitud de sesión para el ${v.when} no recibió respuesta en 48 horas, así que ese horario volvió a quedar disponible. Puedes solicitar otro cuando quieras.` }
+    : { subject: `Your request for ${v.when} lapsed`, text: `Your session request for ${v.when} wasn't answered within 48 hours, so that time has been released. You're welcome to request another.` };
+}

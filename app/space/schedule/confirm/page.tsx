@@ -3,6 +3,8 @@ import { requireClient } from "@/lib/auth-guards";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { getPractitioner, getOrCreateConfig, isSlotOpen, formatInZone, zoneAbbrev } from "@/lib/schedule";
 import { bookSlot } from "../actions";
+import { bookingRequiresApproval } from "@/lib/booking-mode";
+import { getTranslations } from "next-intl/server";
 import { PendingButton } from "@/components/PendingButton";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +14,8 @@ export default async function ConfirmBookingPage({
 }: {
   searchParams: { start?: string };
 }) {
+  const requiresApproval = await bookingRequiresApproval();
+  const tc = await getTranslations("sessions");
   const user = await requireClient();
   const practitioner = await getPractitioner();
   const startAt = searchParams.start ? new Date(searchParams.start) : null;
@@ -79,8 +83,9 @@ export default async function ConfirmBookingPage({
             />
           </label>
           <div className="flex items-center gap-4">
+            {/* RULING 224 — label true for the mode; note only when approval is required. */}
             <PendingButton className="rounded-md bg-wine px-5 py-2.5 text-sm font-medium text-cream transition-colors hover:bg-wine/90">
-              Confirm booking
+              {requiresApproval ? tc("schedule.requestThis") : "Confirm booking"}
             </PendingButton>
             <Link
               href="/space/schedule"
@@ -89,6 +94,7 @@ export default async function ConfirmBookingPage({
               Pick another time
             </Link>
           </div>
+          {requiresApproval && <p data-c40="request-note" className="text-sm text-slate">{tc("schedule.requestNote")}</p>}
         </form>
       </div>
     </div>

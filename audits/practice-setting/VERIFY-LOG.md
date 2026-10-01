@@ -1,6 +1,6 @@
 # C25-PRACTICE-SETTING-TENANCY — acceptance log
 
-Run: 2026-10-01T19:21:54.046Z · `npx tsx audits/practice-setting-verify.ts`
+Run: 2026-10-01T19:56:22.729Z · `npx tsx audits/practice-setting-verify.ts`
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
 Verify 3 and 5 run in a REAL BROWSER against the BUILT app, on each
@@ -8,7 +8,7 @@ practice's own host, for practices provisioned by the real signup service.
 Verify 7 and 9 reverse migration 49 and re-apply it against the live
 database, comparing every row before and after.
 
-# C25-PRACTICE-SETTING-TENANCY verify — 2026-10-01T19:21:33.653Z
+# C25-PRACTICE-SETTING-TENANCY verify — 2026-10-01T19:56:02.046Z
 
 ## Verify 1 — the five assumptions, confirmed or corrected
 - ✓ A1 — the 80-model sweep: no scoped model lacks an `id` column, and none is keyed by anything else — 80 models swept · no-id: none · pk≠id: none
@@ -17,8 +17,8 @@ database, comparing every row before and after.
 - ✓ A2 — CONFIRMED: at the pre-fix commit (a6c8bd8) `key` was the primary key AND the only uniqueness constraint on the table (no @unique, no @@unique, no @@id) — a6c8bd8 constraint annotations on PracticeSetting: @id
 - ✓ A2 — and it is now (tenantId, key): primary key on `id`, one unique index on (tenantId, key) — pk=(id) · indexes: PracticeSetting_pkey | PracticeSetting_tenantId_key_key
 - ✓ A3 — CORRECTED, and upward: the spec's "roughly ten" write paths is right for `upsert` alone, but the unique-key surface is larger — at a6c8bd8: 21 `upsert` sites and 42 unique-key call sites in total (upsert/update/delete/findUnique) across 32 files — every one of them addressed the row by `key` alone
-- ✓ A3 — and NO product code addresses a setting by unique key any more: lib/practice-settings.ts is the only place that does — 0 remaining sites under app/ and lib/ · 5 CLI harness site(s) remain, each on its own client
-- ✓ A3 — and nothing anywhere addresses a setting by `key` ALONE: every remaining CLI site names the tenant-qualified (tenantId, key) — audits/agreements/c21-verify.ts:upsert, audits/agreements/v31-verify.ts:upsert, audits/agreements/v31-verify.ts:upsert, audits/engage/verify.ts:upsert, prisma/fixtures/kfloor-verify.ts:upsert
+- ✓ A3 — and NO product code addresses a setting by unique key any more: lib/practice-settings.ts is the only place that does — 0 remaining sites under app/ and lib/ · 6 CLI harness site(s) remain, each on its own client
+- ✓ A3 — and nothing anywhere addresses a setting by `key` ALONE: every remaining CLI site names the tenant-qualified (tenantId, key) — audits/agreements/c21-verify.ts:upsert, audits/agreements/v31-verify.ts:upsert, audits/agreements/v31-verify.ts:upsert, audits/engage/verify.ts:upsert, audits/scheduling/requests-verify.ts:upsert, prisma/fixtures/kfloor-verify.ts:upsert
 - ✓ A4 — CONFIRMED: the engage kill-switch and pause are `PracticeSetting` rows, read by `findFirst({ where: { key } })`, and C25 changed zero lines of lib/engage.ts (pre-fix commit vs C25 merge, byte-identical) — both switches still read through a filter-form findFirst in the LIVE file, and a6c8bd8:lib/engage.ts === b23d8d2:lib/engage.ts
 - ✓ A5 — CONFIRMED: the default tenant's settings are readable, and after migration 49 none of them is a null-tenant row — 1 default-tenant row(s) · 0 null-tenant row(s)
 
@@ -27,10 +27,10 @@ database, comparing every row before and after.
 - ✓ BEFORE — and the failure mode is live, not asserted: selecting a column the model does not have is a PrismaClientValidationError, thrown before any tenancy check can run — error class: PrismaClientValidationError
 
 ## Verify 5 (first, because 3 and 4 build on it) — two practices created by the REAL signup service
-- ✓ two ACTIVE non-default practices exist, provisioned by lib/signup.ts exactly as a founding practitioner creates one — cmupx75rl0001r5e5pyj1eyr2 (ACTIVE) · cmupx76170009r5e5dwr1nk6p (ACTIVE)
+- ✓ two ACTIVE non-default practices exist, provisioned by lib/signup.ts exactly as a founding practitioner creates one — cmupyfhu600012hua1ai4std2 (ACTIVE) · cmupyfi4500092huaug6jfwhy (ACTIVE)
 
 ## Verify 2 (after) + 4 — the write succeeds, and two practices hold the same key independently
-- ✓ AFTER — the exact write this spec exists to fix now SUCCEEDS for a non-default tenant, and is stamped to that tenant — 3 rows for the one key: cmupx75rl0001r5e5pyj1eyr2=A-value · cmupx76170009r5e5dwr1nk6p=B-value · tnt_valentina_000000001=default-value
+- ✓ AFTER — the exact write this spec exists to fix now SUCCEEDS for a non-default tenant, and is stamped to that tenant — 3 rows for the one key: cmupyfhu600012hua1ai4std2=A-value · cmupyfi4500092huaug6jfwhy=B-value · tnt_valentina_000000001=default-value
 - ✓ V4 — THREE practices hold the SAME key with DIFFERENT values (the model was structurally single-practice before this build) — A-value, B-value, default-value
 - ✓ V4 — each practice reads its OWN value and only its own — A=A-value · B=B-value · default=default-value
 - ✓ V4 — a practice cannot READ a key only another practice holds — A reading B's psxProbeSecondKey: nothing
@@ -40,7 +40,7 @@ database, comparing every row before and after.
 ## Verify 8 — fail-closed preserved, on PracticeSetting AND on a normal id-keyed model
 - ✓ V8 — an UPSERT aimed at another practice's existing PracticeSetting row is REFUSED (the fix did not trade fail-closed away) — tenant-scope: practiceSetting.upsert target belongs to another tenant
 - ✓ V8 — a DELETE aimed at another practice's PracticeSetting row is REFUSED and the row survives — tenant-scope: practiceSetting.delete target not found in tenant scope
-- ✓ V8 — on a normal `id`-keyed model the pre-check still refuses a cross-tenant unique write, and the target row is untouched — tenant-scope: patternArchetype.upsert target belongs to another tenant · target still b/cmupx76170009r5e5dwr1nk6p
+- ✓ V8 — on a normal `id`-keyed model the pre-check still refuses a cross-tenant unique write, and the target row is untouched — tenant-scope: patternArchetype.upsert target belongs to another tenant · target still b/cmupyfi4500092huaug6jfwhy
 - ✓ V8 — and an UPDATE by another tenant's primary key is still refused — tenant-scope: patternArchetype.update target not found in tenant scope
 - ✓ V8 — the DMMF derivation serves a compound PK and a non-`id` PK, and FAILS CLOSED (throws) for a model it cannot identify — it never returns a skip — compound={"a":true,"b":true} · non-id pk={"key":true} · unkeyable throws ModelIdentityError · unknown delegate throws ModelIdentityError
 - ✓ V8 — and the derivation covers every one of the 80 scoped models, so no write reaches the fail-closed branch unidentified — 80/80 scoped delegates resolve to a non-empty identity select
@@ -64,10 +64,10 @@ database, comparing every row before and after.
 ## Verify 3 — a founding practitioner writes and reads a setting INSIDE A REAL REQUEST on their own host
 - ✓ both founding practitioners sign in on their OWN host and reach their own settings page (the surface the defect blocked) — http://psxprobea.psx.test:3141/practitioner/settings · http://psxprobeb.psx.test:3141/practitioner/settings
 - ✓ …and the request really carries her own host, so this is the request path a practitioner uses, not a simulation — Host: psxprobea.psx.test:3141
-- ✓ V3 — the setting is WRITTEN inside a real request on her own host, owned by HER practice — rows before=0 · after: value=off tenantId=cmupx75rl0001r5e5pyj1eyr2 · url /practitioner/settings?saved=assist
+- ✓ V3 — the setting is WRITTEN inside a real request on her own host, owned by HER practice — rows before=0 · after: value=off tenantId=cmupyfhu600012hua1ai4std2 · url /practitioner/settings?saved=assist
 - ✓ V3 — and READ BACK inside a real request: her page renders the value she just saved — assistNotify checkbox rendered checked=false (she turned it off)
 - ✓ V3/V4 — the OTHER practice's identical page is untouched by her save: no row of its own, default state, and Valentina's practice unaffected — B checkbox=true · B rows=0 · default-tenant rows=0
-- ✓ V3/V4 — both practices now hold `assistNotifyEmail` independently, each written through its own real request — cmupx75rl0001r5e5pyj1eyr2=off · cmupx76170009r5e5dwr1nk6p=off
+- ✓ V3/V4 — both practices now hold `assistNotifyEmail` independently, each written through its own real request — cmupyfhu600012hua1ai4std2=off · cmupyfi4500092huaug6jfwhy=off
 - ✓ V3 — saving the same key again UPDATES her one row (no duplicate), and the other practice's value is still its own — A: 1 row(s) = on · B still off
 ~ probe practices, probe settings and probe archetypes removed
 - ✓ SELF-CLEANING: this harness leaves zero null-tenant rows behind — {}

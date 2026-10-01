@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 // name, status, call date, and their note, plus the one conversion action.
 const STATUS_LABEL: Record<string, string> = {
   NEW: "New",
+  REQUESTED: "Call requested", // C40 — asked, not yet agreed
   SCHEDULED: "Call booked",
   COMPLETED: "Call done",
   CONVERTED: "Client",

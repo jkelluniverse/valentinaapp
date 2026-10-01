@@ -160,6 +160,15 @@ export default async function TheStudy() {
       href: `/practitioner/clients/${r.id}/prep`,
     });
   }
+  // C40 — session requests waiting for her answer, above agreements: a request
+  // lapses in 48 hours, so it is the one with a clock on it.
+  const pendingRequests = await prisma.appointment.count({ where: { status: "REQUESTED" } }).catch(() => 0);
+  if (pendingRequests > 0) {
+    signals.push({
+      text: pendingRequests === 1 ? "One session request is waiting for your answer." : `${pendingRequests} session requests are waiting for your answer.`,
+      href: "/practitioner/schedule#requests",
+    });
+  }
   // C21 — agreements needing motion: awaiting signature, or signed and
   // waiting on her countersign. One line each, straight to the desk.
   const [awaitingSig, awaitingCounter] = await Promise.all([

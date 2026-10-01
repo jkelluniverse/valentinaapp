@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PendingButton } from "@/components/PendingButton";
+import { withdrawMyRequest } from "./actions";
 import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireClient } from "@/lib/auth-guards";
@@ -75,7 +77,8 @@ export default async function ClientSchedulePage({
 
   const [upcoming, { slots }, charges, packages, packageSkus] = await Promise.all([
     prisma.appointment.findMany({
-      where: { clientId: user.id, status: "SCHEDULED", startAt: { gte: now } },
+      // C40 §0.3 — a client must SEE their own pending request, or they request again.
+      where: { clientId: user.id, status: { in: ["SCHEDULED", "REQUESTED"] }, startAt: { gte: now } },
       orderBy: { startAt: "asc" },
     }),
     openSlots(practitioner.id, now, new Date(now.getTime() + config.maxAdvanceDays * DAY_MS), now),
@@ -254,7 +257,17 @@ export default async function ClientSchedulePage({
                       {user.locale === "es" ? "esta sesión se graba" : "this session is recorded"}
                     </span>
                   )}
+                  {a.status === "REQUESTED" && (
+                    <span data-c40="requested-row" className="rounded-full border border-dashed border-mocha px-2.5 py-0.5 text-[12px] font-medium text-mocha">
+                      {t("schedule.requested")}
+                    </span>
+                  )}
                   <span className="ml-auto flex items-center gap-4">
+                    {a.status === "REQUESTED" && (
+                      <form action={withdrawMyRequest.bind(null, a.id)}>
+                        <PendingButton className="text-sm text-slate underline-offset-4 hover:text-wine hover:underline">{t("schedule.withdraw")}</PendingButton>
+                      </form>
+                    )}
                     {a.location === "VIRTUAL" && a.videoUrl && (
                       <a
                         href={a.videoUrl}

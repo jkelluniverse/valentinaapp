@@ -6,7 +6,8 @@
 
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { bookDiscoveryCall } from "@/lib/discovery";
+import { bookingRequiresApproval } from "@/lib/booking-mode";
+import { bookDiscoveryCall, requestDiscoveryCall } from "@/lib/discovery";
 import { signToken } from "@/lib/sign";
 import { getBaseUrl } from "@/lib/base-url";
 
@@ -50,15 +51,11 @@ export async function submitBooking(formData: FormData): Promise<void> {
   const startAt = new Date(startIso);
   if (Number.isNaN(startAt.getTime())) redirect("/book?error=missing");
 
-  const result = await bookDiscoveryCall({
-    name,
-    email,
-    phone: phone || null,
-    note: note || null,
-    startAt,
-    source,
-    baseUrl: getBaseUrl(),
-  });
+  // C40 §1.6 — ONE branch. Everything above (honeypot, rate limit, field
+  // validation) is shared; the setting decides only which create runs. With
+  // the setting off this is the pre-C40 call, byte for byte.
+  const args = { name, email, phone: phone || null, note: note || null, startAt, source, baseUrl: getBaseUrl() };
+  const result = (await bookingRequiresApproval()) ? await requestDiscoveryCall(args) : await bookDiscoveryCall(args);
 
   if (!result.ok) {
     redirect(`/book?error=${result.error === "no_practitioner" ? "unavailable" : result.error}`);

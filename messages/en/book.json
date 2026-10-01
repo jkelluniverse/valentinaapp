@@ -1,0 +1,17 @@
+{
+  "book": {
+    "submit": "Confirm my call",
+    "submitRequest": "Request my call",
+    "requestNote": "Your request goes to {practitioner} to confirm. You'll get an email when it's confirmed, or if a different time is offered.",
+    "confirmed": {
+      "eyebrow": "Confirmed",
+      "title": "Your call is booked",
+      "lede": "A confirmation is on its way to your inbox, with a calendar invite and a link to reschedule if you need to. Valentina looks forward to speaking with you."
+    },
+    "requested": {
+      "eyebrow": "Requested",
+      "title": "Your request is in",
+      "lede": "{practitioner} will confirm your call within two days. You'll get an email when it's confirmed, or if a different time is offered. If you don't hear back in 48 hours, the time frees itself and you're welcome to request another."
+    }
+  }
+}

@@ -5,6 +5,10 @@ import { redirect } from "next/navigation";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { prisma } from "@/lib/prisma";
 import { writePracticeSetting } from "@/lib/practice-settings";
+import { approveRequest, declineRequest } from "@/lib/appointments";
+import { approveDiscoveryRequest, declineDiscoveryRequest } from "@/lib/discovery";
+import { getBaseUrl } from "@/lib/base-url";
+import { getPractitioner } from "@/lib/schedule";
 import {
   completeAppointment,
   markNoShow,
@@ -81,4 +85,26 @@ export async function setRecordingConfirmed(appointmentId: string, value: boolea
   console.log(`[recording] per-session confirm appt=${appointmentId} value=${value}`);
   revalidatePath("/practitioner/schedule");
   redirect("/practitioner/schedule");
+}
+
+// C40 — approve / decline a pending request. Dispatch by kind: a SESSION request
+// goes through lib/appointments (the one booking tail); a DISCOVERY request
+// through lib/discovery (the second path). Both re-check the slot first.
+export async function approveRequestAction(appointmentId: string) {
+  await requirePractitioner();
+  const p = await getPractitioner();
+  if (!p) redirect("/practitioner/schedule");
+  const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, practitionerId: p.id }, select: { kind: true } });
+  const r = appt?.kind === "DISCOVERY" ? await approveDiscoveryRequest(appointmentId, p.id, getBaseUrl()) : await approveRequest(appointmentId, p.id);
+  revalidatePath("/practitioner/schedule");
+  redirect(`/practitioner/schedule?request=${r.ok ? "approved" : r.error === "conflict" ? "conflict" : "gone"}#requests`);
+}
+export async function declineRequestAction(appointmentId: string) {
+  await requirePractitioner();
+  const p = await getPractitioner();
+  if (!p) redirect("/practitioner/schedule");
+  const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, practitionerId: p.id }, select: { kind: true } });
+  if (appt?.kind === "DISCOVERY") await declineDiscoveryRequest(appointmentId, p.id, getBaseUrl()); else await declineRequest(appointmentId, p.id);
+  revalidatePath("/practitioner/schedule");
+  redirect("/practitioner/schedule?request=declined#requests");
 }

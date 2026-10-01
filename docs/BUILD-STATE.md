@@ -59,6 +59,35 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C40-APPOINTMENT-REQUESTS built (2026-10-01; rulings 223-234 as RATIFIED IN MY SPEC TEXT —
+  the Architect's amendments at 232-233 were never received verbatim, flagged in the report).
+  Items 1 + 3. Migration 55 additive (REQUESTED/DECLINED/EXPIRED, LeadStatus.REQUESTED,
+  reminder30SentAt). "Busy" is ONE constant, BUSY_STATUSES, read by all THREE sites
+  (generateSlots :228 re-filter, openSlots, hasConflict) — the third site the spec found.
+  Booking's tail (charge + notify) extracted into confirmAppointment and called by BOTH
+  createAppointment and approveRequest, so approval runs the identical code; the three gates
+  that drive today's booking (discovery 19/19, ext-scheduling, c20 28/28) were green before any
+  request code was written. BOTH booking paths: /space/schedule (bookSlot) and /book
+  (submitBooking -> requestDiscoveryCall). Setting bookingRequiresApproval default OFF; the
+  branch is one line in each action. Tick: requestsExpired (48h, createdAt) and reminders30
+  (30-45 min, both parties, practitioner gets DISCOVERY too) — both keys PRESENT at zero.
+  Item 3: PracticeSetting keys notify.*, defaults = today (client 1d both, everything new
+  off), practitioner is a push recipient for the first time (ruling 220), settings page with
+  PushToggle reuse, autoPayReminders gets its writer. RULING 224: /book gained the copy
+  catalogue it never had (lib/book-copy.ts, en+es, ?lang=); the server sends ONLY the mode's
+  label and note — both labels in the RSC payload was ruling 203's blind spot again.
+  Gate appt-requests 46/46 (Playwright drives the REAL /book form on the tenant's own host via
+  --host-resolver-rules, because a Next server action refuses a forwarded-host Origin —
+  "Invalid Server Actions request"). Sweep 48 -> 49, 49/49.
+  INSTRUMENT FAULTS FOUND BUILDING THE GATE, each by measuring: raw POST to a server-action
+  form = 200 and nothing written; hidden input never "visible"; mail ledger matched the wrong
+  skip branch (no practice email -> lib/notify.ts:249); confirm page gates on LEGACY
+  User.consentAt, not ConsentGrant; a stale slot index said "taken".
+  ⚠ TRACKED: decline copy is a LABELLED PLACEHOLDER ("[JACOB — …") in both locales. It can
+  reach a client only if a practice turns the setting ON and declines. Jacob writes it.
+  ⚠ NOTED, not fixed: app/space/schedule/confirm checks User.consentAt while bookSlot checks
+  hasConsent() — two consent sources for one flow. recordConsent stamps both, so no live
+  client is affected; a future divergence would be. Not C40's to change.
 - Ruling 247 (2026-10-01) — the money webhooks' response bodies DO NOT change: { ok: true }
   for a handled drop and a success alike, because anything that looks like failure invites a
   retry storm against a message already correctly refused. The EVIDENCE moved to the log:

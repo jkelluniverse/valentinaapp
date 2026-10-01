@@ -7,6 +7,14 @@ import type {
 } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
+// C40 / RULING 223 — WHAT "BUSY" MEANS, DEFINED ONCE. A pending request holds
+// its slot exactly as a confirmed session does: a held slot is recoverable, a
+// double-booking with a real client is not. Three places decide availability —
+// generateSlots' re-filter, openSlots' fetch and hasConflict's write-path
+// guard — and before C40 each spelled the literal "SCHEDULED" on its own,
+// which is how a widening could reach two and miss the third. They read this.
+export const BUSY_STATUSES = ["SCHEDULED", "REQUESTED"] as const;
+
 // C10 — scheduling core. Times are stored in UTC; the practitioner's timezone
 // lives on SchedulingConfig. Slot generation walks civil dates in that timezone
 // and converts each candidate wall-clock time to a UTC instant with a
@@ -225,7 +233,7 @@ export function generateSlots(input: SlotInputs): Slot[] {
   // Busy intervals from live appointments, padded by the buffer so we never
   // book right up against another session.
   const busy = appointments
-    .filter((a) => a.status === "SCHEDULED")
+    .filter((a) => (BUSY_STATUSES as readonly string[]).includes(a.status))
     .map((a) => ({
       start: a.startAt.getTime() - bufferMs,
       end: a.endAt.getTime() + bufferMs,
@@ -307,7 +315,7 @@ export async function openSlots(
       where: { practitionerId, date: { gte: startOfCivilDay(from), lte: to } },
     }),
     prisma.appointment.findMany({
-      where: { practitionerId, status: "SCHEDULED", endAt: { gte: from }, startAt: { lte: to } },
+      where: { practitionerId, status: { in: [...BUSY_STATUSES] }, endAt: { gte: from }, startAt: { lte: to } },
       select: { startAt: true, endAt: true, status: true },
     }),
   ]);
@@ -347,7 +355,7 @@ export async function hasConflict(
   const clash = await prisma.appointment.findFirst({
     where: {
       practitionerId,
-      status: "SCHEDULED",
+      status: { in: [...BUSY_STATUSES] },
       ...(ignoreAppointmentId ? { id: { not: ignoreAppointmentId } } : {}),
       startAt: { lt: new Date(endAt.getTime() + bufferMs) },
       endAt: { gt: new Date(startAt.getTime() - bufferMs) },

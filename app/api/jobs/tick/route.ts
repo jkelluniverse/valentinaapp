@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { readPracticeSetting } from "@/lib/practice-settings";
-import { completeAppointment, clientLabel } from "@/lib/appointments";
+import { completeAppointment, clientLabel, expireStaleRequests } from "@/lib/appointments";
 import { packageCounters, activatePackageForCharge } from "@/lib/packages";
 import { getPaymentOrderId, getOrderReferenceId } from "@/lib/square";
 import { sendReceiptForCharge } from "@/lib/receipts";
@@ -11,6 +11,7 @@ import { pickLocale, paymentReminderEmail, payeeInvoiceEmail, packageCompletedEm
 import { chargeEmailContext } from "@/lib/invoice-context";
 import { getBaseUrlSafe } from "@/lib/base-url";
 import { sendPushToUser } from "@/lib/push";
+import { channelsFor, NOTIFY_KEYS } from "@/lib/notify-prefs";
 import { getOrCreateConfig, getPractitioner, formatInZone, zoneAbbrev } from "@/lib/schedule";
 
 export const dynamic = "force-dynamic";
@@ -137,6 +138,17 @@ async function handle(req: NextRequest) {
     console.error("[tick] auto-complete failed", e instanceof Error ? e.message : "");
   }
 
+  // 1b. C40 / RULING 223 — expire stale requests: REQUESTED, 48h since
+  //     createdAt → EXPIRED, slot freed, client told. The status change is the
+  //     mark. The key is ALWAYS present in the report (ruling 112): an absent
+  //     key is a step that did not run; a present 0 is a step that found none.
+  try {
+    report.requestsExpired = await expireStaleRequests(now);
+  } catch (e) {
+    report.requestsExpired = "error";
+    console.error("[tick] request expiry failed", e instanceof Error ? e.message : "");
+  }
+
   // 2. Renewal moment #1 (§6): the practitioner hears BEFORE the last session —
   //    the renewal conversation belongs in the room.
   try {
@@ -253,7 +265,7 @@ async function handle(req: NextRequest) {
           reminderSentAt: null,
           startAt: { gt: now, lt: new Date(now.getTime() + 24 * 3_600_000) },
         },
-        include: { client: { select: { id: true, email: true, locale: true } } },
+        include: { client: { select: { id: true, email: true, locale: true, name: true } } },
         take: 50,
       });
       for (const a of soon) {
@@ -263,18 +275,25 @@ async function handle(req: NextRequest) {
           weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit",
           locale: locale === "es" ? "es-419" : "en-US",
         })} ${zoneAbbrev(a.startAt, config.timezone)}`;
-        if (a.client.email) {
+        // C40 item 3 — channels per practice; with no row this is "both",
+        // which is exactly what fired before C40 (the gate asserts it).
+        const ch = await channelsFor(NOTIFY_KEYS.reminder1dClient);
+        if (ch.email && a.client.email) {
           const mail = sessionReminderEmail(locale, {
             when,
             videoUrl: a.location === "VIRTUAL" ? a.videoUrl : null,
           });
           await sendEmail({ to: a.client.email, subject: mail.subject, text: mail.text });
         }
-        await sendPushToUser(a.client.id, {
+        if (ch.push) await sendPushToUser(a.client.id, {
           title: locale === "es" ? "Tu sesión es mañana" : "Your session is tomorrow",
           body: when,
           url: "/space/schedule",
         });
+        // C40 item 3 — the practitioner, a NEW recipient (ruling 219): off by default.
+        const pch = await channelsFor(NOTIFY_KEYS.reminder1dPractitioner);
+        if (pch.email && practitionerUser?.email) await sendEmail({ to: practitionerUser.email, subject: `Tomorrow — ${clientLabel(a.client)}, ${when}`, text: `A session with ${clientLabel(a.client)} is tomorrow at ${when}.` });
+        if (pch.push && practitionerUser) await sendPushToUser(practitionerUser.id, { title: "Session tomorrow", body: `${clientLabel(a.client)} · ${when}`, url: "/practitioner/schedule" });
         await prisma.appointment.update({
           where: { id: a.id },
           data: { reminderSentAt: now },
@@ -286,6 +305,46 @@ async function handle(req: NextRequest) {
   } catch (e) {
     report.sessionReminders = "error";
     console.error("[tick] session reminders failed", e instanceof Error ? e.message : "");
+  }
+
+  // 5c. C40 item 3 — the ~30-minute reminder, both parties, OFF by default.
+  //     PRECISION, STATED HONESTLY: this tick runs every 15 minutes, so the
+  //     window is (now+15m, now+45m] and delivery lands 30–45 minutes before —
+  //     never later than 30, and the settings page says "about 30 minutes".
+  //     Includes DISCOVERY for the PRACTITIONER only (spec §2.4): their client
+  //     is a Lead whose email went to Calendly, which is already reminding them.
+  try {
+    const practitionerUser = await getPractitioner();
+    const config = practitionerUser ? await getOrCreateConfig(practitionerUser.id) : null;
+    let sent = 0;
+    const cch = await channelsFor(NOTIFY_KEYS.reminder30Client);
+    const pch = await channelsFor(NOTIFY_KEYS.reminder30Practitioner);
+    if (config && (cch.email || cch.push || pch.email || pch.push)) {
+      const soon = await prisma.appointment.findMany({
+        where: { status: "SCHEDULED", reminder30SentAt: null, startAt: { gt: new Date(now.getTime() + 15 * 60_000), lte: new Date(now.getTime() + 45 * 60_000) } },
+        include: { client: { select: { id: true, email: true, locale: true, name: true } }, lead: { select: { name: true } } },
+        take: 50,
+      });
+      for (const a of soon) {
+        const when = `${formatInZone(a.startAt, config.timezone, { hour: "numeric", minute: "2-digit" })} ${zoneAbbrev(a.startAt, config.timezone)}`;
+        const who = a.client ? clientLabel(a.client) : a.lead?.name ?? "a prospect";
+        if (a.client && a.kind === "SESSION") {
+          const locale = pickLocale(a.client.locale);
+          if (cch.email && a.client.email) await sendEmail({ to: a.client.email, subject: locale === "es" ? `Tu sesión empieza pronto — ${when}` : `Your session starts soon — ${when}`, text: (locale === "es" ? `Tu sesión es a las ${when}.` : `Your session is at ${when}.`) + (a.location === "VIRTUAL" && a.videoUrl ? `\n\n${a.videoUrl}` : "") });
+          if (cch.push) await sendPushToUser(a.client.id, { title: locale === "es" ? "Tu sesión empieza pronto" : "Your session starts soon", body: when, url: "/space/schedule" });
+        }
+        if (practitionerUser) {
+          if (pch.email && practitionerUser.email) await sendEmail({ to: practitionerUser.email, subject: `Starting soon — ${who}, ${when}`, text: `${who} at ${when}.` + (a.videoUrl ? `\n\n${a.videoUrl}` : "") });
+          if (pch.push) await sendPushToUser(practitionerUser.id, { title: "Starting soon", body: `${who} · ${when}`, url: "/practitioner/schedule" });
+        }
+        await prisma.appointment.update({ where: { id: a.id }, data: { reminder30SentAt: now } });
+        sent++;
+      }
+    }
+    report.reminders30 = sent;
+  } catch (e) {
+    report.reminders30 = "error";
+    console.error("[tick] 30-minute reminders failed", e instanceof Error ? e.message : "");
   }
 
   // 5. Auto payment reminders (§9): opt-in, her tone, never a cascade —

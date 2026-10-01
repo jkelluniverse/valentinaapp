@@ -8,12 +8,19 @@ import { PendingButton } from "@/components/PendingButton";
 // The server action is passed in from the (server) page; this component holds
 // only selection state + the anti-abuse fields (honeypot + render timestamp).
 
+// RULING 224 — the SERVER picks the label and sends ONLY it. A client component's
+// props travel in the RSC payload whether rendered or not, so sending both
+// labels would put "Confirm my call" in a page that shows "Request my call" —
+// the same unrendered-content blind spot ruling 203 found. The browser receives
+// the copy that is TRUE for the mode and nothing else.
+export type BookCopyProps = { submit: string; requestNote: string | null };
 export function BookingFlow({
   days,
   timezone,
   action,
   error,
   practiceName,
+  copy,
 }: {
   days: DiscoveryDay[];
   timezone: string;
@@ -21,6 +28,7 @@ export function BookingFlow({
   error?: string;
   /** C29 — set ONLY for non-default tenants; the default keeps its original copy. */
   practiceName?: string;
+  copy: BookCopyProps;
 }) {
   const [dayKey, setDayKey] = useState(days[0]?.key ?? "");
   const [slotIso, setSlotIso] = useState<string>("");
@@ -173,9 +181,16 @@ export function BookingFlow({
             />
           </label>
 
+          {/* RULING 224 — the label is TRUE for the mode. "Confirm" when
+              booking confirms; "Request" plus the note when the practitioner
+              must approve. The wrong label in either direction is a false
+              promise to a stranger, and the gate asserts both states. */}
           <PendingButton className="mt-2 rounded-pill bg-wine px-7 py-3 text-[15px] font-medium text-white shadow-soft transition-colors hover:bg-wine-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine">
-            Confirm my call
+            {copy.submit}
           </PendingButton>
+          {copy.requestNote && (
+            <p data-c40="request-note" className="text-[14px] leading-relaxed text-ink">{copy.requestNote}</p>
+          )}
           <p className="text-[13px] leading-relaxed text-whisper">
             Your details are used only to arrange and confirm this call. Nothing is shared. See our{" "}
             <a href="/privacy" className="underline underline-offset-2 hover:text-wine">

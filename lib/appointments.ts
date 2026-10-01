@@ -14,9 +14,10 @@ import {
   releaseCreditForAppointment,
   unconsumeCreditForAppointment,
 } from "@/lib/packages";
-import { pickLocale, sessionEmail, lateFeeEmail } from "@/lib/email-copy";
+import { pickLocale, sessionEmail, lateFeeEmail , requestOutcomeEmail } from "@/lib/email-copy";
 import { getBaseUrlSafe } from "@/lib/base-url";
 import { sendPushToUser } from "@/lib/push";
+import { channelsFor, NOTIFY_KEYS } from "@/lib/notify-prefs";
 
 // The service layer for appointments: booking with a server-side double-book
 // guard, reschedule, cancel, the completion lifecycle (C13-PKG §5), the
@@ -95,13 +96,104 @@ export async function createAppointment(args: BookArgs) {
     },
   });
 
+  await confirmAppointment(appt);
+  return { ok: true as const, appointment: appt };
+}
+
+// C40 — THE ONE TAIL. Booking creates money and mail in the same call; before
+// C40 those two lines lived inline above. They are here so that APPROVING a
+// request runs the identical code, in the identical order, rather than a copy
+// of it. Two callers, one function: createAppointment and approveRequest.
+async function confirmAppointment(appt: Awaited<ReturnType<typeof prisma.appointment.create>>): Promise<void> {
   // C13.2 + C13-PKG §4: a package credit covers the session when available;
   // otherwise a DUE charge at her current rate (silently skipped while the
   // price book is empty — shows as "unbilled").
   await createChargeForAppointment(appt);
-
   await notify(appt.id, "booked");
+}
+
+// C40 — REQUEST-AND-APPROVE (rulings 223, 226-234). Same preamble as
+// createAppointment — config, conflict guard — then a REQUESTED row and
+// NOTHING ELSE: no charge, no client email, no video link (the room is
+// committed on approval, so a declined request never leaked a meeting link).
+// The practitioner hears; the client sees it on their own schedule page.
+export async function requestAppointment(args: BookArgs) {
+  const config = await getOrCreateConfig(args.practitionerId);
+  if (await hasConflict(args.practitionerId, args.startAt, args.endAt, config.bufferMinutes)) {
+    return { ok: false as const, error: "conflict" };
+  }
+  const appt = await prisma.appointment.create({
+    data: {
+      practitionerId: args.practitionerId,
+      clientId: args.clientId,
+      startAt: args.startAt,
+      endAt: args.endAt,
+      status: "REQUESTED",
+      location: args.location ?? "VIRTUAL",
+      bookedBy: args.bookedBy,
+      clientNote: args.clientNote?.trim() || null,
+    },
+  });
+  await notify(appt.id, "requested");
   return { ok: true as const, appointment: appt };
+}
+
+/** Approval goes THROUGH the booking tail, never beside it. Re-checks the slot
+ *  first (a C37 booking may have landed meanwhile); the request itself is
+ *  busy under ruling 223, so it is ignored on the re-check or it would
+ *  conflict with itself. On conflict the request STAYS requested — her call. */
+export async function approveRequest(appointmentId: string, practitionerId: string) {
+  const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, practitionerId } });
+  if (!appt || appt.status !== "REQUESTED") return { ok: false as const, error: "not-requested" };
+  const config = await getOrCreateConfig(practitionerId);
+  if (await hasConflict(practitionerId, appt.startAt, appt.endAt, config.bufferMinutes, appointmentId)) {
+    return { ok: false as const, error: "conflict" };
+  }
+  const videoUrl = appt.location === "VIRTUAL" ? config.defaultVideoUrl || null : null;
+  const confirmed = await prisma.appointment.update({
+    where: { id: appointmentId },
+    data: { status: "SCHEDULED", videoUrl, videoProvider: videoUrl ? "MANUAL" : null },
+  });
+  await confirmAppointment(confirmed);
+  return { ok: true as const, appointment: confirmed };
+}
+
+export async function declineRequest(appointmentId: string, practitionerId: string) {
+  const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, practitionerId } });
+  if (!appt || appt.status !== "REQUESTED") return { ok: false as const, error: "not-requested" };
+  await prisma.appointment.update({ where: { id: appointmentId }, data: { status: "DECLINED" } });
+  await notify(appointmentId, "declined");
+  return { ok: true as const };
+}
+
+/** The client withdraws their own request. Not the cancel-with-policy path:
+ *  nothing was charged, so there is nothing to refund or fee. */
+export async function withdrawRequest(appointmentId: string, clientId: string) {
+  const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, clientId } });
+  if (!appt || appt.status !== "REQUESTED") return { ok: false as const, error: "not-requested" };
+  await prisma.appointment.update({ where: { id: appointmentId }, data: { status: "CANCELLED" } });
+  return { ok: true as const };
+}
+
+/** RULING 223 — the tick's step: REQUESTED and older than 48h since createdAt
+ *  → EXPIRED, slot freed, client told. The status change is the idempotency
+ *  mark. The clock is createdAt, not last-viewed: a request she opened and did
+ *  not answer still lapses. */
+export const REQUEST_TTL_MS = 48 * 3_600_000;
+export async function expireStaleRequests(now: Date): Promise<number> {
+  const stale = await prisma.appointment.findMany({
+    where: { status: "REQUESTED", createdAt: { lt: new Date(now.getTime() - REQUEST_TTL_MS) } },
+    select: { id: true, kind: true },
+    take: 100,
+  });
+  for (const a of stale) {
+    await prisma.appointment.update({ where: { id: a.id }, data: { status: "EXPIRED" } });
+    if (a.kind === "DISCOVERY") {
+      await prisma.lead.updateMany({ where: { appointmentId: a.id }, data: { status: "CLOSED" } });
+    }
+    await notify(a.id, "expired");
+  }
+  return stale.length;
 }
 
 export async function rescheduleAppointment(
@@ -320,7 +412,7 @@ export async function revertAppointmentStatus(appointmentId: string, actorId: st
   return { ok: true as const };
 }
 
-type NotifyKind = "booked" | "rescheduled" | "cancelled";
+type NotifyKind = "booked" | "rescheduled" | "cancelled" | "requested" | "declined" | "expired"; // C40 adds the last three
 
 // Email both parties on a change, with an .ics invite so the appointment can be
 // added in one tap (covers the subscribed feed's refresh lag). Never throws —
@@ -359,6 +451,41 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
       minute: "2-digit",
     })} ${zoneAbbrev(appt.startAt, config.timezone)}`;
 
+    // C40 — a REQUEST is practitioner-facing only: no .ics (nothing is on any
+    // calendar yet), no client mail (they are looking at the page). Push to
+    // HER — the first practitioner recipient push has ever had (ruling 220).
+    if (kind === "requested") {
+      const ch = await channelsFor(NOTIFY_KEYS.requestNew);
+      if (ch.email && practitioner?.email) {
+        await sendEmail({
+          to: practitioner.email,
+          subject: `Session request — ${label}, ${whenEn}`,
+          text:
+            `${label} has asked for a session.\n\nWhen: ${whenEn}\n` +
+            (appt.clientNote ? `Topic: ${appt.clientNote}\n` : "") +
+            `\nApprove or decline from your schedule. Unanswered requests lapse after 48 hours and the time frees itself.`,
+        });
+      }
+      if (ch.push) await sendPushToUser(appt.practitionerId, { title: "Session request", body: `${label} · ${whenEn}`, url: "/practitioner/schedule#requests" });
+      return;
+    }
+    // C40 — DECLINED / EXPIRED are client-facing only: no .ics, nothing to her
+    // (she declined it, or the tick timed it out).
+    if (kind === "declined" || kind === "expired") {
+      const ch = await channelsFor(NOTIFY_KEYS.requestOutcome);
+      if (ch.email && appt.client.email) {
+        const mail = requestOutcomeEmail(kind, locale, { when, practitioner: practitioner?.name ?? "your practitioner" });
+        await sendEmail({ to: appt.client.email, subject: mail.subject, text: mail.text });
+      }
+      if (ch.push && appt.clientId) {
+        await sendPushToUser(appt.clientId, {
+          title: kind === "declined" ? (locale === "es" ? "Solicitud no aceptada" : "Request not accepted") : (locale === "es" ? "Solicitud vencida" : "Request lapsed"),
+          body: when, url: "/space/schedule",
+        });
+      }
+      return;
+    }
+
     const verb =
       kind === "booked" ? "booked" : kind === "rescheduled" ? "moved" : "cancelled";
     const ics = buildInvite(appointmentEvent(appt, label));
@@ -382,7 +509,7 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
 
     // Client — their confirmation / update, in their language.
     if (appt.client.email) {
-      const mail = sessionEmail(kind, locale, {
+      const mail = sessionEmail(kind as "booked" | "rescheduled" | "cancelled", locale, {
         when,
         videoUrl: kind !== "cancelled" && appt.location === "VIRTUAL" ? appt.videoUrl : null,
       });
@@ -392,13 +519,13 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
     // …and the same word on their phone (push carries no details beyond the time).
     if (appt.clientId) {
       const es = locale === "es";
-      const titles: Record<NotifyKind, [string, string]> = {
+      const titles: Record<"booked" | "rescheduled" | "cancelled", [string, string]> = {
         booked: ["Session confirmed", "Sesión confirmada"],
         rescheduled: ["Session updated", "Sesión actualizada"],
         cancelled: ["Session cancelled", "Sesión cancelada"],
       };
       await sendPushToUser(appt.clientId, {
-        title: titles[kind][es ? 1 : 0],
+        title: titles[kind as "booked" | "rescheduled" | "cancelled"][es ? 1 : 0],
         body: when,
         url: "/space/schedule",
       });

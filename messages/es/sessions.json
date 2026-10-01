@@ -12,7 +12,9 @@
       "rescheduledFee": "Tu sesión tiene un nuevo horario — la confirmación va en camino. El cargo por cambio tardío está abajo, para cuando puedas.",
       "paid": "Pagado — gracias. El recibo queda con tu estado de cuenta.",
       "package": "Gracias — tu paquete ya está activo. Las sesiones que reserves ahora salen de él.",
-      "taken": "Ese horario se acaba de ocupar — elige otro, por favor."
+      "taken": "Ese horario se acaba de ocupar — elige otro, por favor.",
+      "requested": "Solicitada. Tu practicante confirmará en un plazo de dos días.",
+      "withdrawn": "Solicitud retirada."
     },
     "upcoming": "Tus próximas sesiones",
     "join": "Entrar",
@@ -26,7 +28,11 @@
     "settle": "Pagar esta sesión",
     "openTimes": "Horarios disponibles",
     "back": "Volver a tu espacio",
-    "addToCalendar": "Agregar al calendario:"
+    "addToCalendar": "Agregar al calendario:",
+    "requested": "Solicitada — pendiente de confirmación",
+    "withdraw": "Retirar solicitud",
+    "requestThis": "Solicitar esta sesión",
+    "requestNote": "Tu solicitud le llega a tu practicante para confirmar. Recibirás un correo cuando se confirme, o si se te ofrece otro horario."
   },
   "package": {
     "title": "Tu paquete",

@@ -5,7 +5,7 @@ import { requirePractitioner } from "@/lib/auth-guards";
 import { getBaseUrl } from "@/lib/base-url";
 import { SignatureRule, Eyebrow } from "@/components/brand";
 import { getPractitioner, getOrCreateConfig, formatInZone, zoneAbbrev, DAY_MS } from "@/lib/schedule";
-import { partyLabel } from "@/lib/appointments";
+import { partyLabel, REQUEST_TTL_MS } from "@/lib/appointments";
 import { formatMoney } from "@/lib/billing";
 import { emailConfigured } from "@/lib/notify";
 import { CopyField } from "@/components/CopyField";
@@ -18,6 +18,8 @@ import {
   revertSessionStatus,
   setCalendarSyncDone,
   setRecordingConfirmed,
+  approveRequestAction,
+  declineRequestAction,
 } from "./actions";
 import { PendingButton } from "@/components/PendingButton";
 
@@ -33,7 +35,7 @@ const MARK_BANNERS: Record<string, string> = {
 export default async function PractitionerSchedulePage({
   searchParams,
 }: {
-  searchParams: { saved?: string; marked?: string; billing?: string };
+  searchParams: { saved?: string; marked?: string; billing?: string; request?: string };
 }) {
   await requirePractitioner();
   const practitioner = await getPractitioner();
@@ -53,6 +55,13 @@ export default async function PractitionerSchedulePage({
     ).map((c) => c.clientId),
   );
 
+  // C40 — pending requests, oldest first (the oldest is closest to lapsing).
+  const requests = await prisma.appointment.findMany({
+    where: { practitionerId: practitioner.id, status: "REQUESTED" },
+    include: { client: { select: { id: true, name: true, email: true } }, lead: { select: { name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+    take: 50,
+  });
   const [appointments, recent] = await Promise.all([
     prisma.appointment.findMany({
       where: {
@@ -195,6 +204,49 @@ export default async function PractitionerSchedulePage({
           Booking notification emails are off until an email provider is configured
           (RESEND_API_KEY + NOTIFY_FROM_EMAIL). Bookings still work and appear on the calendar feed.
         </p>
+      )}
+
+      {/* C40 — REQUESTS, above Upcoming: a request is not a session yet, so it
+          gets its own block rather than a row in the day view. The home page's
+          signal links here with #requests. */}
+      {searchParams.request && (
+        <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
+          {searchParams.request === "approved" ? "Approved — confirmed and on the calendar; both of you have the invite." :
+           searchParams.request === "declined" ? "Declined — the client has been told." :
+           searchParams.request === "conflict" ? "That time is no longer free (another booking landed first). The request is still open — decline it, or ask them for another time." :
+           "That request is no longer pending."}
+        </p>
+      )}
+      {requests.length > 0 && (
+        <section id="requests" data-c40="requests-block" className="flex flex-col gap-3 rounded-lg border border-dashed border-mocha bg-white p-5 shadow-soft">
+          <h2 className="text-xl font-semibold">
+            {requests.length === 1 ? "One session request is waiting for your answer" : `${requests.length} session requests are waiting for your answer`}
+          </h2>
+          <ul className="flex flex-col divide-y divide-line">
+            {requests.map((r) => {
+              const hoursLeft = Math.max(0, Math.round((r.createdAt.getTime() + REQUEST_TTL_MS - now.getTime()) / 3_600_000));
+              return (
+                <li key={r.id} className="flex flex-wrap items-center gap-3 py-3 text-sm">
+                  <span className="font-medium text-ink-strong">{partyLabel(r)}</span>
+                  <span className="text-slate">
+                    {formatInZone(r.startAt, config.timezone, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} {zoneAbbrev(r.startAt, config.timezone)}
+                    {r.kind === "DISCOVERY" ? " · discovery call" : ""}
+                  </span>
+                  {r.clientNote && <span className="basis-full text-slate">“{r.clientNote}”</span>}
+                  <span className="text-[12px] text-whisper">lapses in ~{hoursLeft}h</span>
+                  <span className="ml-auto flex items-center gap-3">
+                    <form action={approveRequestAction.bind(null, r.id)}>
+                      <PendingButton className="rounded-md bg-wine px-4 py-1.5 text-sm font-medium text-cream hover:bg-wine/90">Approve</PendingButton>
+                    </form>
+                    <form action={declineRequestAction.bind(null, r.id)}>
+                      <PendingButton className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Decline</PendingButton>
+                    </form>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       {/* Upcoming */}

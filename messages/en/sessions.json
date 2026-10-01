@@ -12,7 +12,9 @@
       "rescheduledFee": "Your session has a new time — a confirmation is on its way. The late-change fee is below, whenever you're ready.",
       "paid": "Paid — thank you. The receipt is with your card statement.",
       "package": "Thank you — your package is active. Sessions you book now draw from it.",
-      "taken": "That time was just taken — please pick another."
+      "taken": "That time was just taken — please pick another.",
+      "requested": "Requested. Your practitioner will confirm within two days.",
+      "withdrawn": "Request withdrawn."
     },
     "upcoming": "Your upcoming sessions",
     "join": "Join",
@@ -26,7 +28,11 @@
     "settle": "Settle this session",
     "openTimes": "Open times",
     "back": "Back to your space",
-    "addToCalendar": "Add to calendar:"
+    "addToCalendar": "Add to calendar:",
+    "requested": "Requested — awaiting confirmation",
+    "withdraw": "Withdraw request",
+    "requestThis": "Request this session",
+    "requestNote": "Your request goes to your practitioner to confirm. You'll get an email when it's confirmed, or if a different time is offered."
   },
   "package": {
     "title": "Your package",

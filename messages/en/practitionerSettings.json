@@ -63,6 +63,8 @@
       "paymentsHint": "Your payment connection — money goes directly to you.",
       "schedulingLabel": "Online booking",
       "schedulingHint": "Connect Calendly or Acuity — bookings appear here automatically.",
+      "notificationsLabel": "Notifications",
+      "notificationsHint": "Who hears what — email, push, or both — and whether clients request or book.",
       "planLabel": "Plan & billing",
       "planHint": "Your platform plan — card, invoices, and receipts.",
       "toolsLabel": "Session & research tools",

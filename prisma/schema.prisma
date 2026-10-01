@@ -1410,6 +1410,9 @@ enum AppointmentStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
+  REQUESTED // C40 — held, awaiting the practitioner; BUSY per ruling 223
+  DECLINED // C40 — she said no; a status, not a soft delete (busy sites filter by status)
+  EXPIRED // C40 — 48h passed unanswered (ruling 223); slot freed, client told
 }
 
 // C18 — sessions belong to clients; discovery calls belong to leads (prospects).
@@ -1428,6 +1431,7 @@ enum AvailabilityKind {
 // C18 — a prospect's journey: stranger → lead → discovery → invited → client.
 enum LeadStatus {
   NEW
+  REQUESTED // C40 — asked for a discovery call the practitioner has not yet agreed to
   SCHEDULED
   COMPLETED
   CONVERTED
@@ -1512,6 +1516,7 @@ model Appointment {
   bookedBy       String // "practitioner" | "client"
   clientNote     String? // optional topic
   reminderSentAt DateTime? // EMAIL-SPEC #10 — the 24h reminder fired (tick dedup)
+  reminder30SentAt DateTime? // C40 item 3 — the ~30-minute reminder fired (tick dedup)
   recordingConfirmed Boolean? // C19 §0 — per-session "Recording today?" (null = not asked)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt

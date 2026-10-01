@@ -1,4 +1,4 @@
-# C35 VISUAL verify — 2026-10-01T19:22:29.037Z
+# C35 VISUAL verify — 2026-10-01T19:56:58.817Z
 
 **SCOPE.** Host `psychefolio.test`, path `/founders`, local production build on :3148.
 Viewports asserted (mobile first, ruling 207): mobile-375 375x812 · mobile-390 390x844 · tablet-768 768x1024 · desktop-1440 1440x900.

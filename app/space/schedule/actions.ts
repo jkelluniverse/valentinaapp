@@ -1,5 +1,6 @@
 "use server";
 
+import { bookingRequiresApproval } from "@/lib/booking-mode";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +9,8 @@ import { hasConsent } from "@/lib/consent";
 import { getPractitioner, isSlotOpen, getOrCreateConfig } from "@/lib/schedule";
 import {
   createAppointment,
+  requestAppointment,
+  withdrawRequest,
   clientCancelWithPolicy,
   clientRescheduleWithPolicy,
 } from "@/lib/appointments";
@@ -39,19 +42,24 @@ export async function bookSlot(formData: FormData) {
   const endAt = new Date(startAt.getTime() + config.sessionMinutes * 60000);
   const note = String(formData.get("note") ?? "").trim() || null;
 
-  const result = await createAppointment({
-    practitionerId: practitioner.id,
-    clientId: user.id,
-    startAt,
-    endAt,
-    bookedBy: "client",
-    location: "VIRTUAL",
-    clientNote: note,
-  });
+  // C40 §1.6 — ONE branch, one label. The setting decides which create runs;
+  // with it off this is the pre-C40 call, byte for byte.
+  const args = { practitionerId: practitioner.id, clientId: user.id, startAt, endAt, bookedBy: "client" as const, location: "VIRTUAL" as const, clientNote: note };
+  const requires = await bookingRequiresApproval();
+  const result = requires ? await requestAppointment(args) : await createAppointment(args);
   if (!result.ok) redirect(`${PATH}?error=taken`);
 
   revalidatePath(PATH);
-  redirect(`${PATH}?booked=1`);
+  redirect(`${PATH}?${requires ? "requested" : "booked"}=1`);
+}
+
+// C40 — the client withdraws a pending request. Not cancel-with-policy: nothing
+// was charged, so there is nothing to refund or fee.
+export async function withdrawMyRequest(appointmentId: string) {
+  const user = await requireClient();
+  await withdrawRequest(appointmentId, user.id);
+  revalidatePath(PATH);
+  redirect(`${PATH}?withdrawn=1`);
 }
 
 // C13.4 — spend the single-use card token from Square's browser form. Scoped

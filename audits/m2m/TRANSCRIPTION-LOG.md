@@ -1,4 +1,4 @@
-# C38-B transcription attribution — 2026-10-01T19:22:39.818Z
+# C38-B transcription attribution — 2026-10-01T19:57:09.104Z
 SCOPE: hosts a.m2m.test, b.m2m.test · HTTP only, no browser viewport · local build on :3150 + mock AssemblyAI on :3151. NOT covered: production, the real provider, any route but /api/webhooks/transcription (ruling 208).
 
 ## the host is IGNORED (the check ruling 238 exists for)

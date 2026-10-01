@@ -3,6 +3,9 @@ import { SignatureRule, Eyebrow } from "@/components/brand";
 import { getDiscoverySlots } from "@/lib/discovery";
 import { SITE } from "@/content/site-content";
 import { BookingFlow } from "./BookingFlow";
+import { headers } from "next/headers";
+import { bookingRequiresApproval } from "@/lib/booking-mode";
+import { bookCopy, resolvePublicLocale, fill } from "@/lib/book-copy";
 import { submitBooking } from "./actions";
 
 // C18.3/.4 — the discovery funnel. Dynamic (reads live open slots) while the
@@ -29,7 +32,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function BookPage({ searchParams }: { searchParams: { error?: string } }) {
+export default async function BookPage({ searchParams }: { searchParams: { error?: string; lang?: string } }) {
+  const requiresApproval = await bookingRequiresApproval();
+  const locale = resolvePublicLocale(searchParams.lang, headers().get("accept-language"));
+  const c = bookCopy(locale);
   // C26 §3 — checked here as well as in the public layout: this page's slot
   // read races the layout's redirect, and rendering ANOTHER practice's
   // availability on this host is the exact defect task #81 reproduced.
@@ -58,7 +64,7 @@ export default async function BookPage({ searchParams }: { searchParams: { error
       <SignatureRule />
       <p className="mb-10 mt-4 max-w-lg text-lg leading-relaxed text-slate">{SITE.closing.body}</p>
 
-      <BookingFlow days={days} timezone={timezone} action={submitBooking} error={searchParams.error} practiceName={practiceName} />
+      <BookingFlow days={days} timezone={timezone} action={submitBooking} error={searchParams.error} practiceName={practiceName} copy={{ submit: requiresApproval ? c.submitRequest : c.submit, requestNote: requiresApproval ? fill(c.requestNote, { practitioner: practiceName ?? "Valentina" }) : null }} />
     </main>
   );
 }
