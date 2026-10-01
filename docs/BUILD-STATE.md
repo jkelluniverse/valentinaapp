@@ -12,6 +12,28 @@
 ## CLOSED pending Jacob's sender decision); psychefolio.com/.app purchased.)
 
 ## Queue (dependency order):
+0. (in inbox, AWAITING RATIFICATION) C39-DEMOS — spec written 2026-10-01 after C40 landed, per
+   the standing order. Two walk-in demos (DEMO 1 Psychefolio-branded, DEMO 2 Veritas-branded),
+   rulings 209–213, A1–A6 answered in §0 (A7 added: AI key absent). THREE FACTS THAT RESHAPE THE
+   DISPATCH, all from the Railway MCP read-only tools: (1) Jacob already created `demo 1 postgres`
+   (2026-09-28) in the Staging environment, whose `valentinaapp` instance ALREADY redeploys on
+   every push with the same railway.json — the spec recommends Staging BECOMES the demo
+   environment (stays-current by construction); (2) Railway forbids `demo.psychefolio.com` on a
+   second service while production owns `*.psychefolio.com` (documented overlap rule) — the spec
+   proposes `*.demo.psychefolio.com` on the demo service with hosts portal.demo / veritas.demo
+   (slugs already in RESERVED_SLUGS) and ONE production change: middleware 308 for the bare
+   demo host; (3) the Staging app answers isDefault:true today — which database it reads is
+   Jacob's FIRST dashboard read (§1.3), settled by nobody else (ruling 73). Design: persona
+   cookie resolved inside getSessionUser() ONLY when DEMO_DEPLOYMENT is set AND the tenant is
+   DEMO AND an integrity check passes (every User @fixture.test, every Tenant DEMO) — ruling
+   211 enforced by refusal, not intention; write block as a Prisma query extension on the RAW
+   client (covers scoped, tenantDb and all 17 raw importers): deletes never, explicit model
+   ALLOW list, User.update restricted to locale; nightly reset route (secret + flag + env +
+   integrity guards) on a second cron-job.org job; mail refused in send() before the fetch
+   (code level), keys absent as the belt. Six questions for ruling in §12 (Postgres-4MgC's
+   purpose; Railway accepting the nested wildcard; her name on DEMO 2's persona; practiceSetting
+   allowed; the seed-coverage standing rule; the in-bar reset). NOT built. Order after
+   ratification: C42 → C43 builds first (ratified), C39 build when rulings land.
 -2. (Architect review) C27-EMAIL-IDENTITY Phase 1 — BUILT 2026-09-12, dispatched by Jacob as
    Phase 1 only. Report in docs/reports/outbox/BUILD-REPORT-C27-EMAIL-IDENTITY-P1.md; five
    decisions for ratification; THREE footer blanks await the decision memo (see Jacob's env
