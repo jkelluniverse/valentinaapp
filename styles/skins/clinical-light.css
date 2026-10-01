@@ -1,0 +1,104 @@
+/*
+  PLATFORM Layer 2 — skin: clinical-light.
+  Crisp, professional, coach-friendly: cool neutrals, a confident teal-navy
+  accent, no romance. Same custom-property contract as warm-clay — palette
+  plus a dark variant plus the utility bridges — so any layout composes.
+
+  The dark variables are intentionally duplicated across the explicit-dark
+  selector and the system-dark media query — CSS can't share one ruleset
+  across a bare selector and an @media block. Keep the two lists in sync.
+*/
+
+html[data-skin="clinical-light"] {
+  --c-canvas: 248 250 251;
+  --c-surface: 255 255 255;
+  --c-surface-2: 241 245 247;
+  --c-cream: 248 250 251;
+  --c-wine: 15 76 92; /* deep teal-navy — the working accent */
+  --c-wine-dark: 10 60 74;
+  --c-mocha: 96 125 139; /* steel-blue secondary */
+  --c-blush: 236 243 246;
+  --c-blush-deep: 222 234 239;
+  --c-ink: 55 65 75;
+  --c-ink-strong: 17 24 31;
+  --c-slate: 100 112 125;
+  --c-whisper: 125 137 148;
+  --c-line: 226 231 235;
+  --c-rose: 2 132 155;
+  --c-on-primary: 255 255 255;
+}
+
+/* Dark — active when the toggle forces dark, or the system is dark and the
+   toggle hasn't forced light. Scoped to the portals ([data-portal]); public
+   pages stay in the light world. */
+html[data-skin="clinical-light"][data-theme="dark"] [data-portal] {
+  --c-canvas: 16 21 26;
+  --c-surface: 25 32 38;
+  --c-surface-2: 32 40 47;
+  --c-cream: 32 40 47;
+  --c-wine: 94 190 212; /* teal, lifted for contrast */
+  --c-wine-dark: 122 205 224;
+  --c-mocha: 134 160 173;
+  --c-blush: 32 40 47;
+  --c-blush-deep: 40 50 58;
+  --c-ink: 210 220 227;
+  --c-ink-strong: 240 246 250;
+  --c-slate: 145 158 170;
+  --c-whisper: 145 158 170;
+  --c-line: 42 52 60;
+  --c-rose: 110 200 220;
+  --c-on-primary: 16 21 26;
+  color-scheme: dark;
+}
+html[data-skin="clinical-light"][data-theme="dark"] [data-portal] .bg-white {
+  background-color: rgb(var(--c-surface));
+}
+html[data-skin="clinical-light"][data-theme="dark"] [data-portal] .bg-white\/60 {
+  background-color: rgb(var(--c-surface) / 0.6);
+}
+html[data-skin="clinical-light"][data-theme="dark"] [data-portal] .text-white {
+  color: rgb(var(--c-on-primary));
+}
+html[data-skin="clinical-light"][data-theme="dark"] [data-portal] .shadow-soft {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.34);
+}
+html[data-skin="clinical-light"][data-theme="dark"] [data-portal] .shadow-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 14px 36px rgba(0, 0, 0, 0.36);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-skin="clinical-light"]:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] {
+    --c-canvas: 16 21 26;
+    --c-surface: 25 32 38;
+    --c-surface-2: 32 40 47;
+    --c-cream: 32 40 47;
+    --c-wine: 94 190 212;
+    --c-wine-dark: 122 205 224;
+    --c-mocha: 134 160 173;
+    --c-blush: 32 40 47;
+    --c-blush-deep: 40 50 58;
+    --c-ink: 210 220 227;
+    --c-ink-strong: 240 246 250;
+    --c-slate: 145 158 170;
+    --c-whisper: 145 158 170;
+    --c-line: 42 52 60;
+    --c-rose: 110 200 220;
+    --c-on-primary: 16 21 26;
+    color-scheme: dark;
+  }
+  html[data-skin="clinical-light"]:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .bg-white {
+    background-color: rgb(var(--c-surface));
+  }
+  html[data-skin="clinical-light"]:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .bg-white\/60 {
+    background-color: rgb(var(--c-surface) / 0.6);
+  }
+  html[data-skin="clinical-light"]:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .text-white {
+    color: rgb(var(--c-on-primary));
+  }
+  html[data-skin="clinical-light"]:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .shadow-soft {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.34);
+  }
+  html[data-skin="clinical-light"]:not([data-theme="light"]):not([data-theme="dark"]) [data-portal] .shadow-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 14px 36px rgba(0, 0, 0, 0.36);
+  }
+}

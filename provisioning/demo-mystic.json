@@ -1,0 +1,15 @@
+{
+  "slug": "demo-mystic",
+  "displayName": "Luna & Salt (Demo)",
+  "layoutKey": "journey-v1",
+  "skinKey": "celestial-dark",
+  "modules": [
+    { "key": "western-natal", "label": "Star Map" },
+    { "key": "tarot-draw", "label": "Evening Draw" },
+    { "key": "lookup-console" }
+  ],
+  "branding": { "portalTitle": "luna & salt" },
+  "featureFlags": {},
+  "seed": "DEMO_FIXTURES",
+  "practitioner": { "name": "Mara Demo", "email": "pract@demo-mystic.fixture.test" }
+}

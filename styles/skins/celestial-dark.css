@@ -1,0 +1,83 @@
+/*
+  PLATFORM Layer 2 — skin: celestial-dark.
+  Night-sky-first for the esoteric end: deep indigo grounds, starlight gold
+  accent, violet undertones. This skin is dark BY DEFAULT — its base tokens
+  are the night palette and color-scheme is dark from the start; the theme
+  toggle's "light" choice surfaces a pale daylight variant instead.
+
+  Same custom-property contract as warm-clay so any layout composes. The
+  light variables are duplicated across the explicit-light selector and the
+  system-light media query — keep the two lists in sync.
+*/
+
+html[data-skin="celestial-dark"] {
+  --c-canvas: 15 16 34; /* deep indigo night */
+  --c-surface: 24 25 48;
+  --c-surface-2: 31 32 58;
+  --c-cream: 31 32 58;
+  --c-wine: 212 175 115; /* starlight gold — the accent */
+  --c-wine-dark: 224 192 140;
+  --c-mocha: 154 140 205; /* violet undertone */
+  --c-blush: 31 32 58;
+  --c-blush-deep: 40 41 70;
+  --c-ink: 218 218 236;
+  --c-ink-strong: 245 243 252;
+  --c-slate: 150 150 180;
+  --c-whisper: 150 150 180;
+  --c-line: 44 45 76;
+  --c-rose: 190 160 235;
+  --c-on-primary: 15 16 34;
+  color-scheme: dark;
+}
+html[data-skin="celestial-dark"] [data-portal] .bg-white {
+  background-color: rgb(var(--c-surface));
+}
+html[data-skin="celestial-dark"] [data-portal] .bg-white\/60 {
+  background-color: rgb(var(--c-surface) / 0.6);
+}
+html[data-skin="celestial-dark"] [data-portal] .text-white {
+  color: rgb(var(--c-ink-strong));
+}
+html[data-skin="celestial-dark"] [data-portal] .shadow-soft {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+html[data-skin="celestial-dark"] [data-portal] .shadow-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), 0 14px 36px rgba(0, 0, 0, 0.42);
+}
+
+/* Daylight — only when the toggle explicitly forces light. A pale, quiet
+   morning-sky variant; the night palette above remains the skin's identity. */
+html[data-skin="celestial-dark"][data-theme="light"] [data-portal] {
+  --c-canvas: 246 246 252;
+  --c-surface: 255 255 255;
+  --c-surface-2: 238 238 248;
+  --c-cream: 246 246 252;
+  --c-wine: 122 92 30; /* gold, deepened for contrast on light */
+  --c-wine-dark: 100 74 22;
+  --c-mocha: 110 98 160;
+  --c-blush: 238 238 248;
+  --c-blush-deep: 228 228 242;
+  --c-ink: 58 58 78;
+  --c-ink-strong: 22 22 38;
+  --c-slate: 110 110 138;
+  --c-whisper: 130 130 156;
+  --c-line: 226 226 238;
+  --c-rose: 130 100 190;
+  --c-on-primary: 255 255 255;
+  color-scheme: light;
+}
+html[data-skin="celestial-dark"][data-theme="light"] [data-portal] .bg-white {
+  background-color: rgb(var(--c-surface));
+}
+html[data-skin="celestial-dark"][data-theme="light"] [data-portal] .bg-white\/60 {
+  background-color: rgb(var(--c-surface) / 0.6);
+}
+html[data-skin="celestial-dark"][data-theme="light"] [data-portal] .text-white {
+  color: rgb(var(--c-on-primary));
+}
+html[data-skin="celestial-dark"][data-theme="light"] [data-portal] .shadow-soft {
+  box-shadow: 0 1px 2px rgba(20, 20, 60, 0.06), 0 12px 32px rgba(20, 20, 60, 0.08);
+}
+html[data-skin="celestial-dark"][data-theme="light"] [data-portal] .shadow-card {
+  box-shadow: 0 1px 3px rgba(20, 20, 60, 0.08), 0 14px 36px rgba(20, 20, 60, 0.1);
+}

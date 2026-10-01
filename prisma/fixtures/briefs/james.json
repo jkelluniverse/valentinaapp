@@ -1,0 +1,148 @@
+{
+  "id": "james",
+  "identity": {
+    "name": "James Okonkwo",
+    "age": 52,
+    "pronouns": "he/him",
+    "lives": "Apopka, Orlando, FL",
+    "work": "high-school principal",
+    "email": "james@fixture.test",
+    "language": "en"
+  },
+  "birth": {
+    "date": "1974-02-08",
+    "time": "03:20",
+    "precision": "EXACT",
+    "place": "Chicago, Illinois, USA",
+    "tz_expect": "America/Chicago — but 1974-02-08 fell under US year-round Emergency Daylight Saving Time (Jan 6 1974 onward), so this Chicago birth is CDT (UTC-5), NOT the usual winter CST (UTC-6). Naive engines that assume 'February = CST' compute the instant an hour off."
+  },
+  "arrived": {
+    "presenting": "a 27-year career that looks like success from outside and feels like a debt he can never pay down; came in the year before an early retirement decision, wanting to know who he is when he stops carrying the building",
+    "in_her_words": "Everybody leans on the man who never needs anything. I built that man. I'm tired of him."
+  },
+  "psyche": {
+    "wounds": [
+      "not-enoughness"
+    ],
+    "beliefs": [
+      "I am only worth what I produce",
+      "if I'm not indispensable, I'm invisible",
+      "rest has to be earned and I've never earned it"
+    ],
+    "protections": [
+      "over-functioning — absorbing everyone's load",
+      "relentless competence so no one sees the doubt",
+      "arriving first, leaving last"
+    ],
+    "patterns": [
+      "measuring his worth by other people's outcomes",
+      "deflecting praise, keeping the scorecard open",
+      "taking the blame to stay in control of it"
+    ],
+    "resources": [
+      "the remembered voice of Mr. Adeyemi, the principal who hired a nervous 24-year-old and said 'you already have it'",
+      "former students who come back years later and tell him what he changed",
+      "a steadiness others borrow in a crisis — he is genuinely good in the storm"
+    ],
+    "origin": "eldest son of immigrants; a household where love was real but worth was demonstrated, never assumed — the boy who learned to be needed because being needed felt safer than being loved"
+  },
+  "first_map": {
+    "self_named": [
+      "not-enoughness",
+      "over-functioning",
+      "Mr. Adeyemi's voice"
+    ],
+    "unaware_of": [
+      "how completely 'indispensable' had replaced 'wanted'",
+      "that the scorecard was his, not his father's, now"
+    ],
+    "integrated": {
+      "belief": "I am only worth what I produce",
+      "gift": "Sufficiency",
+      "note": "Over the arc this belief did not merely loosen — it transmuted. James now names the not-enoughness node as INTEGRATED, its Gene-Keys-style shadow-to-gift movement being 'Unworthiness → Sufficiency': worth as a given rather than a wage. He can point to the exact month it turned."
+    }
+  },
+  "arc": {
+    "months": 18,
+    "stage": 3,
+    "beats": [
+      {
+        "m": 1,
+        "note": "arrives composed and articulate; frames everything as a scheduling problem, not a self problem"
+      },
+      {
+        "m": 2,
+        "note": "first crack: describes lying awake rehearsing a meeting that had already gone well"
+      },
+      {
+        "m": 4,
+        "note": "names not-enoughness out loud for the first time; surprised the word fits so cleanly"
+      },
+      {
+        "m": 6,
+        "note": "connects the over-functioning at school to the boy who set the table before he was asked"
+      },
+      {
+        "m": 8,
+        "note": "Mr. Adeyemi's voice surfaces as a resource, not a memory — 'you already have it' starts arguing with the scorecard"
+      },
+      {
+        "m": 10,
+        "note": "delegates a crisis he would normally have owned; the building does not fall; counter-evidence lands hard"
+      },
+      {
+        "m": 12,
+        "note": "takes a real vacation without checking in; reports guilt, then something underneath the guilt that feels like permission"
+      },
+      {
+        "m": 14,
+        "note": "'if I'm not indispensable I'm invisible' visibly LOOSENING; he tests being ordinary and is still there"
+      },
+      {
+        "m": 16,
+        "note": "reframes the retirement question — not 'who am I without the role' but 'what do I want to give freely'"
+      },
+      {
+        "m": 18,
+        "note": "not-enoughness node reaches INTEGRATION; names the gift as Sufficiency; says worth stopped being something he pays and became something he has — steady enough that it holds under stress, not just on good days"
+      }
+    ],
+    "integrated": {
+      "node": "not-enoughness",
+      "belief": "I am only worth what I produce",
+      "gift": "Sufficiency",
+      "reached_month": 18,
+      "note": "The single INTEGRATED node in the roster. Gene-Keys-style triad: Shadow 'Unworthiness' → Gift 'Sufficiency'. Distinct from María's/Elena's LOOSENING beliefs — this one has genuinely completed the arc, verified by beats at m10 (counter-evidence), m14 (loosening), m18 (integration under stress)."
+    }
+  },
+  "engagement": {
+    "reflections_per_month": 14,
+    "messages_per_month": 5,
+    "worksheets": 11,
+    "course": "Rewiring Self-Worth (100%), then The Cost of Being Needed (80%)"
+  },
+  "voice": "measured, principal's cadence — full sentences, careful with other people's feelings even on the page; uses school metaphors; earns his vulnerability slowly, then says something quietly devastating and moves right past it",
+  "values_answers": {
+    "spiral:grounding:1": 2,
+    "spiral:grounding:2": 2,
+    "spiral:grounding:3": 1,
+    "spiral:belonging:1": 3,
+    "spiral:belonging:2": 3,
+    "spiral:belonging:3": 2,
+    "spiral:drive:1": 1,
+    "spiral:drive:2": 2,
+    "spiral:drive:3": 1,
+    "spiral:order:1": 3,
+    "spiral:order:2": 4,
+    "spiral:order:3": 3,
+    "spiral:achievement:1": 3,
+    "spiral:achievement:2": 3,
+    "spiral:achievement:3": 3,
+    "spiral:harmony:1": 4,
+    "spiral:harmony:2": 4,
+    "spiral:harmony:3": 4,
+    "spiral:flow:1": 5,
+    "spiral:flow:2": 4,
+    "spiral:flow:3": 5
+  }
+}

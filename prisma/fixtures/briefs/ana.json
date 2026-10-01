@@ -1,0 +1,35 @@
+{
+  "id": "ana",
+  "identity": {
+    "name": "Ana Moreno",
+    "age": 34,
+    "pronouns": "she/her",
+    "lives": "Conway, Orlando, FL",
+    "work": "freelance designer",
+    "email": "ana@fixture.test",
+    "language": "en, occasional ES"
+  },
+  "status": "PENDING_INVITE — converted from a Lead; invitation sent, not yet accepted. No account activity, no charts.",
+  "birth": null,
+  "arrived": {
+    "presenting": "reached out through the lead form after a workshop; curious but not yet committed",
+    "in_her_words": "Saw your talk, been meaning to sign up for weeks. Life keeps getting in the way — I'll get to it."
+  },
+  "psyche": {
+    "wounds": [],
+    "beliefs": [],
+    "protections": [],
+    "patterns": [],
+    "resources": ["a design practice she's genuinely proud of", "the kind of curiosity that keeps opening tabs she means to come back to"],
+    "origin": "Cali, Colombia by heritage; nothing worked yet — she hasn't started"
+  },
+  "first_map": {
+    "self_named": [],
+    "unaware_of": []
+  },
+  "arc": null,
+  "engagement": {
+    "note": "No birth data, no charts, no reflections or messages — a pending invite that has not been accepted. Exists solely to verify the converted-from-lead lifecycle state and the un-accepted-invite empty state."
+  },
+  "voice": "friendly, breezy, a little conflict-avoidant about commitment; warm but keeps one foot out the door"
+}
