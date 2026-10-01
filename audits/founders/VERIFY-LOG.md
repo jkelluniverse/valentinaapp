@@ -1,4 +1,4 @@
-# C35-FOUNDERS-EVENT verify — 2026-10-01T16:54:04.861Z
+# C35-FOUNDERS-EVENT verify — 2026-10-01T19:22:26.734Z
 SCOPE: hosts psychefolio.test and valentina.psychefolio.test · HTTP markup only — appearance is founders-visual-verify's job · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).
 - ✓ the founding page renders on the PLATFORM host — status 200
 - ✓ a TENANT host still 404s — no founding funnel on a practice's domain — status 404

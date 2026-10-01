@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { rawPrisma } from "@/lib/prisma-internal";
+import { logWebhookDrop, logWebhookApplied } from "@/lib/webhook-evidence";
 import { SquarePaymentProvider } from "./square";
 import type { PaymentEvent } from "./types";
 
@@ -70,8 +71,11 @@ async function applyEvent(event: PaymentEvent): Promise<IngestResult> {
       ? await rawPrisma.connectedPaymentAccount.findFirst({ where: { merchantId: envelope.merchant_id } })
       : null;
     if (!account?.tenantId) {
+      // RULING 247 — the body stays { ok: true }; the LOG carries the verdict.
+      logWebhookDrop("/api/webhooks/square", "unmatched-merchant", envelope.merchant_id ?? null);
       return { status: 200, note: "ignored (unmatched merchant)" };
     }
+    logWebhookApplied("/api/webhooks/square", envelope.event_id ?? "(none)", account.tenantId);
 
     const keys = [event.providerPaymentId];
     if (event.orderRef) keys.push(`order:${event.orderRef}`);

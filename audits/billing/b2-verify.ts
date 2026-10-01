@@ -180,7 +180,12 @@ async function main() {
     SQUARE_WEBHOOK_NOTIFICATION_URL: NOTIFY_URL,
     APP_BASE_URL: BASE,
   };
-  const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(APP_PORT)], { env, stdio: "ignore" });
+  const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(APP_PORT)], { env, stdio: ["ignore", "pipe", "pipe"] });
+  // RULING 247 — the server log is EVIDENCE: the webhook body says { ok: true } for a drop and a success alike.
+  const serverLog: string[] = [];
+  server.stdout?.on("data", (d) => serverLog.push(String(d)));
+  server.stderr?.on("data", (d) => serverLog.push(String(d)));
+  const logHas = async (re: RegExp) => { for (let i = 0; i < 20; i++) { if (re.test(serverLog.join(""))) return true; await new Promise((r) => setTimeout(r, 100)); } return false; };
   // Mirror env for in-process service calls.
   for (const [k, v] of Object.entries(env)) process.env[k] = v as string;
 
@@ -237,6 +242,14 @@ async function main() {
     const bad = signedEvent({ event_id: "EVT-0002" });
     check("tampered signature → 403", (await postWebhook(bad.body, "AAAA" + bad.sig.slice(4))) === 403);
     check("rejected event left no trace", (await prisma.webhookEvent.count({ where: { id: "EVT-0002" } })) === 0);
+
+    // RULING 247 — the DROP wrote a structured line naming the unmatched merchant, never the payload.
+    const strangerDrop = signedEvent({ event_id: "EVT-0004", merchant_id: "MERCHANT-UNKNOWN", payment_id: "PAYMENT-STRANGER2", order_id: "ORDER-STRANGER2" });
+    check("unmatched merchant: body is still { ok } (200)", (await postWebhook(strangerDrop.body, strangerDrop.sig)) === 200);
+    check("…and the server log carries [webhook-drop] with the unmatched merchant id", await logHas(/\[webhook-drop\] \{"route":"\/api\/webhooks\/square","reason":"unmatched-merchant","id":"MERCHANT-UNKNOWN"\}/), "the response could not say this; the log does");
+    check("…and the drop line does NOT carry the payload (no payment id, no order id)", !/webhook-drop.*(PAYMENT-STRANGER2|ORDER-STRANGER2)/.test(serverLog.join("")));
+    // positive control: the matched event earlier wrote a DIFFERENT line
+    check("positive control: the matched event wrote [webhook-applied] with its event id and tenant", await logHas(/\[webhook-applied\] \{"route":"\/api\/webhooks\/square","eventId":"EVT-0001","tenantId":"[^"]+"\}/));
 
     // 6 — unmatched merchant acknowledged but dropped
     const stranger = signedEvent({ event_id: "EVT-0003", merchant_id: "MERCHANT-UNKNOWN", payment_id: "PAYMENT-STRANGER", order_id: "ORDER-STRANGER" });

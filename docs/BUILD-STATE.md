@@ -59,6 +59,18 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- Ruling 247 (2026-10-01) — the money webhooks' response bodies DO NOT change: { ok: true }
+  for a handled drop and a success alike, because anything that looks like failure invites a
+  retry storm against a message already correctly refused. The EVIDENCE moved to the log:
+  lib/webhook-evidence.ts writes one structured [webhook-drop] line (route, reason, the
+  unmatched identifier — never the payload) and one [webhook-applied] line (route, eventId,
+  tenantId). b2 and b3 now pipe the server's log and assert both lines, with the positive
+  control that a matched event writes the DIFFERENT line (ruling 110), and that the drop line
+  carries no payload field. b2 22 -> 26, b3 24 -> 28 (ruling 38). Ruling 147 applied to
+  webhooks: the audit line carries the verdict, the response does not.
+- Ruling 246 — the Architect's m2m-payload count of six was wrong; FIVE is the record
+  (stripe, webhooks/square, calendly, acuity, transcription). The inventory at 5180c88 is the
+  standing reference: 18 routes, 16 reaching, 5/2/2/7/2, 0 unratified, 16 + 2 = 18 asserted.
 - C38-M2M-ROUTE-INVENTORY shipped (2026-10-01; rulings 201, 204-205, 238-245). The
   host-tenancy gate walks the import graph: 9 -> 18 routes seen, every one classified from
   the PATH it takes to the database. Kinds: m2m-payload x5 (stripe, webhooks/square,

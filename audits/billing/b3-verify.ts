@@ -144,7 +144,12 @@ async function main() {
     STRIPE_PRICE_CARE_99: "price_mock_care99",
     APP_BASE_URL: BASE,
   };
-  const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(APP_PORT)], { env, stdio: "ignore" });
+  const server: ChildProcess = spawn("node_modules/.bin/next", ["start", "-p", String(APP_PORT)], { env, stdio: ["ignore", "pipe", "pipe"] });
+  // RULING 247 — the server log is EVIDENCE: the webhook body says { ok: true } for a drop and a success alike.
+  const serverLog: string[] = [];
+  server.stdout?.on("data", (d) => serverLog.push(String(d)));
+  server.stderr?.on("data", (d) => serverLog.push(String(d)));
+  const logHas = async (re: RegExp) => { for (let i = 0; i < 20; i++) { if (re.test(serverLog.join(""))) return true; await new Promise((r) => setTimeout(r, 100)); } return false; };
   for (const [k, v] of Object.entries(env)) process.env[k] = v as string;
 
   try {
@@ -221,6 +226,13 @@ async function main() {
     // 9 — subscription deleted → CANCELED (same access posture as SUSPENDED)
     const del = signedStripeEvent("customer.subscription.deleted", "evt_b3_del1", { object: "subscription", customer: "cus_MOCK_B3" });
     check("subscription.deleted webhook accepted", (await postWebhook(del.body, del.sig)) === 200);
+
+    // RULING 247 — a drop and a success both answer { ok: true }; the LOG tells them apart.
+    const nobody = signedStripeEvent("invoice.paid", "evt_b3_nobody", { object: "invoice", customer: "cus_NOBODY_B3", amount_paid: 99900 });
+    check("unmatched customer: body is still { ok } (200)", (await postWebhook(nobody.body, nobody.sig)) === 200);
+    check("…and the server log carries [webhook-drop] with the unmatched customer id", await logHas(/\[webhook-drop\] \{"route":"\/api\/webhooks\/stripe","reason":"unmatched-customer","id":"cus_NOBODY_B3"\}/), "the response could not say this; the log does");
+    check("…and the drop line does NOT carry the payload (no amount)", !/webhook-drop.*99900/.test(serverLog.join("")));
+    check("positive control: the matched invoice.paid wrote [webhook-applied] with its event id and tenant", await logHas(/\[webhook-applied\] \{"route":"\/api\/webhooks\/stripe","eventId":"evt_b3_paid1","tenantId":"[^"]+"\}/));
     check("CANCELED", (await prisma.tenantBilling.findFirst({ where: { tenantId: TENANT_ID } }))?.status === "CANCELED");
     check("CANCELED gates new activity", (await newActivityAllowed(TENANT_ID)) === false);
 

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { rawPrisma } from "@/lib/prisma-internal";
 import { verifyStripeSignature } from "./stripe";
+import { logWebhookDrop, logWebhookApplied } from "@/lib/webhook-evidence";
 
 // BILLING §4.4/§4.5 — the webhook-driven status lifecycle. Cross-tenant by
 // nature (tenant = the event's Stripe customer id, never the request host),
@@ -48,7 +49,7 @@ export async function ingestStripeEvent(
 
   let result: StripeIngestResult;
   try {
-    result = await applyEvent(event.type, event.data?.object ?? {});
+    result = await applyEvent(event.type, event.data?.object ?? {}, eventId);
   } catch (e) {
     await rawPrisma.webhookEvent.delete({ where: { id: eventId } }).catch(() => undefined);
     throw e;
@@ -59,11 +60,14 @@ export async function ingestStripeEvent(
   return result;
 }
 
-async function applyEvent(type: string, obj: Record<string, unknown>): Promise<StripeIngestResult> {
+async function applyEvent(type: string, obj: Record<string, unknown>, eventId: string): Promise<StripeIngestResult> {
+  const ROUTE = "/api/webhooks/stripe";
   const customerId = typeof obj.customer === "string" ? obj.customer : null;
-  if (!customerId) return { status: 200, note: "ignored (no customer)" };
+  // RULING 247 — the body stays { ok: true } for these drops; the LOG carries the verdict.
+  if (!customerId) { logWebhookDrop(ROUTE, "no-customer", eventId); return { status: 200, note: "ignored (no customer)" }; }
   const row = await rawPrisma.tenantBilling.findUnique({ where: { stripeCustomerId: customerId } });
-  if (!row) return { status: 200, note: "ignored (unmatched customer)" };
+  if (!row) { logWebhookDrop(ROUTE, "unmatched-customer", customerId); return { status: 200, note: "ignored (unmatched customer)" }; }
+  logWebhookApplied(ROUTE, eventId, row.tenantId ?? "(null)");
 
   if (type === "invoice.paid") {
     const periodEnd = typeof obj.period_end === "number" ? new Date(obj.period_end * 1000) : row.currentPeriodEnd;
