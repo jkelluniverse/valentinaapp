@@ -1,0 +1,109 @@
+{
+  "id": "maria",
+  "identity": {
+    "name": "María Reyes",
+    "age": 38,
+    "pronouns": "she/her",
+    "lives": "Lake Nona, Orlando, FL",
+    "work": "marketing director",
+    "email": "maria@fixture.test",
+    "language": "en, occasional ES"
+  },
+  "birth": {
+    "date": "1988-03-14",
+    "time": "07:42",
+    "precision": "EXACT",
+    "place": "Bogotá, Colombia",
+    "tz_expect": "America/Bogota (UTC-5, no DST in 1988; Colombia's only DST era was May 1992–Feb 1993)"
+  },
+  "arrived": {
+    "presenting": "burnout that feels like failure; can't say no at work or to her father",
+    "in_her_words": "Me estoy agotando para ser alguien que ya soy."
+  },
+  "psyche": {
+    "wounds": [
+      "not-enoughness",
+      "unsafe-to-be-seen"
+    ],
+    "beliefs": [
+      "love must be earned",
+      "if I say no, I'll be left"
+    ],
+    "protections": [
+      "perfectionism",
+      "people-pleasing"
+    ],
+    "patterns": [
+      "overworking",
+      "shrinking at criticism"
+    ],
+    "resources": [
+      "the garden",
+      "a friend who tells the truth"
+    ],
+    "origin": "a father whose approval arrived only with achievement"
+  },
+  "first_map": {
+    "self_named": [
+      "unsafe-to-be-seen",
+      "perfectionism",
+      "the garden"
+    ],
+    "unaware_of": [
+      "love must be earned",
+      "overworking"
+    ]
+  },
+  "arc": {
+    "months": 6,
+    "stage": 2,
+    "beats": [
+      {
+        "m": 1,
+        "note": "arrives depleted; over-explains everything"
+      },
+      {
+        "m": 3,
+        "note": "names the father-dinner pattern for the first time"
+      },
+      {
+        "m": 5,
+        "note": "says no to a project; nothing breaks — counter-evidence lands"
+      },
+      {
+        "m": 6,
+        "note": "'if I say no, I'll be left' visibly LOOSENING"
+      }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 12,
+    "messages_per_month": 6,
+    "worksheets": 4,
+    "course": "Rewiring Self-Worth (60%)"
+  },
+  "voice": "articulate, self-deprecating, apologizes mid-sentence; slips into Spanish when it lands deepest",
+  "values_answers": {
+    "spiral:grounding:1": 2,
+    "spiral:grounding:2": 2,
+    "spiral:grounding:3": 1,
+    "spiral:belonging:1": 4,
+    "spiral:belonging:2": 4,
+    "spiral:belonging:3": 4,
+    "spiral:drive:1": 2,
+    "spiral:drive:2": 2,
+    "spiral:drive:3": 1,
+    "spiral:order:1": 3,
+    "spiral:order:2": 3,
+    "spiral:order:3": 3,
+    "spiral:achievement:1": 5,
+    "spiral:achievement:2": 4,
+    "spiral:achievement:3": 5,
+    "spiral:harmony:1": 3,
+    "spiral:harmony:2": 3,
+    "spiral:harmony:3": 2,
+    "spiral:flow:1": 2,
+    "spiral:flow:2": 2,
+    "spiral:flow:3": 2
+  }
+}

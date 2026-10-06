@@ -1,0 +1,26 @@
+{
+  "book": {
+    "submit": "Confirmar mi llamada",
+    "submitRequest": "Solicitar mi llamada",
+    "requestNote": "Tu solicitud le llega a {practitioner} para confirmar. Recibirás un correo cuando se confirme, o si se te ofrece otro horario.",
+    "confirmed": {
+      "eyebrow": "Confirmada",
+      "title": "Tu llamada está reservada",
+      "lede": "Una confirmación va camino a tu correo, con una invitación de calendario y un enlace para reprogramar si lo necesitas. Valentina espera con gusto hablar contigo."
+    },
+    "requested": {
+      "eyebrow": "Solicitada",
+      "title": "Tu solicitud fue enviada",
+      "lede": "{practitioner} confirmará tu llamada en un plazo de dos días. Recibirás un correo cuando se confirme, o si se te ofrece otro horario. Si no recibes respuesta en 48 horas, el horario se libera y puedes solicitar otro."
+    },
+    "fields": {
+      "name": "Tu nombre",
+      "email": "Correo electrónico",
+      "notePlaceholder": "Una o dos frases, si quieres — no hace falta explicarlo todo."
+    },
+    "optional": "· opcional",
+    "errors": {
+      "missingField": "Por favor responde todas las preguntas obligatorias."
+    }
+  }
+}

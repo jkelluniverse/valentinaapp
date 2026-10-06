@@ -1,0 +1,550 @@
+import Link from "next/link";
+import { CARD_SOURCE, INCLUDED, PRICING, SEATS_STATEMENT, TERMS_BULLETS, ADDENDUM_URL } from "@/lib/founders-config";
+import { requirePlatformHost } from "@/lib/founders-guard";
+import type { Metadata } from "next";
+import { PLATFORM_NAME, isPlatformHost } from "@/lib/platform-host";
+import { headers } from "next/headers";
+
+// C35-FOUNDERS-EVENT STAGE 2 — the founding page. Replaces Stage 1's redirect.
+//
+// RULING 176 — THERE IS NO SEAT COUNTER. The brief specifies a live "7 of 20
+// seats claimed" card with a progress bar; it is CUT ENTIRELY, not hidden and
+// not zeroed. `SEATS_STATEMENT` is a fixed statement of the offer's terms, and
+// the close DATE is static text, never a countdown.
+//
+// RULING 188 — the Practice Manager agent, the morning brief and the admin/VA
+// seat are CUT from the included list. They do not exist, and a paid page
+// states what exists today. See lib/founders-config.ts.
+//
+// RULING 189 — every CTA on this page goes to /founders/apply. NOTHING here
+// links to /signup, which provisions a free practice.
+//
+// ENGLISH ONLY — a NAMED deviation from law 7, ratified by Jacob: the Spanish
+// copy does not exist, and machine-translating commercial and legal terms
+// creates exposure. Tracked, not silent.
+
+export const dynamic = "force-dynamic";
+
+// RESTRAINED LINE ICONS (brief §3, and the rendering shows them on the benefit,
+// included and partnership lists). Inline SVG, stroke: currentColor, so each one
+// inherits the colour its context already passed contrast on — an icon cannot
+// introduce an off-palette value or a new contrast pair. Decorative: aria-hidden,
+// never the only carrier of meaning, because every item keeps its text label.
+function Ico({ d, size = 20 }: { d: string; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+         fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d={d} />
+    </svg>
+  );
+}
+const ICON = {
+  connected: "M12 3v6m0 6v6M5.6 7.8l4.3 2.5m4.2 2.4 4.3 2.5M18.4 7.8l-4.3 2.5m-4.2 2.4-4.3 2.5",
+  thread: "M4 18c0-6 4-9 8-9s4 3 8 3M4 6h4m8 12h4",
+  voice: "M12 3a4 4 0 0 1 4 4v3a4 4 0 0 1-8 0V7a4 4 0 0 1 4-4ZM5 11a7 7 0 0 0 14 0M12 18v3",
+  check: "M4 12.5 9 17.5 20 6.5",
+  spark: "M12 3v4m0 10v4M3 12h4m10 0h4M6.3 6.3l2.8 2.8m5.8 5.8 2.8 2.8m0-11.4-2.8 2.8m-5.8 5.8-2.8 2.8",
+} as const;
+
+const NAV = [
+  { href: "#included", label: "What's Included" },
+  { href: "#partnership", label: "Founding Partnership" },
+  { href: "#faq", label: "FAQ" },
+];
+
+const BENEFITS: { h: string; p: string; i: string }[] = [
+  { i: ICON.connected, h: "Practice, connected.", p: "Clients, scheduling, packages, billing, agreements, notes, reflections, programs, and communication live in one thoughtful system." },
+  { i: ICON.thread, h: "Context that carries forward.", p: "Client Intelligence helps return relevant history, language, themes, and source material so you can continue the work without losing the thread." },
+  { i: ICON.voice, h: "A voice in what comes next.", p: "Founding members receive direct access to the team and a structured place to influence the platform's priorities, flow, and future." },
+];
+
+// RULING 218 — this list sits in "A simple path to get started", a THIRD place
+// the offer's figures were restated after the hero card and the offer card.
+// The commitments stay; the numbers live once, in the offer section, where the
+// terms belong. A getting-started section is not a pricing table.
+const RECEIVE = [
+  "The founding rate for your first 12 months",
+  "Your locked rate thereafter, while continuously active",
+  "Guided onboarding included",
+  "Complete Practice plan access",
+  "Direct access to the product team",
+  "Priority consideration for early capabilities",
+  "Recognition as a founding practice",
+  "90 days' notice of structural program changes",
+];
+
+const AGREE = [
+  "Participate in three feedback calls during the first six months",
+  "Provide an honest testimonial based on their experience",
+  "Allow the practice name to appear in the founding-practice list",
+  "Use the platform in good faith and provide candid feedback",
+];
+
+const GOOD_FIT = [
+  "You run an active private practice with individual clients.",
+  "Your work depends on understanding each person's context over time.",
+  "Your process includes sessions, reflections, programs, resources, or between-session work.",
+  "You value practitioner judgment and want technology to support rather than replace it.",
+  "You can participate in onboarding and three structured feedback conversations.",
+  "You want your client experience to feel coherent and thoughtfully branded.",
+];
+
+const NOT_YET = [
+  "You are looking only for a basic calendar or payment link.",
+  "You need a verified clinical, medical, insurance-billing, or regulatory configuration that Psychefolio has not approved.",
+  "You want fully custom Studio development without a separate scope and modality build.",
+  "You cannot participate in the founding feedback process.",
+];
+
+const STEPS = [
+  { n: "1", h: "Apply", p: "Tell us about your practice, your methodology, and what you need your systems to do better." },
+  { n: "2", h: "20-minute fit call", p: "We will confirm that Psychefolio fits your current practice and that the founding cohort fits what you are ready to build." },
+  { n: "3", h: "Join and onboard", p: "If accepted and a seat remains, complete the Founding Practice agreement and subscription. Then begin guided onboarding with the cohort." },
+];
+
+// PSYCH-K® is a third-party mark: nominative use only, ® carried, no logo, and
+// no endorsement or affiliation implied.
+const FAQ = [
+  { q: "Who is the founding program for?", a: "It is for active transformational practitioners who want a connected operating environment and are willing to help improve it through structured feedback. The first cohort begins with practitioners working in subconscious change, somatic work, coaching, psychology, holistic practice, PSYCH-K® facilitation, therapy, and related integrative fields. Product suitability still depends on each practice's requirements." },
+  { q: "Is this a free trial?", a: `No. Founding Practice is a paid membership with guided onboarding and a ${PRICING.guaranteeDays}-day money-back guarantee. The cohort model gives us enough time to help you configure the platform and evaluate it inside your real workflow.` },
+  { q: "What happens after the first year?", a: `Your rate changes from ${PRICING.foundingFirstYear} to ${PRICING.foundingAfter} per month and remains locked at that price while your subscription stays continuously active and you remain on the qualifying Practice plan.` },
+  { q: `How are the ${PRICING.seats} seats selected?`, a: "We use a short application and a 20-minute fit call to confirm that Psychefolio matches the practice's current needs and that the practitioner can participate in the founding process. A seat is claimed after acceptance, signed terms, and successful first payment." },
+  { q: "What do I need to contribute?", a: "Founding members participate in three feedback calls during the first six months, provide an honest testimonial about their experience, and allow their practice to be named as a founding practice. A fuller case study is optional." },
+  { q: "What does guided onboarding include?", a: "Guided onboarding includes a live onboarding session, cohort resources, and help configuring the core Practice environment. Extensive migration, bilingual content setup, custom integrations, and methodology-specific development are separately scoped when needed." },
+  { q: "Can I switch plans later?", a: "Yes, but plan changes affect the founding rate. An upgrade to Studio uses Studio pricing. A downgrade to Solo forfeits the founding rate. We explain the consequence before confirming any change." },
+  { q: "What if I need to pause?", a: "Cancellation or a lapse ends the founding rate. If Sabbatical Mode is available at that time, it may preserve data under its published terms, but it does not preserve the founding rate unless the final agreement explicitly says so." },
+  { q: "Is Psychefolio limited to PSYCH-K® practitioners?", a: "No. PSYCH-K® is an important first practitioner community, but Psychefolio is designed for transformational practitioners across multiple methods. The platform can be configured around different frameworks and information flows without implying endorsement of any modality." },
+  { q: "Are clients limited?", a: "No. Founding Practice includes unlimited clients, and 60 recorded hours each month." },
+];
+
+// RULING 203 — metadata lives on the PAGE. On the layout it was applied even
+// when the page 404'd, so a tenant host's 404 carried the tab title
+// "Founding Practice · Psychefolio".
+export async function generateMetadata(): Promise<Metadata> {
+  // RULING 203, THE LAST PIECE. Static `metadata` is resolved by Next
+  // INDEPENDENTLY of whether the component calls notFound(), so exporting it
+  // here still put "Founding Practice · Psychefolio" and the full description
+  // into a tenant host's 404 flight payload. Moving it off the layout removed
+  // the rendered <title>; it did not remove the transmission.
+  //
+  // Metadata therefore has to make the host decision itself.
+  const h = headers();
+  if (!isPlatformHost(h.get("x-forwarded-host") || h.get("host"))) return {};
+  return {
+  title: `Founding Practice · ${PLATFORM_NAME}`,
+  description:
+    "Join Psychefolio's first practitioner cohort. Practice-level access at the Solo price, guided onboarding, and a voice in what gets built next.",
+  robots: { index: true, follow: true },
+  };
+}
+
+export default function FoundersPage({
+  searchParams,
+}: {
+  searchParams: Record<string, string | string[] | undefined>;
+}) {
+  requirePlatformHost(); // ruling 203 — refuse BEFORE any JSX is built
+  const rawSource = Array.isArray(searchParams.source) ? searchParams.source[0] : searchParams.source;
+  const fromCard = (rawSource ?? "").trim().toLowerCase() === CARD_SOURCE;
+
+  // Ruling 189 — the ONLY destination. The source rides along so the apply
+  // route can apply ruling 181's mapping to the stored row.
+  const applyHref = rawSource ? `/founders/apply?source=${encodeURIComponent(rawSource)}` : "/founders/apply";
+
+  const eyebrow = fromCard ? "Private event invitation · Founding Practice" : `Founding Practice · ${PRICING.seats} seats only`;
+
+  return (
+    <main>
+      {/* ---------- 1. NAVIGATION ---------- */}
+      <header className="pf-dark">
+        <nav className="pf-wrap" style={{ display: "flex", alignItems: "center", gap: 24, minHeight: 120 }} aria-label="Primary">
+          <Link href="/founders" style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+            {/* THE LOCKUP (ruling 190 §2). The previous src was
+                lockup-horizontal-reversed.svg, which brand-web's own spec
+                documents as "horizontal lockup for nav bars + reversed — BOTH
+                IN ONE FILE": a two-panel presentation board. Rendered whole at
+                53x30 it was the pale box Jacob saw. This is the approved
+                primary lockup, reversed colourway, at a legible size. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* F1 — 150px wide rendered the wordmark at 63px tall, which Jacob
+                read as an illegible smudge in the indigo nav. Roughly doubled.
+                The gate asserts the RENDERED HEIGHT (ruling 202), so this
+                cannot silently shrink again. */}
+            <img className="pf-lockup" src="/brand/lockup-primary-reversed.svg" alt="Psychefolio" style={{ height: "auto", display: "block" }} />
+          </Link>
+          <ul className="pf-navlinks" style={{ display: "flex", gap: 28, listStyle: "none", margin: 0, padding: 0, marginLeft: "auto" }}>
+            {NAV.map((n) => (
+              <li key={n.href}><a href={n.href} style={{ color: "var(--pf-cream)", textDecoration: "none", fontSize: ".95rem" }}>{n.label}</a></li>
+            ))}
+          </ul>
+          <Link href="/login" className="pf-signin" style={{ color: "var(--pf-cream)", textDecoration: "none", fontSize: ".95rem" }}>Sign In</Link>
+          <Link href={applyHref} className="pf-cta" style={{ minHeight: 44, padding: "0 20px", fontSize: ".95rem", marginLeft: "auto" }}>Apply</Link>
+          {/* MOBILE MENU CONTROL (ruling 190 §6). The links were display:none
+              below 860px with NO replacement, so What's Included, Founding
+              Partnership and FAQ were unreachable on a phone. Native
+              <details> — it opens with JS disabled. */}
+          <details className="pf-menu">
+            <summary aria-label="Menu" style={{ listStyle: "none", cursor: "pointer", color: "var(--pf-cream)", padding: "10px 4px", minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M3 12h18M3 18h18" />
+              </svg>
+            </summary>
+            <ul style={{ position: "absolute", right: 16, left: 16, marginTop: 12, listStyle: "none", padding: 12, background: "var(--pf-ink)", borderRadius: 14, zIndex: 20 }}>
+              {NAV.map((n) => (
+                <li key={n.href}><a href={n.href} style={{ display: "block", padding: "12px 10px", minHeight: 44, color: "var(--pf-cream)", textDecoration: "none" }}>{n.label}</a></li>
+              ))}
+              <li><Link href="/login" style={{ display: "block", padding: "12px 10px", minHeight: 44, color: "var(--pf-cream)", textDecoration: "none" }}>Sign In</Link></li>
+            </ul>
+          </details>
+        </nav>
+        {/* F1 — 240px is the desktop size. Doubling the lockup pushed the nav
+            row to 448px against a 375px viewport, which the gate's overflow
+            check caught on its first run after the change. The lockup steps
+            down on a phone rather than the nav scrolling sideways. */}
+        <style>{`
+          .pf-lockup { width: 240px; }
+          @media (max-width: 560px) { .pf-lockup { width: 168px; } }
+        `}</style>
+        <style>{`
+          .pf-menu { display: none; position: relative; margin-left: 8px; }
+          .pf-menu > summary::-webkit-details-marker { display: none; }
+          @media (max-width: 900px) {
+            .pf-navlinks, .pf-signin { display: none !important; }
+            .pf-menu { display: block; }
+          }
+        `}</style>
+      </header>
+
+      {/* ---------- 2. HERO ---------- */}
+      <section className="pf-dark" style={{ position: "relative", overflow: "hidden" }}>
+        {/* RESTRAINED CONSTELLATION LINES (ruling 190 §5). The previous version
+            wrote path data in PERCENTAGES — d="M 78% 12% L ..." — which SVG
+            path data does not accept, so every line was dropped and only the
+            circles rendered: scattered dots over the copy and no lines at all.
+            A viewBox with numeric coordinates draws what was intended.
+            No landscape, no star field: the Stage 2 dispatch excludes both. */}
+        <svg aria-hidden="true" focusable="false" viewBox="0 0 1440 720" preserveAspectRatio="xMaxYMid slice"
+             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.5, pointerEvents: "none" }}>
+          <g stroke="var(--pf-gold)" strokeWidth="1.1" fill="none" opacity="0.45">
+            <path d="M1180 96 L1286 188 L1156 268 L1310 356" />
+            <path d="M1286 188 L1372 132" />
+          </g>
+          <g fill="var(--pf-gold)" opacity="0.9">
+            {[[1180, 96], [1286, 188], [1156, 268], [1310, 356], [1372, 132]].map(([cx, cy]) => (
+              <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3" />
+            ))}
+          </g>
+        </svg>
+        <div className="pf-wrap pf-section pf-hero" style={{ position: "relative" }}>
+          <div>
+            <p className="pf-eyebrow" style={{ margin: 0 }}>{eyebrow}</p>
+            <h1 style={{ fontSize: "clamp(2.75rem, 5.6vw, 5rem)", lineHeight: 1.05, margin: "18px 0 0", maxWidth: "15ch" }}>
+              Help shape the operating system built for the way you practice.
+            </h1>
+            <p className="pf-lede" style={{ maxWidth: "52ch", marginTop: 22, color: "var(--pf-cream)" }}>
+              Join Psychefolio&rsquo;s first practitioner cohort and bring your clients, sessions, reflections, programs,
+              billing, agreements, and evolving client context into one connected environment.
+            </p>
+            {fromCard && (
+              <p style={{ maxWidth: "58ch", marginTop: 16, color: "var(--pf-cream)", opacity: 0.85, fontSize: ".98rem", lineHeight: 1.65 }}>
+                Built by practitioners familiar with subconscious integration and whole-systems work&mdash;for practitioners
+                whose methods do not fit neatly inside ordinary practice software.
+              </p>
+            )}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "center", marginTop: 34 }}>
+              <Link href={applyHref} className="pf-cta">Apply for a Founding Seat</Link>
+              <a href="#included" style={{ color: "var(--pf-cream)", textDecoration: "underline", textUnderlineOffset: 4 }}>See what&rsquo;s included &rarr;</a>
+            </div>
+          </div>
+          {/* THE RIGHT COLUMN — F2, RULED OPTION (b).
+              This card previously restated the whole offer: $99, $149, $500 and
+              the 60-day guarantee, within one scroll of the identical card in
+              the offer section. That was an artifact of ruling 176 cutting the
+              seat counter — the rendering put a COUNTER here and the PRICE card
+              below, and removing the counter left a second price card standing
+              in its place.
+              It now carries the offer's SHAPE and not its terms. It names no
+              ratified figure at all, so under ruling 218 every figure appears
+              exactly once on the page, in the offer section where the terms
+              belong. The close date stays, because a deadline with no date is
+              pressure without information.
+              Why a summary rather than nothing (option (a)): the first traffic
+              here is a printed QR code handed to a practitioner at a training.
+              They arrive with no context, and a bare CTA asks for a decision
+              before the offer has been stated. */}
+          <aside className="pf-card" style={{ padding: 28, alignSelf: "start", color: "var(--pf-text)" }}>
+            <p className="pf-eyebrow" style={{ margin: 0, color: "var(--pf-slate)" }}>Founding Practice</p>
+            <p className="pf-display" style={{ margin: "14px 0 0", fontSize: "1.55rem", lineHeight: 1.25, color: "var(--pf-indigo)" }}>
+              Practice-level access at the Solo price, locked for twelve months.
+            </p>
+            <p style={{ margin: "14px 0 0", color: "var(--pf-slate)", lineHeight: 1.7 }}>
+              {SEATS_STATEMENT}. Enrollment closes {PRICING.closesText}.
+            </p>
+            <a href="#offer" style={{ display: "inline-block", marginTop: 18, color: "var(--pf-indigo)", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 4 }}>
+              See the full terms &darr;
+            </a>
+          </aside>
+        </div>
+        <style>{`
+          .pf-hero { display: grid; grid-template-columns: 7fr 5fr; gap: 56px; align-items: center; }
+          @media (max-width: 980px) { .pf-hero { grid-template-columns: 1fr; gap: 36px; } }
+        `}</style>
+      </section>
+
+      {/* ---------- 3. THREE FOUNDING BENEFITS ---------- */}
+      <section className="pf-section" style={{ background: "var(--pf-card)" }}>
+        <div className="pf-wrap" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 0 }}>
+          {BENEFITS.map((b, i) => (
+            <div key={b.h} style={{ padding: "0 32px", borderLeft: i === 0 ? "none" : "1px solid rgba(46,39,73,.12)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 44, height: 44, borderRadius: 9999, background: "var(--pf-ivory)", color: "var(--pf-indigo)", marginBottom: 16 }}>
+                <Ico d={b.i} size={22} />
+              </span>
+              <h3 className="pf-display" style={{ fontSize: "1.45rem", margin: 0, color: "var(--pf-indigo)" }}>{b.h}</h3>
+              <p style={{ marginTop: 12, lineHeight: 1.7, color: "var(--pf-slate)" }}>{b.p}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ---------- 4. FOUNDING OFFER + PRICING CARD ---------- */}
+      <section id="offer" className="pf-section pf-dark">
+        {/* THE id IS LOAD-BEARING. The media query below was written when this
+            section was built and targets #pf-offer-grid — but the id was never
+            put on the element, so it matched nothing and the grid stayed two
+            columns at every width. The 420px track cannot shrink below its
+            floor, so the copy track collapsed to ZERO and its text rendered a
+            few characters per line. That is what Jacob photographed.
+            Same class of defect as the constellation whose path data was in
+            percentages: CSS that is present, plausible, and silently inert. */}
+        <div id="pf-offer-grid" className="pf-wrap" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,420px)", gap: 56, alignItems: "start" }}>
+          <div>
+            <p className="pf-eyebrow" style={{ margin: 0 }}>A founding rate for the first twenty</p>
+            <h2 className="pf-h2" style={{ marginTop: 16 }}>Practice-level access at the Solo price.</h2>
+            <p className="pf-lede" style={{ marginTop: 20, color: "var(--pf-cream)", maxWidth: "52ch" }}>
+              Receive the complete Practice plan, guided onboarding, and a permanent preferred rate in exchange for
+              helping us learn from your real practice.
+            </p>
+            <ul style={{ marginTop: 28, padding: 0, listStyle: "none", color: "var(--pf-cream)" }}>
+              {["Founding pricing from the first month", "Direct product feedback access",
+                "Priority participation in early releases", "Recognition as one of the first twenty practices"].map((v) => (
+                <li key={v} style={{ display: "flex", gap: 12, alignItems: "flex-start", lineHeight: 1.6, marginBottom: 14 }}>
+                  <span style={{ color: "var(--pf-gold)", flexShrink: 0, marginTop: 2 }}><Ico d={ICON.spark} size={18} /></span><span>{v}</span>
+                </li>))}
+            </ul>
+          </div>
+          <div className="pf-card" style={{ padding: 32, color: "var(--pf-text)" }}>
+            <p className="pf-eyebrow" style={{ margin: 0 }}>Founding Practice</p>
+            <p style={{ margin: "18px 0 0", color: "var(--pf-slate)" }}>
+              <s>{PRICING.standardPractice}</s>{" "}
+              <span style={{ fontSize: ".9rem", color: "var(--pf-slate)" }}>standard Practice price</span>
+            </p>
+            <p style={{ margin: "6px 0 0", display: "flex", alignItems: "baseline", gap: 8 }}>
+              <span className="pf-display" style={{ fontSize: "3rem", color: "var(--pf-indigo)" }}>{PRICING.foundingFirstYear}</span>
+              <span style={{ color: "var(--pf-slate)" }}>/month</span>
+            </p>
+            <p style={{ margin: "2px 0 0", color: "var(--pf-slate)" }}>for your first 12 months</p>
+            <hr style={{ border: 0, borderTop: "1px solid rgba(46,39,73,.12)", margin: "22px 0" }} />
+            <p style={{ margin: 0, color: "var(--pf-text)" }}>
+              Then <strong>{PRICING.foundingAfter}/month</strong> locked<br />
+              <span style={{ color: "var(--pf-slate)", fontSize: ".95rem" }}>while continuously active</span>
+            </p>
+            <ul style={{ margin: "20px 0 0", paddingLeft: 20, lineHeight: 1.9, color: "var(--pf-text)" }}>
+              <li>{PRICING.onboardingIncluded} guided onboarding included</li>
+              <li>{PRICING.guaranteeDays}-day money-back guarantee</li>
+            </ul>
+            <Link href={applyHref} className="pf-cta" style={{ width: "100%", marginTop: 26 }}>Apply for a Founding Seat</Link>
+            <p className="pf-fine" style={{ margin: "14px 0 0", textAlign: "center" }}>
+              Enrollment closes {PRICING.closesText}.
+            </p>
+          </div>
+        </div>
+        {/* !important is required: it must beat the inline grid-template-columns
+            above, which a plain class rule would lose to. */}
+        <style>{`@media (max-width:900px){ #pf-offer-grid{grid-template-columns:minmax(0,1fr) !important; gap:36px !important;} }`}</style>
+      </section>
+
+      {/* ---------- 5. EVERYTHING IN PRACTICE ---------- */}
+      <section id="included" className="pf-section" style={{ background: "var(--pf-ivory)" }}>
+        <div className="pf-wrap">
+          <p className="pf-eyebrow" style={{ margin: 0 }}>What&rsquo;s included</p>
+          <h2 className="pf-h2" style={{ marginTop: 14, color: "var(--pf-indigo)" }}>Everything in Practice.</h2>
+          <p className="pf-lede" style={{ marginTop: 18, maxWidth: "70ch", color: "var(--pf-slate)" }}>
+            The full environment for practitioners who want the business of the practice, the client experience, and the
+            developing context of the work to remain connected.
+          </p>
+          <div style={{ marginTop: 44, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 28 }}>
+            {INCLUDED.map((g) => (
+              <div key={g.label} className="pf-card" style={{ padding: 26 }}>
+                <p className="pf-eyebrow" style={{ margin: 0 }}>{g.label}</p>
+                <ul style={{ margin: "16px 0 0", padding: 0, listStyle: "none", color: "var(--pf-text)" }}>
+                  {g.items.map((it) => (
+                    <li key={it} style={{ display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.6, marginBottom: 10 }}>
+                      <span style={{ color: "var(--pf-sage)", flexShrink: 0, marginTop: 2 }}><Ico d={ICON.check} size={18} /></span>
+                      <span>{it}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- 6. FOUNDING PARTNERSHIP ---------- */}
+      <section id="partnership" className="pf-section" style={{ background: "var(--pf-card)" }}>
+        <div className="pf-wrap">
+          <h2 className="pf-h2" style={{ color: "var(--pf-indigo)", margin: 0 }}>This is a founding partnership.</h2>
+          <p className="pf-lede" style={{ marginTop: 18, maxWidth: "72ch", color: "var(--pf-slate)" }}>
+            We are building Psychefolio with practitioners, not simply for them. Your experience, perspective, and honest
+            feedback will influence what we refine and build next. In return, you receive meaningful early pricing,
+            guided onboarding, and direct access to the people shaping the platform.
+          </p>
+          <div style={{ marginTop: 40, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 36 }}>
+            <div>
+              <h3 className="pf-display" style={{ fontSize: "1.25rem", color: "var(--pf-indigo)", margin: 0 }}>What founding members receive</h3>
+              <ul style={{ margin: "16px 0 0", padding: 0, listStyle: "none" }}>{RECEIVE.map((x) => (
+                <li key={x} style={{ display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.6, marginBottom: 10 }}>
+                  <span style={{ color: "var(--pf-sage)", flexShrink: 0, marginTop: 2 }}><Ico d={ICON.check} size={18} /></span><span>{x}</span>
+                </li>))}</ul>
+            </div>
+            <div>
+              <h3 className="pf-display" style={{ fontSize: "1.25rem", color: "var(--pf-indigo)", margin: 0 }}>What founding members agree to</h3>
+              <ul style={{ margin: "16px 0 0", padding: 0, listStyle: "none" }}>{AGREE.map((x) => (
+                <li key={x} style={{ display: "flex", gap: 10, alignItems: "flex-start", lineHeight: 1.6, marginBottom: 10 }}>
+                  <span style={{ color: "var(--pf-sage)", flexShrink: 0, marginTop: 2 }}><Ico d={ICON.check} size={18} /></span><span>{x}</span>
+                </li>))}</ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- 7. QUALIFICATION ---------- */}
+      <section className="pf-section" style={{ background: "var(--pf-cream)" }}>
+        <div className="pf-wrap">
+          <p className="pf-eyebrow" style={{ margin: 0 }}>Who this is for</p>
+          <h2 className="pf-h2" style={{ marginTop: 14, color: "var(--pf-indigo)" }}>For practitioners ready to build with us.</h2>
+          <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 36 }}>
+            <div>
+              <h3 className="pf-display" style={{ fontSize: "1.2rem", color: "var(--pf-indigo)", margin: 0 }}>A good fit</h3>
+              <ul style={{ margin: "14px 0 0", paddingLeft: 20, lineHeight: 1.9 }}>{GOOD_FIT.map((x) => <li key={x}>{x}</li>)}</ul>
+            </div>
+            <div>
+              <h3 className="pf-display" style={{ fontSize: "1.2rem", color: "var(--pf-slate)", margin: 0 }}>Not the right fit yet</h3>
+              <ul style={{ margin: "14px 0 0", paddingLeft: 20, lineHeight: 1.9, color: "var(--pf-slate)" }}>{NOT_YET.map((x) => <li key={x}>{x}</li>)}</ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- 8. HOW IT WORKS ---------- */}
+      <section className="pf-section" style={{ background: "var(--pf-card)" }}>
+        <div className="pf-wrap">
+          <p className="pf-eyebrow" style={{ margin: 0 }}>How it works</p>
+          <h2 className="pf-h2" style={{ marginTop: 14, color: "var(--pf-indigo)" }}>A simple path to get started.</h2>
+          {/* The rendering runs these as numbered circles joined by connectors
+              rather than as three bordered cards — lighter, and it reads as ONE
+              path instead of three options. The connector is decorative and
+              hidden from assistive tech; the numerals stay in the text. */}
+          <ol className="pf-steps" style={{ marginTop: 44, padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 0 }}>
+            {STEPS.map((st, i) => (
+              <li key={st.n} style={{ position: "relative", padding: "0 28px 0 0" }}>
+                {i < STEPS.length - 1 && (
+                  <span aria-hidden="true" className="pf-connector" style={{ position: "absolute", top: 21, left: 52, right: 12, height: 1, background: "rgba(46,39,73,.18)" }} />
+                )}
+                <span style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", width: 42, height: 42, borderRadius: 9999, background: "var(--pf-sage)", color: "var(--pf-ink)", fontWeight: 600, fontSize: "1.05rem" }}>
+                  {st.n}
+                </span>
+                <h3 className="pf-display" style={{ fontSize: "1.2rem", color: "var(--pf-indigo)", margin: "16px 0 0" }}>{st.h}</h3>
+                <p style={{ marginTop: 8, lineHeight: 1.7, color: "var(--pf-slate)", maxWidth: "34ch" }}>{st.p}</p>
+              </li>
+            ))}
+          </ol>
+          <style>{`
+            @media (max-width: 820px) {
+              .pf-steps { grid-template-columns: 1fr !important; gap: 28px !important; }
+              .pf-connector { display: none !important; }
+            }
+          `}</style>
+          {/* Brief §13, stated rather than implied: applying reserves nothing. */}
+          <p style={{ marginTop: 28, fontWeight: 600, color: "var(--pf-indigo)", maxWidth: "70ch" }}>
+            Completing the application does not reserve a seat. A seat is claimed only after acceptance, signed terms,
+            and successful first payment.
+          </p>
+        </div>
+      </section>
+
+      {/* ---------- 9. FOUNDING TERMS SUMMARY ---------- */}
+      <section className="pf-section" style={{ background: "var(--pf-ivory)" }}>
+        <div className="pf-wrap">
+          <h2 className="pf-h2" style={{ color: "var(--pf-indigo)", margin: 0, fontSize: "clamp(1.7rem,3vw,2.5rem)" }}>Clear terms from the beginning.</h2>
+          <ul style={{ margin: "22px 0 0", paddingLeft: 20, lineHeight: 1.95, maxWidth: "78ch" }}>
+            {TERMS_BULLETS.map((t) => <li key={t}>{t}</li>)}
+          </ul>
+          {/* The link renders ONLY when the Addendum exists. Never a placeholder,
+              a draft, or a 404 — the dispatch is explicit. */}
+          {ADDENDUM_URL && (
+            <p style={{ marginTop: 20 }}>
+              <a href={ADDENDUM_URL} style={{ color: "var(--pf-indigo)", fontWeight: 600 }}>Read the complete Founding Practice terms</a>
+            </p>
+          )}
+        </div>
+      </section>
+
+      {/* ---------- 10. FAQ — native details/summary, works with JS disabled ---------- */}
+      <section id="faq" className="pf-section" style={{ background: "var(--pf-card)" }}>
+        <div className="pf-wrap" style={{ maxWidth: 900 }}>
+          <h2 className="pf-h2" style={{ color: "var(--pf-indigo)", margin: 0, fontSize: "clamp(1.7rem,3vw,2.5rem)" }}>Questions</h2>
+          <div style={{ marginTop: 26 }}>
+            {FAQ.map((f) => (
+              <details key={f.q} style={{ borderBottom: "1px solid rgba(46,39,73,.12)", padding: "18px 0" }}>
+                {/* Brief 19: FAQ tap targets at least 44px. minHeight was 24 and
+                    measured 25px rendered — under half the required target. */}
+                <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--pf-indigo)", fontSize: "1.05rem", minHeight: 44, display: "flex", alignItems: "center", listStyle: "revert" }}>
+                  {f.q}
+                </summary>
+                <p style={{ marginTop: 12, lineHeight: 1.75, color: "var(--pf-slate)" }}>{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ---------- 11. FINAL CTA + FOOTER ---------- */}
+      <section className="pf-section pf-dark">
+        <div className="pf-wrap" style={{ maxWidth: 860 }}>
+          <p className="pf-eyebrow" style={{ margin: 0 }}>The first twenty</p>
+          <h2 className="pf-h2" style={{ marginTop: 14 }}>Your seat in what Psychefolio becomes next.</h2>
+          <p className="pf-lede" style={{ marginTop: 18, color: "var(--pf-cream)" }}>
+            Bring us the way you practice. We will help you build a more connected operating environment around
+            it&mdash;and learn from your experience as we shape what comes next.
+          </p>
+          <div style={{ marginTop: 30 }}>
+            <Link href={applyHref} className="pf-cta">Apply for a Founding Seat</Link>
+          </div>
+          <p style={{ marginTop: 18, color: "var(--pf-cream)", fontSize: ".92rem" }}>
+            Enrollment closes {PRICING.closesText} or when all {PRICING.seats} seats are claimed.
+          </p>
+        </div>
+      </section>
+
+      {/* The rendering's footer is LIGHT, not another indigo band — it closes the
+          page instead of extending the final CTA. The lockup here is the
+          light-background primary; the reversed colourway belongs on indigo. */}
+      <footer style={{ background: "var(--pf-ivory)", padding: "40px 0", borderTop: "1px solid rgba(46,39,73,.12)" }}>
+        <div className="pf-wrap" style={{ display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", justifyContent: "space-between", fontSize: ".88rem", color: "var(--pf-slate)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* F1 — the light-footer lockup gets the same treatment. */}
+            <img src="/brand/lockup-primary.svg" alt="Psychefolio" style={{ width: 210, height: "auto", display: "block" }} />
+            <span>&copy; {new Date().getFullYear()} Psychefolio</span>
+          </div>
+          <span style={{ maxWidth: "58ch" }}>
+            PSYCH-K&reg; is a registered trademark of its owner. Psychefolio is independent and is not affiliated with,
+            endorsed by, or sponsored by PSYCH-K&reg;.
+          </span>
+          <Link href="/privacy" style={{ color: "var(--pf-slate)" }}>Privacy</Link>
+        </div>
+      </footer>
+    </main>
+  );
+}

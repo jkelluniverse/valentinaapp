@@ -1,0 +1,11 @@
+{
+  "slug": "demo-coach",
+  "displayName": "Clearline Coaching (Demo)",
+  "layoutKey": "dashboard-v1",
+  "skinKey": "clinical-light",
+  "modules": [],
+  "branding": { "portalTitle": "clearline" },
+  "featureFlags": {},
+  "seed": "DEMO_FIXTURES",
+  "practitioner": { "name": "Jordan Demo", "email": "pract@demo-coach.fixture.test" }
+}

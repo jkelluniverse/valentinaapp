@@ -1,0 +1,73 @@
+{
+  "_comment": "BORRADOR (es-419, tú) — pendiente del pase de voz de Valentina.",
+  "signup": {
+    "eyebrow": "Socios fundadores",
+    "heading": "Crea el portal de tu práctica",
+    "lede": "Una sola pantalla. Al terminar, tu práctica tiene un portal en su propia dirección — admisión de clientes, mapas, notas, acuerdos, mensajes — y entras como su dueña o dueño.",
+    "youGet": {
+      "heading": "Con qué te quedas",
+      "items": [
+        "Un portal en tu propia dirección, activo en el momento en que termines.",
+        "Admisión de clientes, el mapa que ven tus clientes, notas de sesión, acuerdos y mensajes.",
+        "El nombre de tu práctica en él, no el nuestro.",
+        "Un código de referencia de socio fundador para dárselo a la siguiente persona."
+      ]
+    },
+    "fields": {
+      "name": "Tu nombre",
+      "namePlaceholder": "Alex Rivera",
+      "practiceName": "Nombre de la práctica",
+      "practiceNamePlaceholder": "Rivera Bienestar",
+      "email": "Correo electrónico",
+      "emailPlaceholder": "tu@tupractica.com",
+      "password": "Elige una contraseña",
+      "passwordHint": "Al menos {min} caracteres. La usarás para entrar — nunca te la enviamos por correo.",
+      "slug": "La dirección de tu portal",
+      "slugHint": "Letras, números y guiones. Puedes editarla — es la dirección que escribirán tus clientes."
+    },
+    "slugStatus": {
+      "checking": "Verificando…",
+      "ok": "Disponible",
+      "taken": "Ya está ocupada — prueba otra",
+      "reserved": "Esa está reservada — prueba otra",
+      "invalid": "Solo letras, números y guiones, de 2 a 31 caracteres"
+    },
+    "submit": "Crear mi portal",
+    "submitting": "Preparando tu portal…",
+    "footnote": "Los socios fundadores quedan configurados como práctica cortesía — aquí no hay nada que ingresar más que tus datos.",
+    "referredBy": "Te refirió {code}",
+    "invitedBy": "Te invitó un socio fundador",
+    "errors": {
+      "missing": "Faltan algunos campos por responder.",
+      "email": "Ese correo electrónico no parece correcto.",
+      "password": "Elige una contraseña de al menos {min} caracteres.",
+      "slug": "Las direcciones de portal usan solo letras, números y guiones (2 a 31 caracteres).",
+      "slug-reserved": "Esa dirección está reservada. Elige otra, por favor.",
+      "slug-taken": "Esa dirección ya está ocupada. Elige otra, por favor.",
+      "email-taken": "Ese correo electrónico ya tiene una cuenta. Mejor inicia sesión.",
+      "rate": "Demasiados intentos desde aquí. Espera unos minutos e inténtalo de nuevo.",
+      "failed": "Algo falló al preparar tu portal y no se creó nada. Inténtalo de nuevo, por favor."
+    },
+    "signInInstead": "¿Ya tienes cuenta? Inicia sesión",
+    "welcome": {
+      "eyebrow": "Eres socio fundador",
+      "heading": "Tu portal está activo",
+      "portalLabel": "La dirección de tu portal",
+      "signInLabel": "Entra con",
+      "passwordNote": "Usa la contraseña que acabas de elegir. No te enviamos nada por correo — no tienes que esperar nada.",
+      "codeLabel": "Tu código de referencia de socio fundador",
+      "codeNote": "Dáselo a la siguiente persona que conozcas. Sigue siendo tuyo.",
+      "next": "Abrir mi portal",
+      "keepThis": "Toma una captura de esta pantalla si estás en el wifi del evento."
+    },
+    "publicLink": "Para profesionales",
+    "email": {
+      "subject": "El portal de tu práctica está activo",
+      "heading": "El portal de tu práctica está activo",
+      "p1": "{practice} ya está configurado y te espera en {host}.",
+      "p2": "Entra con {email} y la contraseña que elegiste al registrarte. Nunca enviamos una contraseña por correo.",
+      "p3": "Tu código de referencia de socio fundador es {code}.",
+      "button": "Abrir mi portal"
+    }
+  }
+}

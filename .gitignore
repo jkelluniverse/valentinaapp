@@ -5,3 +5,12 @@
 .env*.local
 next-env.d.ts
 .DS_Store
+
+# UX audit screenshot output (regenerable via e2e/walk.mjs)
+/audit/
+
+# TypeScript incremental build cache (regenerated each build)
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+docs/baseline/.current/
+audits/platform/isolation-verify.out.md

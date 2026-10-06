@@ -1,0 +1,69 @@
+{
+  "id": "tomas",
+  "identity": {
+    "name": "Tomás Rivera",
+    "age": 61,
+    "pronouns": "he/him",
+    "lives": "St. Cloud, Orlando, FL",
+    "work": "retired contractor",
+    "email": "tomas@fixture.test",
+    "language": "en, occasional ES"
+  },
+  "birth": {
+    "date": "1965-04-27",
+    "time": null,
+    "precision": "UNKNOWN",
+    "place": "Ponce, Puerto Rico",
+    "tz_expect": "America/Puerto_Rico (Atlantic Standard Time, UTC-4, no DST — a stable control-group zone). BUT birth time is UNKNOWN: this is the most-caveated chart in the roster. Type/Strategy and date-driven layers hold; anything requiring a birth time (houses, exact ascendant, fine placements) must be flagged as indeterminate, not guessed. Per C11 §5 the chart renders with an explicit unknown-time caveat."
+  },
+  "arrived": {
+    "presenting": "retired eight months ago; describes the days as 'long'; came because his daughter set it up, not because he had words ready — the role that told him who he was is gone and nothing replaced it",
+    "in_her_words": "I built houses. Now what."
+  },
+  "psyche": {
+    "wounds": ["I-must-not-need", "identity loss"],
+    "beliefs": [
+      "a man handles it himself",
+      "if I'm not working, I'm not worth much"
+    ],
+    "protections": [
+      "self-reliance to the point of isolation",
+      "keeping busy with small repairs so the day has a shape",
+      "few words — needing help would be a kind of asking"
+    ],
+    "patterns": [
+      "deflecting care; changing the subject to the task",
+      "measuring the day by what got fixed"
+    ],
+    "resources": [
+      "his hands — 40 years of skill that still work perfectly",
+      "what he built — houses across Ponce and Central Florida that families still live in",
+      "a granddaughter who thinks he can fix anything, and is mostly right"
+    ],
+    "origin": "raised where a man's worth was his labor and his silence; the role of provider fit so well he never had to find out who was underneath it — until the work stopped"
+  },
+  "first_map": {
+    "self_named": ["what he built"],
+    "unaware_of": [
+      "that 'I must not need' is why the retirement feels like disappearing",
+      "that the loss is grief, not laziness"
+    ]
+  },
+  "arc": {
+    "months": 4,
+    "stage": 1,
+    "beats": [
+      { "m": 1, "note": "daughter enrolls him; first entries are one line each; mostly logistics" },
+      { "m": 2, "note": "writes 'built the shelf. good day.' — the record shows he is measuring worth by tasks, but says almost nothing directly" },
+      { "m": 4, "note": "one longer message, then back to terse; the identity-loss thread is present but barely evidenced — real, not elaborated" }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 2,
+    "messages_per_month": 1,
+    "worksheets": 0,
+    "course": "none started",
+    "data_note": "SPARSE BY DESIGN. Tomás writes six terse words at a time, not essays; total record across 4 months is a handful of one-line reflections and one or two short messages. This is the thin-data / no-over-extraction test (§10.7): the extractor must produce only a few well-evidenced nodes (I-must-not-need, identity loss, the resource of his hands) and must NOT inflate, interpret, or manufacture a rich constellation from sparse text. If the map for Tomás looks as full as a heavy-engagement client's, extraction is over-reaching."
+  },
+  "voice": "six terse words at most; declarative, practical, no adjectives to spare; the feeling is in what he leaves out, not in what he says; an occasional 'bregar' or 'ya' when English won't carry it"
+}

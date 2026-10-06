@@ -1,0 +1,88 @@
+{
+  "id": "ben",
+  "identity": {
+    "name": "Ben Whitfield",
+    "age": 23,
+    "pronouns": "he/him",
+    "lives": "Winter Garden, Orlando, FL",
+    "work": "junior developer",
+    "email": "ben@fixture.test",
+    "language": "en"
+  },
+  "birth": {
+    "date": "2003-07-16",
+    "time": "05:33",
+    "precision": "EXACT",
+    "place": "Orlando, United States",
+    "tz_expect": "America/New_York (EDT, UTC-4 in July 2003)"
+  },
+  "arrived": {
+    "presenting": "signed up 'kind of as a joke' after a breakup; jokes about everything but keeps showing up",
+    "in_her_words": "honestly I'm probably fine lol. i just get weird whenever anyone actually likes me back."
+  },
+  "psyche": {
+    "wounds": [
+      "abandonment",
+      "I-am-too-much"
+    ],
+    "beliefs": [
+      "people leave once they see the real me",
+      "if I feel it out loud I'll scare them off"
+    ],
+    "protections": [
+      "deflecting with jokes",
+      "leaving first so he can't be left"
+    ],
+    "patterns": [
+      "ghosts people he actually likes",
+      "turns every feeling into a bit"
+    ],
+    "resources": [
+      "a group chat of friends since middle school",
+      "he notices when he's deflecting, even if he can't stop yet"
+    ],
+    "origin": "dad moved out when he was nine and the visits thinned to nothing; learned early that being 'a lot' was why people got tired of you"
+  },
+  "first_map": {
+    "self_named": [
+      "deflecting with jokes",
+      "the group chat"
+    ],
+    "unaware_of": [
+      "abandonment",
+      "leaving first so he can't be left",
+      "I-am-too-much"
+    ]
+  },
+  "arc": {
+    "months": 2,
+    "stage": 1,
+    "beats": [
+      {
+        "m": 1,
+        "note": "record is almost all short messages — quips, memes, one-liners; barely any formal reflections"
+      },
+      {
+        "m": 1,
+        "note": "buries a real line at the end of a joke: 'anyway she was probably gonna bail eventually so'"
+      },
+      {
+        "m": 2,
+        "note": "messages Valentina at 1am, three jokes then: 'my dad used to say he'd call'"
+      },
+      {
+        "m": 2,
+        "note": "first actual reflection, four sentences, no punchline — surprises himself"
+      }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 2,
+    "messages_per_month": 18,
+    "worksheets": 1,
+    "course": "not started",
+    "note": "MESSAGE-DOMINANT — his record is mostly messages, very few formal reflections; the map must be built from messages → record → map"
+  },
+  "voice": "quick, deflecting, lowercase and meme-fluent; deflects with jokes then lands one true sentence, usually the last one, then immediately undercuts it",
+  "values_state": "SENT"
+}

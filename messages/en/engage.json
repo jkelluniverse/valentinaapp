@@ -1,0 +1,80 @@
+{
+  "engage": {
+    "unsubscribe": {
+      "label": "Stop these emails",
+      "line": "No more of these? One click, no account needed: {unsubscribeUrl}"
+    },
+    "page": {
+      "eyebrow": "Follow-up",
+      "doneHeading": "Done — you are unsubscribed",
+      "doneBody": "We will not send you any more follow-up about the practitioner platform. Nothing else changes, and you do not need to do anything further.",
+      "alreadyHeading": "You were already unsubscribed",
+      "alreadyBody": "This address is already off the follow-up list, so this click changed nothing.",
+      "invalidHeading": "This link is not valid",
+      "invalidBody": "The link may have been cut short by a mail client. Nobody has been unsubscribed. Reply to any of our emails and we will take you off the list by hand.",
+      "footnote": "Practitioner platform follow-up only. This has nothing to do with any client of yours."
+    },
+    "templates": {
+      "eventLeadThanks": {
+        "subject": "Thank you for leaving your name",
+        "preheader": "Your referral code and the link to set up your practice.",
+        "heading": "{firstName}, thank you",
+        "paragraphs": [
+          "You left your name with us today, so here is everything you need in one place.",
+          "Your referral code is {referralCode}. Anyone who arrives on it is recorded as having come from you.",
+          "When you are ready, you can set up your practice yourself — it takes a few minutes and you choose your own address and password."
+        ],
+        "button": { "label": "Set up your practice", "url": "{signupUrl}" },
+        "signoff": "With warmth,"
+      },
+      "eventLeadWhatItDoes": {
+        "subject": "What the platform actually does",
+        "preheader": "Plainly, without a pitch.",
+        "heading": "{firstName}, what this actually is",
+        "paragraphs": [
+          "A short and honest answer, since a room is a hard place to explain software.",
+          "Your practice gets its own portal: a place your clients sign in, intake you send and read, scheduling, your session notes, and agreements they can sign. It is one place instead of five.",
+          "Founding partners are set up as a comped practice. If it is not useful to you, say so and we will stop writing."
+        ],
+        "button": { "label": "Set up your practice", "url": "{signupUrl}" },
+        "signoff": "With warmth,"
+      },
+      "eventLeadLastNote": {
+        "subject": "A last note",
+        "preheader": "The link stays open; this is the last time we write.",
+        "heading": "{firstName}, a last note",
+        "paragraphs": [
+          "This is the last of these you will get from us — a professional's inbox is not a place to keep knocking.",
+          "The link below stays open whenever the timing is better. Nothing expires.",
+          "If you would rather we set it up with you instead of you doing it alone, reply to this email and we will find a time."
+        ],
+        "button": { "label": "Set up your practice", "url": "{signupUrl}" },
+        "signoff": "With warmth,"
+      },
+      "foundingWelcome": {
+        "subject": "Your practice is set up",
+        "preheader": "Your portal address and the first three things to do.",
+        "heading": "{firstName}, your practice is ready",
+        "paragraphs": [
+          "Your portal is at {portalUrl}. Sign in with the email and password you chose.",
+          "Three things worth doing first: put your practice name and hours in settings, send an intake to one client you know well, and read what comes back.",
+          "You are a founding partner, which means your questions shape what gets built next. Reply to this email with anything that is missing."
+        ],
+        "button": { "label": "Open your portal", "url": "{portalUrl}" },
+        "signoff": "With warmth,"
+      },
+      "foundingCheckIn": {
+        "subject": "How is the first week going?",
+        "preheader": "One reply is enough.",
+        "heading": "{firstName}, how is it going?",
+        "paragraphs": [
+          "It has been a week since your practice was set up, so this is a genuine question rather than a nudge: what has been awkward?",
+          "If you have not had a chance to open it yet, that is fine too — nothing was lost and your portal is still at {portalUrl}.",
+          "One sentence back is plenty. A founding partner's complaint is more useful to us than a compliment."
+        ],
+        "button": { "label": "Open your portal", "url": "{portalUrl}" },
+        "signoff": "With warmth,"
+      }
+    }
+  }
+}

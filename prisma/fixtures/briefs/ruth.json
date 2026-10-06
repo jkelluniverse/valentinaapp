@@ -1,0 +1,53 @@
+{
+  "id": "ruth",
+  "identity": {
+    "name": "Ruth Delgado",
+    "age": 44,
+    "pronouns": "she/her",
+    "lives": "Altamonte Springs, Orlando, FL",
+    "work": "former client (deactivated)",
+    "email": "ruth@fixture.test",
+    "language": "en, occasional ES"
+  },
+  "birth": {
+    "date": "1982-01-17",
+    "time": "22:50",
+    "precision": "EXACT",
+    "place": "Santo Domingo, Dominican Republic",
+    "tz_expect": "America/Santo_Domingo (UTC-4, no DST — stable baseline; birth data retained on the historic record but no live chart is generated for a deactivated account)"
+  },
+  "arrived": {
+    "presenting": "worked through a season of self-doubt after a layoff, then closed her account when things stabilized; retained as a retention/reactivation case, not an active client",
+    "in_her_words": "I think I got what I came for. I'll reach out if I need to come back."
+  },
+  "psyche": {
+    "wounds": ["not-enoughness"],
+    "beliefs": ["my worth rises and falls with my job title", "if I'm not achieving I'm falling behind"],
+    "protections": ["staying busy", "measuring herself against peers"],
+    "patterns": ["equated the layoff with personal failure", "over-invested identity in her role"],
+    "resources": ["a steady marriage", "a church community she leans on"],
+    "origin": "raised to see status as safety after her family rebuilt from little"
+  },
+  "first_map": {
+    "self_named": ["staying busy", "the layoff as failure"],
+    "unaware_of": ["not-enoughness"]
+  },
+  "arc": {
+    "months": 0,
+    "stage": null,
+    "status": "closed",
+    "beats": [
+      { "m": 0, "note": "DEACTIVATED — account closed; cannot log in. Historic engagement only, no active arc. Present in the roster to verify the deactivated lifecycle state (retention/reactivation) and that a closed account has no live chart, no ongoing extraction, and no new content." }
+    ]
+  },
+  "engagement": {
+    "reflections_per_month": 0,
+    "messages_per_month": 0,
+    "worksheets": 0,
+    "course": "none active",
+    "cadence": "historic only — a light footprint from a prior, completed engagement; no current activity",
+    "lifecycle": "deactivated / cannot log in; retention case",
+    "historic_footprint": "a handful of archived reflections and one closing message from her original engagement remain on the record"
+  },
+  "voice": "grounded, matter-of-fact, faith-inflected; spoke of struggle in the past tense even while inside it — the voice of someone who prefers to have already recovered"
+}
