@@ -1,6 +1,8 @@
 # C39-DEMOS
 
-**Status:** spec, awaiting ratification. Nothing built.
+**Status:** ACCEPTED 2026-10-06 (rulings 249–253). Nothing built. Builds after C42 → C43 and
+when Jacob's two answers land (Postgres-4MgC; her name on DEMO 2). Amendments from the
+review are marked **[RULED]** inline.
 **Covers:** two public, walk-in demos for practitioners evaluating Psychefolio —
 DEMO 1 (Psychefolio-branded, the lower tier: what you get without custom
 branding) and DEMO 2 (Veritas-branded with mock data, the middle tier: what full
@@ -281,7 +283,9 @@ touching a shell — and only when (a) resolved a persona). Contents, left to ri
   a server action that sets the cookie and redirects to the other portal's
   home (`/space` ↔ `/practitioner`). This is the ONE write a demo visitor makes
   that is not a database write;
-- "Reset the demo" (§6.3), behind a confirm;
+- ~~"Reset the demo" (§6.3)~~ **[RULED: NO — the nightly reset is the backstop; a
+  visitor-triggered reset is a write path on a read-mostly demo and a lever for one
+  visitor to disrupt the next]**;
 - the fictional notice (today's `DemoBanner` copy, kept: "Demonstration space —
   everyone here is fictional"), and a "Psychefolio" link to the platform site.
 
@@ -395,8 +399,8 @@ rates is a money surface, and the Billing pages demonstrate well as read-only.
 "read-mostly" turns on: flipping `bookingRequiresApproval` in the demo changes
 `/book`'s copy for the next visitor until the reset. A practitioner evaluating
 the product should be able to flip a setting and see the product obey; the
-cross-visitor cost is bounded to one day and to a demo. §12 Q4 asks for the
-ruling either way.
+cross-visitor cost is bounded to one day and to a demo. **[RULED: ALLOWED — "a demo that
+cannot show settings cannot show the product."]**
 
 **5.3 Behaviour on deny.** The extension throws `DemoWriteBlockedError(model,
 method)` and logs ONE line: `[demo-block] model=<m> method=<op> path=<pathname
@@ -468,7 +472,7 @@ breaks it" list. The production tick (job 8110930) is NOT pointed at the demo
 and the demo does not need a tick: nothing there must be reminded, charged or
 auto-completed; stale fixture appointments are re-anchored by the nightly seed.
 
-**6.3 "Reset the demo" in the bar:** a server action with guards (2)–(4)
+**6.3 ~~"Reset the demo" in the bar~~ [RULED OUT 2026-10-06 — not built; kept for the record]:** a server action with guards (2)–(4)
 above plus an in-process rate limit (one reset per 10 minutes per instance; a
 second press inside the window gets "The demo was just reset — give it a few
 minutes"). Anyone can press it; a reset only ever restores the seed. The
@@ -611,20 +615,20 @@ pinned, `/book` "Confirm my call" ×1).
 
 ## 12. Open questions for ruling
 
-- **Q1** `Postgres-4MgC` — what is it? (Fact, not a decision; blocks nothing.)
+- **Q1** `Postgres-4MgC` — what is it? **→ Jacob** (asked whether it was deliberate).
 - **Q2** Does Railway's dashboard accept `*.demo.psychefolio.com` on the demo
   service while production holds `*.psychefolio.com`? The published rule says
   yes (overlap is defined as `foo.hello.com` vs `*.hello.com`); the dashboard
   is the authority. If it refuses, the fallback is `*.demo.psychefolio.app`
   (Jacob owns psychefolio.app) — which would amend ruling 213 and needs a
-  ruling before I build §2.
+  ruling before I build §2. **[RULING 250: ratified as proposed; psychefolio.app stays the
+  fallback if the dashboard refuses — Jacob rules if it arises.]**
 - **Q3** DEMO 2's practitioner persona: fictional name under Veritas branding
-  (the spec's default, §4.4), or her name?
-- **Q4** `practiceSetting` ALLOWED in the demo (§5.2) — ratify or deny.
-- **Q5** The standing rule in §9: every new client-visible model ships with
-  demo seed rows, coverage printed in the SCOPE line.
-- **Q6** Reset time 04:10 America/New_York, and the in-bar reset button at all
-  (§6.3) — Jacob's call; the spec includes it.
+  (the spec's default, §4.4), or her name? **→ Jacob is asking HER**; the Architect
+  recommends the fictional practitioner.
+- **Q4** `practiceSetting` ALLOWED in the demo (§5.2) — **RULED: allowed.**
+- **Q5** The standing rule in §9 — **RULING 253, standing.**
+- **Q6** Reset time 04:10 America/New_York stands; the in-bar reset button — **RULED: NO.**
 
 ## 13. Out of scope (dispatch, restated)
 

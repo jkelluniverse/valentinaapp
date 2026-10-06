@@ -12,7 +12,8 @@
 ## CLOSED pending Jacob's sender decision); psychefolio.com/.app purchased.)
 
 ## Queue (dependency order):
-0. (in inbox, AWAITING RATIFICATION) C39-DEMOS — spec written 2026-10-01 after C40 landed, per
+0. (ACCEPTED 2026-10-06, rulings 249–253 — BUILDS AFTER C42 → C43 AND WHEN JACOB'S TWO ANSWERS
+   LAND: Postgres-4MgC's purpose; her name on DEMO 2's persona) C39-DEMOS — spec written 2026-10-01 after C40 landed, per
    the standing order. Two walk-in demos (DEMO 1 Psychefolio-branded, DEMO 2 Veritas-branded),
    rulings 209–213, A1–A6 answered in §0 (A7 added: AI key absent). THREE FACTS THAT RESHAPE THE
    DISPATCH, all from the Railway MCP read-only tools: (1) Jacob already created `demo 1 postgres`
@@ -81,8 +82,28 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- Architect review 2026-10-06 — C40 RATIFIED AS BUILT. Rulings 226–234 received verbatim: 226
+  three busy definitions (the :228 re-filter), 227 the client's own request was invisible
+  (space/schedule filtered SCHEDULED), 228 one extracted confirmAppointment for both paths,
+  229–231 belong to C43, 232 the scope gap — item 1 covers the PUBLIC /book path, LeadStatus
+  gains REQUESTED, 233 /book had NO SPANISH (hardcoded "Confirm my call") — the catalogue is a
+  DEFECT FOUND, not a feature added, 234 belongs to C42. The build matches 232 and 233 as
+  shipped; nothing to redo; the "not received verbatim" flag below stays as a true record and
+  is RESOLVED. Ruling 248 appended to ruling 48 (#62 below). Consent discrepancy (confirm page
+  on legacy User.consentAt vs bookSlot on ConsentGrant) QUEUED, not to be fixed inside anything
+  else. Decline copy stays Jacob's. C39 SPEC ACCEPTED: ruling 249 Staging BECOMES the demo
+  environment (production data kept out by the integrity check, not the environment's name);
+  250 the nested wildcard *.demo.psychefolio.com + the one production 308 for the bare host —
+  ruling 213 amended; psychefolio.app the fallback if the dashboard refuses, Jacob rules; 251
+  the write block (Prisma query extension on the RAW client, deletes never, explicit allow
+  list, User.update → locale only) and the three-condition walk-in (flag AND tenant DEMO AND
+  integrity) ratified; 252 prisma/staging-seed.ts names real people — never against a demo
+  database, said in its header; 253 STANDING — every new client-visible model ships with demo
+  seed rows. practiceSetting ALLOWED in the demo. In-bar reset button: NO (a write path on a
+  read-mostly demo; one visitor disrupting the next). Nested-wildcard acceptance = ruling 250.
 - C40-APPOINTMENT-REQUESTS built (2026-10-01; rulings 223-234 as RATIFIED IN MY SPEC TEXT —
-  the Architect's amendments at 232-233 were never received verbatim, flagged in the report).
+  the Architect's amendments at 232-233 were never received verbatim, flagged in the report;
+  RESOLVED 2026-10-06 — see the review entry above).
   Items 1 + 3. Migration 55 additive (REQUESTED/DECLINED/EXPIRED, LeadStatus.REQUESTED,
   reminder30SentAt). "Busy" is ONE constant, BUSY_STATUSES, read by all THREE sites
   (generateSlots :228 re-filter, openSlots, hasConflict) — the third site the spec found.
@@ -1139,6 +1160,10 @@ and gated green. These are deploys, secrets, and decisions that are Jacob's by r
 62. **The ruling-48 deploy check asserts GET / returns 200, carries the expected
     title, and contains no NEXT_REDIRECT digest, on every environment, every time.**
     A check that never probes the page the demo opens on is not a deploy check.
+    **Ruling 248 (2026-10-06):** a deploy check must key on something ONLY the new tip can
+    produce. C40's detector keyed on a 307 the OLD tip also produced and declared the new
+    tip live; the re-run keyed on /book carrying "Confirm my call" ≥1, which only the new
+    build renders.
 
 ## Architect rulings — 2026-09-15 (staging fix review)
 66. **The remedy of record is a staging Build Command override**

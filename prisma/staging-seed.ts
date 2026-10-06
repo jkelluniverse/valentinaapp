@@ -6,6 +6,12 @@ import { randomBytes, createHash } from "crypto";
 // clearly-fake records, messages, appointments, charts, and psyche stars, so
 // the audit can walk real journeys without touching real data. Idempotent by
 // email. NEVER run against production.
+//
+// RULING 252 (C39 review, 2026-10-06): this seed names REAL PEOPLE — the
+// practitioner row is Valentina and one client is Jacob. It is a staging
+// fixture for audits, not demo data, and it must NEVER run against a demo
+// database (ruling 211: mock data only, unconditionally). The C39 demo seed is
+// prisma/demo-seed.ts with its own fictional roster; do not reuse this file.
 const prisma = new PrismaClient();
 const CONSENT_VERSION = "2026-07";
 const DAY = 86_400_000;
