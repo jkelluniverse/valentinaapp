@@ -1,6 +1,6 @@
-# C40-APPOINTMENT-REQUESTS acceptance — 2026-10-01T19:57:11.545Z
+# C40-APPOINTMENT-REQUESTS acceptance — 2026-10-06T20:39:53.519Z
 SCOPE: hosts c40a.c40.test, c40b.c40.test · HTTP on :3186 + in-process service calls · local build. NOT covered: production, real mail/push delivery, any surface not named in a leg (ruling 208).
-- ✓ fixture: the practitioner has open SESSION and DISCOVERY slots — 55/110
+- ✓ fixture: the practitioner has open SESSION and DISCOVERY slots — 56/112
 
 ## 11 — the enums (ruling 38)
 - ✓ AppointmentStatus has 7 values — SCHEDULED,COMPLETED,CANCELLED,NO_SHOW,REQUESTED,DECLINED,EXPIRED
@@ -38,26 +38,26 @@ SCOPE: hosts c40a.c40.test, c40b.c40.test · HTTP on :3186 + in-process service 
 
 ## 7 + 12 — setting OFF is today; ruling 224 OFF state
 - ✓ 12 OFF (rendered): the submit reads "Confirm my call" and no note is shown — label="Confirm my call" note=false
-- ✓ 7 OFF: /book books at once — appointment SCHEDULED, Lead SCHEDULED — lead=SCHEDULED appt=SCHEDULED landed=/book/confirmed?t=cmupyh2ig0001lzo7xw6l0sy6.xli-FBRm6T0St3F5JAa_TyZGx41MDvTbSNeaAFUvN44
-- ✓ 7 OFF: the landing page says the call is BOOKED — /book/confirmed?t=cmupyh2ig0001lzo7xw6l0sy6.xli-FBRm6T0St3F5JAa_TyZGx41MDvTbSNeaAFUvN44
+- ✓ 7 OFF: /book books at once — appointment SCHEDULED, Lead SCHEDULED — lead=SCHEDULED appt=SCHEDULED landed=/book/confirmed?t=cmux57902000110741frg1l2v.JoV7dKSiwvsRHM-v8DwvVPUy2sAGbl6cr0Zaiq0nfEE
+- ✓ 7 OFF: the landing page says the call is BOOKED — /book/confirmed?t=cmux57902000110741frg1l2v.JoV7dKSiwvsRHM-v8DwvVPUy2sAGbl6cr0Zaiq0nfEE
 
 ## 12 + 13 + 8 — setting ON: ruling 224, the public double-hold, external stays external
 - ✓ 12 ON es: "Solicitar mi llamada" + the note in Spanish
 - ✓ 12 ON (payload): "Confirm my call" is absent from the ON page entirely — the server sends only the mode's copy
 - ✓ 12 ON (rendered): the submit reads "Request my call" and the note IS shown — label="Request my call" note=true
-- ✓ 13: through /book, a request lands REQUESTED with Lead REQUESTED — lead=REQUESTED appt=REQUESTED landed=/book/confirmed?t=cmupyh61y0005lzo7fa83bxwg.x9Yrcdd5qDV2cRxVz13ngbXnK3EENoXzzheBvQswf54
+- ✓ 13: through /book, a request lands REQUESTED with Lead REQUESTED — lead=REQUESTED appt=REQUESTED landed=/book/confirmed?t=cmux57coy00051074mgmhe029.TpmNAldhqJXaFn6LorEXw6ekCCtDtvptCUHi58lwb94
 - ✓ 12 ON: the landing page says REQUESTED, not booked
-- ✓ 13: a second stranger is NOT offered the held slot (openSlots, which /book renders, excludes it) — held=2026-10-02T17:00:00.000Z
+- ✓ 13: a second stranger is NOT offered the held slot (openSlots, which /book renders, excludes it) — held=2026-10-07T17:00:00.000Z
 - ✓ 13: …while other slots are still offered (positive control) — 10 buttons; 0 chars
 - ✓ 13: exactly one appointment holds that slot
 - ✓ 8: with the setting ON, an external booking lands SCHEDULED — never REQUESTED — SCHEDULED
 
 ## 10 + 12 — the signed-in client sees the request; the session confirm page's label
 - ✓ 10: /space/schedule renders the client's REQUESTED row(s) — 0 pending; marker absent
-~ confirm-page slot 2026-10-08T19:00:00.000Z · isSlotOpen in-process: true · 50 open
-~ tenant seen by a raw fetch on c40a.c40.test: {"kind":"tenant","isDefault":false} · practitioner in T: cmupygxne0004iup1bx15m0c4 · users in T: 3
-~ session confirm (ON): http 200 url=/space/schedule/confirm?start=2026-10-08T19%3A00%3A00.000Z title=Veritas cookie=yes
-~ session confirm (ON) body:  Veritas veritas ✧ B veritas ✧ Home Path Reflect Messages Your First Map Your journey Your design Your reading Sessions Settings Profile B Sign out Sessions Confirm your session Thursday, October 8 at 3:00 PM EDT 50 minutes · virtual session Anything you&#x27;d like to focus on? (optional) Request this session Pick another time Your request goes to your practitioner to confirm. You&#x27;ll get an email when it&#x27;s
+~ confirm-page slot 2026-10-13T20:00:00.000Z · isSlotOpen in-process: true · 51 open
+~ tenant seen by a raw fetch on c40a.c40.test: {"kind":"tenant","isDefault":false} · practitioner in T: cmux573uo000413tljhyu5m1d · users in T: 3
+~ session confirm (ON): http 200 url=/space/schedule/confirm?start=2026-10-13T20%3A00%3A00.000Z title=Veritas cookie=yes
+~ session confirm (ON) body:  Veritas veritas ✧ B veritas ✧ Home Path Reflect Messages Your First Map Your journey Your design Your reading Sessions Settings Profile B Sign out Sessions Confirm your session Tuesday, October 13 at 4:00 PM EDT 50 minutes · virtual session Anything you&#x27;d like to focus on? (optional) Request this session Pick another time Your request goes to your practitioner to confirm. You&#x27;ll get an email when it&#x27;s
 - ✓ 12 ON (session): "Request this session" + note; "Confirm booking" absent
 - ✓ 12 OFF (session): "Confirm booking", no note
 

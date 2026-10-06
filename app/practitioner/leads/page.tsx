@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/billing";
 import { squareConfigured } from "@/lib/square";
 import { LeadActions } from "./LeadActions";
 import { sendLeadPackageInvoice } from "./actions";
+import { isExternalAnswerKey, type IntakeAnswers } from "@/lib/booking-form";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,46 @@ const STATUS_LABEL: Record<string, string> = {
   CONVERTED: "Client",
   CLOSED: "Closed",
 };
+
+// C42 §2.3 — the practitioner reads `q`, the question AS IT WAS ASKED, never
+// the live label (Rule 0.8). Her own form's answers and the external
+// provider's are split by key: hers by fieldId, Calendly's under `ext:<n>`.
+function parseAnswers(raw: unknown): { own: [string, { q: string; a: unknown }][]; ext: [string, { q: string; a: unknown }][] } {
+  const own: [string, { q: string; a: unknown }][] = [];
+  const ext: [string, { q: string; a: unknown }][] = [];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { own, ext };
+  for (const [k, v] of Object.entries(raw as IntakeAnswers)) {
+    if (!v || typeof v !== "object" || typeof (v as { q?: unknown }).q !== "string") continue;
+    (isExternalAnswerKey(k) ? ext : own).push([k, v as { q: string; a: unknown }]);
+  }
+  return { own, ext };
+}
+function showAnswer(a: unknown): string {
+  if (Array.isArray(a)) return a.map(String).join(", ");
+  if (typeof a === "boolean") return a ? "yes" : "no";
+  return String(a ?? "");
+}
+function AnswerList({ rows }: { rows: [string, { q: string; a: unknown }][] }) {
+  return (
+    <dl className="mt-1 flex max-w-prose flex-col gap-0.5 text-sm">
+      {rows.map(([k, v]) => (
+        <div key={k} className="flex flex-col sm:flex-row sm:gap-2">
+          <dt className="text-slate">{v.q}</dt>
+          <dd className="text-ink">{showAnswer(v.a)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+// The provider comes from the appointment the external booking re-pointed the
+// lead at (ingest.ts sets appointmentId), because `source` is FIRST-TOUCH by
+// design (C37) — a lead her own form created and Calendly later booked still
+// says "/book" there. Fall back to the source prefix for leads with no
+// appointment, then to a generic heading.
+function providerLabel(externalProvider: string | null | undefined, source: string | null): string {
+  const p = (externalProvider ?? (source?.startsWith("external:") ? source.slice("external:".length) : "")).toLowerCase();
+  return p === "calendly" ? "From Calendly" : p === "acuity" ? "From Acuity" : "From their booking tool";
+}
 
 const INVOICE_BANNERS: Record<string, string> = {
   sent: "Sent — Square emailed the invoice. When it's paid, the package activates on its own.",
@@ -38,7 +79,7 @@ export default async function LeadsPage({
   const [leads, practitioner, packageSkus] = await Promise.all([
     prisma.lead.findMany({
       orderBy: { createdAt: "desc" },
-      include: { appointment: { select: { startAt: true, status: true } } },
+      include: { appointment: { select: { startAt: true, status: true, externalProvider: true } } },
       take: 200,
     }),
     getPractitioner(),
@@ -94,9 +135,25 @@ export default async function LeadsPage({
                   {lead.email}
                   {lead.phone ? ` · ${lead.phone}` : ""}
                 </p>
-                {lead.note && (
-                  <p className="mt-0.5 max-w-prose text-sm italic text-slate">“{lead.note}”</p>
-                )}
+                {/* C42 — her questions, as asked; legacy leads (no snapshot) keep the note line. */}
+                {(() => {
+                  const { own, ext } = parseAnswers(lead.intakeAnswers);
+                  return (
+                    <>
+                      {own.length > 0 ? (
+                        <div data-c42="answers"><AnswerList rows={own} /></div>
+                      ) : (
+                        lead.note && <p className="mt-0.5 max-w-prose text-sm italic text-slate">“{lead.note}”</p>
+                      )}
+                      {ext.length > 0 && (
+                        <div data-c42="external-answers" className="mt-1.5">
+                          <p className="text-xs font-medium uppercase tracking-wide text-mocha">{providerLabel(lead.appointment?.externalProvider, lead.source)}</p>
+                          <AnswerList rows={ext} />
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
                 {/* C13-PKG §8 — sell a package post-discovery, pre-portal. */}
                 {canInvoice && (lead.status === "SCHEDULED" || lead.status === "COMPLETED") && (
                   <details className="mt-1.5">

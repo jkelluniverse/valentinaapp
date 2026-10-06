@@ -82,7 +82,9 @@
       "assistLabel": "Avisar por correo a los clientes después de una sesión asistida",
       "assistHint": "Una nota discreta — “Valentina te ayudó con tu cuenta hoy” — cada vez que entras a su portal para ayudar. Se recomienda activada; la línea visible en sus ajustes queda de todos modos.",
       "assistOn": "Activado",
-      "assistSave": "Guardar"
+      "assistSave": "Guardar",
+      "bookingLabel": "Preguntas de la reserva",
+      "bookingHint": "Las preguntas de tu página pública de reservas — cuáles, en qué orden y cuáles son obligatorias."
     },
     "policy": {
       "heading": "Política de cambios de sesión",

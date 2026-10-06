@@ -82,6 +82,51 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C42-PRACTITIONER-FORMS built (2026-10-06; rulings 225, 234). ONE FLAG, the isIntake
+  precedent: Worksheet.isBooking (migration 56, additive, default false). The booking form IS
+  a worksheet; the existing builder edits it with zero changes to field editing. A practice
+  with no isBooking worksheet renders DEFAULT_BOOKING_FIELDS (lib/booking-form.ts) — today's
+  form, frozen, and the gate diffs /book against the pre-C42 fixture field-for-field (ids,
+  tags, types, order, optionality, labels, placeholder) in EN and ES. Name and email are
+  STRUCTURAL: rendered by BookingFlow itself, checked at actions.ts:46 exactly as before, never
+  in the schema — a schema claiming either id is refused on save (named error) and dropped at
+  render. LAW 5: submitBooking validates every required question server-side
+  (firstMissingRequired → error=missing&field=<id>); the gate strips the HTML attribute to
+  prove the attribute is decoration. RULE 0.8: Lead.intakeAnswers is ONE shape for every
+  writer — { [fieldId]: { q, a } } for her form, { "ext:<n>": { q, a } } for Calendly — where q
+  is the label AS RENDERED to that person in their language; the leads page shows q, never the
+  live label (rename → old leads still say what was asked). phone/note keep writing their
+  columns (compatibility surface) from the same snapshot. Bilingual: per-field labels {en, es}
+  with es → en fallback, additive on WorksheetField (labels/helps), edited in the builder only
+  for the booking form; the structural labels and the optional marker ride C40's catalogue
+  (ruling 233's defect closed for these four fields). Entry: Settings → "Booking questions"
+  (en/es, declared in settings-i18n's NEW_SINCE_PASS) → /practitioner/settings/booking-questions
+  creates the worksheet from the default on the practitioner's FIRST visit (never a public
+  render) and redirects to the builder; the Library's ⋯ sheet gains "Set as booking form"
+  (setBookingWorksheet = the isIntake transaction). C37: calendly.ts writes the ext:<n> shape
+  (the one C37 line the spec named) and — NAMED DEVIATION — ingest.ts's existing-lead branch now
+  MERGES answers (keeps her fieldIds, refreshes the ext: block) instead of replacing the column;
+  the spec's check 7 ("both on one Lead, neither overwriting the other") was impossible without
+  it, and before C42 only Calendly ever wrote the column so the replace was harmless. The leads
+  page heads external answers "From Calendly/Acuity" from the appointment's externalProvider
+  (ingest re-points lead.appointmentId), because Lead.source is first-touch by C37 design.
+  GATE audits/forms/booking-verify.ts (:3192, Chromium on the tenant host) 47/47;
+  C37's external-verify leg MOVED to assert the new shape (ruling 38, named). Sweep 49 → 50,
+  50/50 (exit 0). Build exit 0. INSTRUMENT FAULTS, each caught by measuring: (1) Postgres JSONB
+  stores keys sorted, so { q, a } reads back { a, q } and three checks failed on key order
+  with every value correct — the gate compares canonically now; (2) the library ROOT shows
+  folder tiles, not items — the check looked one level too high; (3) the leads heading read
+  Lead.source, which is first-touch, so a /book lead later booked via Calendly said "their
+  booking tool" — read the appointment's provider; (4) RULING 244 AGAIN: the second build's
+  prebuild guard FAILED (the gate's raw import was allowlisted in the doc but not in the
+  guard's own list) and I read "[exited with code 0]" from the wrapper instead of the "BUILD
+  EXIT 1" line above it, then ran the gate against the PREVIOUS build — the 46/47 run proved
+  the old bundle, not the fix. Exit code, the right line, every time. NOT changed: the
+  worksheet builder's autosave inputs, the intake engine, /join, /founders/apply, the client
+  session note (spec §5 — Jacob is confirming how far "site-wide" reaches). /book's DOM for
+  the default practice gained a hidden `lang` input, `data-c42-field` markers and label
+  <span>s; the visible form is field-identical (gate leg 1), the ruling-48 "Confirm my call"
+  pin is unchanged.
 - Architect review 2026-10-06 — C40 RATIFIED AS BUILT. Rulings 226–234 received verbatim: 226
   three busy definitions (the :228 re-filter), 227 the client's own request was invisible
   (space/schedule filtered SCHEDULED), 228 one extracted confirmAppointment for both paths,

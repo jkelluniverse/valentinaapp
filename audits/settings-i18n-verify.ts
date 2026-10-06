@@ -152,6 +152,8 @@ async function main() {
     "practice.schedulingHint": "C37-EXTERNAL-SCHEDULING (2026-09-28) — its hint; both locales ship together",
     "practice.notificationsLabel": "C40-APPOINTMENT-REQUESTS (2026-10-01) — the Notifications row is new; both locales ship together",
     "practice.notificationsHint": "C40-APPOINTMENT-REQUESTS (2026-10-01) — its hint; both locales ship together",
+    "practice.bookingLabel": "C42-PRACTITIONER-FORMS (2026-10-06) — the Booking questions row is new; both locales ship together",
+    "practice.bookingHint": "C42-PRACTITIONER-FORMS (2026-10-06) — its hint; both locales ship together",
   };
   const isNew = (path: string) => Object.keys(NEW_SINCE_PASS).some((p) => path === p || path.startsWith(p));
   const missing: string[] = [];

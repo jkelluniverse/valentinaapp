@@ -1,6 +1,9 @@
 # C42-PRACTITIONER-FORMS
 
-**Status:** spec only. Nothing built. Queued after C40.
+**Status:** BUILT 2026-10-06 (ledger entry in docs/BUILD-STATE.md; gate
+`audits/forms/booking-verify.ts`). One named deviation: §3's "the only C37 code C42
+touches" — ingest.ts's existing-lead branch now MERGES answers (keeps her fieldIds,
+refreshes the `ext:` block); check 7 required it. Ratified rulings 225, 234.
 **Governing ruling:** 225 (Jacob) — practitioner-authored intake questions,
 per practice: label, input type, required flag, order, both locales. Booking
 form first; the model must extend to other forms without a redesign.

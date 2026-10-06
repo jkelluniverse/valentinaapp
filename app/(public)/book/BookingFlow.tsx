@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DiscoveryDay } from "@/lib/discovery";
 import { PendingButton } from "@/components/PendingButton";
+import { fieldLabel, fieldHelp, type WorksheetField, type FieldLocale } from "@/lib/worksheet-meta";
 
 // C18 §4 — the funnel: pick a day → pick a time → a short warm form → confirmed.
 // The server action is passed in from the (server) page; this component holds
@@ -13,7 +14,21 @@ import { PendingButton } from "@/components/PendingButton";
 // labels would put "Confirm my call" in a page that shows "Request my call" —
 // the same unrendered-content blind spot ruling 203 found. The browser receives
 // the copy that is TRUE for the mode and nothing else.
-export type BookCopyProps = { submit: string; requestNote: string | null };
+export type BookCopyProps = {
+  submit: string;
+  requestNote: string | null;
+  // C42 — the structural fields' labels and the optional marker, from the catalogue.
+  name: string;
+  email: string;
+  optional: string;
+  notePlaceholder: string;
+  missingField?: string;
+};
+// C42 (ruling 225) — THE PRACTITIONER'S QUESTIONS render here, under name and
+// email, from the fields the server resolved (her isBooking worksheet, or the
+// frozen default that IS today's form). The `required` attribute is emitted
+// because it is the better experience; the SERVER is the enforcement
+// (actions.ts — law 5), and the gate strips the attribute to prove it.
 export function BookingFlow({
   days,
   timezone,
@@ -21,6 +36,8 @@ export function BookingFlow({
   error,
   practiceName,
   copy,
+  fields,
+  locale,
 }: {
   days: DiscoveryDay[];
   timezone: string;
@@ -29,6 +46,8 @@ export function BookingFlow({
   /** C29 — set ONLY for non-default tenants; the default keeps its original copy. */
   practiceName?: string;
   copy: BookCopyProps;
+  fields: WorksheetField[];
+  locale: FieldLocale;
 }) {
   const [dayKey, setDayKey] = useState(days[0]?.key ?? "");
   const [slotIso, setSlotIso] = useState<string>("");
@@ -67,6 +86,7 @@ export function BookingFlow({
     missing: "Please add your name, a valid email, and pick a time.",
     unavailable: "That time was just taken. Please pick another.",
     conflict: "That time was just taken. Please pick another.",
+    missingField: copy.missingField ?? "Please answer every required question.",
   };
 
   return (
@@ -143,43 +163,20 @@ export function BookingFlow({
             </label>
           </div>
 
-          <label className="flex flex-col gap-1.5 text-label font-semibold uppercase tracking-wide text-mocha">
-            Your name
-            <input
-              name="name"
-              required
-              autoComplete="name"
-              className="rounded-md border border-mocha/30 bg-white px-3 py-2.5 text-base font-normal normal-case tracking-normal text-ink outline-none placeholder:text-slate focus:border-wine focus-visible:ring-2 focus-visible:ring-wine/40"
-            />
+          <input type="hidden" name="lang" value={locale} />
+          <label className={LABEL}>
+            {copy.name}
+            <input name="name" required autoComplete="name" className={INPUT} />
           </label>
-          <label className="flex flex-col gap-1.5 text-label font-semibold uppercase tracking-wide text-mocha">
-            Email
-            <input
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className="rounded-md border border-mocha/30 bg-white px-3 py-2.5 text-base font-normal normal-case tracking-normal text-ink outline-none placeholder:text-slate focus:border-wine focus-visible:ring-2 focus-visible:ring-wine/40"
-            />
+          <label className={LABEL}>
+            {copy.email}
+            <input name="email" type="email" required autoComplete="email" className={INPUT} />
           </label>
-          <label className="flex flex-col gap-1.5 text-label font-semibold uppercase tracking-wide text-mocha">
-            Phone <span className="lowercase text-whisper">· optional</span>
-            <input
-              name="phone"
-              type="tel"
-              autoComplete="tel"
-              className="rounded-md border border-mocha/30 bg-white px-3 py-2.5 text-base font-normal normal-case tracking-normal text-ink outline-none placeholder:text-slate focus:border-wine focus-visible:ring-2 focus-visible:ring-wine/40"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5 text-label font-semibold uppercase tracking-wide text-mocha">
-            What brings you? <span className="lowercase text-whisper">· optional</span>
-            <textarea
-              name="note"
-              rows={3}
-              placeholder="A sentence or two, if you'd like — no need to explain everything."
-              className="resize-y rounded-md border border-mocha/30 bg-white px-3 py-2.5 text-base font-normal normal-case tracking-normal text-ink outline-none placeholder:text-slate focus:border-wine focus-visible:ring-2 focus-visible:ring-wine/40"
-            />
-          </label>
+
+          {/* C42 — her questions, in her order, with her required flags. */}
+          {fields.map((f) => (
+            <DynamicField key={f.id} f={f} locale={locale} optional={copy.optional} notePlaceholder={copy.notePlaceholder} />
+          ))}
 
           {/* RULING 224 — the label is TRUE for the mode. "Confirm" when
               booking confirms; "Request" plus the note when the practitioner
@@ -202,4 +199,101 @@ export function BookingFlow({
       )}
     </div>
   );
+}
+
+const LABEL = "flex flex-col gap-1.5 text-label font-semibold uppercase tracking-wide text-mocha";
+const INPUT =
+  "rounded-md border border-mocha/30 bg-white px-3 py-2.5 text-base font-normal normal-case tracking-normal text-ink outline-none placeholder:text-slate focus:border-wine focus-visible:ring-2 focus-visible:ring-wine/40";
+const CHOICE = "flex items-center gap-2 text-base font-normal normal-case tracking-normal text-ink";
+
+// One practitioner-authored question, rendered by type. The label is the one
+// for the visitor's locale (Spanish falls back to English — C42 §2.6), and
+// the stored answer will carry exactly this text as `q` (Rule 0.8).
+function DynamicField({ f, locale, optional, notePlaceholder }: { f: WorksheetField; locale: FieldLocale; optional: string; notePlaceholder: string }) {
+  const label = fieldLabel(f, locale);
+  const help = fieldHelp(f, locale);
+  const suffix = !f.required && f.type !== "SECTION" ? <span className="lowercase text-whisper"> {optional}</span> : null;
+  const helpEl = help ? <span className="text-[13px] font-normal normal-case tracking-normal text-slate">{help}</span> : null;
+  switch (f.type) {
+    case "SECTION":
+      return (
+        <div className="flex flex-col gap-1 pt-2" data-c42-field={f.id}>
+          <p className="font-headline text-lg font-semibold text-ink-strong">{label}</p>
+          {helpEl}
+        </div>
+      );
+    case "LONG_TEXT":
+      return (
+        <label className={LABEL} data-c42-field={f.id}>
+          <span>{label}{suffix}</span>
+          {helpEl}
+          <textarea name={f.id} rows={3} required={!!f.required} placeholder={f.id === "note" ? notePlaceholder : undefined} className={`resize-y ${INPUT}`} />
+        </label>
+      );
+    case "SCALE":
+      return (
+        <fieldset className={LABEL} data-c42-field={f.id}>
+          <legend className="contents"><span>{label}{suffix}</span></legend>
+          {helpEl}
+          <div className="flex flex-wrap gap-3">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <label key={n} className={CHOICE}>
+                <input type="radio" name={f.id} value={n} required={!!f.required} className="accent-wine" />
+                {n}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      );
+    case "SINGLE_CHOICE":
+      return (
+        <label className={LABEL} data-c42-field={f.id}>
+          <span>{label}{suffix}</span>
+          {helpEl}
+          <select name={f.id} required={!!f.required} defaultValue="" className={INPUT}>
+            <option value="">{locale === "es" ? "Elige una opción" : "Choose one"}</option>
+            {(f.options ?? []).map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
+          </select>
+        </label>
+      );
+    case "MULTI_CHOICE":
+      return (
+        <fieldset className={LABEL} data-c42-field={f.id}>
+          <legend className="contents"><span>{label}{suffix}</span></legend>
+          {helpEl}
+          <div className="flex flex-col gap-1.5">
+            {(f.options ?? []).map((o) => (
+              <label key={o} className={CHOICE}>
+                <input type="checkbox" name={f.id} value={o} className="accent-wine" />
+                {o}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      );
+    case "CHECKBOX":
+      return (
+        <label className={`${CHOICE} ${f.required ? "" : ""}`} data-c42-field={f.id}>
+          <input type="checkbox" name={f.id} value="on" required={!!f.required} className="accent-wine" />
+          <span>{label}{suffix}</span>
+          {helpEl}
+        </label>
+      );
+    default:
+      return (
+        <label className={LABEL} data-c42-field={f.id}>
+          <span>{label}{suffix}</span>
+          {helpEl}
+          <input
+            name={f.id}
+            type={f.id === "phone" ? "tel" : "text"}
+            autoComplete={f.id === "phone" ? "tel" : undefined}
+            required={!!f.required}
+            className={INPUT}
+          />
+        </label>
+      );
+  }
 }

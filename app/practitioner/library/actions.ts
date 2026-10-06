@@ -163,6 +163,21 @@ export async function setIntakeWorksheet(worksheetId: string, on: boolean) {
   redirect(LIBRARY);
 }
 
+// C42 §2.1 — designate one worksheet as the BOOKING FORM's questions, the
+// isIntake transaction reused verbatim: clear all, then set one. Inactive or
+// absent = /book renders the frozen default (lib/booking-form.ts).
+export async function setBookingWorksheet(worksheetId: string, on: boolean) {
+  await requirePractitioner();
+  await prisma.$transaction([
+    prisma.worksheet.updateMany({ where: { isBooking: true }, data: { isBooking: false } }),
+    ...(on
+      ? [prisma.worksheet.update({ where: { id: worksheetId }, data: { isBooking: true } })]
+      : []),
+  ]);
+  revalidatePath(LIBRARY);
+  redirect(LIBRARY);
+}
+
 // AI drafting for prompts/exercises/check-ins: the draft is saved and opened
 // in the editor to refine — same rhythm as the worksheet studio.
 export async function draftPromptWithAi(formData: FormData) {

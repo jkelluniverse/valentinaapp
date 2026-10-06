@@ -940,6 +940,7 @@ model Worksheet {
   active      Boolean               @default(true)
   isIntake    Boolean               @default(false) // the practice intake (C11) — at most one
   isSpiral    Boolean               @default(false) // the values-spiral assessment (C12) — at most one
+  isBooking   Boolean               @default(false) // C42 — the booking form's questions — at most one
   locale          String            @default("en") // AMD-05 A5 — content language
   translationOfId String? // AMD-05 A5 — sibling locale version; serve by preference, fall back to origin
   createdById String

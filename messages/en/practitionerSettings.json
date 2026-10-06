@@ -82,7 +82,9 @@
       "assistLabel": "Email clients after an assist session",
       "assistHint": "A quiet note — “Valentina helped with your account today” — each time you enter their portal to help. Recommended on; the visible line in their settings stays either way.",
       "assistOn": "On",
-      "assistSave": "Save"
+      "assistSave": "Save",
+      "bookingLabel": "Booking questions",
+      "bookingHint": "The questions on your public booking page — which ones, in what order, and which are required."
     },
     "policy": {
       "heading": "Session-change policy",

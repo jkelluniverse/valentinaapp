@@ -8,6 +8,7 @@ import { requirePractitioner } from "@/lib/auth-guards";
 import { draftWorksheet } from "@/lib/worksheet-author";
 import { buildReferenceBlocks } from "@/lib/reference-input";
 import { parseFields, FIELD_TYPES, type FieldType, type WorksheetField } from "@/lib/worksheet-meta";
+import { rejectStructuralIds } from "@/lib/booking-form";
 
 const WORKSHEETS = "/practitioner/worksheets";
 const builderPath = (id: string) => `${WORKSHEETS}/${id}`;
@@ -162,6 +163,13 @@ async function mutateFields(worksheetId: string, fn: (fields: WorksheetField[]) 
   const worksheet = await prisma.worksheet.findUnique({ where: { id: worksheetId } });
   if (!worksheet) return;
   const fields = fn(parseFields(worksheet.schema));
+  // C42 §2.4 — the booking form's structural fields (name, email) are not
+  // questions and have no row here; a field that claims one of their ids is
+  // refused on save with a NAMED error, never silently dropped.
+  if (worksheet.isBooking) {
+    const verdict = rejectStructuralIds(fields);
+    if (!verdict.ok) redirect(`${builderPath(worksheetId)}?error=structural&field=${encodeURIComponent(verdict.id)}`);
+  }
   await prisma.worksheet.update({
     where: { id: worksheetId },
     data: { schema: fields as object[] },
@@ -190,16 +198,33 @@ export async function updateField(worksheetId: string, fieldId: string, formData
   const help = formData.get("help");
   const options = formData.get("options");
   const required = formData.get("required");
+  // C42 §2.6 — the Spanish label/help, additive; `es` falls back to `en`.
+  const labelEs = formData.get("labelEs");
+  const helpEs = formData.get("helpEs");
 
   await mutateFields(worksheetId, (fields) =>
     fields.map((f) => {
       if (f.id !== fieldId) return f;
       const next = { ...f };
-      if (label != null) next.label = String(label).trim() || "Untitled";
+      if (label != null) {
+        next.label = String(label).trim() || "Untitled";
+        if (next.labels) next.labels = { ...next.labels, en: next.label };
+      }
       if (help != null) {
         const h = String(help).trim();
         if (h) next.help = h;
         else delete next.help;
+        if (next.helps) { if (h) next.helps = { ...next.helps, en: h }; else delete next.helps; }
+      }
+      if (labelEs != null) {
+        const es = String(labelEs).trim();
+        if (es) next.labels = { en: next.label, es };
+        else if (next.labels) { const { es: _drop, ...rest } = next.labels; void _drop; next.labels = rest; }
+      }
+      if (helpEs != null) {
+        const es = String(helpEs).trim();
+        if (es) next.helps = { en: next.help ?? "", es };
+        else if (next.helps) { const { es: _drop, ...rest } = next.helps; void _drop; next.helps = rest; }
       }
       if (options != null) {
         const opts = String(options)

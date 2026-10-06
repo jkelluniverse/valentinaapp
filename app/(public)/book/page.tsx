@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { bookingRequiresApproval } from "@/lib/booking-mode";
 import { bookCopy, resolvePublicLocale, fill } from "@/lib/book-copy";
 import { submitBooking } from "./actions";
+import { bookingFormFields } from "@/lib/booking-form";
 
 // C18.3/.4 — the discovery funnel. Dynamic (reads live open slots) while the
 // marketing home stays static. Reads ONLY free/busy times via the narrow
@@ -32,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function BookPage({ searchParams }: { searchParams: { error?: string; lang?: string } }) {
+export default async function BookPage({ searchParams }: { searchParams: { error?: string; lang?: string; field?: string } }) {
   const requiresApproval = await bookingRequiresApproval();
   const locale = resolvePublicLocale(searchParams.lang, headers().get("accept-language"));
   const c = bookCopy(locale);
@@ -46,6 +47,9 @@ export default async function BookPage({ searchParams }: { searchParams: { error
     redirect("/unavailable");
   }
   const { days, timezone } = await getDiscoverySlots();
+  // C42 — her questions (or the frozen default that IS today's form). Read
+  // only; the booking worksheet is created from the builder, never here.
+  const fields = await bookingFormFields();
   // C29 — the empty-slots copy names the practice the visitor is actually
   // booking with. Passed only for non-default tenants; the default tenant's
   // page renders byte-identically (its copy is her page's own voice).
@@ -64,7 +68,24 @@ export default async function BookPage({ searchParams }: { searchParams: { error
       <SignatureRule />
       <p className="mb-10 mt-4 max-w-lg text-lg leading-relaxed text-slate">{SITE.closing.body}</p>
 
-      <BookingFlow days={days} timezone={timezone} action={submitBooking} error={searchParams.error} practiceName={practiceName} copy={{ submit: requiresApproval ? c.submitRequest : c.submit, requestNote: requiresApproval ? fill(c.requestNote, { practitioner: practiceName ?? "Valentina" }) : null }} />
+      <BookingFlow
+        days={days}
+        timezone={timezone}
+        action={submitBooking}
+        error={searchParams.error === "missing" && searchParams.field ? "missingField" : searchParams.error}
+        practiceName={practiceName}
+        fields={fields}
+        locale={locale}
+        copy={{
+          submit: requiresApproval ? c.submitRequest : c.submit,
+          requestNote: requiresApproval ? fill(c.requestNote, { practitioner: practiceName ?? "Valentina" }) : null,
+          name: c.fields.name,
+          email: c.fields.email,
+          optional: c.optional,
+          notePlaceholder: c.fields.notePlaceholder,
+          missingField: c.errors.missingField,
+        }}
+      />
     </main>
   );
 }

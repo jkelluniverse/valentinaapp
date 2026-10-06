@@ -110,11 +110,13 @@ export default async function LibraryPage({
   }
 
   const viewData = await getFolderView(me.id, folderId, sort);
-  const [intakeRows, spiral] = await Promise.all([
+  const [intakeRows, spiral, bookingRows] = await Promise.all([
     prisma.worksheet.findMany({ where: { isIntake: true }, select: { id: true } }),
     prisma.worksheet.findFirst({ where: { isSpiral: true }, select: { id: true } }),
+    prisma.worksheet.findMany({ where: { isBooking: true }, select: { id: true } }),
   ]);
   const intakeIds = new Set(intakeRows.map((w) => w.id));
+  const bookingIds = new Set(bookingRows.map((w) => w.id));
   const items: ItemView[] = viewData.items.map((it) => {
     const { href, external } = itemHref(it.kind, it.refId, it.url);
     return {
@@ -126,6 +128,7 @@ export default async function LibraryPage({
       body: it.body,
       refId: it.refId,
       isIntake: it.kind === "WORKSHEET" && !!it.refId && intakeIds.has(it.refId),
+      isBooking: it.kind === "WORKSHEET" && !!it.refId && bookingIds.has(it.refId),
     };
   });
 

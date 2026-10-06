@@ -23,8 +23,10 @@ export type NormalisedBooking = {
     phone: string | null;
   };
   /** RULING 193 — what they typed into the PROVIDER's questions. Stored and
-   *  shown; never evidence until the practitioner promotes it. */
-  intakeAnswers: Record<string, unknown> | null;
+   *  shown; never evidence until the practitioner promotes it.
+   *  C42 §3 — shape `{ "ext:<n>": { q, a } }` (lib/booking-form.ts IntakeAnswers):
+   *  the same record her own /book form writes under its fieldIds. */
+  intakeAnswers: Record<string, { q: string; a: string }> | null;
   /** The idempotency key. Calendly supplies an event id; Acuity does NOT, so
    *  its key is synthesised — see acuity.ts for why that matters. */
   idempotencyKey: string;

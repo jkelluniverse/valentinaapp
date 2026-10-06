@@ -10,6 +10,7 @@ import { bookingRequiresApproval } from "@/lib/booking-mode";
 import { bookDiscoveryCall, requestDiscoveryCall } from "@/lib/discovery";
 import { signToken } from "@/lib/sign";
 import { getBaseUrl } from "@/lib/base-url";
+import { bookingFormFields, firstMissingRequired, collectBookingAnswers, compatibilityColumns } from "@/lib/booking-form";
 
 // Simple per-IP sliding-window rate limit. In-memory (per instance) — enough for
 // a calm site; the honeypot + time-trap carry most of the load. Not a fortress.
@@ -40,8 +41,6 @@ export async function submitBooking(formData: FormData): Promise<void> {
 
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
-  const note = String(formData.get("note") ?? "").trim();
   const startIso = String(formData.get("startAt") ?? "");
   const source = String(formData.get("source") ?? "").trim() || null;
 
@@ -51,10 +50,22 @@ export async function submitBooking(formData: FormData): Promise<void> {
   const startAt = new Date(startIso);
   if (Number.isNaN(startAt.getTime())) redirect("/book?error=missing");
 
+  // C42 §2.5 — LAW 5: the server validates the submission against the form's
+  // schema; the HTML `required` attribute is decoration. Name and email above
+  // are structural and checked exactly as before; everything below is hers.
+  const fields = await bookingFormFields();
+  const missing = firstMissingRequired(fields, formData);
+  if (missing) redirect(`/book?error=missing&field=${encodeURIComponent(missing)}`);
+  // Rule 0.8 — the answer carries the question AS RENDERED, in the visitor's
+  // language (the form posts the locale it was rendered in).
+  const lang = String(formData.get("lang") ?? "") === "es" ? "es" : "en";
+  const intakeAnswers = collectBookingAnswers(fields, formData, lang);
+  const { phone, note } = compatibilityColumns(intakeAnswers);
+
   // C40 §1.6 — ONE branch. Everything above (honeypot, rate limit, field
   // validation) is shared; the setting decides only which create runs. With
   // the setting off this is the pre-C40 call, byte for byte.
-  const args = { name, email, phone: phone || null, note: note || null, startAt, source, baseUrl: getBaseUrl() };
+  const args = { name, email, phone, note, intakeAnswers, startAt, source, baseUrl: getBaseUrl() };
   const result = (await bookingRequiresApproval()) ? await requestDiscoveryCall(args) : await bookDiscoveryCall(args);
 
   if (!result.ok) {

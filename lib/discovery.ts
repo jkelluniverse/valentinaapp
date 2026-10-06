@@ -1,4 +1,5 @@
-import type { Lead } from "@prisma/client";
+import type { Lead, Prisma } from "@prisma/client";
+import type { IntakeAnswers } from "@/lib/booking-form";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser } from "@/lib/push";
 import { getPractitioner, getOrCreateConfig, isSlotOpen, hasConflict, openSlots, formatInZone, zoneAbbrev } from "@/lib/schedule";
@@ -28,6 +29,9 @@ type BookArgs = {
   email: string;
   phone?: string | null;
   note?: string | null;
+  /** C42 §2.3 — the Rule 0.8 snapshot of her questions and their answers,
+   *  keyed by fieldId. phone/note above are the compatibility columns. */
+  intakeAnswers?: IntakeAnswers | null;
   startAt: Date;
   source?: string | null;
   baseUrl: string; // for the signed reschedule link in the confirmation email
@@ -80,6 +84,7 @@ export async function bookDiscoveryCall(args: BookArgs): Promise<BookResult> {
       email: args.email.trim().toLowerCase(),
       phone: args.phone?.trim() || null,
       note: args.note?.trim() || null,
+      intakeAnswers: (args.intakeAnswers ?? undefined) as Prisma.InputJsonValue | undefined,
       status: "SCHEDULED",
       appointmentId: appt.id,
       source: args.source?.trim() || null,
@@ -109,7 +114,7 @@ export async function requestDiscoveryCall(args: BookArgs): Promise<BookResult> 
     data: { practitionerId: practitioner.id, clientId: null, kind: "DISCOVERY", startAt: args.startAt, endAt, status: "REQUESTED", location: "VIRTUAL", bookedBy: "client", clientNote: args.note?.trim() || null },
   });
   const lead = await prisma.lead.create({
-    data: { name: args.name.trim(), email: args.email.trim().toLowerCase(), phone: args.phone?.trim() || null, note: args.note?.trim() || null, status: "REQUESTED", appointmentId: appt.id, source: args.source?.trim() || null },
+    data: { name: args.name.trim(), email: args.email.trim().toLowerCase(), phone: args.phone?.trim() || null, note: args.note?.trim() || null, intakeAnswers: (args.intakeAnswers ?? undefined) as Prisma.InputJsonValue | undefined, status: "REQUESTED", appointmentId: appt.id, source: args.source?.trim() || null },
   });
   await notifyDiscovery(appt.id, "requested", args.baseUrl);
   return { ok: true, leadId: lead.id, appointmentId: appt.id, startAt: args.startAt, timezone: config.timezone };

@@ -75,8 +75,12 @@ export function normaliseCalendly(rawBody: string): NormalisedBooking | null {
   if (!externalId) return null;
 
   const qa = b.payload?.questions_and_answers ?? [];
+  // C42 §3 — ONE shape for every writer of Lead.intakeAnswers: { key: { q, a } }.
+  // Calendly's answers have no fieldId of hers, so they are keyed `ext:<n>` and
+  // can never collide with her own form's keys; `q` is the question as Calendly
+  // asked it (Rule 0.8 — the stored answer says what was asked, verbatim).
   const intakeAnswers = qa.length
-    ? Object.fromEntries(qa.map((q, i) => [q.question || `question_${i + 1}`, q.answer ?? ""]))
+    ? Object.fromEntries(qa.map((q, i) => [`ext:${i + 1}`, { q: q.question || `Question ${i + 1}`, a: q.answer ?? "" }]))
     : null;
 
   return {

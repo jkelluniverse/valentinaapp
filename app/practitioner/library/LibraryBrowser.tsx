@@ -17,7 +17,7 @@ import {
   updateDoc,
   createLink,
 } from "./folder-actions";
-import { setIntakeWorksheet } from "./actions";
+import { setIntakeWorksheet, setBookingWorksheet } from "./actions";
 
 export type Crumb = { id: string | null; name: string };
 export type FolderTile = { id: string; name: string; isDefault: boolean; childCount: number };
@@ -30,6 +30,7 @@ export type ItemView = {
   body: string | null;
   refId: string | null;
   isIntake?: boolean;
+  isBooking?: boolean;
 };
 export type MoveOption = { id: string; name: string; depth: number };
 type Target = {
@@ -39,6 +40,7 @@ type Target = {
   kind?: string;
   refId?: string | null;
   isIntake?: boolean;
+  isBooking?: boolean;
 } | null;
 
 const KIND_LABEL: Record<string, string> = {
@@ -346,6 +348,7 @@ export function LibraryBrowser({
                       kind: it.kind,
                       refId: it.refId,
                       isIntake: it.isIntake,
+                      isBooking: it.isBooking,
                     })
                   }
                   aria-label="Item actions"
@@ -376,6 +379,13 @@ export function LibraryBrowser({
                 label={menuFor.isIntake ? "Unset as intake" : "Set as intake"}
                 hint="The intake is auto-assigned to every new client"
                 onClick={() => run(() => setIntakeWorksheet(menuFor.refId!, !menuFor.isIntake))}
+              />
+            )}
+            {menuFor.type === "item" && menuFor.kind === "WORKSHEET" && menuFor.refId && (
+              <SheetAction
+                label={menuFor.isBooking ? "Unset as booking form" : "Set as booking form"}
+                hint="Its questions appear on your public booking page, under name and email"
+                onClick={() => run(() => setBookingWorksheet(menuFor.refId!, !menuFor.isBooking))}
               />
             )}
             {menuFor.type === "item" && (

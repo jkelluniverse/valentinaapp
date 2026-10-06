@@ -228,7 +228,17 @@ async function main(): Promise<void> {
   check("ZERO ClientProfile rows were created", profiles === 0, `${profiles}`);
   const clients = await rawPrisma.user.count({ where: { tenantId: T, role: "CLIENT" } });
   check("ZERO client User rows were created", clients === 0, `${clients}`);
-  check("the invitee's answers were stored on the contact", !!lead?.intakeAnswers, JSON.stringify(lead?.intakeAnswers ?? null).slice(0, 60));
+  // C42 §3 — MOVED ASSERTION (ruling 38): the stored shape is now the shared
+  // snapshot record { "ext:<n>": { q, a } } (lib/booking-form.ts), not the
+  // text-keyed map C37 first wrote. Same fact asserted — the answers landed on
+  // the contact — plus the shape every reader now depends on.
+  const stored = (lead?.intakeAnswers ?? null) as Record<string, { q?: unknown; a?: unknown }> | null;
+  const extKeys = stored ? Object.keys(stored) : [];
+  check(
+    "the invitee's answers were stored on the contact as { ext:<n>: { q, a } } (C42 §3 shape)",
+    !!stored && extKeys.length > 0 && extKeys.every((k) => k.startsWith("ext:") && typeof stored[k]?.q === "string" && "a" in (stored[k] ?? {})),
+    JSON.stringify(stored).slice(0, 90),
+  );
 
   // ================= RULING 198 — the evidence boundary, GATED ===============
   log(`\n## Ruling 198 — the evidence boundary is gated, not commented`);

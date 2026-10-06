@@ -109,9 +109,16 @@ export async function applyBooking(
       // Only the answers are refreshed, because the latest booking's answers are
       // the ones the practitioner is about to read.
       if (booking.intakeAnswers) {
+        // C42 §3 — MERGE, never replace: the provider's answers live under
+        // `ext:<n>` and are refreshed as a block; anything her own /book form
+        // stored under its fieldIds stays. Both on one Lead, neither
+        // overwriting the other. (Before C42 this replaced the whole column —
+        // harmless then, because only Calendly ever wrote it.)
+        const prior = (priorLead.intakeAnswers ?? {}) as Record<string, unknown>;
+        const own = Object.fromEntries(Object.entries(prior).filter(([k]) => !k.startsWith("ext:")));
         await rawPrisma.lead.update({
           where: { id: priorLead.id },
-          data: { intakeAnswers: booking.intakeAnswers as Prisma.InputJsonValue },
+          data: { intakeAnswers: { ...own, ...booking.intakeAnswers } as Prisma.InputJsonValue },
         });
       }
     } else {
