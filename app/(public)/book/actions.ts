@@ -1,0 +1,77 @@
+"use server";
+
+// wall-allow: the narrow discovery-booking action (C18 §2/§4). Reaches ONLY
+// Lead + Appointment creation via lib/discovery — never client data. This is the
+// single sanctioned write path from the public surface.
+
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { bookingRequiresApproval } from "@/lib/booking-mode";
+import { bookDiscoveryCall, requestDiscoveryCall } from "@/lib/discovery";
+import { signToken } from "@/lib/sign";
+import { getBaseUrl } from "@/lib/base-url";
+import { bookingFormFields, firstMissingRequired, collectBookingAnswers, compatibilityColumns } from "@/lib/booking-form";
+
+// Simple per-IP sliding-window rate limit. In-memory (per instance) — enough for
+// a calm site; the honeypot + time-trap carry most of the load. Not a fortress.
+const HITS = new Map<string, number[]>();
+const WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_PER_WINDOW = 5;
+
+function rateLimited(ip: string): boolean {
+  const now = Date.now();
+  const recent = (HITS.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+  recent.push(now);
+  HITS.set(ip, recent);
+  return recent.length > MAX_PER_WINDOW;
+}
+
+export async function submitBooking(formData: FormData): Promise<void> {
+  const h = headers();
+  const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || "unknown";
+
+  // Anti-abuse (calm > fortress): a honeypot a human never fills, a time-trap a
+  // bot trips by submitting instantly, and a soft per-IP cap.
+  const honeypot = String(formData.get("company") ?? ""); // hidden field
+  const renderedAt = Number(formData.get("t") ?? 0);
+  const elapsed = Date.now() - renderedAt;
+  if (honeypot.trim() !== "") redirect("/book/confirmed?ok=1"); // pretend success, drop it
+  if (!renderedAt || elapsed < 2500) redirect("/book?error=slow");
+  if (rateLimited(ip)) redirect("/book?error=rate");
+
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const startIso = String(formData.get("startAt") ?? "");
+  const source = String(formData.get("source") ?? "").trim() || null;
+
+  if (!name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !startIso) {
+    redirect("/book?error=missing");
+  }
+  const startAt = new Date(startIso);
+  if (Number.isNaN(startAt.getTime())) redirect("/book?error=missing");
+
+  // C42 §2.5 — LAW 5: the server validates the submission against the form's
+  // schema; the HTML `required` attribute is decoration. Name and email above
+  // are structural and checked exactly as before; everything below is hers.
+  const fields = await bookingFormFields();
+  const missing = firstMissingRequired(fields, formData);
+  if (missing) redirect(`/book?error=missing&field=${encodeURIComponent(missing)}`);
+  // Rule 0.8 — the answer carries the question AS RENDERED, in the visitor's
+  // language (the form posts the locale it was rendered in).
+  const lang = String(formData.get("lang") ?? "") === "es" ? "es" : "en";
+  const intakeAnswers = collectBookingAnswers(fields, formData, lang);
+  const { phone, note } = compatibilityColumns(intakeAnswers);
+
+  // C40 §1.6 — ONE branch. Everything above (honeypot, rate limit, field
+  // validation) is shared; the setting decides only which create runs. With
+  // the setting off this is the pre-C40 call, byte for byte.
+  const args = { name, email, phone, note, intakeAnswers, startAt, source, baseUrl: getBaseUrl() };
+  const result = (await bookingRequiresApproval()) ? await requestDiscoveryCall(args) : await bookDiscoveryCall(args);
+
+  if (!result.ok) {
+    redirect(`/book?error=${result.error === "no_practitioner" ? "unavailable" : result.error}`);
+  }
+  // The confirmed page gets the signed manage token so it can offer
+  // add-to-calendar right there (same token the email carries).
+  redirect(`/book/confirmed?t=${encodeURIComponent(signToken(result.appointmentId))}`);
+}

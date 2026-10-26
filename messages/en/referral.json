@@ -1,0 +1,30 @@
+{
+  "referrals": {
+    "eyebrow": "Founding partners",
+    "heading": "Your referral code",
+    "lede": "This is your code, and who has come in through it. Nothing here is a promise — it is a record.",
+    "codeLabel": "Your code",
+    "codeNote": "Hand this to the next practitioner you meet. It stays yours.",
+    "shareHeading": "Pass it on",
+    "shareEmail": "Share by email",
+    "shareSms": "Share by text",
+    "shareSubject": "A practice portal worth a look",
+    "shareBody": "I use Psychefolio for my practice — a practice portal for practitioners. Use my code {code}: {url}",
+    "linkLabel": "Your link",
+    "countsHeading": "What your code has done",
+    "countArrived": "Arrived on your code",
+    "countPractices": "Became practices",
+    "peopleHeading": "Who came in on your code",
+    "peopleNote": "First names only — enough to recognise someone you invited.",
+    "tagPractice": "has a practice",
+    "tagList": "on the list",
+    "zeroHeading": "Nobody yet",
+    "zero": "Nobody has used your code yet. Share it with one practitioner you would want in the room.",
+    "standingHeading": "Your standing",
+    "standing": "Founding partner",
+    "standingNote": "You were among the first practitioners here. That is what this page records, and nothing more.",
+    "noCodeHeading": "No code on this account",
+    "noCode": "This practice was set up directly rather than through the founding-partner front door, so there is no code attached to it.",
+    "back": "Back to settings"
+  }
+}

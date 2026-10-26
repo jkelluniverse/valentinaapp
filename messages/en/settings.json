@@ -1,0 +1,114 @@
+{
+  "eyebrow": "Your space",
+  "title": "Settings",
+  "intro": "Your account, your language, and your record — everything here is yours to adjust.",
+  "saved": {
+    "password": "Password changed. Every other session has been signed out.",
+    "email": "Check the new address for a confirmation link — nothing changes until it's confirmed.",
+    "language": "Language saved.",
+    "notifications": "Notification preferences saved.",
+    "deletion": "Your request is in. Valentina will be in touch within 7 days."
+  },
+  "errors": {
+    "pw-rate": "Too many attempts — give it fifteen minutes and try again.",
+    "pw-short": "The new password needs at least 8 characters.",
+    "pw-match": "The new passwords didn't match.",
+    "pw-current": "That current password isn't right.",
+    "email-rate": "Too many requests — try again in an hour.",
+    "email-format": "That doesn't look like an email address.",
+    "email-same": "That's already your address.",
+    "email-taken": "That address can't be used.",
+    "del-rate": "Too many requests — try again in an hour."
+  },
+  "profile": {
+    "heading": "Profile",
+    "row": "Profile & birth details",
+    "hint": "Your preferred name, phone, and the birth details behind your chart.",
+    "open": "Open"
+  },
+  "account": {
+    "heading": "Account",
+    "email": {
+      "label": "Email",
+      "change": "Change email",
+      "newLabel": "New email address",
+      "note": "Nothing changes until you confirm from the new address — a link (valid 24 hours) goes there, and a notice goes to your current address.",
+      "send": "Send confirmation link"
+    },
+    "password": {
+      "label": "Password",
+      "change": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "hint": "At least 8 characters. Changing it signs you out on every other device.",
+      "submit": "Change password"
+    },
+    "signout": {
+      "label": "Sign out everywhere",
+      "hint": "Ends every session on every device, including this one — sign in again after.",
+      "button": "Sign out everywhere"
+    }
+  },
+  "language": {
+    "heading": "Language & appearance",
+    "label": "Language",
+    "hint": "Your whole space re-renders in the language you choose.",
+    "en": "English",
+    "es": "Español",
+    "save": "Save",
+    "theme": "Theme",
+    "themeHint": "Daylight or Dusk — remembered on this device."
+  },
+  "notifications": {
+    "heading": "Notifications",
+    "hint": "These two are real switches — turn one off and that email genuinely stops.",
+    "payment": "Payment reminder emails",
+    "paymentHint": "A gentle note when a payment is waiting.",
+    "renewal": "Package renewal notes",
+    "renewalHint": "A message when your package completes, with ways to continue.",
+    "save": "Save preferences",
+    "push": "Push notifications",
+    "pushHint": "A gentle tap on this device when something is waiting — never message content.",
+    "pushEnable": "Turn on for this device",
+    "pushDisable": "Turn off",
+    "pushOn": "On",
+    "pushUnsupported": "This browser does not support notifications.",
+    "pushBlocked": "Notifications are blocked in your browser settings for this site.",
+    "pushIosHint": "On iPhone, add the app to your Home Screen first (Share → Add to Home Screen)."
+  },
+  "record": {
+    "heading": "Your record",
+    "consent": "The consent you agreed to",
+    "consentHint": "The exact words, the version, and the day you agreed.",
+    "read": "Read",
+    "export": "Download my data",
+    "exportHint": "Everything you've created or shared here — a complete JSON copy, plus a printable keepsake of your own words.",
+    "exportJson": "Download JSON",
+    "keepsake": "Printable keepsake",
+    "deletion": "Request deletion",
+    "deletionHint": "Ask for your information to be deleted. It opens a conversation with Valentina, not an instant erase — a decision like this deserves a human check-in first.",
+    "deletionOpen": "Start a deletion request",
+    "deletionNote": "Anything you'd like to say (optional)",
+    "deletionTimeline": "Valentina reviews every request within 7 days; deletion completes within 30 days of confirmation.",
+    "deletionSubmit": "Send my request",
+    "deletionPending": "Requested on {date} — Valentina will be in touch."
+  },
+  "consentPage": {
+    "eyebrow": "Your record",
+    "title": "The consent you agreed to",
+    "agreed": "You agreed to version {version} on {date}. These are the exact words, kept here for you.",
+    "notAgreed": "You haven't agreed to the current version yet — it will be offered next time it's needed.",
+    "back": "Back to settings"
+  },
+  "keepsake": {
+    "eyebrow": "Veritas · your words, kept",
+    "title": "A keepsake for {name}",
+    "intro": "The reflections and answers you've written along the way, gathered in order. Print it, or save it as a PDF — it's yours.",
+    "empty": "Nothing here yet — your reflections will gather as you write them.",
+    "reflections": "Your reflections",
+    "worksheets": "Your worksheets",
+    "footer": "Printed from your private space · {date}",
+    "back": "Back to settings"
+  }
+}

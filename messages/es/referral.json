@@ -1,0 +1,30 @@
+{
+  "referrals": {
+    "eyebrow": "Socios fundadores",
+    "heading": "Tu código de referencia",
+    "lede": "Este es tu código, y quiénes han llegado con él. Aquí no hay ninguna promesa — es un registro.",
+    "codeLabel": "Tu código",
+    "codeNote": "Dáselo al siguiente profesional que conozcas. Es tuyo.",
+    "shareHeading": "Pásalo",
+    "shareEmail": "Compartir por correo",
+    "shareSms": "Compartir por mensaje",
+    "shareSubject": "Un portal para tu práctica que vale la pena ver",
+    "shareBody": "Uso Psychefolio para mi práctica — un portal para profesionales. Usa mi código {code}: {url}",
+    "linkLabel": "Tu enlace",
+    "countsHeading": "Lo que ha hecho tu código",
+    "countArrived": "Llegaron con tu código",
+    "countPractices": "Abrieron su práctica",
+    "peopleHeading": "Quiénes llegaron con tu código",
+    "peopleNote": "Solo nombres de pila — lo suficiente para reconocer a quien invitaste.",
+    "tagPractice": "ya tiene práctica",
+    "tagList": "en la lista",
+    "zeroHeading": "Todavía nadie",
+    "zero": "Todavía nadie ha usado tu código. Compártelo con un profesional que quisieras tener en la sala.",
+    "standingHeading": "Tu posición",
+    "standing": "Socio fundador",
+    "standingNote": "Estuviste entre los primeros profesionales aquí. Eso es lo que registra esta página, y nada más.",
+    "noCodeHeading": "Esta cuenta no tiene código",
+    "noCode": "Esta práctica se configuró directamente y no a través de la puerta de socios fundadores, así que no tiene un código asociado.",
+    "back": "Volver a ajustes"
+  }
+}

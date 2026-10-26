@@ -1,0 +1,585 @@
+{
+  "reflections": [
+    {
+      "day": -418,
+      "body": "Hoy empiezo esto porque mi hermana me dijo que me haría bien escribir. La verdad, mija — así me hablo a mí misma, como le hablaba a mis alumnos — no sé bien qué escribir. La casa está muy callada. Antes había mochilas en la entrada, voces pidiendo merienda. Ahora el silencio tiene su propio peso. Creo que solo necesito una rutina nueva. Eso es todo. Una rutina y estaré bien.",
+      "mood": 3,
+      "tags": [
+        "inicio",
+        "silencio",
+        "rutina"
+      ]
+    },
+    {
+      "day": -414,
+      "body": "Regué las orquídeas esta mañana con calma, sin apuro. La blanca sacó un botón nuevo. Le hablé un ratito, como una boba. Es lo único que me espera cada día a la misma hora.",
+      "mood": 3,
+      "tags": [
+        "orquideas",
+        "manana"
+      ]
+    },
+    {
+      "day": -409,
+      "body": "Doy dos horas de tutoría a la semana. Un niño de octavo que odia las fracciones. Le preparo ejercicios extra que no me pidió, hojas de más, un truquito para que le sea fácil. Me quedo pensando: ¿por qué siempre doy más de lo que piden? Antes de que me lo pidan ya lo tengo listo. Es como si tuviera miedo de que si espero, se van.",
+      "mood": 3,
+      "tags": [
+        "tutoria",
+        "dar",
+        "habito"
+      ]
+    },
+    {
+      "day": -403,
+      "body": "Domingo. Llamé a mi hermana en Tampa. Hablamos hora y media de nada y de todo. Cuando cuelgo la casa se siente más vacía que antes de llamar, qué cosa más rara. Como si la voz suya hubiera hecho el silencio más grande al irse.",
+      "mood": 2,
+      "tags": [
+        "domingo",
+        "hermana",
+        "vacio"
+      ]
+    },
+    {
+      "day": -397,
+      "body": "Encontré la caja de galletas donde guardo las cartas de mis alumnos. Veinte años de 'gracias maestra', de dibujitos, de fotos de graduación. Las releo cuando dudo de que valgo algo. Hoy releí tres. Me sequé los ojos y seguí con mi día. No sé si eso es sano o si es que necesito pruebas de que fui querida.",
+      "mood": 3,
+      "tags": [
+        "cartas",
+        "valor",
+        "pruebas"
+      ]
+    },
+    {
+      "day": -390,
+      "body": "Curso nuevo: 'Rewiring Self-Worth'. Qué nombre en inglés tan seco para algo tan del corazón. La primera lección pregunta cuándo aprendí lo que valgo. No supe contestar de inmediato. Lo dejé abierto.",
+      "mood": 3,
+      "tags": [
+        "curso",
+        "autovalor"
+      ]
+    },
+    {
+      "day": -383,
+      "body": "Cocino para una y siempre me sale para cuatro. Guardo las sobras como si alguien fuera a llegar con hambre. Hoy tiré comida y me dolió más de lo que debería. No era la comida.",
+      "mood": 2,
+      "tags": [
+        "cocinar",
+        "sobras",
+        "costumbre"
+      ]
+    },
+    {
+      "day": -374,
+      "body": "Mi hija menor me mandó una foto de la nieve allá en el norte. Le contesté enseguida, con corazones, con preguntas, con cuidado. Ella tardó un día en responder y yo pasé ese día inventando razones por las que no me quería ya. Qué injusta soy conmigo. Un día es un día. Pero mi cabeza lo lee como una puerta cerrándose.",
+      "mood": 2,
+      "tags": [
+        "hija",
+        "distancia",
+        "miedo"
+      ]
+    },
+    {
+      "day": -366,
+      "body": "La orquídea abrió. Tres flores. Le tomé foto y no tenía a quién mandársela, así que me la mandé a mí misma por mensaje. Me reí sola. Fue un buen día, dentro de todo.",
+      "mood": 4,
+      "tags": [
+        "orquideas",
+        "pequenas alegrias"
+      ]
+    },
+    {
+      "day": -358,
+      "body": "Ejercicio de la semana: escribir de dónde viene la creencia de que 'si dejo de ser útil, se van'. Empecé a escribir del salón de clases y sin darme cuenta terminé escribiendo de otra cosa mucho más vieja. Paré. Todavía no.",
+      "mood": 2,
+      "tags": [
+        "curso",
+        "creencia",
+        "raiz"
+      ]
+    },
+    {
+      "day": -349,
+      "body": "Hoy no di clase, no cociné para nadie, no me necesitó nadie. Y me sentí como un mueble en un cuarto vacío. Anoté eso porque Valentina me dijo que nombrara el sentimiento sin juzgarlo. Mueble en cuarto vacío. Ahí está, nombrado.",
+      "mood": 2,
+      "tags": [
+        "inutilidad",
+        "nombrar"
+      ]
+    },
+    {
+      "day": -338,
+      "body": "Cuando me despido de la gente nunca digo 'adiós' del todo. Digo 'hablamos', 'nos vemos', 'cualquier cosa me avisas'. Dejo la puerta entreabierta siempre. Hoy me di cuenta de que lo hago hasta con el niño de las fracciones. Como si un adiós completo fuera peligroso.",
+      "mood": 3,
+      "tags": [
+        "despedidas",
+        "puerta"
+      ]
+    },
+    {
+      "day": -325,
+      "body": "Escribí una carta a una amiga y no la mandé. Otra vez. Se me juntan en el cajón las cartas sin enviar. Es curioso — guardo las que me mandan como tesoro y las que yo escribo las escondo. Como si mi voz molestara.",
+      "mood": 3,
+      "tags": [
+        "cartas",
+        "voz",
+        "cajon"
+      ]
+    },
+    {
+      "day": -312,
+      "body": "Mi abuela. Hoy la lección me llevó a ella y esta vez no paré. Mi mamá se fue primero a este país y me dejó con la abuela. Tres años. 'Pronto, mija', decía en cada carta. Yo esperaba en el portal de la abuela mirando la calle. Aprendí a esperar. Aprendí que el amor se anuncia yéndose. Y aprendí, sin saberlo, a no despedirme del todo — por si acaso vuelven. Nunca del todo. Por si acaso. Lo escribo y me tiemblan las manos.",
+      "mood": 2,
+      "tags": [
+        "abuela",
+        "espera",
+        "raiz",
+        "abandono"
+      ]
+    },
+    {
+      "day": -305,
+      "body": "Dormí mal después de escribir de la abuela. Pero también me siento más liviana, como cuando abres una ventana en un cuarto cerrado hace tiempo. El aire entra frío pero entra.",
+      "mood": 3,
+      "tags": [
+        "ventana",
+        "alivio"
+      ]
+    },
+    {
+      "day": -298,
+      "body": "Ese portal. Ahora entiendo por qué me quedaba después de clase con mis alumnos, la última en apagar la luz. Yo era la que se quedaba porque la que se quedó conmigo — la abuela — fue quien no me dejó nunca. Y la que se fue me enseñó a temer. Le di a mis alumnos lo que yo quise recibir: alguien que no se va.",
+      "mood": 3,
+      "tags": [
+        "quedarse",
+        "alumnos",
+        "entender"
+      ]
+    },
+    {
+      "day": -286,
+      "body": "Domingo con mi hermana. Le conté de la abuela y del portal. Ella lloró conmigo por teléfono, cada una en su casa, dos viejas llorando. 'Yo también esperaba', me dijo. No sabía que ella también. Toda la vida cargando lo mismo sin decírnoslo.",
+      "mood": 3,
+      "tags": [
+        "hermana",
+        "domingo",
+        "memoria compartida"
+      ]
+    },
+    {
+      "day": -274,
+      "body": "El niño de las fracciones aprobó su examen. Me trajo un dibujo de las dos, hecho con marcadores, y encima escribió 'gracias maestra Elena'. Lo guardé en la caja de galletas. Otra prueba. Pero hoy pensé: ¿y si no necesito la prueba? ¿Y si él me quiere aunque yo no guarde el papel? Todavía lo guardé, eso sí.",
+      "mood": 4,
+      "tags": [
+        "alumno",
+        "caja",
+        "duda buena"
+      ]
+    },
+    {
+      "day": -263,
+      "body": "Distancia no es abandono. Lo escribí en un papelito y lo pegué en el espejo. Mi hija tarda en contestar porque tiene una vida, no porque se va. Repetirlo no me lo hace creer todavía, pero lo repito.",
+      "mood": 3,
+      "tags": [
+        "mantra",
+        "distancia",
+        "hija"
+      ]
+    },
+    {
+      "day": -251,
+      "body": "Hoy no cociné de más. A propósito. Hice arroz para una porción y me lo comí despacio en el balcón, con las orquídeas de compañía. Fue raro. No malo. Raro.",
+      "mood": 3,
+      "tags": [
+        "cocinar",
+        "proposito",
+        "balcon"
+      ]
+    },
+    {
+      "day": -240,
+      "body": "A veces me pregunto quién soy cuando nadie me necesita. La pregunta ya no me da tanto pánico como al principio. Antes era un hueco. Ahora es una pregunta de verdad, con curiosidad. ¿Quién es Elena cuando no es la maestra de nadie?",
+      "mood": 3,
+      "tags": [
+        "identidad",
+        "pregunta"
+      ]
+    },
+    {
+      "day": -228,
+      "body": "Una alumna. De hace veinte años. Marisol. Me escribió hoy sin ningún motivo. Solo para decir que se acordó de mí, que fui importante en su vida, que ahora es maestra por mí. Yo no hice nada. No la busqué, no le mandé nada, no me adelanté a ninguna necesidad. Volvió sola. Volvió sin que yo hiciera nada. Lloré en la cocina como una niña. Toda mi vida creyendo que hay que dar todo para que se queden — y ella volvió con las manos vacías mías. Volvió igual.",
+      "mood": 4,
+      "tags": [
+        "marisol",
+        "volvio",
+        "sin hacer nada",
+        "revelacion"
+      ]
+    },
+    {
+      "day": -226,
+      "body": "Todavía pienso en Marisol. Guardé su mensaje, claro. Pero esta vez no como prueba de que valgo. Como un regalo que no pedí. Hay diferencia. Recién la estoy sintiendo.",
+      "mood": 4,
+      "tags": [
+        "marisol",
+        "regalo"
+      ]
+    },
+    {
+      "day": -215,
+      "body": "El amor que se va nunca fue mío de verdad — esa era mi creencia. Pero Marisol se fue hace veinte años y volvió. Entonces sí era mío. Estuvo mío todo el tiempo, aunque estuviera lejos. El amor no se acaba porque se va de la vista. Qué cosa tan simple y me tomó cincuenta y cinco años.",
+      "mood": 4,
+      "tags": [
+        "creencia",
+        "aflojando",
+        "amor"
+      ]
+    },
+    {
+      "day": -203,
+      "body": "Le escribí a mi mamá una carta que nunca le mandaré porque ya no está. Le dije que la esperé en el portal y que la perdono, y que también me perdono a mí por haber aprendido a temer. La guardé, pero esta vez arriba, no en el cajón escondido.",
+      "mood": 3,
+      "tags": [
+        "mama",
+        "carta",
+        "perdon"
+      ]
+    },
+    {
+      "day": -191,
+      "body": "Salí a caminar sin propósito. Sin comprar nada para nadie, sin recado. Solo yo y el barrio y el calor de Orlando pegajoso. Me tomé un cafecito sola en una mesa afuera. Me sentí acompañada por mí misma. Anoto esto porque no lo había sentido nunca así.",
+      "mood": 4,
+      "tags": [
+        "caminar",
+        "cafecito",
+        "compania propia"
+      ]
+    },
+    {
+      "day": -178,
+      "body": "Vino mi hija de visita tres días y se fue. Antes su partida me destrozaba una semana. Esta vez la despedí en el aeropuerto y dije 'adiós, mi amor, te quiero' — un adiós de verdad, no un 'nos vemos' asustado. Y no se rompió nada. El amor siguió ahí en el carro conmigo de vuelta a casa.",
+      "mood": 4,
+      "tags": [
+        "hija",
+        "adios",
+        "despedida completa"
+      ]
+    },
+    {
+      "day": -165,
+      "body": "El curso va por el ochenta por ciento. Hoy la lección pedía escribir tres cosas que soy que no dependen de servir a otro. Escribí: soy alguien que hace florecer orquídeas. Soy alguien que se ríe sola de sus propios chistes. Soy alguien que sabe esperar — pero ahora también sé quedarme. Me sorprendió la tercera.",
+      "mood": 4,
+      "tags": [
+        "curso",
+        "identidad",
+        "florecer"
+      ]
+    },
+    {
+      "day": -152,
+      "body": "Recaída pequeña. Mi hermana no me llamó el domingo — se le pasó — y me pasé la tarde tejiendo historias de abandono en la cabeza. Después me reí de mí. La llamé yo. Estaba en el médico con la nuera, nada más. Los viejos miedos vuelven de visita, pero ya no se quedan a vivir.",
+      "mood": 3,
+      "tags": [
+        "recaida",
+        "miedo",
+        "visita corta"
+      ]
+    },
+    {
+      "day": -139,
+      "body": "Reorganicé la caja de galletas de las cartas. No para releerlas por duda, sino para disfrutarlas. Es distinto tocar los papeles desde el cariño y no desde el miedo. Las mismas cartas, otra mano.",
+      "mood": 4,
+      "tags": [
+        "cartas",
+        "caja",
+        "otra mano"
+      ]
+    },
+    {
+      "day": -124,
+      "body": "Le enseño a dos niños ahora, hermanitos. Me pidieron ellos, la mamá me buscó. Por primera vez no preparé hojas de más antes de que las necesitaran. Voy a esperar a ver qué necesitan de verdad. Dar desde la calma, no desde el susto.",
+      "mood": 4,
+      "tags": [
+        "tutoria",
+        "dar distinto",
+        "calma"
+      ]
+    },
+    {
+      "day": -108,
+      "body": "Cumplí años. Cincuenta y seis. Mi hermana quiso venir pero yo le dije que este año quería pasarlo tranquila. Ella se quedó preocupada. Yo estuve bien. Me hice un flan, prendí una vela, hablé con mis orquídeas. Un cumpleaños conmigo. No me faltó nadie.",
+      "mood": 4,
+      "tags": [
+        "cumpleanos",
+        "sola",
+        "completa"
+      ]
+    },
+    {
+      "day": -96,
+      "body": "Domingo solo. A propósito. No llamé a nadie, no me llamó nadie porque yo avisé que quería el día quieto. Fue triste por ratos, lo confieso — el silencio todavía sabe a portal a veces. Pero no fue un castigo. Fue un descanso. Antes cualquier domingo sola era la prueba de que había fallado. Hoy fue solo un domingo. Un momento, no una falla.",
+      "mood": 3,
+      "tags": [
+        "domingo",
+        "sola a proposito",
+        "no es castigo",
+        "aflojando"
+      ]
+    },
+    {
+      "day": -84,
+      "body": "Pensando en la frase que me perseguía: 'estar sola es una falla'. La miro ahora y me parece de otra mujer, una más joven y más asustada. Estar sola es un estado, como llover. No es un veredicto sobre mí. Llueve y una está en casa. Ya está.",
+      "mood": 4,
+      "tags": [
+        "creencia",
+        "soledad",
+        "aflojando"
+      ]
+    },
+    {
+      "day": -71,
+      "body": "Marisol y yo nos escribimos seguido ahora. Hoy me contó de un alumno difícil y yo la aconsejé de maestra a maestra. Qué regalo tan hondo — ya no soy solo la que da, ahora también recibo. La relación va en dos direcciones. No sabía que eso existía para mí.",
+      "mood": 5,
+      "tags": [
+        "marisol",
+        "reciprocidad",
+        "dos direcciones"
+      ]
+    },
+    {
+      "day": -58,
+      "body": "Terminé casi el curso. La última lección grande pide escribir una carta a la Elena del portal, la niña que esperaba. Le dije: mija, alguien sí se quedó — la abuela — y ahora te digo un secreto, tú también aprendiste a quedarte. Te quedaste contigo. No sabes todavía, pero vas a aprender que quedarse con una misma también es quedarse.",
+      "mood": 4,
+      "tags": [
+        "curso",
+        "carta",
+        "nina",
+        "quedarse"
+      ]
+    },
+    {
+      "day": -44,
+      "body": "Sembré una orquídea nueva, una amarilla. Tardará meses en florecer. Antes me habría desesperado por el resultado. Ahora me gusta cuidarla sin saber cuándo dará flor. Cuidar sin garantía. Querer sin condición. Se parece a lo que estoy aprendiendo conmigo.",
+      "mood": 4,
+      "tags": [
+        "orquidea",
+        "paciencia",
+        "sin garantia"
+      ]
+    },
+    {
+      "day": -30,
+      "body": "Mi hija me llamó de sorpresa un martes cualquiera. Sin motivo, como Marisol. Solo para oír mi voz. Ya no cuento los días entre sus llamadas. La distancia dejó de ser una amenaza. Es solo la geografía. El cariño no mide en kilómetros.",
+      "mood": 5,
+      "tags": [
+        "hija",
+        "llamada",
+        "distancia sanada"
+      ]
+    },
+    {
+      "day": -18,
+      "body": "Un domingo quieto otra vez, y esta vez ni triste. Me leí un libro entero en el balcón. Al final del día pensé: no estuve sola, estuve conmigo. Qué diferencia hace una palabra. Quizás quedarse conmigo también es quedarse.",
+      "mood": 5,
+      "tags": [
+        "domingo",
+        "conmigo",
+        "quedarse",
+        "integrando"
+      ]
+    },
+    {
+      "day": -7,
+      "body": "Catorce meses escribiendo aquí. Releo mis primeras entradas y me dan ternura, esa mujer que solo pedía 'una rutina nueva' sin saber que buscaba mucho más. No dejé de ser la maestra que se quedaba. Ahora también soy la que se queda conmigo cuando nadie más se queda. Y no es una falla. Es una casa con las ventanas abiertas.",
+      "mood": 5,
+      "tags": [
+        "cierre",
+        "integracion",
+        "casa abierta"
+      ]
+    },
+    {
+      "day": -2,
+      "body": "La orquídea amarilla sacó su primer botón esta mañana. La miré un buen rato con mi cafecito. Nadie me necesitaba en ese momento y no me sentí un mueble en un cuarto vacío. Me sentí una mujer en su balcón, con sus flores, esperando algo que va a florecer a su tiempo. Incluida yo.",
+      "mood": 5,
+      "tags": [
+        "orquidea",
+        "florecer",
+        "presente"
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "from": "CLIENT",
+      "day": -410,
+      "body": "Hola Valentina. Perdón que escriba tan largo en las reflexiones. Es que escribo como quien le escribe una carta a un alumno querido. Espero que no le moleste el español.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -409,
+      "body": "Al contrario, Elena. Escriba en el idioma donde vive su corazón. Yo la leo entera, en español, sin apuro. Su manera de escribir ya me dice mucho de usted.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -340,
+      "body": "Hoy me di cuenta de algo: nunca digo adiós del todo. Siempre dejo la puerta entreabierta. ¿Eso es normal o es una manía mía?",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -339,
+      "body": "No es manía, Elena. Es una niña que aprendió que las puertas cerradas duelen. Tiene todo el sentido del mundo. Cuando quiera, podemos mirar de dónde viene esa puerta entreabierta.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -311,
+      "body": "Escribí de mi abuela y del portal donde esperaba a mi mamá. No pude parar. Todavía me tiemblan las manos. Pero creo que necesitaba decirlo en voz alta, aunque sea por escrito.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -310,
+      "body": "Lo que hizo hoy fue muy valiente, Elena. Esa niña en el portal esperó muchísimo tiempo sola. Gracias por dejarla hablar por fin. No tiene que ir más rápido de lo que su corazón pueda.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -227,
+      "body": "¡Valentina! Una alumna de hace veinte años me escribió de la nada. Solo para decir que me recuerda. Yo no hice NADA. Volvió sola. Estoy llorando pero de las buenas.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -227,
+      "body": "Léalo despacio, Elena: volvió sin que usted diera nada primero. ¿Qué le dice eso sobre la idea de que hay que darlo todo para que se queden? Guárdese esta como una carta nueva en la caja.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -215,
+      "body": "Estuve pensando en lo que me dijo. Si Marisol se fue hace veinte años y volvió, entonces sí era mía. El amor no se acabó por irse de la vista. Me cuesta creerlo del todo pero lo estoy viendo.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -214,
+      "body": "Ahí está la grieta por donde entra la luz, Elena. 'El amor que se va nunca fue mío' — mírela ahora con Marisol en la mano. La creencia no se rompe de golpe; se afloja. Y ya está aflojando.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -155,
+      "body": "Recaída chiquita: mi hermana no me llamó el domingo y me armé toda una historia de abandono. Después resultó que estaba en el médico. Me dio hasta risa lo rápido que salté al abismo.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -154,
+      "body": "Que se ría de eso ya es enorme, Elena. Los miedos viejos vienen de visita, es normal. Lo distinto es que esta vez usted los reconoció y no les creyó. Eso es el trabajo dando fruto.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -110,
+      "body": "Voy a pasar mi cumpleaños sola, por elección. Mi hermana está preocupada. ¿Estoy huyendo o estoy sanando? A veces no sé distinguir.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -109,
+      "body": "Buena pregunta para hacerse. Fíjese en el cuerpo: si es huida, hay tensión y evitación. Si es sanar, hay una quietud que elige. Escuche cuál de las dos siente esa mañana con su flan y su vela.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -107,
+      "body": "Era quietud, Valentina. Se lo confirmo. Me hice flan, prendí una vela, hablé con las orquídeas. No me faltó nadie. Nunca me había pasado.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -107,
+      "body": "Qué bello, Elena. 'No me faltó nadie.' Escríbalo grande. Esa es una mujer aprendiendo a hacerse compañía. Feliz cumpleaños, de corazón.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -70,
+      "body": "Marisol y yo nos aconsejamos ahora de maestra a maestra. Ya no soy solo la que da. También recibo. No sabía que las relaciones podían ir en dos direcciones para mí.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -69,
+      "body": "Eso es reciprocidad, Elena — algo que la niña del portal nunca conoció, porque su papel era esperar y dar. Recibir sin miedo es territorio nuevo para usted. Qué gusto verla habitarlo.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -45,
+      "body": "Sembré una orquídea que tardará meses en florecer y me di cuenta de que puedo cuidarla sin desesperarme por el resultado. Se parece a algo, ¿no?",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -44,
+      "body": "Se parece a quererse sin garantías, Elena. Cuidar el proceso, confiar en el tiempo. Usted misma es esa orquídea. Y ya está echando botón.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -17,
+      "body": "Un domingo sola, un libro entero, y al final pensé: no estuve sola, estuve conmigo. Quiero que lo sepa porque usted estuvo ahí desde el principio de todo esto.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -16,
+      "body": "'Estar conmigo' — mire cuánto camino desde 'estar sola es una falla'. Yo solo la acompañé; el quedarse lo aprendió usted. Estoy muy orgullosa, Elena.",
+      "unread": false
+    },
+    {
+      "from": "CLIENT",
+      "day": -3,
+      "body": "Estamos cerca de los catorce meses. Releo mis primeras entradas y le tengo ternura a aquella mujer asustada. Gracias por leerme entera, en mi idioma, todo este tiempo.",
+      "unread": false
+    },
+    {
+      "from": "PRACTITIONER",
+      "day": -2,
+      "body": "Fue un privilegio leerla, Elena, cada carta larga y cálida. La casa ya no está vacía: está usted en ella, con las ventanas abiertas. Siga cuidando esa orquídea amarilla. Y a usted.",
+      "unread": false
+    }
+  ],
+  "notes": [
+    {
+      "day": -408,
+      "body": "Primera impresión de Elena: cálida, generosa, escribe reflexiones larguísimas en español con cadencia epistolar — se dirige a sí misma como a una alumna querida. Presenta 'solo necesito una rutina'. Debajo, un vacío de identidad tras el nido vacío. Núcleo probable: se define por ser necesitada. Nota operativa: todo su material vive en español; la extracción y lectura integrativa deben funcionar en ese idioma o me pierdo el 90% de ella. No la apure al inglés.",
+      "unread": false
+    },
+    {
+      "day": -310,
+      "body": "Sesión bisagra: nombró por primera vez el portal de la abuela, los tres años esperando a la madre que emigró primero, el 'pronto, mija'. Conectó espontáneamente la espera infantil con su patrón adulto de no despedirse del todo — 'nunca del todo, por si acaso vuelven'. La herida de abandono, antes fuera de su mapa consciente, ahora nombrada por ella misma. Manos temblando pero se sostuvo. No forzar; dejar que el material asiente.",
+      "unread": false
+    },
+    {
+      "day": -226,
+      "body": "Evento de contra-evidencia potente: la ex-alumna Marisol reaparece sin ninguna acción de Elena. Golpe directo a dos creencias — 'si dejo de ser útil se van' y 'el amor que se va nunca fue mío'. Elena lo articuló sola: 'volvió sin que yo hiciera nada'. Estoy anclando esto como prueba viva. Además, primer indicio de que la caja de cartas puede resignificarse: de prueba-ansiosa de valor a regalo recibido.",
+      "unread": false
+    },
+    {
+      "day": -96,
+      "body": "Domingo solo a propósito, y crucialmente lo describe como triste-pero-no-castigo. 'Un momento, no una falla.' La creencia 'estar sola es una falla' entra en aflojamiento observable. También integrando reciprocidad con Marisol (recibir, no solo dar) y despedidas completas con la hija sin colapso. Progreso sólido y sostenido; cadencia semanal impecable.",
+      "unread": false
+    },
+    {
+      "day": -5,
+      "body": "Cierre de tenencia. 'Estar sola es una falla' claramente en loosening, casi integrada — su frase 'quizás quedarse conmigo también es quedarse' es el marcador. Ha reescrito la relación con la espera: de portal ansioso a compañía propia elegida. La orquídea amarilla como metáfora que ella misma sostiene: cuidar sin garantía = quererse sin condición. Recomiendo espaciar contacto y dejarla volar. Nota técnica final para el equipo: verificado que el trabajo profundo se logró íntegramente en español — la lectura integrativa funcionó en su lengua. No traducir su archivo.",
+      "unread": false
+    }
+  ],
+  "id": "elena"
+}
