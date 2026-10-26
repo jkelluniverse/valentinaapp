@@ -1,9 +1,9 @@
 # task #78 — /practitioner/settings i18n — acceptance log
 
-Run: 2026-10-06T20:36:24.506Z · `npx tsx audits/settings-i18n-verify.ts` against the BUILT app on :3131
+Run: 2026-10-26T16:23:53.595Z · `npx tsx audits/settings-i18n-verify.ts` against the BUILT app on :3131
 Database: postgresql://postgres:***@localhost:5432/veritas_scratch
 
-# task #78 — /practitioner/settings i18n verify — 2026-10-06T20:36:22.605Z
+# task #78 — /practitioner/settings i18n verify — 2026-10-26T16:23:51.711Z
 - ✓ the two catalogs have IDENTICAL key sets — en=100 keys · es=100 keys · diff=none
 - ✓ no catalog string is empty, and no Spanish string is a copy of the English one it translates — only the two language NAMES are legitimately identical in both catalogs
 - ✓ EVERY pre-pass English string is byte-identical (whitespace-normalised) to the pre-pass page — an i18n MOVE, not a copy rewrite (keys new since the pass are named, with their builds) — 85 pre-pass strings matched against 939a663 · 15 new-since (named)

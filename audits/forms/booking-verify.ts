@@ -37,7 +37,7 @@ import bcrypt from "bcryptjs";
 import { rawPrisma } from "../../lib/prisma-internal";
 import { withTenantScope } from "../../lib/tenancy/tenant-scope";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
-const EXE = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
+import { CHROMIUM_EXE as EXE } from "../_fixtures/chromium";
 
 if (/railway|rlwy\.net/i.test(process.env.DATABASE_URL ?? "")) { console.error("REFUSING: DATABASE_URL points at Railway — this gate seeds and deletes; scratch only."); process.exit(2); }
 
@@ -171,7 +171,21 @@ async function main(): Promise<void> {
   const { normaliseCalendly } = await import("../../lib/scheduling/external/calendly");
   const nb = normaliseCalendly(JSON.stringify({ event: "invitee.created", payload: { uri: "https://api.calendly.com/scheduled_events/C42/invitees/1", name: "Ext", email: "ext@c42.stranger.test", scheduled_event: { uri: "https://api.calendly.com/scheduled_events/C42-EVT", start_time: new Date(now.getTime() + 3 * 86_400_000).toISOString(), end_time: new Date(now.getTime() + 3 * 86_400_000 + 1_800_000).toISOString() }, questions_and_answers: [{ question: "What brings you here?", answer: "Sleep." }, { question: "", answer: "second" }], created_at: now.toISOString() } }));
   check("7: normaliseCalendly yields { \"ext:1\": { q, a } } — keyed ext:<n>, q verbatim, a blank question gets a numbered q", same(nb?.intakeAnswers, { "ext:1": { q: "What brings you here?", a: "Sleep." }, "ext:2": { q: "Question 2", a: "second" } }), JSON.stringify(nb?.intakeAnswers));
-  // 8 — every stored worksheet schema parses as before
+  // 8 — every stored worksheet schema parses as before. A FRESH database has
+  // no worksheets (the environment was rebuilt on 2026-10-22 and a first run
+  // here found 0 rows and failed on the count alone), so the gate always
+  // contributes one richly typed fixture of its own — the comparison then has
+  // at least one row on any database and every stored row on a lived-in one.
+  await rawPrisma.worksheet.create({ data: { tenantId: T, title: "C42 parse fixture", createdById: pract.id, schema: [
+    { id: "s", type: "SECTION", label: "About you" },
+    { id: "t", type: "SHORT_TEXT", label: "Name you go by", required: true },
+    { id: "l", type: "LONG_TEXT", label: "What brings you?", help: "A line or two" },
+    { id: "sc", type: "SCALE", label: "Energy today" },
+    { id: "one", type: "SINGLE_CHOICE", label: "Morning or evening?", options: ["Morning", "Evening"] },
+    { id: "many", type: "MULTI_CHOICE", label: "Interests", options: ["Sleep", "Work", "Family"] },
+    { id: "cb", type: "CHECKBOX", label: "I have read the note" },
+    { id: "junk", type: "NOT_A_TYPE", label: "dropped by both" },
+  ] as object[] } });
   const all = await rawPrisma.worksheet.findMany({ select: { id: true, schema: true } });
   const oldFilter = (schema: unknown) => (Array.isArray(schema) ? schema.filter((f) => !!f && typeof f === "object" && typeof (f as { id?: unknown }).id === "string" && WM.FIELD_TYPES.includes((f as { type: never }).type) && typeof (f as { label?: unknown }).label === "string") : []);
   const unchanged = all.filter((w) => same(WM.parseFields(w.schema), oldFilter(w.schema))).length;

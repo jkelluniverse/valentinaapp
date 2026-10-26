@@ -1,4 +1,4 @@
-# C26-FAIL-CLOSED-TENANCY verify — 2026-10-06T20:39:05.655Z
+# C26-FAIL-CLOSED-TENANCY verify — 2026-10-26T16:26:46.679Z
 SCOPE: hosts t26probeb.psx.test, t26nosuch.psx.test · viewport 1024x900 (desktop only) · local build with a failure-injection DB role. NOT covered: production, real devices, any host or viewport absent here (ruling 208).
 
 ## Verify 1 — the five assumptions, confirmed or corrected
@@ -10,12 +10,12 @@ SCOPE: hosts t26probeb.psx.test, t26nosuch.psx.test · viewport 1024x900 (deskto
 - ✓ A5 CONFIRMED — the layer-3 literal survives ONLY behind a lookup that SUCCEEDED and found nothing (FRESH_DB_SHELL on the unknown-slug branch); the error branch can never reach it — verified structurally here and behaviorally in Verify 8
 
 ## Rig — practice B (real signup), discovery hours, the errprobe role, the sink
-- ✓ a real ACTIVE non-default practice exists (real signup service) — tenant B = cmux562ut0001xeszqj4xeti3
+- ✓ a real ACTIVE non-default practice exists (real signup service) — tenant B = cmvpgymwy0001ivyln96b4auk
 
 ## Phase 1 — FAILURE injected (Verify 2, 3, 4, 10 + the signed-in half of 9)
 - ✓ V3/V10 — practice B's /book under failure is the NEUTRAL 503: Retry-After set, both languages, and NONE of Valentina's availability, branding, name, or wordmark in the HTML — status=503 · retry-after=10 · bilingual=yes · practice strings=absent
 - ✓ V3 — no bookable surface is offered under failure: the browser lands on /unavailable with no day/slot chooser (a form that cannot be safely submitted must not render) — landed on /unavailable · slot-chooser buttons: 0
-- ✓ V2 — THE REPRODUCTION NOW FAILS TO REPRODUCE: no Lead and no Appointment was created in ANY tenant under the injected failure (asserted globally) — Lead|Appointment counts unchanged: 0|1
+- ✓ V2 — THE REPRODUCTION NOW FAILS TO REPRODUCE: no Lead and no Appointment was created in ANY tenant under the injected failure (asserted globally) — Lead|Appointment counts unchanged: 0|0
 - ✓ V4 — no notification email left the transport under the failure (asserted at the sink sendEmail actually posts to) — sink requests: 0
 - ✓ V9 — a signed-in surface under failure LOCKS OUT rather than showing another practice: B's practitioner lands back on /login — after sign-in attempt + /practitioner: /login
 
@@ -23,7 +23,7 @@ SCOPE: hosts t26probeb.psx.test, t26nosuch.psx.test · viewport 1024x900 (deskto
 - ✓ V6 — recovery is IMMEDIATE: the very next request after the failure lifts renders the booking page — no restart, no wait, no poisoned cache (ruling 33) — first post-recovery request: 200
 
 ## Phase 3 — HEALTHY control on the same server (Verify 5, 7) — the fix must not cost a working booking
-- ✓ V5 — the healthy booking still completes on B's host and the Lead is stamped tenant B — final url /book/confirmed?t=cmux56ast0002k1u5ebx2wm3s.gEdam40wZjL-ofAzvnlq_JZg1b7iZJ37RW-CFt-lJ-4 · Lead.tenantId = cmux562ut0001xeszqj4xeti3
+- ✓ V5 — the healthy booking still completes on B's host and the Lead is stamped tenant B — final url /book/confirmed?t=cmvpgyvfe000271r4j5w8vf4b.qCOWGHXVmScNNUCke5gr-3WKNU2oPihapqSd_NfxwKQ · Lead.tenantId = cmvpgymwy0001ivyln96b4auk
 - ✓ V5/V4 — and its two notification emails reached the SINK carrying TENANT B'S identity (C27 §Phase 2) — proving phase 1's zero-email assertion had a working instrument — sink: t26-probe-b@fixture.test ← "T26 Practice B" · t26-lead-healthy@fixture.test ← "T26 Practice B"
 - ✓ V7 — an UNKNOWN slug still behaves exactly as documented (default-host content, 200, the booking page renders) — this spec changed the error path only — unknown slug /book → 200 · booking-page heading present
 - ✓ V3 — the STATIC front door is resolution-INDEPENDENT: under failure it served byte-identical content to the healthy request, so the failure changed nothing about whose identity renders — healthy 37203b === failure 37203b: true

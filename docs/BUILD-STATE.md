@@ -82,6 +82,78 @@
    NOT tied to Sept 23.
 
 ## Built & verified: (list as completed)
+- C40-C — APPROVE OR EDIT, built 2026-10-26 on JACOB'S DIRECT, URGENT REQUEST ("implement and
+  activate an appointment approval process for new consultations that emails the practitioner
+  the client's selected time to approve or edit"). C40 already shipped request-and-approve
+  behind the default-OFF setting bookingRequiresApproval; activation needed THREE things it
+  lacked: (1) the decline email was still C40's labelled placeholder — now REAL copy in both
+  locales and both paths (lib/email-copy.ts requestOutcomeEmail with a way back in;
+  lib/discovery.ts declined text with /book), warm, short, no reason given; (2) "EDIT" — she
+  can approve at a DIFFERENT open time: approveRequest(id, pid, { startAt }) and
+  approveDiscoveryRequest(id, pid, baseUrl, startAt) re-validate the new time (open on her grid
+  → else "unavailable"; free → else "conflict"), move startAt/endAt keeping the length, then run
+  the IDENTICAL booking tail (charge + both parties' mail, .ics); the client's confirmation says
+  FIRST that the time differs from the one they asked for ("You asked for X; your practitioner
+  suggested a different time instead — Y", es: "Pediste el X…") with the existing manage link
+  (discovery) or their space (session); her own copy says "You approved N's request at a
+  different time"; (3) DIRECT LINKS — both request emails to her now carry
+  <baseUrl>/practitioner/schedule#requests and name the third option ("Approve, decline, or
+  suggest another time here"). UI: the requests block's rows gain a "Suggest another time"
+  disclosure listing her OPEN grid for the next 14 days for that kind (a request's own slot is
+  busy under ruling 223 and never appears — Approve covers it), "Approve at this time" →
+  approveRequestAtAction; banners for moved/unavailable. Settings hint names the third option.
+  NO schema change, NO new route, setting still default OFF — production bytes with the setting
+  OFF are unchanged (ruling-48 pins). GATE: requests-verify leg 14 (+15 checks → 61/61):
+  moved approval on both paths (row moved, SCHEDULED, Lead SCHEDULED, identical charge/mail
+  deltas, requested slot offered again), off-grid time refused "unavailable" with the request
+  untouched, taken time refused with the request untouched, same-time approval still works
+  (control), decline copy real in en/es with no "[JACOB" marker anywhere (the C40 "~" log line
+  is now a CHECK), moved-confirmation says so first (en/es) and an un-moved one does not
+  (control), both composers carry the direct link, her schedule renders the control with her
+  grid as options. Sweep: first run on the new image 46/50 (all four reds the image, see below), second run after the gate repairs 50/50. Build exit 0. ENVIRONMENT RESET FOUND AND REPAIRED (the
+  image was rebuilt 2026-10-22): node_modules, .next, the scratch database and the pinned
+  Chromium path were all gone — dependencies reinstalled, the database recreated and migrated
+  (57/57), and the eleven browser gates' hard-coded
+  `chromium_headless_shell-1194/chrome-linux/headless_shell` replaced by ONE resolver
+  (audits/_fixtures/chromium.ts: PW_CHROMIUM_EXE override → newest headless shell under
+  PLAYWRIGHT_BROWSERS_PATH → the image's stable `chromium` symlink → the old pin; fails in one
+  line naming what it tried) — an environment drift the gates would otherwise have reported as
+  eleven defects. THE FIRST SWEEP ON THE NEW IMAGE RAN 46/50 AND ALL FOUR REDS WERE THE IMAGE,
+  NOT THE PRODUCT, each proved before it was touched: (a) settings-i18n and practice-setting
+  read pinned commits (939a663, a6c8bd8) that a fresh SHALLOW clone (50 commits) did not have —
+  `git fetch --unshallow` (291 commits) and both pass unchanged (10/10, 47/47); (b) event-chrome's
+  five byte-identical surfaces all diverged at normalized byte 71 — next/font's CSS-variable
+  class hashes (`__variable_e1a377 __variable_f367f3` in the fixture captured on the old image
+  vs `__variable_3c8d52 __variable_d8ebd1` now); REPRODUCED on a worktree build of the untouched
+  tip a3e94d2 in the new image, which yields the SAME four new hashes as this tip — the build
+  environment changed them, no page did; the gate now normalizes `__variable_[0-9a-f]{6}` on
+  BOTH sides (the fixture was normalized at capture by the older function, so a one-sided rule
+  changed nothing — a first attempt did exactly that), documented in its header beside the
+  $ACTION_ID rule it mirrors, blind spot named (a change of WHICH font a variable binds is not
+  seen here) — FOR RATIFICATION as a normalization, with the alternative (re-pinning a fixture
+  from an f07a035 checkout-and-build on each image rebuild) rejected as a treadmill; this is the
+  `next/font` build fragility flagged after C40 with no ruling, now with evidence; (c)
+  founders-visual's four pictures differed with all 58 measurements green — Chromium 1243
+  renders a 375px viewport one pixel narrower (376→375) and the full page 62px taller than
+  headless shell 1194 did; REPRODUCED: the untouched tip's screenshots under the new browser
+  are BYTE-IDENTICAL to this tip's at all four viewports, so the page is the ratified one and
+  the baselines were stale for the browser; recaptured with --capture from that
+  proven-unchanged page (ruling 214: never from a broken one; here proven not broken by
+  reproduction, ruling 216's method), the reason written into the gate's header. The old
+  pinned browser path was bridged by a symlink in /opt ONLY so the old tip's gate could run for
+  the reproduction — environment-local, not committed; the resolver is the durable fix. Second
+  full sweep after these four gate repairs: 50/50, exit 0. INSTRUMENT FAULTS: leg 14 first expected "conflict" for a time another
+  booking took; the GRID check refuses it first as "unavailable" (busy = not open) and only a
+  same-instant race or buffer overlap reaches hasConflict — the refusal was correct, the word
+  was mine; the C42 gate's parse check counted stored worksheets and a fresh database has
+  none — it now contributes its own richly typed fixture row. ACTIVATION IS JACOB'S/VALENTINA'S
+  ACT, not a deploy: Settings → Notifications → tick "Clients request a time; I approve it" →
+  Save; /book then reads "Request my call" (ruling-48's pin flips 1/0 → 0/1 by design, and the
+  pinned expectation must move WITH the setting — recorded here so the next ruling-48 reader
+  does not read a deliberate flip as a regression). Item 2 of C40 ("practitioner-offered
+  alternatives", ruling 221, waiting on Jacob's Zoom answer) is PARTLY delivered by this:
+  approve-at-another-time is a one-shot edit, not a multi-option offer; the offer flow is
+  still open.
 - C42-PRACTITIONER-FORMS built (2026-10-06; rulings 225, 234). ONE FLAG, the isIntake
   precedent: Worksheet.isBooking (migration 56, additive, default false). The booking form IS
   a worksheet; the existing builder edits it with zero changes to field editing. A practice

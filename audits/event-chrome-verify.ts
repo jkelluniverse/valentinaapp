@@ -90,13 +90,30 @@ function normalize(html: string): string {
     // module path, so a refactor that MOVES a server action to a different
     // file changes the id and this gate will NOT see it. Do not read this
     // gate as proving more than it does.
-    .replace(/\$ACTION_ID_[0-9a-f]+/g, "$ACTION_ID_X");
+    .replace(/\$ACTION_ID_[0-9a-f]+/g, "$ACTION_ID_X")
+    // 2026-10-26 — next/font's CSS-variable class names (`__variable_3c8d52`)
+    // are BUILD-ENVIRONMENT hashes: the image rebuilt on 2026-10-22 changed
+    // them on every page, including four this program had not touched for
+    // weeks, and the fixture (captured on the old image) diverged at byte 71
+    // on all five surfaces for that reason alone. Reproduced on a worktree
+    // build of the untouched tip a3e94d2 in the new image: SAME new hashes.
+    // The class name is a handle to a font-face declaration, not chrome — the
+    // font it binds is compared through the stylesheet it names, which is
+    // already normalized as a /_next/static hash above. Same class of
+    // normalization as $ACTION_ID; same documented blind spot shape: a change
+    // that swaps WHICH font a variable binds would not be seen here.
+    .replace(/__variable_[0-9a-f]{6}/g, "__variable_X");
 }
 /** Applied to BOTH sides at compare time: the COUNT of script stubs is build
  *  shape (hydration payload chunking), not rendered content — an async server
  *  component adds one. Every visible byte still compares verbatim. */
 const stripStubs = (s: string) =>
-  s.replace(/<script\/>/g, "").replace(/\$ACTION_ID_[0-9a-f]+/g, "$ACTION_ID_X");
+  s.replace(/<script\/>/g, "").replace(/\$ACTION_ID_[0-9a-f]+/g, "$ACTION_ID_X")
+    // the font-variable rule above, applied here too because the FIXTURE was
+    // normalized at capture time by the older function and still carries the
+    // old image's literal hashes — both sides must be read through the same
+    // normalization or the rule only ever changes one of them.
+    .replace(/__variable_[0-9a-f]{6}/g, "__variable_X");
 /** The bytes a human can SEE — scripts carry storage keys ("veritas-theme")
  *  that are data, not chrome. */
 const visible = (s: string) => s.replace(/<script\b[\s\S]*?<\/script>/g, "");

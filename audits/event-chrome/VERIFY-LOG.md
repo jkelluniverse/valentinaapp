@@ -1,4 +1,4 @@
-# C29-EVENT-CHROME verify — 2026-10-06T20:39:24.261Z
+# C29-EVENT-CHROME verify — 2026-10-26T16:27:06.378Z
 SCOPE: hosts t29probeb.psx.test, t29nosuch.psx.test, localhost · HTTP markup only, no browser viewport · local build. NOT covered: production, real devices, any host or viewport absent here (ruling 208).
 
 ## Verify 1 — the five assumptions, confirmed or corrected
@@ -7,15 +7,15 @@ SCOPE: hosts t29probeb.psx.test, t29nosuch.psx.test, localhost · HTTP markup on
 - ✓ A3 CONFIRMED — the public wall covers app/(public)/** only and bans auth/prisma imports there; /login etc. live OUTSIDE it and @/lib/tenancy is resolution plumbing, not a banned import — the wall is untouched (lint:wall green in regression) — wall scope verified from its own source
 
 ## Rig — practice B (real signup), the errprobe role
-- ✓ a real ACTIVE non-default practice exists; signup gave it its own portalTitle — tenant B = cmux56h9z0001fced2snkv5jt · portalTitle="T29 Bright Practice"
+- ✓ a real ACTIVE non-default practice exists; signup gave it its own portalTitle — tenant B = cmvpgz25j00011411yocf9dfu · portalTitle="T29 Bright Practice"
 
 ## Verify 2 + 5 — THE SHIPPABILITY CHECK: the default tenant's five pinned surfaces, byte-identical to f07a035
-- ✓ V2 — default tenant /login BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 2901 normalized bytes identical
-- ✓ V2 — default tenant /forgot BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 2589 normalized bytes identical
-- ✓ V2 — default tenant /reset/t29-dummy-token.x BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 2100 normalized bytes identical
+- ✓ V2 — default tenant /login BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 2891 normalized bytes identical
+- ✓ V2 — default tenant /forgot BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 2579 normalized bytes identical
+- ✓ V2 — default tenant /reset/t29-dummy-token.x BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 2090 normalized bytes identical
 - ✓ V2 — default tenant /must-change BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 19 normalized bytes identical
-- ✓ V5 — default tenant / BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 13480 normalized bytes identical
-- ✓ V5-book (fixture captured from a checkout-and-build of f07a035 — a real before/after, ruling 45) — default tenant /book BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 4667 normalized bytes identical
+- ✓ V5 — default tenant / BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 13470 normalized bytes identical
+- ✓ V5-book (fixture captured from a checkout-and-build of f07a035 — a real before/after, ruling 45) — default tenant /book BYTE-IDENTICAL to the f07a035 fixture (normalized as documented; every rendered byte compared) — 4657 normalized bytes identical
 - ✓ RULING-44 CANNOT-HIDE — the RAW identity-string counts (whole body, scripts included) match the f07a035 fixture on every pinned page, modulo ONE named+justified delta (/login veritas +1, the wordmark serialized as RSC slot data — found by this check itself); any unnamed delta fails — counts match across 6 pages × 2 strings (1 named delta applied)
 
 ## Verify 3 — practice B's auth chrome is B's

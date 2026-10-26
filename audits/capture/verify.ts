@@ -7,6 +7,7 @@ import { CSV_HEADERS } from "../../lib/prospects";
 import { EVENT_SOURCE } from "../../lib/capture-config";
 
 import { seedLocalDomains } from "../_fixtures/local-domains";
+import { CHROMIUM_EXE } from "../_fixtures/chromium";
 // C23-CAPTURE acceptance — the event floor, in a real browser against the
 // BUILT app. Proves, per the spec's Verify list:
 //   1  /join renders 200 in BOTH locales; no price / "free" / dollar figure
@@ -36,7 +37,7 @@ import { seedLocalDomains } from "../_fixtures/local-domains";
 const PORT = 3124;
 const BASE = `http://localhost:${PORT}`;
 const PLATFORM_DOMAIN = "platform.test";
-const EXEC = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
+const EXEC = CHROMIUM_EXE;
 const DEFAULT_TENANT_ID = "tnt_valentina_000000001";
 
 const ADMIN_EMAIL = "capture-admin@fixture.test";

@@ -124,15 +124,27 @@ export async function requestDiscoveryCall(args: BookArgs): Promise<BookResult> 
  *  appointment SCHEDULED with the standing room, Lead SCHEDULED, then the same
  *  "booked" announcement both parties get from a direct booking. Re-checks the
  *  slot with the request itself ignored (it is busy under ruling 223). */
-export async function approveDiscoveryRequest(appointmentId: string, practitionerId: string, baseUrl: string): Promise<{ ok: boolean; error?: "not-requested" | "conflict" }> {
+export async function approveDiscoveryRequest(
+  appointmentId: string,
+  practitionerId: string,
+  baseUrl: string,
+  // C40-C — "approve or EDIT": she may approve at a different open time. The
+  // prospect is confirmed at the new time and told, first thing, that it is
+  // not the one they asked for — with the same manage link to change it.
+  newStartAt?: Date,
+): Promise<{ ok: boolean; error?: "not-requested" | "conflict" | "unavailable" }> {
   const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, practitionerId, kind: "DISCOVERY" } });
   if (!appt || appt.status !== "REQUESTED") return { ok: false, error: "not-requested" };
   const config = await getOrCreateConfig(practitionerId);
-  if (await hasConflict(practitionerId, appt.startAt, appt.endAt, config.bufferMinutes, appointmentId)) return { ok: false, error: "conflict" };
+  const moved = !!newStartAt && newStartAt.getTime() !== appt.startAt.getTime();
+  const startAt = moved ? newStartAt! : appt.startAt;
+  const endAt = moved ? new Date(startAt.getTime() + config.discoveryMinutes * 60000) : appt.endAt;
+  if (moved && !(await isSlotOpen(practitionerId, startAt, new Date(), "DISCOVERY"))) return { ok: false, error: "unavailable" };
+  if (await hasConflict(practitionerId, startAt, endAt, config.bufferMinutes, appointmentId)) return { ok: false, error: "conflict" };
   const videoUrl = config.discoveryVideoUrl || config.defaultVideoUrl || null;
-  await prisma.appointment.update({ where: { id: appointmentId }, data: { status: "SCHEDULED", videoUrl, videoProvider: videoUrl ? "MANUAL" : null } });
+  await prisma.appointment.update({ where: { id: appointmentId }, data: { status: "SCHEDULED", startAt, endAt, videoUrl, videoProvider: videoUrl ? "MANUAL" : null } });
   await prisma.lead.updateMany({ where: { appointmentId }, data: { status: "SCHEDULED" } });
-  await notifyDiscovery(appointmentId, "booked", baseUrl);
+  await notifyDiscovery(appointmentId, "booked", baseUrl, moved ? { movedFrom: appt.startAt } : undefined);
   return { ok: true };
 }
 
@@ -148,7 +160,7 @@ export async function declineDiscoveryRequest(appointmentId: string, practitione
 type NotifyKind = "booked" | "rescheduled" | "cancelled" | "requested" | "declined" | "expired"; // C40 adds the last three
 
 // Email both parties. Never throws — a failed email must not fail the booking.
-export async function notifyDiscovery(appointmentId: string, kind: NotifyKind, baseUrl: string): Promise<void> {
+export async function notifyDiscovery(appointmentId: string, kind: NotifyKind, baseUrl: string, extra?: { movedFrom?: Date }): Promise<void> {
   try {
     const appt = await prisma.appointment.findUnique({
       where: { id: appointmentId },
@@ -163,6 +175,7 @@ export async function notifyDiscovery(appointmentId: string, kind: NotifyKind, b
     const config = await getOrCreateConfig(appt.practitionerId);
     const when = discoveryWhen(appt.startAt, config.timezone);
     const firstName = lead.name.trim().split(/\s+/)[0] || lead.name;
+    const movedFromWhen = extra?.movedFrom ? discoveryWhen(extra.movedFrom, config.timezone) : null;
 
     // C40 — a REQUEST goes to her only; DECLINED/EXPIRED go to the prospect only.
     if (kind === "requested") {
@@ -170,7 +183,7 @@ export async function notifyDiscovery(appointmentId: string, kind: NotifyKind, b
         await sendEmail({
           to: practitioner.email,
           subject: `Discovery call requested — ${lead.name}, ${when}`,
-          text: `${lead.name} has asked for a free discovery call.\n\nWhen: ${when}\nEmail: ${lead.email}\n` + (lead.phone ? `Phone: ${lead.phone}\n` : "") + (lead.note ? `\nWhat brings them:\n${lead.note}\n` : "") + `\nApprove or decline from your schedule. Unanswered requests lapse after 48 hours.`,
+          text: `${lead.name} has asked for a free discovery call.\n\nWhen: ${when}\nEmail: ${lead.email}\n` + (lead.phone ? `Phone: ${lead.phone}\n` : "") + (lead.note ? `\nWhat brings them:\n${lead.note}\n` : "") + `\nApprove, decline, or suggest another time here:\n${baseUrl}/practitioner/schedule#requests\n\nUnanswered requests lapse after 48 hours and the time frees itself.`,
         });
       }
       await sendPushToUser(appt.practitionerId, { title: "Discovery call request", body: `${lead.name} · ${when}`, url: "/practitioner/schedule?show=requests" });
@@ -182,7 +195,7 @@ export async function notifyDiscovery(appointmentId: string, kind: NotifyKind, b
         subject: kind === "declined" ? `About your request for ${when}` : `Your request for ${when} lapsed`,
         text:
           kind === "declined"
-            ? `[JACOB — decline copy. Placeholder: "Hi ${firstName}, ${practitioner?.name ?? "Valentina"} isn't able to take ${when}. You're welcome to request another time."]`
+            ? `Hi ${firstName}, thank you for asking for a time. ${practitioner?.name ?? "Valentina"} isn't able to take ${when}, so that time has been released. You're very welcome to request another one that works for you: ${baseUrl}/book`
             : `Hi ${firstName}, your discovery call request for ${when} wasn't answered within 48 hours, so that time has been released. You're welcome to request another.`,
       });
       return;
@@ -201,7 +214,7 @@ export async function notifyDiscovery(appointmentId: string, kind: NotifyKind, b
             ? `Discovery call cancelled — ${lead.name}, ${when}`
             : `Discovery call ${kind === "booked" ? "booked" : "moved"} — ${lead.name}, ${when}`,
         text:
-          `${lead.name} ${kind === "cancelled" ? "cancelled their" : kind === "booked" ? "booked a" : "moved their"} free discovery call.\n\n` +
+          (movedFromWhen ? `You approved ${lead.name}'s discovery call request at a different time (they asked for ${movedFromWhen}). They have been told, with a link to change it.\n\n` : `${lead.name} ${kind === "cancelled" ? "cancelled their" : kind === "booked" ? "booked a" : "moved their"} free discovery call.\n\n`) +
           `When: ${when}\n` +
           `Email: ${lead.email}\n` +
           (lead.phone ? `Phone: ${lead.phone}\n` : "") +
@@ -222,7 +235,9 @@ export async function notifyDiscovery(appointmentId: string, kind: NotifyKind, b
       text:
         (kind === "cancelled"
           ? `Hi ${firstName}, your discovery call on ${when} has been cancelled. You're welcome to book another anytime.`
-          : `Hi ${firstName}, your free discovery call with Valentina is set for ${when}.`) +
+          : movedFromWhen
+            ? `Hi ${firstName}, you asked for ${movedFromWhen}; Valentina suggested a different time instead, and your free discovery call is now set for ${when}. If that doesn't work for you, the link below lets you pick another.`
+            : `Hi ${firstName}, your free discovery call with Valentina is set for ${when}.`) +
         (kind !== "cancelled" && appt.videoUrl ? `\n\nJoin here at the time: ${appt.videoUrl}` : "") +
         (kind !== "cancelled" ? `\n\nNeed to change it? Reschedule or cancel here: ${manageUrl}` : "") +
         (kind !== "cancelled" ? "\n\nThe attached invite adds it to your calendar." : ""),

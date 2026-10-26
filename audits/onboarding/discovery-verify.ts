@@ -4,6 +4,7 @@ import { chromium } from "playwright";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 
 import { seedLocalDomains } from "../_fixtures/local-domains";
+import { CHROMIUM_EXE } from "../_fixtures/chromium";
 // CLIENT-ONBOARDING Stage-6 acceptance — the quiet discovery layer, in a real
 // browser against the BUILT app:
 //   · hints: one at a time, shown-once (SEEN on first render), dismiss-forever
@@ -82,7 +83,7 @@ async function main() {
     env: { ...process.env, AUTH_SECRET: process.env.AUTH_SECRET || "baseline-secret", PORT: String(PORT) },
     stdio: "ignore",
   });
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell" });
+  const browser = await chromium.launch({ executablePath: CHROMIUM_EXE });
   try {
     for (let i = 0; i < 60; i++) {
       try { if ((await fetch(`${BASE}/api/health`)).ok) break; } catch { /* booting */ }

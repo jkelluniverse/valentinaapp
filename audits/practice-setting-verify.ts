@@ -15,6 +15,7 @@ import { rawPrisma as prisma } from "../lib/prisma-internal";
 import { SCOPED_MODELS, DEFAULT_TENANT_ID } from "../lib/tenancy/scope";
 import { identitySelectFor, identitySelect, ModelIdentityError, type ModelMeta } from "../lib/tenancy/model-identity";
 import { auditNullTenantRows } from "../lib/tenancy/stamp-audit";
+import { CHROMIUM_EXE } from "./_fixtures/chromium";
 
 // C25-PRACTICE-SETTING-TENANCY acceptance — the founding practitioner's portal.
 //
@@ -61,7 +62,7 @@ import { auditNullTenantRows } from "../lib/tenancy/stamp-audit";
 const PORT = 3141;
 const BASE = `http://localhost:${PORT}`;
 const PLATFORM_DOMAIN = "psx.test";
-const EXEC = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
+const EXEC = CHROMIUM_EXE;
 
 const SLUG_A = "psxprobea";
 const SLUG_B = "psxprobeb";

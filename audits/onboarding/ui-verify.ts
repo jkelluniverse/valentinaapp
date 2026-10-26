@@ -7,6 +7,7 @@ import { withTenantScope } from "../../lib/tenancy/tenant-scope";
 import { DEFAULT_TENANT_ID } from "../../lib/tenancy/scope";
 
 import { seedLocalDomains } from "../_fixtures/local-domains";
+import { CHROMIUM_EXE } from "../_fixtures/chromium";
 // CLIENT-ONBOARDING Stage-1 UI acceptance — drives the whole intake in a real
 // browser against the BUILT app: the routing gate, Welcome, generated steps
 // with auto-save, Review, complete → Done, and the post-completion release
@@ -86,7 +87,7 @@ async function main() {
     env: { ...process.env, AUTH_SECRET: process.env.AUTH_SECRET || "baseline-secret", PORT: String(PORT) },
     stdio: "ignore",
   });
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell" });
+  const browser = await chromium.launch({ executablePath: CHROMIUM_EXE });
   try {
     for (let i = 0; i < 60; i++) {
       try { if ((await fetch(`${BASE}/api/health`)).ok) break; } catch { /* booting */ }

@@ -104,12 +104,12 @@ export async function createAppointment(args: BookArgs) {
 // C40 those two lines lived inline above. They are here so that APPROVING a
 // request runs the identical code, in the identical order, rather than a copy
 // of it. Two callers, one function: createAppointment and approveRequest.
-async function confirmAppointment(appt: Awaited<ReturnType<typeof prisma.appointment.create>>): Promise<void> {
+async function confirmAppointment(appt: Awaited<ReturnType<typeof prisma.appointment.create>>, movedFrom?: Date): Promise<void> {
   // C13.2 + C13-PKG §4: a package credit covers the session when available;
   // otherwise a DUE charge at her current rate (silently skipped while the
   // price book is empty — shows as "unbilled").
   await createChargeForAppointment(appt);
-  await notify(appt.id, "booked");
+  await notify(appt.id, "booked", movedFrom ? { movedFrom } : undefined);
 }
 
 // C40 — REQUEST-AND-APPROVE (rulings 223, 226-234). Same preamble as
@@ -142,19 +142,32 @@ export async function requestAppointment(args: BookArgs) {
  *  first (a C37 booking may have landed meanwhile); the request itself is
  *  busy under ruling 223, so it is ignored on the re-check or it would
  *  conflict with itself. On conflict the request STAYS requested — her call. */
-export async function approveRequest(appointmentId: string, practitionerId: string) {
+export async function approveRequest(
+  appointmentId: string,
+  practitionerId: string,
+  // C40-C — "approve or EDIT": approve at a DIFFERENT open time. The session
+  // keeps its length; the new time must be open on her grid and free; the
+  // client's confirmation says, first, that it is not the time they asked for.
+  opts?: { startAt?: Date },
+) {
   const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, practitionerId } });
-  if (!appt || appt.status !== "REQUESTED") return { ok: false as const, error: "not-requested" };
+  if (!appt || appt.status !== "REQUESTED") return { ok: false as const, error: "not-requested" as const };
   const config = await getOrCreateConfig(practitionerId);
-  if (await hasConflict(practitionerId, appt.startAt, appt.endAt, config.bufferMinutes, appointmentId)) {
-    return { ok: false as const, error: "conflict" };
+  const moved = !!opts?.startAt && opts.startAt.getTime() !== appt.startAt.getTime();
+  const startAt = moved ? opts!.startAt! : appt.startAt;
+  const endAt = moved ? new Date(startAt.getTime() + (appt.endAt.getTime() - appt.startAt.getTime())) : appt.endAt;
+  if (moved && !(await isSlotOpen(practitionerId, startAt, new Date(), "SESSION"))) {
+    return { ok: false as const, error: "unavailable" as const };
+  }
+  if (await hasConflict(practitionerId, startAt, endAt, config.bufferMinutes, appointmentId)) {
+    return { ok: false as const, error: "conflict" as const };
   }
   const videoUrl = appt.location === "VIRTUAL" ? config.defaultVideoUrl || null : null;
   const confirmed = await prisma.appointment.update({
     where: { id: appointmentId },
-    data: { status: "SCHEDULED", videoUrl, videoProvider: videoUrl ? "MANUAL" : null },
+    data: { status: "SCHEDULED", startAt, endAt, videoUrl, videoProvider: videoUrl ? "MANUAL" : null },
   });
-  await confirmAppointment(confirmed);
+  await confirmAppointment(confirmed, moved ? appt.startAt : undefined);
   return { ok: true as const, appointment: confirmed };
 }
 
@@ -418,7 +431,7 @@ type NotifyKind = "booked" | "rescheduled" | "cancelled" | "requested" | "declin
 // added in one tap (covers the subscribed feed's refresh lag). Never throws —
 // a failed email must not fail the booking (spec §7). The client's email
 // renders in their language (AMD-05); hers stays in hers.
-async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
+async function notify(appointmentId: string, kind: NotifyKind, extra?: { movedFrom?: Date }): Promise<void> {
   try {
     const appt = await prisma.appointment.findUnique({
       where: { id: appointmentId },
@@ -450,6 +463,13 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
       hour: "numeric",
       minute: "2-digit",
     })} ${zoneAbbrev(appt.startAt, config.timezone)}`;
+    // C40-C — the time they ASKED for, in their language, when approval moved it.
+    const movedFromWhen = extra?.movedFrom
+      ? `${formatInZone(extra.movedFrom, config.timezone, { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit", locale: locale === "es" ? "es-419" : "en-US" })} ${zoneAbbrev(extra.movedFrom, config.timezone)}`
+      : null;
+    const movedFromWhenEn = extra?.movedFrom
+      ? `${formatInZone(extra.movedFrom, config.timezone, { weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" })} ${zoneAbbrev(extra.movedFrom, config.timezone)}`
+      : null;
 
     // C40 — a REQUEST is practitioner-facing only: no .ics (nothing is on any
     // calendar yet), no client mail (they are looking at the page). Push to
@@ -463,7 +483,7 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
           text:
             `${label} has asked for a session.\n\nWhen: ${whenEn}\n` +
             (appt.clientNote ? `Topic: ${appt.clientNote}\n` : "") +
-            `\nApprove or decline from your schedule. Unanswered requests lapse after 48 hours and the time frees itself.`,
+            `\nApprove, decline, or suggest another time here:\n${getBaseUrlSafe()}/practitioner/schedule#requests\n\nUnanswered requests lapse after 48 hours and the time frees itself.`,
         });
       }
       if (ch.push) await sendPushToUser(appt.practitionerId, { title: "Session request", body: `${label} · ${whenEn}`, url: "/practitioner/schedule#requests" });
@@ -474,7 +494,7 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
     if (kind === "declined" || kind === "expired") {
       const ch = await channelsFor(NOTIFY_KEYS.requestOutcome);
       if (ch.email && appt.client.email) {
-        const mail = requestOutcomeEmail(kind, locale, { when, practitioner: practitioner?.name ?? "your practitioner" });
+        const mail = requestOutcomeEmail(kind, locale, { when, practitioner: practitioner?.name ?? "your practitioner", bookUrl: kind === "declined" ? `${getBaseUrlSafe()}/space/schedule` : null });
         await sendEmail({ to: appt.client.email, subject: mail.subject, text: mail.text });
       }
       if (ch.push && appt.clientId) {
@@ -498,7 +518,7 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
         to: practitioner.email,
         subject: `Session ${verb} — ${label}, ${whenEn}`,
         text:
-          `A session with ${label} was ${verb}.\n\n` +
+          (movedFromWhenEn ? `You approved ${label}'s request at a different time (they asked for ${movedFromWhenEn}). They have been told.\n\n` : `A session with ${label} was ${verb}.\n\n`) +
           `When: ${whenEn}\n` +
           `Where: ${appt.location === "VIRTUAL" ? appt.videoUrl || "Virtual" : "In person"}\n` +
           (appt.clientNote ? `Topic: ${appt.clientNote}\n` : "") +
@@ -512,6 +532,7 @@ async function notify(appointmentId: string, kind: NotifyKind): Promise<void> {
       const mail = sessionEmail(kind as "booked" | "rescheduled" | "cancelled", locale, {
         when,
         videoUrl: kind !== "cancelled" && appt.location === "VIRTUAL" ? appt.videoUrl : null,
+        movedFrom: movedFromWhen,
       });
       await sendEmail({ to: appt.client.email, subject: mail.subject, text: mail.text, attachments });
     }

@@ -1,6 +1,10 @@
 # C40-APPOINTMENT-REQUESTS
 
-**Status:** spec, awaiting ratification. Nothing built.
+**Status:** BUILT (`6cc9853`, 2026-10-01; ratified as built 2026-10-06, rulings 226–234).
+**C40-C amendment (2026-10-26, Jacob's urgent activation request):** approve-at-another-time
+("approve or EDIT") on both paths, REAL decline copy in both locales (the placeholder is
+gone), direct links in her request emails. Ledger entry in docs/BUILD-STATE.md. Activation =
+the practice setting, flipped in Settings → Notifications, not a deploy.
 **Covers:** item 1 (request-and-approve) and item 3 (notification preferences).
 **Does not cover:** item 2 (practitioner-offered alternatives — waits on Jacob's
 Zoom answer, ruling 221), item 4 (calendar read-back — C41, ruling 222), Zoom,

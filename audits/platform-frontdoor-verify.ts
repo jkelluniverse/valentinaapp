@@ -29,6 +29,7 @@ import { chromium, type Browser } from "playwright";
 import { rawPrisma as prisma } from "../lib/prisma-internal";
 import { seedLocalDomains } from "./_fixtures/local-domains";
 import { DEFAULT_TENANT_ID } from "../lib/tenancy/scope";
+import { CHROMIUM_EXE } from "./_fixtures/chromium";
 
 const APP_PORT = 3184;
 const SINK_PORT = 3185;
@@ -48,7 +49,7 @@ const PORTAL_HOST = `${SLUG}.${PLATFORM_DOMAIN}`;
 const PROBE_EMAIL = "p4-probe@fixture.test";
 const JOIN_EMAIL = "p4-join-probe@fixture.test";
 const TENANT_JOIN_EMAIL = "p4-tenant-join-probe@fixture.test";
-const EXEC = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
+const EXEC = CHROMIUM_EXE;
 
 const PLATFORM_FROM = 'Psychefolio <notifications@psx.test>';
 const PLATFORM_REPLY = "jacob@psx.test";

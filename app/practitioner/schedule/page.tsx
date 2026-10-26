@@ -4,7 +4,7 @@ import { readPracticeSetting } from "@/lib/practice-settings";
 import { requirePractitioner } from "@/lib/auth-guards";
 import { getBaseUrl } from "@/lib/base-url";
 import { SignatureRule, Eyebrow } from "@/components/brand";
-import { getPractitioner, getOrCreateConfig, formatInZone, zoneAbbrev, DAY_MS } from "@/lib/schedule";
+import { getPractitioner, getOrCreateConfig, formatInZone, zoneAbbrev, DAY_MS, openSlots } from "@/lib/schedule";
 import { partyLabel, REQUEST_TTL_MS } from "@/lib/appointments";
 import { formatMoney } from "@/lib/billing";
 import { emailConfigured } from "@/lib/notify";
@@ -19,6 +19,7 @@ import {
   setCalendarSyncDone,
   setRecordingConfirmed,
   approveRequestAction,
+  approveRequestAtAction,
   declineRequestAction,
 } from "./actions";
 import { PendingButton } from "@/components/PendingButton";
@@ -62,6 +63,19 @@ export default async function PractitionerSchedulePage({
     orderBy: { createdAt: "asc" },
     take: 50,
   });
+  // C40-C — "suggest another time": her open grid for the next 14 days, per
+  // kind present among the requests (a request's own slot is busy under
+  // ruling 223, so it never appears here — Approve covers that one).
+  const horizon = new Date(now.getTime() + 14 * 86_400_000);
+  const altSlots: Partial<Record<"SESSION" | "DISCOVERY", { iso: string; label: string }[]>> = {};
+  for (const kind of ["SESSION", "DISCOVERY"] as const) {
+    if (!requests.some((r) => r.kind === kind)) continue;
+    const { slots } = await openSlots(practitioner.id, now, horizon, now, kind);
+    altSlots[kind] = slots.slice(0, 60).map((sl) => ({
+      iso: sl.startAt.toISOString(),
+      label: `${formatInZone(sl.startAt, config.timezone, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ${zoneAbbrev(sl.startAt, config.timezone)}`,
+    }));
+  }
   const [appointments, recent] = await Promise.all([
     prisma.appointment.findMany({
       where: {
@@ -213,7 +227,9 @@ export default async function PractitionerSchedulePage({
         <p className="rounded-md bg-blush-deep px-4 py-2.5 text-sm text-wine">
           {searchParams.request === "approved" ? "Approved — confirmed and on the calendar; both of you have the invite." :
            searchParams.request === "declined" ? "Declined — the client has been told." :
-           searchParams.request === "conflict" ? "That time is no longer free (another booking landed first). The request is still open — decline it, or ask them for another time." :
+           searchParams.request === "moved" ? "Approved at the time you chose — the client has been told it differs from what they asked for, with a link to change it." :
+           searchParams.request === "unavailable" ? "That time isn't open on your grid — pick one from the list, or approve the time they asked for." :
+           searchParams.request === "conflict" ? "That time is no longer free (another booking landed first). The request is still open — decline it, or suggest another time below." :
            "That request is no longer pending."}
         </p>
       )}
@@ -242,6 +258,23 @@ export default async function PractitionerSchedulePage({
                       <PendingButton className="font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Decline</PendingButton>
                     </form>
                   </span>
+                  {/* C40-C — approve or EDIT: pick another open time; the client is told it moved. */}
+                  <details className="basis-full" data-c40="suggest-time">
+                    <summary className="cursor-pointer list-none text-xs font-medium text-slate underline-offset-4 hover:text-wine hover:underline">Suggest another time</summary>
+                    {(altSlots[r.kind as "SESSION" | "DISCOVERY"] ?? []).length === 0 ? (
+                      <p className="mt-2 text-xs text-slate">No other open times in the next two weeks — add availability first.</p>
+                    ) : (
+                      <form action={approveRequestAtAction.bind(null, r.id)} className="mt-2 flex flex-wrap items-center gap-2">
+                        <select name="startAt" className="rounded-md border border-line bg-white px-2.5 py-1.5 text-xs text-ink">
+                          {(altSlots[r.kind as "SESSION" | "DISCOVERY"] ?? []).map((sl) => (
+                            <option key={sl.iso} value={sl.iso}>{sl.label}</option>
+                          ))}
+                        </select>
+                        <PendingButton className="rounded-md border border-wine/40 px-3 py-1 text-xs font-medium text-wine transition-colors hover:bg-wine hover:text-white">Approve at this time</PendingButton>
+                        <span className="text-[11px] text-whisper">They&apos;ll be told the time changed, with a link to change it again.</span>
+                      </form>
+                    )}
+                  </details>
                 </li>
               );
             })}

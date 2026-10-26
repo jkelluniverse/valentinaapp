@@ -57,7 +57,7 @@ export default async function NotificationsSettingsPage() {
             <input type="checkbox" name="bookingRequiresApproval" defaultChecked={requires} className="mt-1" />
             <span>
               <span className="block text-sm font-medium text-ink-strong">Clients request a time; I approve it</span>
-              <span className="block text-xs text-slate">Off: a client who picks a time is booked at once. On: it becomes a request that holds the time for 48 hours; you approve or decline, and the client is told by email. Booking form buttons change to say “Request”.</span>
+              <span className="block text-xs text-slate">Off: a client who picks a time is booked at once. On: it becomes a request that holds the time for 48 hours; you approve it, suggest another time, or decline — and the client is told by email each way. Booking form buttons change to say “Request”.</span>
             </span>
           </label>
         </section>

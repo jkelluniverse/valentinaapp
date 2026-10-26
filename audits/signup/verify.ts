@@ -4,6 +4,7 @@ import { rawPrisma as prisma } from "../../lib/prisma-internal";
 import { RESERVED_SLUGS } from "../../lib/signup-config";
 
 import { seedLocalDomains } from "../_fixtures/local-domains";
+import { CHROMIUM_EXE } from "../_fixtures/chromium";
 // C23-SIGNUP acceptance — the front door, in a real browser against the BUILT
 // app. Proves, per the spec's Verify list:
 //   1  /signup renders 200 in BOTH locales, with no price / "free" / figure
@@ -26,7 +27,7 @@ import { seedLocalDomains } from "../_fixtures/local-domains";
 const PORT = 3123;
 const BASE = `http://localhost:${PORT}`;
 const PLATFORM_DOMAIN = "platform.test";
-const EXEC = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
+const EXEC = CHROMIUM_EXE;
 
 // Everything this harness creates carries one of these markers.
 const SLUGS = ["signupprobe", "signupprobe2", "signupprobe3", "signuprate"];

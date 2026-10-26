@@ -1,6 +1,6 @@
-# C40-APPOINTMENT-REQUESTS acceptance — 2026-10-06T20:39:53.519Z
+# C40-APPOINTMENT-REQUESTS acceptance — 2026-10-26T16:27:37.201Z
 SCOPE: hosts c40a.c40.test, c40b.c40.test · HTTP on :3186 + in-process service calls · local build. NOT covered: production, real mail/push delivery, any surface not named in a leg (ruling 208).
-- ✓ fixture: the practitioner has open SESSION and DISCOVERY slots — 56/112
+- ✓ fixture: the practitioner has open SESSION and DISCOVERY slots — 51/101
 
 ## 11 — the enums (ruling 38)
 - ✓ AppointmentStatus has 7 values — SCHEDULED,COMPLETED,CANCELLED,NO_SHOW,REQUESTED,DECLINED,EXPIRED
@@ -38,26 +38,26 @@ SCOPE: hosts c40a.c40.test, c40b.c40.test · HTTP on :3186 + in-process service 
 
 ## 7 + 12 — setting OFF is today; ruling 224 OFF state
 - ✓ 12 OFF (rendered): the submit reads "Confirm my call" and no note is shown — label="Confirm my call" note=false
-- ✓ 7 OFF: /book books at once — appointment SCHEDULED, Lead SCHEDULED — lead=SCHEDULED appt=SCHEDULED landed=/book/confirmed?t=cmux57902000110741frg1l2v.JoV7dKSiwvsRHM-v8DwvVPUy2sAGbl6cr0Zaiq0nfEE
-- ✓ 7 OFF: the landing page says the call is BOOKED — /book/confirmed?t=cmux57902000110741frg1l2v.JoV7dKSiwvsRHM-v8DwvVPUy2sAGbl6cr0Zaiq0nfEE
+- ✓ 7 OFF: /book books at once — appointment SCHEDULED, Lead SCHEDULED — lead=SCHEDULED appt=SCHEDULED landed=/book/confirmed?t=cmvpgzvdf000111tevo6fmu9l.mQKIqYoOEapRSio_jAWPJJ61EpWgyBPckWOw-OCSCPE
+- ✓ 7 OFF: the landing page says the call is BOOKED — /book/confirmed?t=cmvpgzvdf000111tevo6fmu9l.mQKIqYoOEapRSio_jAWPJJ61EpWgyBPckWOw-OCSCPE
 
 ## 12 + 13 + 8 — setting ON: ruling 224, the public double-hold, external stays external
 - ✓ 12 ON es: "Solicitar mi llamada" + the note in Spanish
 - ✓ 12 ON (payload): "Confirm my call" is absent from the ON page entirely — the server sends only the mode's copy
 - ✓ 12 ON (rendered): the submit reads "Request my call" and the note IS shown — label="Request my call" note=true
-- ✓ 13: through /book, a request lands REQUESTED with Lead REQUESTED — lead=REQUESTED appt=REQUESTED landed=/book/confirmed?t=cmux57coy00051074mgmhe029.TpmNAldhqJXaFn6LorEXw6ekCCtDtvptCUHi58lwb94
+- ✓ 13: through /book, a request lands REQUESTED with Lead REQUESTED — lead=REQUESTED appt=REQUESTED landed=/book/confirmed?t=cmvpgzz3v000511tepyd8oyn4.2qU_hwfMLvQoaDcN7yLrxHrmCFwn6Ijwu-ALCWRAVjk
 - ✓ 12 ON: the landing page says REQUESTED, not booked
-- ✓ 13: a second stranger is NOT offered the held slot (openSlots, which /book renders, excludes it) — held=2026-10-07T17:00:00.000Z
+- ✓ 13: a second stranger is NOT offered the held slot (openSlots, which /book renders, excludes it) — held=2026-10-27T17:00:00.000Z
 - ✓ 13: …while other slots are still offered (positive control) — 10 buttons; 0 chars
 - ✓ 13: exactly one appointment holds that slot
 - ✓ 8: with the setting ON, an external booking lands SCHEDULED — never REQUESTED — SCHEDULED
 
 ## 10 + 12 — the signed-in client sees the request; the session confirm page's label
 - ✓ 10: /space/schedule renders the client's REQUESTED row(s) — 0 pending; marker absent
-~ confirm-page slot 2026-10-13T20:00:00.000Z · isSlotOpen in-process: true · 51 open
-~ tenant seen by a raw fetch on c40a.c40.test: {"kind":"tenant","isDefault":false} · practitioner in T: cmux573uo000413tljhyu5m1d · users in T: 3
-~ session confirm (ON): http 200 url=/space/schedule/confirm?start=2026-10-13T20%3A00%3A00.000Z title=Veritas cookie=yes
-~ session confirm (ON) body:  Veritas veritas ✧ B veritas ✧ Home Path Reflect Messages Your First Map Your journey Your design Your reading Sessions Settings Profile B Sign out Sessions Confirm your session Tuesday, October 13 at 4:00 PM EDT 50 minutes · virtual session Anything you&#x27;d like to focus on? (optional) Request this session Pick another time Your request goes to your practitioner to confirm. You&#x27;ll get an email when it&#x27;s
+~ confirm-page slot 2026-11-02T16:00:00.000Z · isSlotOpen in-process: true · 46 open
+~ tenant seen by a raw fetch on c40a.c40.test: {"kind":"tenant","isDefault":false} · practitioner in T: cmvpgzpx20004967p9sqzy9oc · users in T: 3
+~ session confirm (ON): http 200 url=/space/schedule/confirm?start=2026-11-02T16%3A00%3A00.000Z title=Veritas cookie=yes
+~ session confirm (ON) body:  Veritas veritas ✧ B veritas ✧ Home Path Reflect Messages Your First Map Your journey Your design Your reading Sessions Settings Profile B Sign out Sessions Confirm your session Monday, November 2 at 11:00 AM EST 50 minutes · virtual session Anything you&#x27;d like to focus on? (optional) Request this session Pick another time Your request goes to your practitioner to confirm. You&#x27;ll get an email when it&#x27;s
 - ✓ 12 ON (session): "Request this session" + note; "Confirm booking" absent
 - ✓ 12 OFF (session): "Confirm booking", no note
 
@@ -67,6 +67,21 @@ SCOPE: hosts c40a.c40.test, c40b.c40.test · HTTP on :3186 + in-process service 
 - ✓ no notify.* rows: 30-minute = OFF
 - ✓ positive control: a row flips it — practitioner 1d = push only
 
-~ decline copy is a labelled placeholder awaiting Jacob: PRESENT (expected until he rules)
+## 14 — approve at a different time; real decline copy; direct links
+- ✓ 14: decline copy is REAL in en — no [JACOB marker, names the time and the practitioner, carries the way back in — Thank you for asking for a time. P isn't able to take W, so that time has been r
+- ✓ 14: decline copy is REAL in es — no [JACOB marker, names the time and the practitioner, carries the way back in — Gracias por pedir un horario. P no puede tomar el W, así que ese horario volvió 
+- ✓ 14: the discovery path's decline copy is real too (source carries no [JACOB marker)
+- ✓ 14: a moved approval's confirmation says FIRST that the time differs (en + es), then the ordinary confirmation
+- ✓ 14: positive control — an un-moved confirmation carries no such line
+- ✓ 14 (session): approval at another OPEN time moves the row to that time and confirms it — SCHEDULED 2026-11-02T14:00:00.000Z
+- ✓ 14 (session): …running the identical booking tail — a charge and both parties' mail — +0 charge, 2 mail
+- ✓ 14 (session): …and the requested time is offered again
+- ✓ 14 (session): a time NOT on her grid is refused 'unavailable' and the request stays REQUESTED
+- ✓ 14 (session): a time taken meanwhile is REFUSED (unavailable — her grid already shows it busy) and the request stays — unavailable
+- ✓ 14 (session): positive control — approving the SAME request at its own time still works
+- ✓ 14 (discovery): approval at another open time moves the call, confirms it, and the Lead reads SCHEDULED — SCHEDULED lead=SCHEDULED
+- ✓ 14 (discovery): a time not on the discovery grid is refused 'unavailable'; the request stays
+- ✓ 14: both request emails to her carry the direct link to /practitioner/schedule#requests and name the third option
+- ✓ 14: her schedule renders 'Suggest another time' for the pending request, with her open grid as options — 240 options
 
 ALL CHECKS PASS

@@ -99,6 +99,20 @@ export async function approveRequestAction(appointmentId: string) {
   revalidatePath("/practitioner/schedule");
   redirect(`/practitioner/schedule?request=${r.ok ? "approved" : r.error === "conflict" ? "conflict" : "gone"}#requests`);
 }
+// C40-C — "approve or EDIT": approve the request at a DIFFERENT open time she
+// picks from her own grid. Same dispatch by kind; the service re-validates the
+// new time (open on her grid, no conflict) and tells the client it moved.
+export async function approveRequestAtAction(appointmentId: string, formData: FormData) {
+  await requirePractitioner();
+  const p = await getPractitioner();
+  if (!p) redirect("/practitioner/schedule");
+  const startAt = new Date(String(formData.get("startAt") ?? ""));
+  if (Number.isNaN(startAt.getTime())) redirect("/practitioner/schedule?request=unavailable#requests");
+  const appt = await prisma.appointment.findFirst({ where: { id: appointmentId, practitionerId: p.id }, select: { kind: true } });
+  const r = appt?.kind === "DISCOVERY" ? await approveDiscoveryRequest(appointmentId, p.id, getBaseUrl(), startAt) : await approveRequest(appointmentId, p.id, { startAt });
+  revalidatePath("/practitioner/schedule");
+  redirect(`/practitioner/schedule?request=${r.ok ? "moved" : r.error === "conflict" ? "conflict" : r.error === "unavailable" ? "unavailable" : "gone"}#requests`);
+}
 export async function declineRequestAction(appointmentId: string) {
   await requirePractitioner();
   const p = await getPractitioner();

@@ -47,6 +47,17 @@ import { chromium } from "playwright";
 // the baselines beside this file were captured AFTER the measurements above
 // went green and after a human read the page. Recapture with --capture only
 // when the change is intended and reviewed; never to make a red gate quiet.
+//
+// RECAPTURE 2026-10-26 (environment drift, not a page change): the image was
+// rebuilt on 2026-10-22 with Chromium 1243 in place of the headless shell 1194
+// these baselines were captured under; the new browser renders a 375px
+// viewport one pixel narrower (376→375 wide) and the full page 62px taller,
+// so all four pictures differed with every measurement still green. PROVED BY
+// REPRODUCTION before recapturing (ruling 216's lesson, ruling 214's rule): a
+// worktree build of the untouched tip a3e94d2 under the new browser produced
+// screenshots BYTE-IDENTICAL to this tip's at all four viewports, so the page
+// is the ratified one and the baseline was stale for the browser, not wrong
+// about the page. Captured from that proven-unchanged page with --capture.
 //   B. COMPUTED CONTRAST — every text node meets WCAG 2.2 AA. A hero nobody can
 //      read turns this red.
 //   C. PALETTE — rendered colours come from the brief's token set, and the
@@ -88,7 +99,7 @@ import { chromium } from "playwright";
 const PORT = 3148;
 const BASE = `http://127.0.0.1:${PORT}`;
 const HOST = "psychefolio.test";
-const EXE = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
+import { CHROMIUM_EXE as EXE } from "./_fixtures/chromium";
 const SHOTS = join(process.cwd(), "docs/baseline/founders");
 
 const results: { name: string; pass: boolean; note?: string }[] = [];

@@ -20,6 +20,22 @@ export const RESCHEDULE_LINE: Record<Locale, string> = {
 export function sessionEmail(
   kind: "booked" | "rescheduled" | "cancelled",
   locale: Locale,
+  v: { when: string; videoUrl?: string | null; movedFrom?: string | null },
+): Mail {
+  // C40-C — approved at a DIFFERENT time than requested: say so, first, in
+  // their language. The rest of the confirmation is unchanged.
+  const base = sessionEmailBase(kind, locale, v);
+  if (kind === "booked" && v.movedFrom) {
+    const line = locale === "es"
+      ? `Pediste el ${v.movedFrom}; tu terapeuta propuso otro horario en su lugar — ${v.when}. Si no te funciona, puedes cambiarlo desde tu espacio.`
+      : `You asked for ${v.movedFrom}; your practitioner suggested a different time instead — ${v.when}. If it doesn't work for you, you can change it from your space.`;
+    return { subject: base.subject, text: `${line}\n\n${base.text}` };
+  }
+  return base;
+}
+function sessionEmailBase(
+  kind: "booked" | "rescheduled" | "cancelled",
+  locale: Locale,
   v: { when: string; videoUrl?: string | null },
 ): Mail {
   if (locale === "es") {
@@ -460,11 +476,16 @@ export function deletionRequestAckEmail(locale: Locale): Mail {
 // C40 — the request outcomes a client hears about. DECLINE COPY IS JACOB'S;
 // the placeholder is marked so it cannot ship unnoticed (the C40 gate asserts
 // the marker is gone before release).
-export function requestOutcomeEmail(kind: "declined" | "expired", locale: Locale, v: { when: string; practitioner: string }): Mail {
+// C40-C (2026-10-26, Jacob's activation request) — the decline copy is REAL
+// now, both locales; it replaced the labelled placeholder C40 shipped behind
+// the default-OFF setting. Warm, short, no reason given (the reason is hers to
+// give in person if she wants to), and a way back in.
+export function requestOutcomeEmail(kind: "declined" | "expired", locale: Locale, v: { when: string; practitioner: string; bookUrl?: string | null }): Mail {
   if (kind === "declined") {
+    const again = v.bookUrl ? (locale === "es" ? `\n\nSolicitar otro horario: ${v.bookUrl}` : `\n\nRequest another time: ${v.bookUrl}`) : "";
     return locale === "es"
-      ? { subject: `Sobre tu solicitud del ${v.when}`, text: `[JACOB — copia de rechazo. Marcador: "${v.practitioner} no puede tomar el ${v.when}. Puedes solicitar otro horario cuando quieras."]` }
-      : { subject: `About your request for ${v.when}`, text: `[JACOB — decline copy. Placeholder: "${v.practitioner} isn't able to take ${v.when}. You're welcome to request another time."]` };
+      ? { subject: `Sobre tu solicitud del ${v.when}`, text: `Gracias por pedir un horario. ${v.practitioner} no puede tomar el ${v.when}, así que ese horario volvió a quedar libre. Puedes solicitar otro que te funcione — con gusto.${again}` }
+      : { subject: `About your request for ${v.when}`, text: `Thank you for asking for a time. ${v.practitioner} isn't able to take ${v.when}, so that time has been released. You're very welcome to request another one that works for you.${again}` };
   }
   return locale === "es"
     ? { subject: `Tu solicitud del ${v.when} venció`, text: `Tu solicitud de sesión para el ${v.when} no recibió respuesta en 48 horas, así que ese horario volvió a quedar disponible. Puedes solicitar otro cuando quieras.` }

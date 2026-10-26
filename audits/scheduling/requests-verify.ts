@@ -22,6 +22,13 @@
 //  11  AppointmentStatus has 7 values, LeadStatus 6 (ruling 38)
 //  12  RULING 224 both states, both surfaces, both locales, rendered — not grepped from source
 //  13  the discovery path holds the slot too: two strangers, one slot, through /book
+//  14  C40-C (2026-10-26, Jacob's activation): APPROVE OR EDIT — approval at a
+//      different open time moves the row and confirms it (both paths); a time
+//      that is not open is refused "unavailable"; a taken time "conflict" and
+//      the request stays; the client's confirmation says FIRST that the time
+//      differs from the one they asked for; her request email carries a direct
+//      link; the decline copy is REAL in both locales and both paths (no
+//      "[JACOB" marker anywhere); her schedule renders the suggest-time control
 //
 // SCOPE is printed at the top of every run (ruling 208). Local build on :3186,
 // two throwaway tenants under c40.test, HTTP + in-process. NOT covered:
@@ -34,7 +41,7 @@ import { rawPrisma } from "../../lib/prisma-internal";
 import { withTenantScope } from "../../lib/tenancy/tenant-scope";
 import { AppointmentStatus, LeadStatus } from "@prisma/client";
 import { chromium, type Browser } from "playwright";
-const EXE = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
+import { CHROMIUM_EXE as EXE } from "../_fixtures/chromium";
 
 const PORT = 3186;
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -322,9 +329,67 @@ async function main(): Promise<void> {
     const p1dOn = await inT(() => channelsFor(NOTIFY_KEYS.reminder1dPractitioner));
     check("positive control: a row flips it — practitioner 1d = push only", p1dOn.push && !p1dOn.email);
 
-    // ---- outstanding, named, not a check ----
-    const { requestOutcomeEmail } = await import("../../lib/email-copy");
-    log(`\n~ decline copy is a labelled placeholder awaiting Jacob: ${requestOutcomeEmail("declined", "en", { when: "x", practitioner: "y" }).text.includes("[JACOB") ? "PRESENT (expected until he rules)" : "REPLACED"}`);
+    // ================= 14 — C40-C: approve or EDIT =================
+    log(`\n## 14 — approve at a different time; real decline copy; direct links`);
+    const { requestOutcomeEmail, sessionEmail } = await import("../../lib/email-copy");
+    const { readFileSync } = await import("fs");
+    for (const loc of ["en", "es"] as const) {
+      const d = requestOutcomeEmail("declined", loc, { when: "W", practitioner: "P", bookUrl: "http://x/space/schedule" });
+      check(`14: decline copy is REAL in ${loc} — no [JACOB marker, names the time and the practitioner, carries the way back in`, !d.text.includes("[JACOB") && d.text.includes("W") && d.text.includes("P") && d.text.includes("http://x/space/schedule"), d.text.slice(0, 80));
+    }
+    check("14: the discovery path's decline copy is real too (source carries no [JACOB marker)", !readFileSync("lib/discovery.ts", "utf8").includes("[JACOB") && !readFileSync("lib/email-copy.ts", "utf8").includes("[JACOB"));
+    const movedEn = sessionEmail("booked", "en", { when: "NEW", movedFrom: "OLD" });
+    const movedEs = sessionEmail("booked", "es", { when: "NUEVO", movedFrom: "VIEJO" });
+    check("14: a moved approval's confirmation says FIRST that the time differs (en + es), then the ordinary confirmation", movedEn.text.startsWith("You asked for OLD") && movedEn.text.includes("NEW") && movedEs.text.startsWith("Pediste el VIEJO") && movedEs.text.includes("NUEVO"));
+    check("14: positive control — an un-moved confirmation carries no such line", !sessionEmail("booked", "en", { when: "NEW" }).text.includes("You asked for"));
+    // session path: request slot F, approve at slot G (open) → moved + SCHEDULED
+    const fresh = (await inT(() => S.openSlots(pract.id, now, horizon, now, "SESSION"))).slots;
+    const slotF = fresh[fresh.length - 6].startAt, slotF_end = new Date(slotF.getTime() + config.sessionMinutes * 60000);
+    const slotG = fresh[fresh.length - 3].startAt;
+    const reqF = await inT(() => Ap.requestAppointment({ practitionerId: pract.id, clientId: A.id, startAt: slotF, endAt: slotF_end, bookedBy: "client", location: "VIRTUAL" }));
+    const mailF0 = mailCount(); const chargesF0 = await rawPrisma.charge.count({ where: { tenantId: T } });
+    const movedOk = await inT(() => Ap.approveRequest(reqF.ok ? reqF.appointment.id : "", pract.id, { startAt: slotG }));
+    const rowF = await rawPrisma.appointment.findUnique({ where: { id: reqF.ok ? reqF.appointment.id : "" } });
+    check("14 (session): approval at another OPEN time moves the row to that time and confirms it", movedOk.ok && rowF?.status === "SCHEDULED" && rowF.startAt.getTime() === slotG.getTime() && rowF.endAt.getTime() - rowF.startAt.getTime() === config.sessionMinutes * 60000, `${rowF?.status} ${rowF?.startAt.toISOString()}`);
+    check("14 (session): …running the identical booking tail — a charge and both parties' mail", (await rawPrisma.charge.count({ where: { tenantId: T } })) - chargesF0 === dChargeDirect && mailCount() - mailF0 === dMailDirect, `+${(await rawPrisma.charge.count({ where: { tenantId: T } })) - chargesF0} charge, ${mailCount() - mailF0} mail`);
+    check("14 (session): …and the requested time is offered again", (await inT(() => S.openSlots(pract.id, now, horizon, now, "SESSION"))).slots.some((x) => x.startAt.getTime() === slotF.getTime()));
+    // unavailable: 03:00 is never on her grid
+    const slotH = fresh[fresh.length - 9].startAt, slotH_end = new Date(slotH.getTime() + config.sessionMinutes * 60000);
+    const reqH = await inT(() => Ap.requestAppointment({ practitionerId: pract.id, clientId: B.id, startAt: slotH, endAt: slotH_end, bookedBy: "client", location: "VIRTUAL" }));
+    const offGrid = new Date(slotH); offGrid.setUTCHours(3, 0, 0, 0); offGrid.setUTCDate(offGrid.getUTCDate() + 1);
+    const unav = await inT(() => Ap.approveRequest(reqH.ok ? reqH.appointment.id : "", pract.id, { startAt: offGrid }));
+    check("14 (session): a time NOT on her grid is refused 'unavailable' and the request stays REQUESTED", !unav.ok && unav.error === "unavailable" && (await rawPrisma.appointment.findUnique({ where: { id: reqH.ok ? reqH.appointment.id : "" } }))?.status === "REQUESTED");
+    // conflict: a SCHEDULED row lands on the chosen time first
+    const slotI = fresh[fresh.length - 12].startAt;
+    await rawPrisma.appointment.create({ data: { tenantId: T, practitionerId: pract.id, kind: "SESSION", startAt: slotI, endAt: new Date(slotI.getTime() + config.sessionMinutes * 60000), status: "SCHEDULED", bookedBy: "client", externalProvider: "calendly", externalId: "c40c-taken" } });
+    const conf = await inT(() => Ap.approveRequest(reqH.ok ? reqH.appointment.id : "", pract.id, { startAt: slotI }));
+    // INSTRUMENT NOTE: a time another booking took is refused by the GRID check
+    // first ("unavailable" — the slot is busy, so it is not open), and only a
+    // same-instant race or a buffer overlap reaches hasConflict ("conflict").
+    // A first draft expected "conflict" here and read a correct refusal as a
+    // failure. Either word is the right outcome: refused, request untouched.
+    check("14 (session): a time taken meanwhile is REFUSED (unavailable — her grid already shows it busy) and the request stays", !conf.ok && (conf.error === "unavailable" || conf.error === "conflict") && (await rawPrisma.appointment.findUnique({ where: { id: reqH.ok ? reqH.appointment.id : "" } }))?.status === "REQUESTED", `${conf.ok ? "ok" : conf.error}`);
+    check("14 (session): positive control — approving the SAME request at its own time still works", (await inT(() => Ap.approveRequest(reqH.ok ? reqH.appointment.id : "", pract.id))).ok);
+    // discovery path
+    await setApproval(true);
+    const dFresh = (await inT(() => S.openSlots(pract.id, now, horizon, now, "DISCOVERY"))).slots;
+    const dReq = await inT(() => D.requestDiscoveryCall({ name: "Moved Mo", email: "mo@c40.stranger.test", startAt: dFresh[dFresh.length - 4].startAt, baseUrl: "http://c40.test" }));
+    const dNew = dFresh[dFresh.length - 2].startAt;
+    const dOk = await inT(() => D.approveDiscoveryRequest(dReq.ok ? dReq.appointmentId : "", pract.id, "http://c40.test", dNew));
+    const dRow = await rawPrisma.appointment.findUnique({ where: { id: dReq.ok ? dReq.appointmentId : "" } });
+    const dLead = await rawPrisma.lead.findFirst({ where: { tenantId: T, email: "mo@c40.stranger.test" } });
+    check("14 (discovery): approval at another open time moves the call, confirms it, and the Lead reads SCHEDULED", dOk.ok && dRow?.status === "SCHEDULED" && dRow.startAt.getTime() === dNew.getTime() && dLead?.status === "SCHEDULED", `${dRow?.status} lead=${dLead?.status}`);
+    const dReq2 = await inT(() => D.requestDiscoveryCall({ name: "Off Grid", email: "og@c40.stranger.test", startAt: dFresh[dFresh.length - 6].startAt, baseUrl: "http://c40.test" }));
+    const dUnav = await inT(() => D.approveDiscoveryRequest(dReq2.ok ? dReq2.appointmentId : "", pract.id, "http://c40.test", offGrid));
+    check("14 (discovery): a time not on the discovery grid is refused 'unavailable'; the request stays", !dUnav.ok && dUnav.error === "unavailable" && (await rawPrisma.appointment.findUnique({ where: { id: dReq2.ok ? dReq2.appointmentId : "" } }))?.status === "REQUESTED");
+    // the practitioner's request emails carry a direct link (source-level: both composers)
+    const apptSrc = readFileSync("lib/appointments.ts", "utf8"), discSrc = readFileSync("lib/discovery.ts", "utf8");
+    check("14: both request emails to her carry the direct link to /practitioner/schedule#requests and name the third option", /suggest another time here:\\n\$\{getBaseUrlSafe\(\)\}\/practitioner\/schedule#requests/.test(apptSrc) && /suggest another time here:\\n\$\{baseUrl\}\/practitioner\/schedule#requests/.test(discSrc));
+    // her schedule renders the control for a pending request
+    const cookieP = await signIn("pract@c40a.fixture.test");
+    const sched14 = await (await fetch(`${BASE}/practitioner/schedule`, { headers: { "x-forwarded-host": HOST, Cookie: cookieP } })).text();
+    const options14 = (sched14.match(/<option value="20\d\d-/g) ?? []).length;
+    check("14: her schedule renders 'Suggest another time' for the pending request, with her open grid as options", /data-c40="suggest-time"/.test(sched14) && /Approve at this time/.test(sched14) && options14 > 0, `${options14} options`);
   } finally {
     try { server.kill(); } catch { /* */ }
     try { execSync(`fuser -k ${PORT}/tcp 2>/dev/null || true`, { stdio: "ignore" }); } catch { /* */ }

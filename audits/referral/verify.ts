@@ -6,6 +6,7 @@ import { chromium, type Browser, type BrowserContext } from "playwright";
 import { rawPrisma as prisma } from "../../lib/prisma-internal";
 
 import { seedLocalDomains } from "../_fixtures/local-domains";
+import { CHROMIUM_EXE } from "../_fixtures/chromium";
 // C23-REFERRAL acceptance — attribution and the reason to share, in a real
 // browser against the BUILT app. Proves, per the spec's Verify list:
 //   1  a code resolves to its owner; counts split LEAD vs SIGNED_UP across a
@@ -34,7 +35,7 @@ import { seedLocalDomains } from "../_fixtures/local-domains";
 const PORT = 3127;
 const BASE = `http://localhost:${PORT}`;
 const PLATFORM_DOMAIN = "platform.test";
-const EXEC = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
+const EXEC = CHROMIUM_EXE;
 const DEFAULT_TENANT_ID = "tnt_valentina_000000001";
 
 const ADMIN_EMAIL = "referral-admin@fixture.test";

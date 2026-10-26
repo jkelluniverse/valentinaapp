@@ -41,10 +41,11 @@ import { writeFileSync, mkdirSync } from "fs";
 import { chromium } from "playwright";
 
 import { seedLocalDomains } from "./_fixtures/local-domains";
+import { CHROMIUM_EXE } from "./_fixtures/chromium";
 const PORT = 3152;
 const SINK_PORT = 3153;
 const PLATFORM_DOMAIN = "psx.test";
-const EXEC = "/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell";
+const EXEC = CHROMIUM_EXE;
 const SLUG_B = "t26probeb";
 const HOST_B = `${SLUG_B}.${PLATFORM_DOMAIN}`;
 const HOST_UNKNOWN = `t26nosuch.${PLATFORM_DOMAIN}`;
